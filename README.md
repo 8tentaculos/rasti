@@ -26,7 +26,7 @@ class TodoView extends View {
 #### Using `<script>` tag
 
 ```html
-<script src="https://unpkg.com/rasti/"></script>
+<script src="https://unpkg.com/rasti/dist/rasti.min.js"></script>
 ```
 
 ```javascript
