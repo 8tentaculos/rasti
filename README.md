@@ -4,8 +4,8 @@ Rasti is lightweight JavaScript MV framework for building user interfaces.
 It gives structure to applications by providing models that emit events on properties changes, and views with declarative event handling to define UI components.
 Rasti is inspired in Backbone. You can consider it as an ES6 version with no underscore or jQuery dependencies of Backbone's model and view.
 It's ideal for building simple applications without the need of a module bundler, config or boilerplate.
-The project is [hosted on GitHub](#), and it's available for use under the [MIT](LICENSE.md) software license.
-You can report bugs and discuss features on the [GitHub issues page](#).
+The project is [hosted on GitHub](https://github.com/8tentaculos/rasti), and it's available for use under the [MIT](LICENSE.md) software license.
+You can report bugs and discuss features on the [GitHub issues page](https://github.com/8tentaculos/rasti/issues).
 
 ## Installation
 
@@ -39,7 +39,7 @@ The rasti npm package includes precompiled production and development UMD builds
 
 ## Example
 
-The rasti npm package includes, in the example folder, a [vanila js](#) and a [webpack](#) versions of a [Todo app](example/todo/) that can be used as starter project.
+The rasti npm package includes, in the example folder, a [vanila js](https://github.com/8tentaculos/rasti/tree/master/example/todo) and a [webpack](https://github.com/8tentaculos/rasti/tree/master/example/todo-webpack) versions of a [Todo app](example/todo/) that can be used as starter project.
 
 ## API
 
