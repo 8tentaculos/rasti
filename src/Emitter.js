@@ -2,7 +2,7 @@
  * Emitter is a class that can be extended giving the subclass the ability to bind and emit custom named events. Model and View inherits from it.
  * @module
  * @example
- * import Emitter from 'rasti';
+ * import { Emitter } from 'rasti';
  * 
  * class Model extends Emitter {
  * 

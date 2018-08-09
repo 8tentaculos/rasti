@@ -1,4 +1,4 @@
-import Model from '../../../es/Model';
+import { Model } from 'rasti';
 
 // Todo model
 class TodoModel extends Model {

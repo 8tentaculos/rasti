@@ -1,4 +1,4 @@
-import View from '../../../es/View';
+import { View } from 'rasti';
 
 // Todo ui
 class TodoView extends View {

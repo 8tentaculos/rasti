@@ -1,4 +1,4 @@
-import View from '../../../es/View';
+import { View } from 'rasti';
 
 // Stats ui
 class StatsView extends View {

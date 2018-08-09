@@ -16,7 +16,7 @@ npm install --save rasti
 ```
 
 ```javascript
-import View from 'rasti';
+import { View } from 'rasti';
 
 class TodoView extends View {
     

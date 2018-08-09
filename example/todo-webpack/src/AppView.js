@@ -1,4 +1,4 @@
-import View from '../../../es/View';
+import { View } from 'rasti';
 
 import TodoView from './TodoView';
 import StatsView from './StatsView';

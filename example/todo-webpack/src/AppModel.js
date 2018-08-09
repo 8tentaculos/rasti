@@ -1,4 +1,4 @@
-import Emitter from '../../../es/Emitter';
+import { Emitter } from 'rasti';
 
 // App state and methods
 class AppModel extends Emitter {
