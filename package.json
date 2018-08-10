@@ -21,7 +21,12 @@
     "build:es": "cross-env BABEL_ENV=es babel src --out-dir es",
     "build:umd": "cross-env BABEL_ENV=commonjs NODE_ENV=development webpack",
     "build:umd:min": "cross-env BABEL_ENV=commonjs NODE_ENV=production webpack",
-    "docs:api": "jsdoc2md --files src/**/*.js > docs/api.md"
+    "docs:api": "jsdoc2md --files src/**/*.js > docs/api.md",
+    "docs:clean": "rimraf _book tmp-*",
+    "docs:prepare": "gitbook install",
+    "docs:build": "npm run docs:prepare && gitbook build",
+    "docs:serve": "npm run docs:prepare && gitbook serve",
+    "docs:publish": "npm run docs:clean && npm run docs:build && cd _book && git init && git commit --allow-empty -m 'Updated book.' && git checkout -b gh-pages && touch .nojekyll && git add . && git commit -m 'Updated book.' && git push https://github.com/8tentaculos/rasti.git gh-pages --force"
   },
   "repository": "github:8tentaculos/rasti",
   "homepage": "http://rasti.js.org",
@@ -64,6 +69,7 @@
     "chai": "^4.1.2",
     "cross-env": "^5.2.0",
     "eslint": "^5.2.0",
+    "gitbook-cli": "^2.3.2",
     "jsdoc-to-markdown": "^4.0.1",
     "jsdom": "11.11.0",
     "jsdom-global": "3.0.2",
