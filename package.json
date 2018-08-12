@@ -1,7 +1,7 @@
 {
   "name": "rasti",
   "version": "0.0.2",
-  "description": "Lightweight JavaScript MV framework for building user interfaces.",
+  "description": "Minimalistic JavaScript MV framework for building user interfaces.",
   "main": "lib/index.js",
   "jsnext:main": "es/index.js",
   "files": [
@@ -21,7 +21,7 @@
     "build:es": "cross-env BABEL_ENV=es babel src --out-dir es",
     "build:umd": "cross-env BABEL_ENV=commonjs NODE_ENV=development webpack",
     "build:umd:min": "cross-env BABEL_ENV=commonjs NODE_ENV=production webpack",
-    "docs:api": "jsdoc2md --files src/**/*.js > docs/api.md",
+    "docs:api": "jsdoc2md --module-index-format none --partial header.hbs --files src/**/*.js > docs/api.md",
     "docs:clean": "rimraf _book tmp-*",
     "docs:prepare": "gitbook install",
     "docs:build": "npm run docs:prepare && gitbook build",
@@ -70,6 +70,7 @@
     "cross-env": "^5.2.0",
     "eslint": "^5.2.0",
     "gitbook-cli": "^2.3.2",
+    "gitbook-plugin-toolbar": "^0.6.0",
     "jsdoc-to-markdown": "^4.0.1",
     "jsdom": "11.11.0",
     "jsdom-global": "3.0.2",

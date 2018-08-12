@@ -1,4 +1,15 @@
 # Summary
-
-* [Introduction](README.md)
+### rasti 0.0.2
+* [Introduction](README.md#)
+* [Getting started](README.md#getting-started)
+* [Example](README.md#example)
+    * [Todo app vanila js version](https://github.com/8tentaculos/rasti/tree/master/example/todo)
+    * [Todo app webpack version](https://github.com/8tentaculos/rasti/tree/master/example/todo-webpack)
+    * [Todo app demo](http://rasti.js.org/example/todo/index.html)
 * [API documentation](docs/api.md)
+    * [Emitter](docs/api.md#module_Emitter)
+    * [Model](docs/api.md#module_Model)
+    * [View](docs/api.md#module_View)
+* [GitHub](https://github.com/8tentaculos/rasti)
+* [NPM](https://www.npmjs.com/package/rasti)
+* [MIT License](LICENSE.md)

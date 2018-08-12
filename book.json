@@ -1,0 +1,26 @@
+{
+  "gitbook":   "3.2.2",
+  "root":      ".",
+  "structure": { 
+    "readme":  "README.md",
+    "summary": "SUMMARY.md" 
+  },
+  "author": "Alberto Masuelli <alberto.masuelli@gmail.com> (https://github.com/8tentaculos)",
+  "plugins": ["-sharing", "-livereload", "toolbar"],
+  "pluginsConfig": {
+    "toolbar": {
+      "buttons": [
+          {
+            "label": "GitHub",
+            "icon": "fa fa-github",
+            "url": "https://github.com/8tentaculos/rasti"
+          },
+          {
+            "label": "NPM",
+            "icon": "fa fa-bullseye",
+            "url": "https://www.npmjs.com/package/rasti"
+          }
+      ]
+    }
+  }
+}

@@ -1,23 +1,29 @@
 /**
- * Emitter is a class that can be extended giving the subclass the ability to bind and emit custom named events. Model and View inherits from it.
+ * Emitter is a class that can be extended giving the subclass the ability to emit 
+ * and bind custom named events. Model and View inherits from it.
  * @module
  * @example
  * import { Emitter } from 'rasti';
- * 
- * class Model extends Emitter {
- * 
+ * // Define App class, inherits from Emitter.
+ * class App extends Emitter {
+ *     constructor() {
+ *         super()
+ *         // Fetch data and emit `ready` event.
+ *         fetch('/api/init').then(() => this.emit('ready')); 
+ *     }
  * }
- * 
- * const model = new Model();
- * 
- * model.on('hello', () => console.log('world!'));
- * model.emit('hello'); // world!
+ * // Instantiate App.
+ * const app = new App();
+ * // Add event listener to ready event.
+ * app.on('ready', () => console.log('app is ready!'));
  */
 export default class Emitter {
     /**
-     * Add event listener.
-     * @param {string} type
-     * @param {function} listener
+     * Adds event listener.
+     * @param {string} type Type of the event (e.g. `change`).
+     * @param {function} listener Callback function to be called when the event is emited.
+     * @example
+     * this.model.on('change', this.render.bind(this)); // Re render when model changes.
      */
     on(type, listener) {
         if (typeof listener !== 'function') {
@@ -31,9 +37,11 @@ export default class Emitter {
     }
 
     /**
-     * Add event listener that executes once.
-     * @param {string} type
-     * @param {function} listener
+     * Adds event listener that executes once.
+     * @param {string} type Type of the event (e.g. `change`).
+     * @param {function} listener Callback function to be called when the event is emited.
+     * @example
+     * this.model.once('change', () => console.log('This will happen once'));
      */
     once(type, listener) {
         if (typeof listener === 'function') {
@@ -50,10 +58,10 @@ export default class Emitter {
 
     /**
      * Removes event listeners.
-     * If is not provided, it removes all listeners.
-     * If listener is not provided, it removes all listeners for specified type.
-     * @param {string} [type]
-     * @param {function} [listener]
+     * @param {string} [type] Type of the event (e.g. `change`). If is not provided, it removes all listeners.
+     * @param {function} [listener] Callback function to be called when the event is emited. If listener is not provided, it removes all listeners for specified type.
+     * @example
+     * this.model.off('change'); // Stop listening to changes.
      */
     off(type, listener) {
         if (!type) {
@@ -80,8 +88,10 @@ export default class Emitter {
 
     /**
      * Emits event of specified type. Listeners will receive specified arguments.
-     * @param {string} type
-     * @param args
+     * @param {string} type Type of the event (e.g. `change`).
+     * @param {any} [...args] Arguments to be passed to listener.
+     * @example
+     * this.emit('invalid'); // Emit validation error event.
      */
     emit(type, ...args) {
         let listeners = this.listeners && this.listeners[type];
@@ -97,8 +107,10 @@ export default class Emitter {
 
     /**
      * Emits event of specified type asynchronously. Listeners will receive specified arguments.
-     * @param {string} type
-     * @param args
+     * @param {string} type Type of the event (e.g. `change`).
+     * @param {any} [...args] Arguments to be passed to listener.
+     * @example
+     * this.emitAsync('invalid'); // Emit validation error event.
      */
     emitAsync(type, ...args) {
         var self = this;

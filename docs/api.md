@@ -1,238 +1,364 @@
-## Modules
 
-<dl>
-<dt><a href="#module_Emitter">Emitter</a></dt>
-<dd><p>Emitter is a class that can be extended giving the subclass the ability to bind and emit custom named events. Model and View inherits from it.</p>
-</dd>
-<dt><a href="#module_Model">Model</a></dt>
-<dd><p>Orchestrates data and business logic.
-Emits events when data changes.
-A Model manages an internal table of data attributes, and triggers &quot;change&quot; events when any of its data is modified. Models may handle syncing data with a persistence layer. Design your models as the atomic reusable objects containing all of the helpful functions for manipulating their particular bit of data. Models should be able to be passed around throughout your app, and used anywhere that bit of data is needed.</p>
-</dd>
-<dt><a href="#module_View">View</a></dt>
-<dd><p>Listens for changes and renders UI.
-Handles user input and interactivity.
-Sends captured input to the model.
-A View is an atomic chunk of user interface. It often renders the data from a specific model, or number of models, but views can also be data-less chunks of UI that stand alone. Models must be unaware of views. Instead, views listen to the model &quot;change&quot; events, and react or re-render themselves appropriately.</p>
-</dd>
-</dl>
-
-<a name="module_Emitter"></a>
+<a name="module_Emitter" id="module_Emitter"></a>
 
 ## Emitter
-Emitter is a class that can be extended giving the subclass the ability to bind and emit custom named events. Model and View inherits from it.
+Emitter is a class that can be extended giving the subclass the ability to emit 
+and bind custom named events. Model and View inherits from it.
 
 **Example**  
 ```js
-import Emitter from 'rasti';
-
-class Model extends Emitter {
-
+import { Emitter } from 'rasti';
+// Define App class, inherits from Emitter.
+class App extends Emitter {
+    constructor() {
+        super()
+        // Fetch data and emit `ready` event.
+        fetch('/api/init').then(() => this.emit('ready')); 
+    }
 }
-
-const model = new Model();
-
-model.on('hello', () => console.log('world!'));
-model.emit('hello'); // world!
+// Instantiate App.
+const app = new App();
+// Add event listener to ready event.
+app.on('ready', () => console.log('app is ready!'));
 ```
 
 * [Emitter](#module_Emitter)
     * [.on(type, listener)](#module_Emitter+on)
     * [.once(type, listener)](#module_Emitter+once)
     * [.off([type], [listener])](#module_Emitter+off)
-    * [.emit(type, ...args)](#module_Emitter+emit)
-    * [.emitAsync(type, ...args)](#module_Emitter+emitAsync)
+    * [.emit(type)](#module_Emitter+emit)
+    * [.emitAsync(type)](#module_Emitter+emitAsync)
 
-<a name="module_Emitter+on"></a>
+
+<a name="module_Emitter+on" id="module_Emitter+on"></a>
 
 ### emitter.on(type, listener)
-Add event listener.
+Adds event listener.
 
 **Kind**: instance method of [<code>Emitter</code>](#module_Emitter)  
 
-| Param | Type |
-| --- | --- |
-| type | <code>string</code> | 
-| listener | <code>function</code> | 
+| Param | Type | Description |
+| --- | --- | --- |
+| type | <code>string</code> | Type of the event (e.g. `change`). |
+| listener | <code>function</code> | Callback function to be called when the event is emited. |
 
-<a name="module_Emitter+once"></a>
+**Example**  
+```js
+this.model.on('change', this.render.bind(this)); // Re render when model changes.
+```
+
+<a name="module_Emitter+once" id="module_Emitter+once"></a>
 
 ### emitter.once(type, listener)
-Add event listener that executes once.
+Adds event listener that executes once.
 
 **Kind**: instance method of [<code>Emitter</code>](#module_Emitter)  
 
-| Param | Type |
-| --- | --- |
-| type | <code>string</code> | 
-| listener | <code>function</code> | 
+| Param | Type | Description |
+| --- | --- | --- |
+| type | <code>string</code> | Type of the event (e.g. `change`). |
+| listener | <code>function</code> | Callback function to be called when the event is emited. |
 
-<a name="module_Emitter+off"></a>
+**Example**  
+```js
+this.model.once('change', () => console.log('This will happen once'));
+```
+
+<a name="module_Emitter+off" id="module_Emitter+off"></a>
 
 ### emitter.off([type], [listener])
 Removes event listeners.
-If is not provided, it removes all listeners.
-If listener is not provided, it removes all listeners for specified type.
 
 **Kind**: instance method of [<code>Emitter</code>](#module_Emitter)  
 
-| Param | Type |
-| --- | --- |
-| [type] | <code>string</code> | 
-| [listener] | <code>function</code> | 
+| Param | Type | Description |
+| --- | --- | --- |
+| [type] | <code>string</code> | Type of the event (e.g. `change`). If is not provided, it removes all listeners. |
+| [listener] | <code>function</code> | Callback function to be called when the event is emited. If listener is not provided, it removes all listeners for specified type. |
 
-<a name="module_Emitter+emit"></a>
+**Example**  
+```js
+this.model.off('change'); // Stop listening to changes.
+```
 
-### emitter.emit(type, ...args)
+<a name="module_Emitter+emit" id="module_Emitter+emit"></a>
+
+### emitter.emit(type)
 Emits event of specified type. Listeners will receive specified arguments.
 
 **Kind**: instance method of [<code>Emitter</code>](#module_Emitter)  
 
-| Param | Type |
-| --- | --- |
-| type | <code>string</code> | 
-| ...args |  | 
+| Param | Type | Description |
+| --- | --- | --- |
+| type | <code>string</code> | Type of the event (e.g. `change`). |
+| [...args] | <code>any</code> | Arguments to be passed to listener. |
 
-<a name="module_Emitter+emitAsync"></a>
+**Example**  
+```js
+this.emit('invalid'); // Emit validation error event.
+```
 
-### emitter.emitAsync(type, ...args)
+<a name="module_Emitter+emitAsync" id="module_Emitter+emitAsync"></a>
+
+### emitter.emitAsync(type)
 Emits event of specified type asynchronously. Listeners will receive specified arguments.
 
 **Kind**: instance method of [<code>Emitter</code>](#module_Emitter)  
 
-| Param | Type |
-| --- | --- |
-| type | <code>string</code> | 
-| ...args |  | 
+| Param | Type | Description |
+| --- | --- | --- |
+| type | <code>string</code> | Type of the event (e.g. `change`). |
+| [...args] | <code>any</code> | Arguments to be passed to listener. |
 
-<a name="module_Model"></a>
+**Example**  
+```js
+this.emitAsync('invalid'); // Emit validation error event.
+```
+
+<a name="module_Model" id="module_Model"></a>
 
 ## Model
-Orchestrates data and business logic.
-Emits events when data changes.
-A Model manages an internal table of data attributes, and triggers "change" events when any of its data is modified. Models may handle syncing data with a persistence layer. Design your models as the atomic reusable objects containing all of the helpful functions for manipulating their particular bit of data. Models should be able to be passed around throughout your app, and used anywhere that bit of data is needed.
+- Orchestrates data and business logic.
+- Emits events when data changes.
 
+A Model manages an internal table of data attributes, and triggers "change" events 
+when any of its data is modified.<br />
+Models may handle syncing data with a persistence layer.<br />
+Design your models as the atomic reusable objects containing all of the helpful functions for 
+manipulating their particular bit of data.<br /> 
+Models should be able to be passed around throughout your app, and used anywhere that bit of data is needed.<br />
+Rasti Models stores its attributes in `this.attributes`, which is extended from `this.defaults` and constructor `attrs` parameter.
+For every attribute, a getter is generated, which retrieve the model property from `this.attributes`.
+And a setter, which sets the model property in `this.attributes` and emits `change` and `change:attribute` events.
+
+
+| Param | Type | Description |
+| --- | --- | --- |
+| attrs | <code>object</code> | Object containing model attributes to extend `this.attributes`. Getters and setters are generated for `this.attributtes`, in order to emit `change` events. |
+
+**Example**  
+```js
+// Todo model
+class TodoModel extends Rasti.Model {
+    toggle() {
+        // Set completed property. This will call a setter that will set `completed` 
+        // in this.attributes, and emit `change` and `change:completed` events.
+        this.completed = !this.completed; 
+    }
+}
+// Todo model has `title` and `completed` default attributes. `defaults` will extend `this.attributes`. Getters and setters are generated for `this.attributtes`, in order to emit `change` events.
+TodoModel.prototype.defaults = {
+    title : '',
+    completed : false
+};
+// Create todo. Pass `title` attribute as argument.
+const todo = new TodoModel({ title : 'Learn Rasti' });
+// Listen to `change:completed` event.
+todo.on('change:completed', () => console.log('Completed:', todo.completed));
+// Complete todo.
+todo.toggle(); // Completed: true
+```
 
 * [Model](#module_Model)
     * [.defineAttribute(key)](#module_Model+defineAttribute)
-    * [.get(key)](#module_Model+get)
-    * [.set(key, value)](#module_Model+set)
+    * [.get(key)](#module_Model+get) ⇒ <code>any</code>
+    * [.set(key, [value])](#module_Model+set) ⇒ <code>this</code>
+    * [.toJSON()](#module_Model+toJSON) ⇒ <code>object</code>
 
-<a name="module_Model+defineAttribute"></a>
+
+<a name="module_Model+defineAttribute" id="module_Model+defineAttribute"></a>
 
 ### model.defineAttribute(key)
-Generate getter/setter for the given key.
+Generate getter/setter for the given key. In order to emit `change` events.
 This method is called internally by the constructor
-for this.attributes.
+for `this.attributes`.
 
 **Kind**: instance method of [<code>Model</code>](#module_Model)  
 
-| Param | Type |
-| --- | --- |
-| key | <code>string</code> | 
+| Param | Type | Description |
+| --- | --- | --- |
+| key | <code>string</code> | Attribute key. |
 
-<a name="module_Model+get"></a>
 
-### model.get(key)
-Get an attribute from "this.attributes".
+<a name="module_Model+get" id="module_Model+get"></a>
+
+### model.get(key) ⇒ <code>any</code>
+Get an attribute from `this.attributes`.
 This method is called internally by generated getters.
 
 **Kind**: instance method of [<code>Model</code>](#module_Model)  
+**Returns**: <code>any</code> - The attribute value.  
 
-| Param | Type |
-| --- | --- |
-| key | <code>string</code> | 
+| Param | Type | Description |
+| --- | --- | --- |
+| key | <code>string</code> | Attribute key. |
 
-<a name="module_Model+set"></a>
 
-### model.set(key, value)
-Set an attribute into "this.attrs".
-Emit "change" and "change:key" if value change.
-Could be called in two forms, "this.set('key', value)" and
-"this.set({ key : value })".
- This method is called internally by generated setters.
+<a name="module_Model+set" id="module_Model+set"></a>
+
+### model.set(key, [value]) ⇒ <code>this</code>
+Set an attribute into `this.attributes`.
+Emit `change` and `change:attribute` if value change.
+Could be called in two forms, `this.set('key', value)` and
+`this.set({ key : value })`.
+This method is called internally by generated setters.
 
 **Kind**: instance method of [<code>Model</code>](#module_Model)  
+**Returns**: <code>this</code> - This model.  
+**Emits**: <code>event:change</code>, <code>change:attribute</code>  
 
-| Param | Type |
-| --- | --- |
-| key | <code>string</code> \| <code>object</code> | 
-| value |  | 
+| Param | Type | Description |
+| --- | --- | --- |
+| key | <code>string</code> | Attribute key or object containing keys/values. |
+| [value] |  | Attribute value. |
 
-<a name="module_View"></a>
+
+<a name="module_Model+toJSON" id="module_Model+toJSON"></a>
+
+### model.toJSON() ⇒ <code>object</code>
+Return object representation of the model to be used for JSON serialization.
+By default returns `this.attributes`.
+
+**Kind**: instance method of [<code>Model</code>](#module_Model)  
+**Returns**: <code>object</code> - Object representation of the model to be used for JSON serialization.  
+
+<a name="module_View" id="module_View"></a>
 
 ## View
-Listens for changes and renders UI.
-Handles user input and interactivity.
-Sends captured input to the model.
-A View is an atomic chunk of user interface. It often renders the data from a specific model, or number of models, but views can also be data-less chunks of UI that stand alone. Models must be unaware of views. Instead, views listen to the model "change" events, and react or re-render themselves appropriately.
+- Listens for changes and renders UI.
+- Handles user input and interactivity.
+- Sends captured input to the model.
 
+A View is an atomic chunk of user interface. It often renders the data from a specific model, 
+or number of models, but views can also be data-less chunks of UI that stand alone.<br /> 
+Models must be unaware of views. Instead, views listen to the model "change" events, 
+and react or re-render themselves appropriately.<br />
+Views has a root element, `this.el`. That element is used for event delegation. Elements lookups are scoped to that element. And render and dom manipulations should be done inside that element. 
+If `this.el` is not present, and element will be created using `this.tag` (or `div` as default), and `this.attributes`.
+The following options passed to the constructor are exrended to `this`.
+
+
+| Param | Type | Description |
+| --- | --- | --- |
+| options | <code>object</code> | Object containing options, that will extend `this`. |
+| options.el | <code>node</code> | Every view has a root element, `this.el`. If not present it will be created. |
+| options.tag | <code>string</code> | If `this.el` is not present, an element will be created using `this.tag`. Default is `div`. |
+| options.attributes | <code>object</code> | If`this.el` is not present, an element will be created using `this.attributes`. |
+| options.events | <code>object</code> | Object in the format `{'event selector' : 'listener"'}`. Used to bind delegated event listeners to root element. |
+| options.model | <code>object</code> | A `Rasti.Model` or any object containing data and business logic. |
+| options.template | <code>function</code> | A function that receives data and returns a markup string (html or something). |
+| onDestroy | <code>function</code> | Lifecycle method. Called after view is destroyed. |
+
+**Example**  
+```js
+// Counter view.
+class CounterView extends View {
+    constructor(options) {
+        super(options);
+        // Bind method to `this`, to be called as listener.
+        this.render = this.render.bind(this);
+        // Listen to model change and re render.
+        this.model.on('change:count', this.render);
+    }
+    onDestroy() {
+        // Unbind events when destroyed.
+        this.model.off('change:count', this.render);
+    }
+    // Listener method. Called when button is clicked.
+    onClickIncrement() {
+        // Increment count on model.
+        this.model.count = this.model.count + 1;
+    }
+}
+Object.assign(CounterView.prototype, {
+    // Set delegated events.
+    // Call `onClickIncrement` when button is clicked.
+    events : {
+        'click button' : 'onClickIncrement'
+    },
+    // View's template.
+    template : (model) => `
+        <div>The count is: ${model.count}</div>
+        <button>Increment</button>
+    `
+});
+// Model.
+const model = new Model({ count : 0 });
+// Instantiate CounterView.
+const counterView = new CounterView({ model });
+// Add to DOM.
+document.body.innerHTML = counterView.render().el;
+```
 
 * [View](#module_View)
     * [.$(selector)](#module_View+$) ⇒ <code>node</code>
-    * [.$$(selector)](#module_View+$$) ⇒ <code>nodeList</code>
-    * [.destroy(options)](#module_View+destroy)
-    * [.onDestroy(options)](#module_View+onDestroy)
+    * [.$$(selector)](#module_View+$$) ⇒ <code>Array.&lt;node&gt;</code>
+    * [.destroy()](#module_View+destroy)
+    * [.onDestroy()](#module_View+onDestroy)
     * [.addChild(child)](#module_View+addChild) ⇒ <code>Rasti.View</code>
     * [.destroyChildren()](#module_View+destroyChildren)
     * [.createElement(tag, attrs)](#module_View+createElement) ⇒ <code>node</code>
     * [.removeElement()](#module_View+removeElement)
-    * [.delegateEvents(events)](#module_View+delegateEvents)
+    * [.delegateEvents([events])](#module_View+delegateEvents)
     * [.undelegateEvents()](#module_View+undelegateEvents)
     * [.render()](#module_View+render) ⇒ <code>Rasti.View</code>
 
-<a name="module_View+$"></a>
+
+<a name="module_View+$" id="module_View+$"></a>
 
 ### view.$(selector) ⇒ <code>node</code>
-Element lookup, scoped to DOM elements within the
-current view's root element ("this.element").
+Returns the first element that match the selector, 
+scoped to DOM elements within the current view's root element (`this.el`).
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
+**Returns**: <code>node</code> - Element matching selector within the view's root element (`this.el`).  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| selector | <code>string</code> | css selector |
+| selector | <code>string</code> | CSS selector. |
 
-<a name="module_View+$$"></a>
 
-### view.$$(selector) ⇒ <code>nodeList</code>
-Element lookup, scoped to DOM elements within the
-current view's root element ("this.element").
+<a name="module_View+$$" id="module_View+$$"></a>
+
+### view.$$(selector) ⇒ <code>Array.&lt;node&gt;</code>
+Returns a list of elements that match the selector, 
+scoped to DOM elements within the current view's root element (`this.el`).
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
+**Returns**: <code>Array.&lt;node&gt;</code> - List of elements matching selector within the view's root element (`this.el`).  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| selector | <code>string</code> | css selector |
+| selector | <code>string</code> | CSS selector. |
 
-<a name="module_View+destroy"></a>
 
-### view.destroy(options)
+<a name="module_View+destroy" id="module_View+destroy"></a>
+
+### view.destroy()
 Destroy the view.
-Pass options.remove as true to remove element.
+Destroy children views if any, undelegate events, stop listening to events, call `onDestroy` lifecycle method.
+Pass options.remove as true to remove the view's root element (`this.el`) from the DOM.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
 
-| Param | Type |
-| --- | --- |
-| options | <code>object</code> | 
+| Param | Type | Description |
+| --- | --- | --- |
+| options.remove | <code>object</code> | Remove the view's root element (`this.el`) from the DOM. |
 
-<a name="module_View+onDestroy"></a>
 
-### view.onDestroy(options)
-"onDestroy" lifecycle method.
-Called after view is destroyed..
+<a name="module_View+onDestroy" id="module_View+onDestroy"></a>
+
+### view.onDestroy()
+`onDestroy` lifecycle method is called after view is destroyed.
+Override with your code. Useful to stop listening to model's events.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
 
-| Param | Type |
-| --- | --- |
-| options | <code>object</code> | 
-
-<a name="module_View+addChild"></a>
+<a name="module_View+addChild" id="module_View+addChild"></a>
 
 ### view.addChild(child) ⇒ <code>Rasti.View</code>
 Add a view as a child.
+Children views are stored at `this.children`, and destroyed when the parent is destroyed.
 Returns the child for chaining.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
@@ -241,62 +367,73 @@ Returns the child for chaining.
 | --- | --- |
 | child | <code>Rasti.View</code> | 
 
-<a name="module_View+destroyChildren"></a>
+
+<a name="module_View+destroyChildren" id="module_View+destroyChildren"></a>
 
 ### view.destroyChildren()
 Call destroy on children views.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
-<a name="module_View+createElement"></a>
+
+<a name="module_View+createElement" id="module_View+createElement"></a>
 
 ### view.createElement(tag, attrs) ⇒ <code>node</code>
 Create an element.
-Called from constructor if "this.el" is undefined, to ensure
+Called from constructor if `this.el` is undefined, to ensure
 the view to have a root element.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
+**Returns**: <code>node</code> - The created element.  
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
-| tag | <code>string</code> | <code>&quot;div&quot;</code> | default to "div" |
-| attrs | <code>object</code> |  |  |
+| tag | <code>string</code> | <code>&quot;div&quot;</code> | Tag for the element. Default to `div` |
+| attrs | <code>object</code> |  | Attributes for the element. |
 
-<a name="module_View+removeElement"></a>
+
+<a name="module_View+removeElement" id="module_View+removeElement"></a>
 
 ### view.removeElement()
-Remove the view element.
+Remove `this.el` from DOM.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
-<a name="module_View+delegateEvents"></a>
 
-### view.delegateEvents(events)
-Delegate event listeners.
-Parse "this.events" and bind event listeners to "this.el"
-Events are written in the format {"event selector": "callback"}.
-The callback may be either the name of a method on the view,
+<a name="module_View+delegateEvents" id="module_View+delegateEvents"></a>
+
+### view.delegateEvents([events])
+Delegate event listeners. Called at the constructor.
+Parse `events` parameter or `this.events`, and bind event listeners to `this.el`.<br />
+Events are written in the format `{'event selector': 'listener'}`.
+The listener may be either the name of a method on the view,
 or a direct function body.
-Omitting the selector causes the event to be bound to "this.el".
-this.events = {
+Omitting the selector causes the event to be bound to `this.el`.
+
+**Kind**: instance method of [<code>View</code>](#module_View)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| [events] | <code>object</code> | Object in the format `{'event selector' : 'listener"'}`. Used to bind delegated event listeners to root element. |
+
+**Example**  
+```js
+model.prototype.events = {
      'click button.ok' : 'onClickOkButton'
 };
+```
 
-**Kind**: instance method of [<code>View</code>](#module_View)  
-
-| Param | Type |
-| --- | --- |
-| events | <code>object</code> | 
-
-<a name="module_View+undelegateEvents"></a>
+<a name="module_View+undelegateEvents" id="module_View+undelegateEvents"></a>
 
 ### view.undelegateEvents()
-Undelegate event listeners.
+Undelegate event listeners. Called when the view is destroyed.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
-<a name="module_View+render"></a>
+
+<a name="module_View+render" id="module_View+render"></a>
 
 ### view.render() ⇒ <code>Rasti.View</code>
 Render the view.
-Override if needed, but remember calling "this.destroyChildren"
-and returning "this".
+Override if needed, but remember calling `this.destroyChildren`
+and returning `this`.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
+**Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
