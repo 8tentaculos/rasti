@@ -1,6 +1,6 @@
 # <a href='http://rasti.js.org'><img src='logo.svg' height='80' alt='Rasti' aria-label='rasti.js.org' /></a>
 
-Rasti is minimalistic JavaScript MV framework for building user interfaces.<br />
+Rasti is a minimalistic JavaScript MV framework for building user interfaces.<br />
 It gives structure to applications by providing models that emit events on properties changes, and views with declarative event handling to define UI components.<br />
 Rasti is inspired in Backbone. You can consider it as an ES6 version of Backbone with no underscore or jQuery dependencies.
 It's ideal for building simple applications without the need of a module bundler, config or boilerplate.<br />
