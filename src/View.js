@@ -154,7 +154,7 @@ export default class View extends Emitter {
     }
     
     /**
-     * Call destroy on children views.
+     * Call destroy method on children views.
      */
     destroyChildren() {
         while(this.children.length)

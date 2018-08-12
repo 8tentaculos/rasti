@@ -335,7 +335,7 @@ Returns the child for chaining.
 
 <a name="module_View__destroyChildren" id="module_View__destroyChildren"></a>
 ### view.destroyChildren()
-Call destroy on children views.
+Call destroy method on children views.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
 <a name="module_View__createElement" id="module_View__createElement"></a>
