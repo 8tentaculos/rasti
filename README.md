@@ -1,7 +1,7 @@
 # <a href='http://rasti.js.org'><img src='logo.svg' height='80' alt='Rasti' aria-label='rasti.js.org' /></a>
 
 Rasti is a minimalistic JavaScript MV framework for building user interfaces.<br />
-It gives structure to applications by providing models that emit events on properties changes, and views with declarative event handling to define UI components.<br />
+It gives structure to applications by providing [models](docs/api.md#module_Model) that emit events on properties changes, and [views](docs/api.md#module_View) with declarative event handling to define UI components.<br />
 Rasti is inspired in Backbone. You can consider it as an ES6 version of Backbone with no underscore or jQuery dependencies.
 It's ideal for building simple applications without the need of a module bundler, config or boilerplate.<br />
 The project is [hosted on GitHub](https://github.com/8tentaculos/rasti), and it's available for use under the [MIT](LICENSE.md) software license.<br />
@@ -40,7 +40,7 @@ For example, you can drop a UMD build as a `<script>` tag on the page, or tell B
 
 ## Example
 
-The rasti npm package includes, in the example folder, a [vanila js](https://github.com/8tentaculos/rasti/tree/master/example/todo) and a [webpack](https://github.com/8tentaculos/rasti/tree/master/example/todo-webpack) versions of a [Todo app](http://rasti.js.org/example/todo/index.html) that can be used as starter project.
+The [rasti npm package](https://www.npmjs.com/package/rasti) includes, in the example folder, a [vanila js](https://github.com/8tentaculos/rasti/tree/master/example/todo) and a [webpack](https://github.com/8tentaculos/rasti/tree/master/example/todo-webpack) versions of a [Todo app](http://rasti.js.org/example/todo/index.html) that can be used as starter project.
 
 ## API
 

@@ -21,7 +21,7 @@
     "build:es": "cross-env BABEL_ENV=es babel src --out-dir es",
     "build:umd": "cross-env BABEL_ENV=commonjs NODE_ENV=development webpack",
     "build:umd:min": "cross-env BABEL_ENV=commonjs NODE_ENV=production webpack",
-    "docs:api": "jsdoc2md --module-index-format none --partial header.hbs --files src/**/*.js > docs/api.md",
+    "docs:api": "jsdoc2md --module-index-format none --helper jsdoc2md/helper.js --partial jsdoc2md/header.hbs --partial jsdoc2md/sig-link.hbs --partial jsdoc2md/sig-link-html.hbs --partial jsdoc2md/sig-link-parent.hbs --files src/**/*.js > docs/api.md",
     "docs:clean": "rimraf _book tmp-*",
     "docs:prepare": "gitbook install",
     "docs:build": "npm run docs:prepare && gitbook build",
