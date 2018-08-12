@@ -45,9 +45,7 @@ class AppModel extends Emitter {
     }
     // Remove completed todos calling removeTodo method
     removeCompleted() {
-        this.todos.forEach(todo => {
-            if (todo.completed) this.removeTodo(todo);
-        });
+        this.todos.filter(todo => todo.completed).forEach(this.removeTodo.bind(this));
     }
     // Set completed attribute on all models
     toggleAll(completed) {
