@@ -21,8 +21,8 @@ const viewOptions = {
  * Models must be unaware of views. Instead, views listen to the model "change" events, 
  * and react or re-render themselves appropriately.<br />
  * Views has a root element, `this.el`. That element is used for event delegation. Elements lookups are scoped to that element. And render and dom manipulations should be done inside that element. 
- * If `this.el` is not present, and element will be created using `this.tag` (or `div` as default), and `this.attributes`.
- * The following options passed to the constructor are exrended to `this`.
+ * If `this.el` is not present, and element will be created using `this.tag` (or `div` as default), and `this.attributes`.<br />
+ * The following options passed to the constructor are extended to `this`.
  * @module
  * @param {object} options Object containing options, that will extend `this`.
  * @param {node} options.el Every view has a root element, `this.el`. If not present it will be created.
