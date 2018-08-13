@@ -104,18 +104,4 @@ export default class Emitter {
             fn(...args);
         });
     }
-
-    /**
-     * Emits event of specified type asynchronously. Listeners will receive specified arguments.
-     * @param {string} type Type of the event (e.g. `change`).
-     * @param {any} [...args] Arguments to be passed to listener.
-     * @example
-     * this.emitAsync('invalid'); // Emit validation error event.
-     */
-    emitAsync(type, ...args) {
-        var self = this;
-        setTimeout(function() {
-            self.emit(type, ...args);
-        }, 10);
-    }
 }

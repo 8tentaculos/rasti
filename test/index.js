@@ -100,14 +100,6 @@ describe('Rasti', () => {
 
             expect(count).to.be.equal(1);
         });
-
-        it('should emit async', (done) => {
-            let e = new Emitter();
-
-            e.on('myEvent', done);
-
-            e.emitAsync('myEvent');
-        });
     });
 
     describe('Model', () => {

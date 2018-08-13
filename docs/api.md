@@ -25,7 +25,6 @@ app.on('ready', () => console.log('app is ready!'));
     * [.once(type, listener)](#module_Emitter__once)
     * [.off([type], [listener])](#module_Emitter__off)
     * [.emit(type)](#module_Emitter__emit)
-    * [.emitAsync(type)](#module_Emitter__emitAsync)
 
 <a name="module_Emitter__on" id="module_Emitter__on"></a>
 ### emitter.on(type, listener)
@@ -86,21 +85,6 @@ Emits event of specified type. Listeners will receive specified arguments.
 **Example**  
 ```js
 this.emit('invalid'); // Emit validation error event.
-```
-<a name="module_Emitter__emitAsync" id="module_Emitter__emitAsync"></a>
-### emitter.emitAsync(type)
-Emits event of specified type asynchronously. Listeners will receive specified arguments.
-
-**Kind**: instance method of [<code>Emitter</code>](#module_Emitter)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| type | <code>string</code> | Type of the event (e.g. `change`). |
-| [...args] | <code>any</code> | Arguments to be passed to listener. |
-
-**Example**  
-```js
-this.emitAsync('invalid'); // Emit validation error event.
 ```
 <a name="module_Model" id="module_Model"></a>
 ## Model
