@@ -6,7 +6,7 @@
     "summary": "SUMMARY.md" 
   },
   "author": "Alberto Masuelli <alberto.masuelli@gmail.com> (https://github.com/8tentaculos)",
-  "plugins": ["-sharing", "-livereload", "toolbar"],
+  "plugins": ["-sharing", "-livereload", "-fontsettings", "toolbar"],
   "pluginsConfig": {
     "toolbar": {
       "buttons": [
@@ -16,7 +16,7 @@
             "url": "https://github.com/8tentaculos/rasti"
           },
           {
-            "label": "NPM",
+            "label": "npm",
             "icon": "fa fa-bullseye",
             "url": "https://www.npmjs.com/package/rasti"
           }
