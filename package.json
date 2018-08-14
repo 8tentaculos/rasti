@@ -70,6 +70,7 @@
     "cross-env": "^5.2.0",
     "eslint": "^5.2.0",
     "gitbook-cli": "^2.3.2",
+    "gitbook-plugin-favicon": "0.0.2",
     "gitbook-plugin-toolbar": "^0.6.0",
     "jsdoc-to-markdown": "^4.0.1",
     "jsdom": "11.11.0",
