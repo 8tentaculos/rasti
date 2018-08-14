@@ -1,5 +1,7 @@
 {
   "gitbook":   "3.2.2",
+  "title": "Rasti",
+  "description": "Minimalistic JavaScript MV framework for building user interfaces.",
   "root":      ".",
   "structure": { 
     "readme":  "README.md",
