@@ -34,7 +34,8 @@
     },
     "favicon": {
       "shortcut": "favicon.svg",
-      "bookmark": "favicon.svg"
+      "bookmark": "favicon.svg",
+      "appleTouch": "favicon.svg"
     }
   }
 }
