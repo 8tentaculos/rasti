@@ -49,7 +49,7 @@ const viewOptions = {
  *     // Listener method. Called when button is clicked.
  *     onClickIncrement() {
  *         // Increment count on model.
- *         this.model.count = this.model.count + 1;
+ *         this.model.count++;
  *     }
  * }
  * Object.assign(CounterView.prototype, {
@@ -69,7 +69,7 @@ const viewOptions = {
  * // Instantiate CounterView.
  * const counterView = new CounterView({ model });
  * // Add to DOM.
- * document.body.innerHTML = counterView.render().el;
+ * document.body.appendChild(counterView.render().el);
  */
 export default class View extends Emitter {
     constructor(options = {}) {
