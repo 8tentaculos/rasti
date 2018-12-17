@@ -370,7 +370,7 @@ Undelegate event listeners. Called when the view is destroyed.
 <a name="module_View__render" id="module_View__render"></a>
 ### view.render() ⇒ <code>Rasti.View</code>
 Render the view.
-Override if needed, but remember calling `this.destroyChildren`
+Override if needed, but remember calling `this.destroyChildren` (if any was added) 
 and returning `this`.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  

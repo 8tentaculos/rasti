@@ -15,16 +15,12 @@ You can report bugs and discuss features on the [GitHub issues page](https://git
 
 #### Using npm
 
-```
+```bash
 $ npm install --save rasti
 ```
 
 ```javascript
 import { View } from 'rasti';
-
-class TodoView extends View {
-    
-}
 ```
 
 #### Using `<script>` tag
@@ -34,9 +30,19 @@ class TodoView extends View {
 ```
 
 ```javascript
-class TodoView extends Rasti.View {
-    
-}
+const { View } = Rasti;
+```
+
+#### A simple `View`
+
+```javascript
+const hello = new View({
+    tag : 'h1',
+    template : (model) => `Hello ${model.who}!`,
+    model : { who : 'World' }
+});
+
+document.body.appendChild(hello.render().el); // <h1>Hello World!</h1>
 ```
 
 The [rasti npm package](https://www.npmjs.com/package/rasti) includes precompiled production and development UMD builds in the dist folder. They can be used directly without a bundler and are thus compatible with many popular JavaScript module loaders and environments.<br />

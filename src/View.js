@@ -248,7 +248,7 @@ export default class View extends Emitter {
     
     /**
      * Render the view.
-     * Override if needed, but remember calling `this.destroyChildren`
+     * Override if needed, but remember calling `this.destroyChildren` (if any was added) 
      * and returning `this`.
      * @return {Rasti.View} Return `this` for chaining.
      */
