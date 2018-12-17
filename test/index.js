@@ -131,6 +131,12 @@ describe('Rasti', () => {
             m.on('change:test', () => done());
             m.test = false;
         });
+        
+        it('must set attribute and have previous value', () => {
+            let m = new Model({ test : true });
+            m.test = false;
+            expect(m.previous.test).to.be.true;
+        });
     });
 
     describe('View', () => {

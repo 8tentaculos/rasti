@@ -89,8 +89,8 @@ export default class Model extends Emitter {
         Object.keys(attrs).forEach(key => {
             let changed = key in this.attributes && attrs[key] !== this.attributes[key];
 
-            this.attributes[key] = attrs[key];
             this.previous[key] = this.attributes[key];
+            this.attributes[key] = attrs[key];
 
             if (changed) {
                 this.emit('change', this, key, attrs[key]);
