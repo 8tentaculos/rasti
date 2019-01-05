@@ -1,6 +1,6 @@
 {
   "name": "rasti",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "Minimalistic JavaScript MV framework for building user interfaces.",
   "main": "lib/index.js",
   "jsnext:main": "es/index.js",
