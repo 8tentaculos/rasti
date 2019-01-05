@@ -5,6 +5,8 @@ import StatsView from './StatsView';
 
 import TodoModel from './TodoModel';
 
+import { ENTER_KEY } from './constants';
+
 // App ui
 class AppView extends View {
     // Do some initialization on the constructor
@@ -86,7 +88,7 @@ class AppView extends View {
     // Event handlers
     // KeyPress on input. If you hit return in the main input field, create new todo model.
     onKeyPressNewTodo(event) {
-        if (event.which === TodoApp.ENTER_KEY && this.$input.value) {
+        if (event.which === ENTER_KEY && this.$input.value) {
             // Create todo model
             let model = new TodoModel({
                 // Model attributes

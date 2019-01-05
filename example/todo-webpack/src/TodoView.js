@@ -1,5 +1,7 @@
 import { View } from 'rasti';
 
+import { ENTER_KEY, ESC_KEY } from './constants';
+
 // Todo ui
 class TodoView extends View {
     // Do some initialization on the constructor
@@ -78,11 +80,11 @@ class TodoView extends View {
     // If you're pressing 'escape' we revert your change by simply leaving
     // the 'editing' state.
     onKeyPressEdit(event) {
-        if (event.which === TodoApp.ENTER_KEY) {
+        if (event.which === ENTER_KEY) {
             this.saveAndClose();
         }
 
-        if (event.which === TodoApp.ESC_KEY) {
+        if (event.which === ESC_KEY) {
             this.close();
         }
     }
