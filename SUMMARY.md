@@ -1,5 +1,5 @@
 # Summary
-### rasti 0.0.10
+### rasti 0.0.11
 * [Introduction](README.md#)
 * [Getting started](README.md#getting-started)
 * [Example](README.md#example)

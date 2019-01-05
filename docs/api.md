@@ -200,7 +200,7 @@ The following options passed to the constructor are extended to `this`.
 
 | Param | Type | Description |
 | --- | --- | --- |
-| options | <code>object</code> | Object containing options. The following will be copied to `this`: el, tag, attributes, events, model, template, onDestroy. |
+| options | <code>object</code> | Object containing options. The following will be merged to `this`: `el`, `tag`, `attributes`, `events`, `model`, `template`, `onDestroy`. |
 
 **Properties**
 
@@ -212,7 +212,6 @@ The following options passed to the constructor are extended to `this`.
 | events | <code>object</code> | Object in the format `{'event selector' : 'listener"'}`. Used to bind delegated event listeners to root element. |
 | model | <code>object</code> | A `Rasti.Model` or any object containing data and business logic. |
 | template | <code>function</code> | A function that receives data and returns a markup string (html for example). |
-| onDestroy | <code>function</code> | Lifecycle method. Called after view is destroyed. |
 
 **Example**  
 ```js

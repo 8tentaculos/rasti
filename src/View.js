@@ -24,14 +24,13 @@ const viewOptions = {
  * If `this.el` is not present, an element will be created using `this.tag` (or `div` as default), and `this.attributes`.<br />
  * The following options passed to the constructor are extended to `this`.
  * @module
- * @param {object} options Object containing options. The following will be copied to `this`: el, tag, attributes, events, model, template, onDestroy.
+ * @param {object} options Object containing options. The following will be merged to `this`: `el`, `tag`, `attributes`, `events`, `model`, `template`, `onDestroy`.
  * @property {node} el Every view has a root element, `this.el`. If not present it will be created.
  * @property {string} tag If `this.el` is not present, an element will be created using `this.tag`. Default is `div`.
  * @property {object} attributes If `this.el` is not present, an element will be created using `this.attributes`.
  * @property {object} events Object in the format `{'event selector' : 'listener"'}`. Used to bind delegated event listeners to root element.
  * @property {object} model A `Rasti.Model` or any object containing data and business logic.
  * @property {function} template A function that receives data and returns a markup string (html for example).
- * @property {function} onDestroy Lifecycle method. Called after view is destroyed.
  * @example
  * // Counter view.
  * class CounterView extends View {
