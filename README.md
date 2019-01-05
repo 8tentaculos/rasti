@@ -2,7 +2,7 @@
 
 Rasti is a minimalistic JavaScript MV framework for building user interfaces.<br />
 It gives structure to applications by providing [models](docs/api.md#module_Model) that emit events on properties changes, and [views](docs/api.md#module_View) with declarative event handling to define UI components.<br />
-Rasti is inspired by Backbone. You can consider it as an ES6 subset of Backbone with no dependencies.
+Rasti is inspired by Backbone. You can consider it as an ES6 subset of Backbone with no dependencies.<br />
 It's ideal for building simple lightweight applications, without the need of config or boilerplate. Projects where a resulting small codebase is prioritized over using a complex rendering system.<br />
 The project is [hosted on GitHub](https://github.com/8tentaculos/rasti), and it's available for use under the [MIT](LICENSE.md) software license.<br />
 You can report bugs and discuss features on the [GitHub issues page](https://github.com/8tentaculos/rasti/issues).
