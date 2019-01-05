@@ -88,12 +88,8 @@ export default class View extends Emitter {
             .forEach(key => {
                 if (viewOptions[key]) this[key] = options[key];
             });
-        // If "this.el" is not present,
-        // create a new element according "this.tag"
-        // and "this.attributes".
-        if (!this.el) this.el = this.createElement(this.tag, this.attributes);
-        // Delegate events on element.
-        this.delegateEvents();
+        // Ensure that the view has a root element at `this.el`.
+        this.ensureElement();
     }
 
     /**
@@ -159,6 +155,18 @@ export default class View extends Emitter {
     destroyChildren() {
         while(this.children.length)
             this.children.shift().destroy();
+    }
+    
+    /**
+     * Ensure that the view has a root element at `this.el`.
+     */ 
+    ensureElement() {
+        // If "this.el" is not present,
+        // create a new element according "this.tag"
+        // and "this.attributes".
+        if (!this.el) this.el = this.createElement(this.tag, this.attributes);
+        // Delegate events on element.
+        this.delegateEvents();
     }
     
     /**
