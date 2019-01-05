@@ -257,6 +257,7 @@ document.body.appendChild(counterView.render().el);
     * [.onDestroy()](#module_View__onDestroy)
     * [.addChild(child)](#module_View__addChild) ⇒ <code>Rasti.View</code>
     * [.destroyChildren()](#module_View__destroyChildren)
+    * [.ensureElement()](#module_View__ensureElement)
     * [.createElement(tag, attrs)](#module_View__createElement) ⇒ <code>node</code>
     * [.removeElement()](#module_View__removeElement)
     * [.delegateEvents([events])](#module_View__delegateEvents)
@@ -320,6 +321,11 @@ Returns the child for chaining.
 <a name="module_View__destroyChildren" id="module_View__destroyChildren"></a>
 ### view.destroyChildren()
 Call destroy method on children views.
+
+**Kind**: instance method of [<code>View</code>](#module_View)  
+<a name="module_View__ensureElement" id="module_View__ensureElement"></a>
+### view.ensureElement()
+Ensure that the view has a root element at `this.el`.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
 <a name="module_View__createElement" id="module_View__createElement"></a>
