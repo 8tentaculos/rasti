@@ -24,14 +24,14 @@ const viewOptions = {
  * If `this.el` is not present, an element will be created using `this.tag` (or `div` as default), and `this.attributes`.<br />
  * The following options passed to the constructor are extended to `this`.
  * @module
- * @param {object} options Object containing options, that will extend `this`.
- * @param {node} options.el Every view has a root element, `this.el`. If not present it will be created.
- * @param {string} options.tag If `this.el` is not present, an element will be created using `this.tag`. Default is `div`.
- * @param {object} options.attributes If`this.el` is not present, an element will be created using `this.attributes`.
- * @param {object} options.events Object in the format `{'event selector' : 'listener"'}`. Used to bind delegated event listeners to root element.
- * @param {object} options.model A `Rasti.Model` or any object containing data and business logic.
- * @param {function} options.template A function that receives data and returns a markup string (html or something).
- * @param {function} onDestroy Lifecycle method. Called after view is destroyed.
+ * @param {object} options Object containing options. The following will be copied to `this`: el, tag, attributes, events, model, template, onDestroy.
+ * @property {node} el Every view has a root element, `this.el`. If not present it will be created.
+ * @property {string} tag If `this.el` is not present, an element will be created using `this.tag`. Default is `div`.
+ * @property {object} attributes If `this.el` is not present, an element will be created using `this.attributes`.
+ * @property {object} events Object in the format `{'event selector' : 'listener"'}`. Used to bind delegated event listeners to root element.
+ * @property {object} model A `Rasti.Model` or any object containing data and business logic.
+ * @property {function} template A function that receives data and returns a markup string (html for example).
+ * @property {function} onDestroy Lifecycle method. Called after view is destroyed.
  * @example
  * // Counter view.
  * class CounterView extends View {
@@ -159,6 +159,9 @@ export default class View extends Emitter {
     
     /**
      * Ensure that the view has a root element at `this.el`.
+     * You shouldn't call this method directly. It's called from constructor.
+     * You may override it if you want to use a different logic or to 
+     * postpone element creation.
      */ 
     ensureElement() {
         // If "this.el" is not present,
@@ -256,8 +259,11 @@ export default class View extends Emitter {
     
     /**
      * Render the view.
-     * Override if needed, but remember calling `this.destroyChildren` (if any was added) 
-     * and returning `this`.
+     * This method should be overriden with custom logic.
+     * The default implementation sets innerHTML of `this.el` with `this.template`.
+     * Conventions are to only manipulate the dom in the scope of `this.el`, 
+     * and to return `this` for chaining.
+     * If you added any child view, you must call `this.destroyChildren`.
      * @return {Rasti.View} Return `this` for chaining.
      */
     render() {

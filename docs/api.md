@@ -200,13 +200,18 @@ The following options passed to the constructor are extended to `this`.
 
 | Param | Type | Description |
 | --- | --- | --- |
-| options | <code>object</code> | Object containing options, that will extend `this`. |
-| options.el | <code>node</code> | Every view has a root element, `this.el`. If not present it will be created. |
-| options.tag | <code>string</code> | If `this.el` is not present, an element will be created using `this.tag`. Default is `div`. |
-| options.attributes | <code>object</code> | If`this.el` is not present, an element will be created using `this.attributes`. |
-| options.events | <code>object</code> | Object in the format `{'event selector' : 'listener"'}`. Used to bind delegated event listeners to root element. |
-| options.model | <code>object</code> | A `Rasti.Model` or any object containing data and business logic. |
-| options.template | <code>function</code> | A function that receives data and returns a markup string (html or something). |
+| options | <code>object</code> | Object containing options. The following will be copied to `this`: el, tag, attributes, events, model, template, onDestroy. |
+
+**Properties**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| el | <code>node</code> | Every view has a root element, `this.el`. If not present it will be created. |
+| tag | <code>string</code> | If `this.el` is not present, an element will be created using `this.tag`. Default is `div`. |
+| attributes | <code>object</code> | If `this.el` is not present, an element will be created using `this.attributes`. |
+| events | <code>object</code> | Object in the format `{'event selector' : 'listener"'}`. Used to bind delegated event listeners to root element. |
+| model | <code>object</code> | A `Rasti.Model` or any object containing data and business logic. |
+| template | <code>function</code> | A function that receives data and returns a markup string (html for example). |
 | onDestroy | <code>function</code> | Lifecycle method. Called after view is destroyed. |
 
 **Example**  
@@ -326,6 +331,9 @@ Call destroy method on children views.
 <a name="module_View__ensureElement" id="module_View__ensureElement"></a>
 ### view.ensureElement()
 Ensure that the view has a root element at `this.el`.
+You shouldn't call this method directly. It's called from constructor.
+You may override it if you want to use a different logic or to 
+postpone element creation.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
 <a name="module_View__createElement" id="module_View__createElement"></a>
@@ -376,8 +384,11 @@ Undelegate event listeners. Called when the view is destroyed.
 <a name="module_View__render" id="module_View__render"></a>
 ### view.render() ⇒ <code>Rasti.View</code>
 Render the view.
-Override if needed, but remember calling `this.destroyChildren` (if any was added) 
-and returning `this`.
+This method should be overriden with custom logic.
+The default implementation sets innerHTML of `this.el` with `this.template`.
+Conventions are to only manipulate the dom in the scope of `this.el`, 
+and to return `this` for chaining.
+If you added any child view, you must call `this.destroyChildren`.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
 **Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
