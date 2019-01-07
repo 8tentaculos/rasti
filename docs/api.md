@@ -195,12 +195,11 @@ Models must be unaware of views. Instead, views listen to the model "change" eve
 and react or re-render themselves appropriately.<br />
 Views has a root element, `this.el`. That element is used for event delegation. Elements lookups are scoped to that element. And render and dom manipulations should be done inside that element. 
 If `this.el` is not present, an element will be created using `this.tag` (or `div` as default), and `this.attributes`.<br />
-The following options passed to the constructor are extended to `this`.
 
 
 | Param | Type | Description |
 | --- | --- | --- |
-| options | <code>object</code> | Object containing options. The following will be merged to `this`: `el`, `tag`, `attributes`, `events`, `model`, `template`, `onDestroy`. |
+| options | <code>object</code> | Object containing options. The following keys will be merged to `this`: el, tag, attributes, events, model, template, onDestroy. |
 
 **Properties**
 
