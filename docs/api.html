@@ -1,0 +1,928 @@
+
+<!DOCTYPE HTML>
+<html lang="" >
+    <head>
+        <meta charset="UTF-8">
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <title>API documentation · Rasti</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 3.2.2">
+        <meta name="author" content="Alberto Masuelli <alberto.masuelli@gmail.com> (https://github.com/8tentaculos)">
+        
+        
+    
+    <link rel="stylesheet" href="../gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-highlight/website.css">
+                
+            
+        
+
+    
+
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+
+        
+    
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="../gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    <link rel="next" href="api.html" />
+    
+    
+
+    
+        <link rel="shortcut icon" href='../favicon.svg' type="image/x-icon">
+    
+    
+        <link rel="bookmark" href='../favicon.svg' type="image/x-icon">
+    
+    
+    
+
+    </head>
+    <body>
+        
+<div class="book">
+    <div class="book-summary">
+        
+            
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+
+    
+
+    
+        
+        <li class="header">rasti 0.0.14</li>
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="../">
+            
+                <a href="../#">
+            
+                    
+                    Introduction
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2" data-path="../">
+            
+                <a href="../#getting-started">
+            
+                    
+                    Getting started
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3" data-path="../">
+            
+                <a href="../#example">
+            
+                    
+                    Example
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.3.1" >
+            
+                <a target="_blank" href="https://github.com/8tentaculos/rasti/tree/master/example/todo">
+            
+                    
+                    Todo app vanila js version
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.2" >
+            
+                <a target="_blank" href="https://github.com/8tentaculos/rasti/tree/master/example/todo-webpack">
+            
+                    
+                    Todo app webpack version
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.3" >
+            
+                <a target="_blank" href="http://rasti.js.org/example/todo/index.html">
+            
+                    
+                    Todo app demo
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter active" data-level="1.4" data-path="api.html">
+            
+                <a href="api.html">
+            
+                    
+                    API documentation
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.4.1" data-path="api.html">
+            
+                <a href="api.html#module_Emitter">
+            
+                    
+                    Emitter
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.2" data-path="api.html">
+            
+                <a href="api.html#module_Model">
+            
+                    
+                    Model
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.3" data-path="api.html">
+            
+                <a href="api.html#module_View">
+            
+                    
+                    View
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5" >
+            
+                <a target="_blank" href="https://github.com/8tentaculos/rasti">
+            
+                    
+                    GitHub
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6" >
+            
+                <a target="_blank" href="https://www.npmjs.com/package/rasti">
+            
+                    
+                    npm
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7" data-path="../LICENSE.html">
+            
+                <a href="../LICENSE.html">
+            
+                    
+                    MIT License
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+            Published with GitBook
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href=".." >API documentation</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+                                <section class="normal markdown-section">
+                                
+                                <p><a name="module_Emitter" id="module_Emitter"></a></p>
+<h2 id="emitter">Emitter</h2>
+<p>Emitter is a class that can be extended giving the subclass the ability to emit 
+and bind custom named events. Model and View inherits from it.</p>
+<p><strong>Example</strong>  </p>
+<pre><code class="lang-js"><span class="hljs-keyword">import</span> { Emitter } <span class="hljs-keyword">from</span> <span class="hljs-string">&apos;rasti&apos;</span>;
+<span class="hljs-comment">// Define App class, inherits from Emitter.</span>
+<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">App</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Emitter</span> </span>{
+    <span class="hljs-keyword">constructor</span>() {
+        <span class="hljs-keyword">super</span>()
+        <span class="hljs-comment">// Fetch data and emit `ready` event.</span>
+        fetch(<span class="hljs-string">&apos;/api/init&apos;</span>).then(() =&gt; <span class="hljs-keyword">this</span>.emit(<span class="hljs-string">&apos;ready&apos;</span>)); 
+    }
+}
+<span class="hljs-comment">// Instantiate App.</span>
+<span class="hljs-keyword">const</span> app = <span class="hljs-keyword">new</span> App();
+<span class="hljs-comment">// Add event listener to ready event.</span>
+app.on(<span class="hljs-string">&apos;ready&apos;</span>, () =&gt; <span class="hljs-built_in">console</span>.log(<span class="hljs-string">&apos;app is ready!&apos;</span>));
+</code></pre>
+<ul>
+<li><a href="#module_Emitter">Emitter</a><ul>
+<li><a href="#module_Emitter__on">.on(type, listener)</a></li>
+<li><a href="#module_Emitter__once">.once(type, listener)</a></li>
+<li><a href="#module_Emitter__off">.off([type], [listener])</a></li>
+<li><a href="#module_Emitter__emit">.emit(type)</a></li>
+</ul>
+</li>
+</ul>
+<p><a name="module_Emitter__on" id="module_Emitter__on"></a></p>
+<h3 id="emitterontype-listener">emitter.on(type, listener)</h3>
+<p>Adds event listener.</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_Emitter"><code>Emitter</code></a>  </p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>type</td>
+<td><code>string</code></td>
+<td>Type of the event (e.g. <code>change</code>).</td>
+</tr>
+<tr>
+<td>listener</td>
+<td><code>function</code></td>
+<td>Callback function to be called when the event is emited.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong>  </p>
+<pre><code class="lang-js"><span class="hljs-keyword">this</span>.model.on(<span class="hljs-string">&apos;change&apos;</span>, <span class="hljs-keyword">this</span>.render.bind(<span class="hljs-keyword">this</span>)); <span class="hljs-comment">// Re render when model changes.</span>
+</code></pre>
+<p><a name="module_Emitter__once" id="module_Emitter__once"></a></p>
+<h3 id="emitteroncetype-listener">emitter.once(type, listener)</h3>
+<p>Adds event listener that executes once.</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_Emitter"><code>Emitter</code></a>  </p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>type</td>
+<td><code>string</code></td>
+<td>Type of the event (e.g. <code>change</code>).</td>
+</tr>
+<tr>
+<td>listener</td>
+<td><code>function</code></td>
+<td>Callback function to be called when the event is emited.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong>  </p>
+<pre><code class="lang-js"><span class="hljs-keyword">this</span>.model.once(<span class="hljs-string">&apos;change&apos;</span>, () =&gt; <span class="hljs-built_in">console</span>.log(<span class="hljs-string">&apos;This will happen once&apos;</span>));
+</code></pre>
+<p><a name="module_Emitter__off" id="module_Emitter__off"></a></p>
+<h3 id="emitterofftype-listener">emitter.off([type], [listener])</h3>
+<p>Removes event listeners.</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_Emitter"><code>Emitter</code></a>  </p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[type]</td>
+<td><code>string</code></td>
+<td>Type of the event (e.g. <code>change</code>). If is not provided, it removes all listeners.</td>
+</tr>
+<tr>
+<td>[listener]</td>
+<td><code>function</code></td>
+<td>Callback function to be called when the event is emited. If listener is not provided, it removes all listeners for specified type.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong>  </p>
+<pre><code class="lang-js"><span class="hljs-keyword">this</span>.model.off(<span class="hljs-string">&apos;change&apos;</span>); <span class="hljs-comment">// Stop listening to changes.</span>
+</code></pre>
+<p><a name="module_Emitter__emit" id="module_Emitter__emit"></a></p>
+<h3 id="emitteremittype">emitter.emit(type)</h3>
+<p>Emits event of specified type. Listeners will receive specified arguments.</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_Emitter"><code>Emitter</code></a>  </p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>type</td>
+<td><code>string</code></td>
+<td>Type of the event (e.g. <code>change</code>).</td>
+</tr>
+<tr>
+<td>[...args]</td>
+<td><code>any</code></td>
+<td>Arguments to be passed to listener.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong>  </p>
+<pre><code class="lang-js"><span class="hljs-keyword">this</span>.emit(<span class="hljs-string">&apos;invalid&apos;</span>); <span class="hljs-comment">// Emit validation error event.</span>
+</code></pre>
+<p><a name="module_Model" id="module_Model"></a></p>
+<h2 id="model">Model</h2>
+<ul>
+<li>Orchestrates data and business logic.</li>
+<li>Emits events when data changes.</li>
+</ul>
+<p>A Model manages an internal table of data attributes, and triggers &quot;change&quot; events 
+when any of its data is modified.<br>
+Models may handle syncing data with a persistence layer.<br>
+Design your models as the atomic reusable objects containing all of the helpful functions for 
+manipulating their particular bit of data.<br> 
+Models should be able to be passed around throughout your app, and used anywhere that bit of data is needed.<br>
+Rasti Models stores its attributes in <code>this.attributes</code>, which is extended from <code>this.defaults</code> and constructor <code>attrs</code> parameter.
+For every attribute, a getter is generated, which retrieve the model property from <code>this.attributes</code>.
+And a setter, which sets the model property in <code>this.attributes</code> and emits <code>change</code> and <code>change:attribute</code> events.</p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>attrs</td>
+<td><code>object</code></td>
+<td>Object containing model attributes to extend <code>this.attributes</code>. Getters and setters are generated for <code>this.attributtes</code>, in order to emit <code>change</code> events.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong>  </p>
+<pre><code class="lang-js"><span class="hljs-comment">// Todo model</span>
+<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">TodoModel</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Rasti</span>.<span class="hljs-title">Model</span> </span>{
+    toggle() {
+        <span class="hljs-comment">// Set completed property. This will call a setter that will set `completed` </span>
+        <span class="hljs-comment">// in this.attributes, and emit `change` and `change:completed` events.</span>
+        <span class="hljs-keyword">this</span>.completed = !<span class="hljs-keyword">this</span>.completed; 
+    }
+}
+<span class="hljs-comment">// Todo model has `title` and `completed` default attributes. `defaults` will extend `this.attributes`. Getters and setters are generated for `this.attributtes`, in order to emit `change` events.</span>
+TodoModel.prototype.defaults = {
+    title : <span class="hljs-string">&apos;&apos;</span>,
+    completed : <span class="hljs-literal">false</span>
+};
+<span class="hljs-comment">// Create todo. Pass `title` attribute as argument.</span>
+<span class="hljs-keyword">const</span> todo = <span class="hljs-keyword">new</span> TodoModel({ title : <span class="hljs-string">&apos;Learn Rasti&apos;</span> });
+<span class="hljs-comment">// Listen to `change:completed` event.</span>
+todo.on(<span class="hljs-string">&apos;change:completed&apos;</span>, () =&gt; <span class="hljs-built_in">console</span>.log(<span class="hljs-string">&apos;Completed:&apos;</span>, todo.completed));
+<span class="hljs-comment">// Complete todo.</span>
+todo.toggle(); <span class="hljs-comment">// Completed: true</span>
+</code></pre>
+<ul>
+<li><a href="#module_Model">Model</a><ul>
+<li><a href="#module_Model__defineAttribute">.defineAttribute(key)</a></li>
+<li><a href="#module_Model__get">.get(key)</a> &#x21D2; <code>any</code></li>
+<li><a href="#module_Model__set">.set(key, [value])</a> &#x21D2; <code>this</code></li>
+<li><a href="#module_Model__toJSON">.toJSON()</a> &#x21D2; <code>object</code></li>
+</ul>
+</li>
+</ul>
+<p><a name="module_Model__defineAttribute" id="module_Model__defineAttribute"></a></p>
+<h3 id="modeldefineattributekey">model.defineAttribute(key)</h3>
+<p>Generate getter/setter for the given key. In order to emit <code>change</code> events.
+This method is called internally by the constructor
+for <code>this.attributes</code>.</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_Model"><code>Model</code></a>  </p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>key</td>
+<td><code>string</code></td>
+<td>Attribute key.</td>
+</tr>
+</tbody>
+</table>
+<p><a name="module_Model__get" id="module_Model__get"></a></p>
+<h3 id="modelgetkey-&#x21D2;-any">model.get(key) &#x21D2; <code>any</code></h3>
+<p>Get an attribute from <code>this.attributes</code>.
+This method is called internally by generated getters.</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_Model"><code>Model</code></a><br><strong>Returns</strong>: <code>any</code> - The attribute value.  </p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>key</td>
+<td><code>string</code></td>
+<td>Attribute key.</td>
+</tr>
+</tbody>
+</table>
+<p><a name="module_Model__set" id="module_Model__set"></a></p>
+<h3 id="modelsetkey-value-&#x21D2;-this">model.set(key, [value]) &#x21D2; <code>this</code></h3>
+<p>Set an attribute into <code>this.attributes</code>.
+Emit <code>change</code> and <code>change:attribute</code> if value change.
+Could be called in two forms, <code>this.set(&apos;key&apos;, value)</code> and
+<code>this.set({ key : value })</code>.
+This method is called internally by generated setters.</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_Model"><code>Model</code></a><br><strong>Returns</strong>: <code>this</code> - This model.<br><strong>Emits</strong>: <code>event:change</code>, <code>change:attribute</code>  </p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>key</td>
+<td><code>string</code></td>
+<td>Attribute key or object containing keys/values.</td>
+</tr>
+<tr>
+<td>[value]</td>
+<td></td>
+<td>Attribute value.</td>
+</tr>
+</tbody>
+</table>
+<p><a name="module_Model__toJSON" id="module_Model__toJSON"></a></p>
+<h3 id="modeltojson-&#x21D2;-object">model.toJSON() &#x21D2; <code>object</code></h3>
+<p>Return object representation of the model to be used for JSON serialization.
+By default returns <code>this.attributes</code>.</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_Model"><code>Model</code></a><br><strong>Returns</strong>: <code>object</code> - Object representation of the model to be used for JSON serialization.<br><a name="module_View" id="module_View"></a></p>
+<h2 id="view">View</h2>
+<ul>
+<li>Listens for changes and renders UI.</li>
+<li>Handles user input and interactivity.</li>
+<li>Sends captured input to the model.</li>
+</ul>
+<p>A View is an atomic chunk of user interface. It often renders the data from a specific model, 
+or number of models, but views can also be data-less chunks of UI that stand alone.<br> 
+Models must be unaware of views. Instead, views listen to the model &quot;change&quot; events, 
+and react or re-render themselves appropriately.<br>
+Views has a root element, <code>this.el</code>. That element is used for event delegation. Elements lookups are scoped to that element. And render and dom manipulations should be done inside that element. 
+If <code>this.el</code> is not present, an element will be created using <code>this.tag</code> (or <code>div</code> as default), and <code>this.attributes</code>.<br></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>options</td>
+<td><code>object</code></td>
+<td>Object containing options. The following keys will be merged to <code>this</code>: el, tag, attributes, events, model, template, onDestroy.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Properties</strong></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>el</td>
+<td><code>node</code></td>
+<td>Every view has a root element, <code>this.el</code>. If not present it will be created.</td>
+</tr>
+<tr>
+<td>tag</td>
+<td><code>string</code></td>
+<td>If <code>this.el</code> is not present, an element will be created using <code>this.tag</code>. Default is <code>div</code>.</td>
+</tr>
+<tr>
+<td>attributes</td>
+<td><code>object</code></td>
+<td>If <code>this.el</code> is not present, an element will be created using <code>this.attributes</code>.</td>
+</tr>
+<tr>
+<td>events</td>
+<td><code>object</code></td>
+<td>Object in the format <code>{&apos;event selector&apos; : &apos;listener&quot;&apos;}</code>. Used to bind delegated event listeners to root element.</td>
+</tr>
+<tr>
+<td>model</td>
+<td><code>object</code></td>
+<td>A <code>Rasti.Model</code> or any object containing data and business logic.</td>
+</tr>
+<tr>
+<td>template</td>
+<td><code>function</code></td>
+<td>A function that receives data and returns a markup string (html for example).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong>  </p>
+<pre><code class="lang-js"><span class="hljs-comment">// Counter view.</span>
+<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">CounterView</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">View</span> </span>{
+    <span class="hljs-keyword">constructor</span>(options) {
+        <span class="hljs-keyword">super</span>(options);
+        <span class="hljs-comment">// Bind method to `this`, to be called as listener.</span>
+        <span class="hljs-keyword">this</span>.render = <span class="hljs-keyword">this</span>.render.bind(<span class="hljs-keyword">this</span>);
+        <span class="hljs-comment">// Listen to model change and re render.</span>
+        <span class="hljs-keyword">this</span>.model.on(<span class="hljs-string">&apos;change:count&apos;</span>, <span class="hljs-keyword">this</span>.render);
+    }
+    onDestroy() {
+        <span class="hljs-comment">// Unbind events when destroyed.</span>
+        <span class="hljs-keyword">this</span>.model.off(<span class="hljs-string">&apos;change:count&apos;</span>, <span class="hljs-keyword">this</span>.render);
+    }
+    <span class="hljs-comment">// Listener method. Called when button is clicked.</span>
+    onClickIncrement() {
+        <span class="hljs-comment">// Increment count on model.</span>
+        <span class="hljs-keyword">this</span>.model.count++;
+    }
+}
+<span class="hljs-built_in">Object</span>.assign(CounterView.prototype, {
+    <span class="hljs-comment">// Set delegated events.</span>
+    <span class="hljs-comment">// Call `onClickIncrement` when button is clicked.</span>
+    events : {
+        <span class="hljs-string">&apos;click button&apos;</span> : <span class="hljs-string">&apos;onClickIncrement&apos;</span>
+    },
+    <span class="hljs-comment">// View&apos;s template.</span>
+    template : (model) =&gt; <span class="hljs-string">`
+        &lt;div&gt;The count is: <span class="hljs-subst">${model.count}</span>&lt;/div&gt;
+        &lt;button&gt;Increment&lt;/button&gt;
+    `</span>
+});
+<span class="hljs-comment">// Model.</span>
+<span class="hljs-keyword">const</span> model = <span class="hljs-keyword">new</span> Model({ count : <span class="hljs-number">0</span> });
+<span class="hljs-comment">// Instantiate CounterView.</span>
+<span class="hljs-keyword">const</span> counterView = <span class="hljs-keyword">new</span> CounterView({ model });
+<span class="hljs-comment">// Add to DOM.</span>
+<span class="hljs-built_in">document</span>.body.appendChild(counterView.render().el);
+</code></pre>
+<ul>
+<li><a href="#module_View">View</a><ul>
+<li><a href="#module_View__$">.$(selector)</a> &#x21D2; <code>node</code></li>
+<li><a href="#module_View__$$">.$$(selector)</a> &#x21D2; <code>Array.&lt;node&gt;</code></li>
+<li><a href="#module_View__destroy">.destroy()</a></li>
+<li><a href="#module_View__onDestroy">.onDestroy()</a></li>
+<li><a href="#module_View__addChild">.addChild(child)</a> &#x21D2; <code>Rasti.View</code></li>
+<li><a href="#module_View__destroyChildren">.destroyChildren()</a></li>
+<li><a href="#module_View__ensureElement">.ensureElement()</a></li>
+<li><a href="#module_View__createElement">.createElement(tag, attrs)</a> &#x21D2; <code>node</code></li>
+<li><a href="#module_View__removeElement">.removeElement()</a></li>
+<li><a href="#module_View__delegateEvents">.delegateEvents([events])</a></li>
+<li><a href="#module_View__undelegateEvents">.undelegateEvents()</a></li>
+<li><a href="#module_View__render">.render()</a> &#x21D2; <code>Rasti.View</code></li>
+</ul>
+</li>
+</ul>
+<p><a name="module_View__$" id="module_View__$"></a></p>
+<h3 id="viewselector-&#x21D2;-node">view.$(selector) &#x21D2; <code>node</code></h3>
+<p>Returns the first element that match the selector, 
+scoped to DOM elements within the current view&apos;s root element (<code>this.el</code>).</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_View"><code>View</code></a><br><strong>Returns</strong>: <code>node</code> - Element matching selector within the view&apos;s root element (<code>this.el</code>).  </p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>selector</td>
+<td><code>string</code></td>
+<td>CSS selector.</td>
+</tr>
+</tbody>
+</table>
+<p><a name="module_View__$$" id="module_View__$$"></a></p>
+<h3 id="viewselector-&#x21D2;-arraynode">view.$$(selector) &#x21D2; <code>Array.&lt;node&gt;</code></h3>
+<p>Returns a list of elements that match the selector, 
+scoped to DOM elements within the current view&apos;s root element (<code>this.el</code>).</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_View"><code>View</code></a><br><strong>Returns</strong>: <code>Array.&lt;node&gt;</code> - List of elements matching selector within the view&apos;s root element (<code>this.el</code>).  </p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>selector</td>
+<td><code>string</code></td>
+<td>CSS selector.</td>
+</tr>
+</tbody>
+</table>
+<p><a name="module_View__destroy" id="module_View__destroy"></a></p>
+<h3 id="viewdestroy">view.destroy()</h3>
+<p>Destroy the view.
+Destroy children views if any, undelegate events, stop listening to events, call <code>onDestroy</code> lifecycle method.
+Pass options.remove as true to remove the view&apos;s root element (<code>this.el</code>) from the DOM.</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_View"><code>View</code></a>  </p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>options.remove</td>
+<td><code>object</code></td>
+<td>Remove the view&apos;s root element (<code>this.el</code>) from the DOM.</td>
+</tr>
+</tbody>
+</table>
+<p><a name="module_View__onDestroy" id="module_View__onDestroy"></a></p>
+<h3 id="viewondestroy">view.onDestroy()</h3>
+<p><code>onDestroy</code> lifecycle method is called after view is destroyed.
+Override with your code. Useful to stop listening to model&apos;s events.</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_View"><code>View</code></a><br><a name="module_View__addChild" id="module_View__addChild"></a></p>
+<h3 id="viewaddchildchild-&#x21D2;-rastiview">view.addChild(child) &#x21D2; <code>Rasti.View</code></h3>
+<p>Add a view as a child.
+Children views are stored at <code>this.children</code>, and destroyed when the parent is destroyed.
+Returns the child for chaining.</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_View"><code>View</code></a>  </p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>child</td>
+<td><code>Rasti.View</code></td>
+</tr>
+</tbody>
+</table>
+<p><a name="module_View__destroyChildren" id="module_View__destroyChildren"></a></p>
+<h3 id="viewdestroychildren">view.destroyChildren()</h3>
+<p>Call destroy method on children views.</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_View"><code>View</code></a><br><a name="module_View__ensureElement" id="module_View__ensureElement"></a></p>
+<h3 id="viewensureelement">view.ensureElement()</h3>
+<p>Ensure that the view has a root element at <code>this.el</code>.
+You shouldn&apos;t call this method directly. It&apos;s called from constructor.
+You may override it if you want to use a different logic or to 
+postpone element creation.</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_View"><code>View</code></a><br><a name="module_View__createElement" id="module_View__createElement"></a></p>
+<h3 id="viewcreateelementtag-attrs-&#x21D2;-node">view.createElement(tag, attrs) &#x21D2; <code>node</code></h3>
+<p>Create an element.
+Called from constructor if <code>this.el</code> is undefined, to ensure
+the view to have a root element.</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_View"><code>View</code></a><br><strong>Returns</strong>: <code>node</code> - The created element.  </p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>tag</td>
+<td><code>string</code></td>
+<td><code>&quot;div&quot;</code></td>
+<td>Tag for the element. Default to <code>div</code></td>
+</tr>
+<tr>
+<td>attrs</td>
+<td><code>object</code></td>
+<td></td>
+<td>Attributes for the element.</td>
+</tr>
+</tbody>
+</table>
+<p><a name="module_View__removeElement" id="module_View__removeElement"></a></p>
+<h3 id="viewremoveelement">view.removeElement()</h3>
+<p>Remove <code>this.el</code> from DOM.</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_View"><code>View</code></a><br><a name="module_View__delegateEvents" id="module_View__delegateEvents"></a></p>
+<h3 id="viewdelegateeventsevents">view.delegateEvents([events])</h3>
+<p>Delegate event listeners. Called at the constructor.
+Parse <code>events</code> parameter or <code>this.events</code>, and bind event listeners to <code>this.el</code>.<br>
+Events are written in the format <code>{&apos;event selector&apos;: &apos;listener&apos;}</code>.
+The listener may be either the name of a method on the view,
+or a direct function body.
+Omitting the selector causes the event to be bound to <code>this.el</code>.</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_View"><code>View</code></a>  </p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[events]</td>
+<td><code>object</code></td>
+<td>Object in the format <code>{&apos;event selector&apos; : &apos;listener&quot;&apos;}</code>. Used to bind delegated event listeners to root element.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong>  </p>
+<pre><code class="lang-js">model.prototype.events = {
+     <span class="hljs-string">&apos;click button.ok&apos;</span> : <span class="hljs-string">&apos;onClickOkButton&apos;</span>
+};
+</code></pre>
+<p><a name="module_View__undelegateEvents" id="module_View__undelegateEvents"></a></p>
+<h3 id="viewundelegateevents">view.undelegateEvents()</h3>
+<p>Undelegate event listeners. Called when the view is destroyed.</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_View"><code>View</code></a><br><a name="module_View__render" id="module_View__render"></a></p>
+<h3 id="viewrender-&#x21D2;-rastiview">view.render() &#x21D2; <code>Rasti.View</code></h3>
+<p>Render the view.
+This method should be overriden with custom logic.
+The default implementation sets innerHTML of <code>this.el</code> with <code>this.template</code>.
+Conventions are to only manipulate the dom in the scope of <code>this.el</code>, 
+and to return <code>this</code> for chaining.
+If you added any child view, you must call <code>this.destroyChildren</code>.</p>
+<p><strong>Kind</strong>: instance method of <a href="#module_View"><code>View</code></a><br><strong>Returns</strong>: <code>Rasti.View</code> - Return <code>this</code> for chaining.  </p>
+
+                                
+                                </section>
+                            
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+                
+                
+                <a href="api.html#module_Emitter" class="navigation navigation-next navigation-unique" aria-label="Next page: Emitter">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+                
+            
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"API documentation","level":"1.4","depth":1,"next":{"title":"Emitter","level":"1.4.1","depth":2,"anchor":"#module_Emitter","path":"docs/api.md","ref":"docs/api.md#module_Emitter","articles":[]},"previous":{"title":"Todo app demo","level":"1.3.3","depth":2,"url":"http://rasti.js.org/example/todo/index.html","ref":"http://rasti.js.org/example/todo/index.html","articles":[]},"dir":"ltr"},"config":{"plugins":["-sharing","-livereload","-fontsettings","-search","-lunr","toolbar","favicon"],"root":".","styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"toolbar":{"buttons":[{"label":"GitHub","icon":"fa fa-github","url":"https://github.com/8tentaculos/rasti"},{"label":"npm","icon":"fa fa-bullseye","url":"https://www.npmjs.com/package/rasti"}]},"favicon":{"shortcut":"favicon.svg","bookmark":"favicon.svg"},"highlight":{},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","author":"Alberto Masuelli <alberto.masuelli@gmail.com> (https://github.com/8tentaculos)","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"Rasti","gitbook":"3.2.2","description":"Minimalistic JavaScript MV library for building user interfaces."},"file":{"path":"docs/api.md","mtime":"2019-06-13T22:50:59.208Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2020-11-08T23:30:24.680Z"},"basePath":"..","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <script src="../gitbook/gitbook.js"></script>
+    <script src="../gitbook/theme.js"></script>
+    
+        
+        <script src="../gitbook/gitbook-plugin-toolbar/buttons.js"></script>
+        
+    
+
+    </body>
+</html>
+
