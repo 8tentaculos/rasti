@@ -174,12 +174,16 @@ describe('Rasti', () => {
             v.addChild(new View({ onDestroy : done }));
             v.destroyChildren();
         });
-        
+
         it('must have unique uid', () => {
+            class MyView extends View {}
+
             let v1 = new View();
-            let v2 = new View();
-            
+            let v2 = new MyView();
+            let v3 = new View();
+
             expect(v1.uid).not.to.be.equal(v2.uid);
+            expect(v2.uid).not.to.be.equal(v3.uid);
         });
     });
 });

@@ -74,7 +74,7 @@ export default class View extends Emitter {
         super();
         // Generate unique id.
         // Useful to generate elements ids.
-        this.uid = `uid${++this.constructor.uid}`;
+        this.uid = `uid${++View.uid}`;
         // Store delegated events listeners,
         // so they can be unbinded later.
         this.delegatedEventListeners = [];
