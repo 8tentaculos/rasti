@@ -20,7 +20,7 @@ $ npm install --save rasti
 ```
 
 ```javascript
-import { View } from 'rasti';
+import { Model, View } from 'rasti';
 ```
 
 #### Using `<script>` tag
@@ -30,19 +30,36 @@ import { View } from 'rasti';
 ```
 
 ```javascript
-const { View } = Rasti;
+const { Model, View } = Rasti;
 ```
 
 #### A simple `View`
 
 ```javascript
-const hello = new View({
-    tag : 'h1',
-    template : (model) => `Hello ${model.who}!`,
-    model : { who : 'World' }
-});
-
-document.body.appendChild(hello.render().el); // <h1>Hello World!</h1>
+class ElapsedTime extends View {
+    constructor(options) {
+        super(options);
+        // Create model to store internal state. Set `seconds` attribute into 0.
+        this.model = new Model({ seconds : 0 });
+        // Listen to changes in model `seconds` attribute and re render.
+        this.model.on('change:seconds', this.render.bind(this));
+        // Increment model `seconds` attribute every 1000 milliseconds.
+        this.interval = setInterval(() => this.model.seconds++, 1000);
+    }
+  
+    template(model) {
+        return `Elapsed seconds: <span>${model.seconds}</span>`;
+    }
+  
+    onDestroy() {
+        // Stop listening events on model.
+        this.model.off();
+        // Clear timeout interval.
+        clearInterval(this.interval);
+    }
+}
+// Append view element into DOM.
+document.body.appendChild(new ElapsedTime().render().el);
 ```
 
 The [rasti npm package](https://www.npmjs.com/package/rasti) includes precompiled production and development UMD builds in the dist folder. They can be used directly without a bundler and are thus compatible with many popular JavaScript module loaders and environments.<br />

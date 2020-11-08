@@ -204,7 +204,7 @@ export default class View extends Emitter {
      * Omitting the selector causes the event to be bound to `this.el`.
      * @param {object} [events] Object in the format `{'event selector' : 'listener"'}`. Used to bind delegated event listeners to root element.
      * @example
-     * model.prototype.events = {
+     * view.prototype.events = {
      *      'click button.ok' : 'onClickOkButton'
      * };
      */
