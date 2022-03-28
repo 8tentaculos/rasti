@@ -161,14 +161,6 @@ describe('Rasti', () => {
             expect(c).to.equal(v.children[0]);
         });
 
-        it('must destroyChildren on render', () => {
-            let v = new View();
-            v.addChild(new View());
-            expect(v.children).to.have.lengthOf(1);
-            v.render();
-            expect(v.children).to.have.lengthOf(0);
-        });
-
         it('must call onDestroy on children', (done) => {
             let v = new View();
             v.addChild(new View({ onDestroy : done }));
@@ -184,6 +176,24 @@ describe('Rasti', () => {
 
             expect(v1.uid).not.to.be.equal(v2.uid);
             expect(v2.uid).not.to.be.equal(v3.uid);
+        });
+        
+        it('must delegate events', (done) => {
+            class MyView extends View {}
+
+            MyView.prototype.template = () => '<section><button>click me</button></section>';
+
+            MyView.prototype.events = {
+                'click section button' : () => done()
+            };
+            
+            let v = new MyView();
+
+            document.body.appendChild(v.render().el);
+
+            v.$('section button').dispatchEvent(
+                new MouseEvent('click', { bubbles: true })
+            );
         });
     });
 });

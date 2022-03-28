@@ -215,8 +215,8 @@ export default class View extends Emitter {
 
         Object.keys(events).forEach(key => {
             let keyParts = key.split(' '),
-                type = keyParts[0],
-                selector = keyParts[1],
+                type = keyParts.shift(),
+                selector = keyParts.join(' '),
                 listener = events[key];
 
             if (typeof listener === 'string') listener = this[listener].bind(this);
@@ -265,7 +265,6 @@ export default class View extends Emitter {
      * @return {Rasti.View} Return `this` for chaining.
      */
     render() {
-        this.destroyChildren();
         if (this.template) this.el.innerHTML = this.template(this.model);
         return this;
     }
