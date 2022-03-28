@@ -106,6 +106,16 @@ describe('Rasti', () => {
         it('must exists', () => {
             expect(Model).to.exist;
         });
+        
+        it('must run preinitialize', (done) => {
+            class MyModel extends Model {
+                preinitialize() {
+                    done();
+                }
+            }
+
+            new MyModel();
+        });
 
         it('must set and get attribute as key/value', () => {
             let m = new Model();
@@ -131,7 +141,7 @@ describe('Rasti', () => {
             m.on('change:test', () => done());
             m.test = false;
         });
-        
+
         it('must set attribute and have previous value', () => {
             let m = new Model({ test : true });
             m.test = false;
@@ -142,6 +152,16 @@ describe('Rasti', () => {
     describe('View', () => {
         it('must exists', () => {
             expect(View).to.exist;
+        });
+
+        it('must run preinitialize', (done) => {
+            class MyView extends View {
+                preinitialize() {
+                    done();
+                }
+            }
+
+            new MyView();
         });
 
         it('must have element', () => {

@@ -36,16 +36,24 @@ import Emitter from './Emitter';
  * todo.toggle(); // Completed: true
  */
 export default class Model extends Emitter {
-    constructor(attrs = {}) {
+    constructor(attrs) {
         super();
-        // attributes object
-        this.attributes = Object.assign({}, (this.defaults || {}), attrs);
-        // previous attributes
+        // Call preinitialize.
+        this.preinitialize(attrs);
+        // attributes object.
+        this.attributes = Object.assign({}, (this.defaults || {}), (attrs || {}));
+        // Previous attributes.
         this.previous = {};
-        // Generate getters/setters for every attr
+        // Generate getters/setters for every attr.
         Object.keys(this.attributes).forEach(this.defineAttribute.bind(this));
     }
-    
+
+    /**
+     * If you define a preinitialize method, it will be invoked when the Model is first created, before any instantiation logic is run for the Model.
+     * @param {object} attrs Object containing model attributes to extend `this.attributes`.
+     */
+    preinitialize() {}
+
     /**
      * Generate getter/setter for the given key. In order to emit `change` events.
      * This method is called internally by the constructor
@@ -61,7 +69,7 @@ export default class Model extends Emitter {
             }
         );
     }
-    
+
     /**
      * Get an attribute from `this.attributes`.
      * This method is called internally by generated getters.
@@ -71,7 +79,7 @@ export default class Model extends Emitter {
     get(key) {
         return this.attributes[key];
     }
-    
+
     /**
      * Set an attribute into `this.attributes`.
      * Emit `change` and `change:attribute` if value change.
@@ -91,7 +99,7 @@ export default class Model extends Emitter {
 
             this.previous[key] = this.attributes[key];
             this.attributes[key] = attrs[key];
-
+            // Emit change events.
             if (changed) {
                 this.emit('change', this, key, attrs[key]);
                 this.emit(`change:${key}`, this, attrs[key]);
@@ -99,7 +107,7 @@ export default class Model extends Emitter {
         });
         return this;
     }
-    
+
     /**
      * Return object representation of the model to be used for JSON serialization.
      * By default returns `this.attributes`.

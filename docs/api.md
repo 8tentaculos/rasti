@@ -35,7 +35,7 @@ Adds event listener.
 | Param | Type | Description |
 | --- | --- | --- |
 | type | <code>string</code> | Type of the event (e.g. `change`). |
-| listener | <code>function</code> | Callback function to be called when the event is emited. |
+| listener | <code>function</code> | Callback function to be called when the event is emitted. |
 
 **Example**  
 ```js
@@ -50,7 +50,7 @@ Adds event listener that executes once.
 | Param | Type | Description |
 | --- | --- | --- |
 | type | <code>string</code> | Type of the event (e.g. `change`). |
-| listener | <code>function</code> | Callback function to be called when the event is emited. |
+| listener | <code>function</code> | Callback function to be called when the event is emitted. |
 
 **Example**  
 ```js
@@ -65,7 +65,7 @@ Removes event listeners.
 | Param | Type | Description |
 | --- | --- | --- |
 | [type] | <code>string</code> | Type of the event (e.g. `change`). If is not provided, it removes all listeners. |
-| [listener] | <code>function</code> | Callback function to be called when the event is emited. If listener is not provided, it removes all listeners for specified type. |
+| [listener] | <code>function</code> | Callback function to be called when the event is emitted. If listener is not provided, it removes all listeners for specified type. |
 
 **Example**  
 ```js
@@ -130,10 +130,21 @@ todo.toggle(); // Completed: true
 ```
 
 * [Model](#module_Model)
+    * [.preinitialize(attrs)](#module_Model__preinitialize)
     * [.defineAttribute(key)](#module_Model__defineAttribute)
     * [.get(key)](#module_Model__get) ⇒ <code>any</code>
     * [.set(key, [value])](#module_Model__set) ⇒ <code>this</code>
     * [.toJSON()](#module_Model__toJSON) ⇒ <code>object</code>
+
+<a name="module_Model__preinitialize" id="module_Model__preinitialize"></a>
+### model.preinitialize(attrs)
+If you define a preinitialize method, it will be invoked when the Model is first created, before any instantiation logic is run for the Model.
+
+**Kind**: instance method of [<code>Model</code>](#module_Model)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| attrs | <code>object</code> | Object containing model attributes to extend `this.attributes`. |
 
 <a name="module_Model__defineAttribute" id="module_Model__defineAttribute"></a>
 ### model.defineAttribute(key)
@@ -254,6 +265,7 @@ document.body.appendChild(counterView.render().el);
 ```
 
 * [View](#module_View)
+    * [.preinitialize(attrs)](#module_View__preinitialize)
     * [.$(selector)](#module_View__$) ⇒ <code>node</code>
     * [.$$(selector)](#module_View__$$) ⇒ <code>Array.&lt;node&gt;</code>
     * [.destroy()](#module_View__destroy)
@@ -266,6 +278,16 @@ document.body.appendChild(counterView.render().el);
     * [.delegateEvents([events])](#module_View__delegateEvents)
     * [.undelegateEvents()](#module_View__undelegateEvents)
     * [.render()](#module_View__render) ⇒ <code>Rasti.View</code>
+
+<a name="module_View__preinitialize" id="module_View__preinitialize"></a>
+### view.preinitialize(attrs)
+If you define a preinitialize method, it will be invoked when the view is first created, before any instantiation logic is run.
+
+**Kind**: instance method of [<code>View</code>](#module_View)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| attrs | <code>object</code> | Object containing model attributes to extend `this.attributes`. |
 
 <a name="module_View__$" id="module_View__$"></a>
 ### view.$(selector) ⇒ <code>node</code>
@@ -370,7 +392,7 @@ Omitting the selector causes the event to be bound to `this.el`.
 
 **Example**  
 ```js
-model.prototype.events = {
+view.prototype.events = {
      'click button.ok' : 'onClickOkButton'
 };
 ```
@@ -382,7 +404,7 @@ Undelegate event listeners. Called when the view is destroyed.
 <a name="module_View__render" id="module_View__render"></a>
 ### view.render() ⇒ <code>Rasti.View</code>
 Render the view.
-This method should be overriden with custom logic.
+This method should be overridden with custom logic.
 The default implementation sets innerHTML of `this.el` with `this.template`.
 Conventions are to only manipulate the dom in the scope of `this.el`, 
 and to return `this` for chaining.

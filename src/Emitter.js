@@ -21,7 +21,7 @@ export default class Emitter {
     /**
      * Adds event listener.
      * @param {string} type Type of the event (e.g. `change`).
-     * @param {function} listener Callback function to be called when the event is emited.
+     * @param {function} listener Callback function to be called when the event is emitted.
      * @example
      * this.model.on('change', this.render.bind(this)); // Re render when model changes.
      */
@@ -39,7 +39,7 @@ export default class Emitter {
     /**
      * Adds event listener that executes once.
      * @param {string} type Type of the event (e.g. `change`).
-     * @param {function} listener Callback function to be called when the event is emited.
+     * @param {function} listener Callback function to be called when the event is emitted.
      * @example
      * this.model.once('change', () => console.log('This will happen once'));
      */
@@ -59,7 +59,7 @@ export default class Emitter {
     /**
      * Removes event listeners.
      * @param {string} [type] Type of the event (e.g. `change`). If is not provided, it removes all listeners.
-     * @param {function} [listener] Callback function to be called when the event is emited. If listener is not provided, it removes all listeners for specified type.
+     * @param {function} [listener] Callback function to be called when the event is emitted. If listener is not provided, it removes all listeners for specified type.
      * @example
      * this.model.off('change'); // Stop listening to changes.
      */

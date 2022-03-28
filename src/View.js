@@ -70,8 +70,10 @@ const viewOptions = {
  * document.body.appendChild(counterView.render().el);
  */
 export default class View extends Emitter {
-    constructor(options = {}) {
+    constructor(options) {
         super();
+        // Call preinitialize.
+        this.preinitialize(options);
         // Generate unique id.
         // Useful to generate elements ids.
         this.uid = `uid${++View.uid}`;
@@ -82,13 +84,21 @@ export default class View extends Emitter {
         // so they can be destroyed.
         this.children = [];
         // Extend "this" with options, mapping viewOptions keys.
-        Object.keys(options)
-            .forEach(key => {
-                if (viewOptions[key]) this[key] = options[key];
-            });
+        if (options) {
+            Object.keys(options)
+                .forEach(key => {
+                    if (viewOptions[key]) this[key] = options[key];
+                });
+        }
         // Ensure that the view has a root element at `this.el`.
         this.ensureElement();
     }
+    
+    /**
+     * If you define a preinitialize method, it will be invoked when the view is first created, before any instantiation logic is run.
+     * @param {object} attrs Object containing model attributes to extend `this.attributes`.
+     */
+    preinitialize() {}
 
     /**
      * Returns the first element that match the selector, 
@@ -257,7 +267,7 @@ export default class View extends Emitter {
     
     /**
      * Render the view.
-     * This method should be overriden with custom logic.
+     * This method should be overridden with custom logic.
      * The default implementation sets innerHTML of `this.el` with `this.template`.
      * Conventions are to only manipulate the dom in the scope of `this.el`, 
      * and to return `this` for chaining.
