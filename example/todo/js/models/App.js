@@ -1,13 +1,15 @@
-import { Emitter } from 'rasti';
+import { Emitter } from 'https://unpkg.com/rasti/es';
 
 // App state and methods
-class AppModel extends Emitter {
-    constructor() {
+class App extends Emitter {
+    constructor(todos) {
         super();
         // Bind event handler to this
         this.onChangeTodo = this.onChangeTodo.bind(this);
         // Todos list
-        this.todos = [];
+        this.todos = todos || [];
+        // Bind event on todo change
+        this.todos.map(todo => todo.on('change', this.onChangeTodo));
     }
     // Getter for all todos
     get all() {
@@ -59,4 +61,4 @@ class AppModel extends Emitter {
     }
 }
 
-export default AppModel;
+export default App;

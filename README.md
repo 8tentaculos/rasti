@@ -23,6 +23,12 @@ $ npm install --save rasti
 import { Model, View } from 'rasti';
 ```
 
+#### Using native modules
+
+```javascript
+import { Model, View } from 'https://unpkg.com/rasti/es';
+```
+
 #### Using `<script>` tag
 
 ```html
@@ -63,11 +69,11 @@ document.body.appendChild(new ElapsedTime().render().el);
 ```
 
 The [rasti npm package](https://www.npmjs.com/package/rasti) includes precompiled production and development UMD builds in the dist folder. They can be used directly without a bundler and are thus compatible with many popular JavaScript module loaders and environments.<br />
-For example, you can drop a UMD build as a `<script>` tag on the page, or tell Bower to install it. The UMD builds make Rasti available as a window.Rasti global variable.
+The UMD builds make Rasti available as a window.Rasti global variable.
 
 ## Example
 
-The rasti [GitHub repository](https://github.com/8tentaculos/rasti) includes, in the example folder, a [vanila js](https://github.com/8tentaculos/rasti/tree/master/example/todo) and a [webpack](https://github.com/8tentaculos/rasti/tree/master/example/todo-webpack) versions of a [Todo app](http://rasti.js.org/example/todo/index.html) that can be used as starter project.
+The rasti [GitHub repository](https://github.com/8tentaculos/rasti) includes, in the [example folder](https://github.com/8tentaculos/rasti/tree/master/example/todo), an example [TODO application](http://rasti.js.org/example/todo/index.html) that can be used as starter project.
 
 ## API
 

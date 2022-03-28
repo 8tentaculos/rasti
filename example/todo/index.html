@@ -4,31 +4,9 @@
     <meta charset="utf-8">
     <title>Rasti TODO</title>
     <link rel="stylesheet" href="css/styles.css">
-    <script>
-        const TodoApp = {
-            ENTER_KEY : 13,
-            ESC_KEY : 27
-        };
-    </script>
 </head>
 <body>
     <div id="root"></div>
-    <script src="https://unpkg.com/rasti/dist/rasti.min.js"></script>
-    <script src="js/AppModel.js"></script>
-    <script src="js/AppView.js"></script>
-    <script src="js/StatsView.js"></script>
-    <script src="js/TodoModel.js"></script>
-    <script src="js/TodoView.js"></script>
-    <script>
-        TodoApp.app = function() {
-            const el = document.getElementById('root');
-
-            const model = new TodoApp.AppModel();
-
-            const app = new TodoApp.AppView({ el, model });
-
-            return app.render();
-        }();
-    </script>
+    <script type="module" src="js/index.js"></script>
 </body>
 </html>

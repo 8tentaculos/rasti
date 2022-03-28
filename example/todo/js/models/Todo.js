@@ -1,16 +1,15 @@
-import { Model } from 'rasti';
+import { Model } from 'https://unpkg.com/rasti/es';
 
 // Todo model
-class TodoModel extends Model {
+class Todo extends Model {
     toggle() {
         this.completed = !this.completed; 
     }
 }
 // Todo model has 'title' and 'completed' default attributes.
-TodoModel.prototype.defaults = {
+Todo.prototype.defaults = {
     title : '',
     completed : false
 };
 
-export default TodoModel;
-
+export default Todo;

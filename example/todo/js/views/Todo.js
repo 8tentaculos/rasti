@@ -1,68 +1,56 @@
-import { View } from 'rasti';
+import { View } from 'https://unpkg.com/rasti/es';
 
-import { ENTER_KEY, ESC_KEY } from './constants';
+import { ENTER_KEY, ESC_KEY } from '../constants.js';
 
-// Todo ui
-class TodoView extends View {
-    // Do some initialization on the constructor
+// Todo ui.
+class Todo extends View {
+    // Do some initialization on the constructor.
     constructor(options) {
         super(options);
-        // Store handleRemove handler
+        // Store handleRemove handler.
         this.handleRemove = options.handleRemove;
-        // Bind event handlers
-        this.close = this.close.bind(this);
+        // Bind event handlers.
         this.render = this.render.bind(this);
-        // Listen to model change event
+        // Listen to model change event.
         this.model.on('change', this.render);
     }
-    // Lifecycle method, called when view is destroyed
+    // Lifecycle method, called when view is destroyed.
     onDestroy() {
-        // Remove reference to handler
-        this.handleRemove = null;
-        // Stop listening to model events
+        // Stop listening to model events.
         this.model.off('change', this.render);
-        // Stop listening to input blur event
-        this.$input.removeEventListener('blur', this.close);
     }
-    // Render todo
+    // Render todo.
     render() {
-        // Stop listening to input blur event, if it was previously rendered
-        if (this.$input) {
-            this.$input.removeEventListener('blur', this.close);
-        }
-        // Render template inside el
+        // Render template inside el.
         this.el.innerHTML = this.template(this.model);
-        // Cache ref to input dom element
+        // Cache ref to input dom element.
         this.$input = this.$('.edit');
-        // Add listener to blur event. 
-        // It cannot be delegated, so we have to manually add an event listener.
-        this.$input.addEventListener('blur', this.close);
 
         return this;
     }
-    // Toggle the 'completed' state of the model
+    // Toggle the 'completed' state of the model.
     toggle() {
         this.model.toggle();
     }
     // Switch this view into 'editing' mode, displaying the input field.
     edit() {
-        // Add 'editing' class to element
+        // Add 'editing' class to element.
         this.el.classList.add('editing');
-        // Focus input field
+        // Focus input field.
         this.$input.focus();
     }
     // Close the "editing" mode, discarding changes.
     close() {
-        // Check 'editing' class
+        // Check 'editing' class.
         if (!this.el.classList.contains('editing')) return;
         // Also reset the hidden input back to the original value.
         setTimeout(() => { this.$input.value = this.model.title; }, 10);
-        // Remove 'editing' class from element
+        // Remove 'editing' class from element.
         this.el.classList.remove('editing');
     }
     // Close the 'editing' mode, saving changes.
     saveAndClose() {
-        // Check 'editing' class
+        // Check 'editing' class.
         if (!this.el.classList.contains('editing')) return;
         
         let value = this.$input.value;
@@ -95,7 +83,7 @@ class TodoView extends View {
     }
 }
 
-Object.assign(TodoView.prototype, {
+Object.assign(Todo.prototype, {
     // Element tag name
     tag : 'li',
     // Delegated events
@@ -104,7 +92,8 @@ Object.assign(TodoView.prototype, {
         'dblclick label' : 'edit',
         'click .destroy' : 'onClickDestroy',
         'keydown .edit' : 'onKeyPressEdit',
-        'keypress .edit' : 'onKeyPressEdit'
+        'keypress .edit' : 'onKeyPressEdit',
+        'focusout .edit' : 'close',
     },
     // Template
     template : (model) => `
@@ -117,4 +106,4 @@ Object.assign(TodoView.prototype, {
     `
 });
 
-export default TodoView;
+export default Todo;

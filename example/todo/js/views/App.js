@@ -1,14 +1,14 @@
-import { View } from 'rasti';
+import { View } from 'https://unpkg.com/rasti/es';
 
-import TodoView from './TodoView';
-import StatsView from './StatsView';
+import TodoView from './Todo.js';
+import StatsView from './Stats.js';
 
-import TodoModel from './TodoModel';
+import TodoModel from '../models/Todo.js';
 
-import { ENTER_KEY } from './constants';
+import { ENTER_KEY } from '../constants.js';
 
 // App ui
-class AppView extends View {
+class App extends View {
     // Do some initialization on the constructor
     constructor(options) {
         super(options);
@@ -58,6 +58,10 @@ class AppView extends View {
                 handleFilter : (filter) => {
                     this.filter = filter;
                     this.render();
+                },
+                // Clear all completed todo items, destroying their models.
+                handleRemoveCompleted : () => {
+                    this.model.removeCompleted();
                 }
             })
         ).render(); // Render stats
@@ -101,10 +105,6 @@ class AppView extends View {
             this.$input.value = '';
         }
     }
-    // Click on clear completed. Clear all completed todo items, destroying their models.
-    onClickClearCompleted(event) {
-        this.model.removeCompleted();
-    }
     // Click on toggle
     onClickToggleAll(event) {
         let completed = this.$allCheckbox.checked;
@@ -112,11 +112,10 @@ class AppView extends View {
     }
 }
 
-Object.assign(AppView.prototype, {
+Object.assign(App.prototype, {
     // Delegated events.
     events : {
         'keypress .new-todo' : 'onKeyPressNewTodo',
-        'click .clear-completed' : 'onClickClearCompleted',
         'click .toggle-all' : 'onClickToggleAll'
     },
     // Template.
@@ -137,5 +136,4 @@ Object.assign(AppView.prototype, {
     `
 });
 
-export default AppView;
-
+export default App;

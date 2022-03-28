@@ -1,51 +1,56 @@
-import { View } from 'rasti';
+import { View } from 'https://unpkg.com/rasti/es';
 
-// Stats ui
-class StatsView extends View {
-    // Do some initialization on the constructor
+// Stats ui.
+class Stats extends View {
+    // Do some initialization on the constructor.
     constructor(options) {
         super(options);
-        // Bind event handlers to this
+        // Store options.
         this.filter = options.filter;
-        this.handleFilter = options.handleFilter.bind(this);
+        this.handleFilter = options.handleFilter;
+        this.handleRemoveCompleted = options.handleRemoveCompleted
+        // Bind render to this. To be called as event listener.
         this.render = this.render.bind(this);
-        // Listen to model changes
+        // Listen to model changes.
         this.model.on('todos:update', this.render);
     }
-    // Lifecycle method, called when view is destroyed
+    // Lifecycle method, called when view is destroyed.
     onDestroy() {
-        // Remove reference to handler
-        this.handleFilter = null;
-        // Stop listening to model event
+        // Stop listening to model event.
         this.model.off('todos:update', this.render);
     }
-    // Render stats
+    // Render stats.
     render() {
-        // Render template inside element
+        // Render template inside element.
         this.el.innerHTML = this.template(this.model, this.filter);
         return this;
     }
-    // Event handlers
-    // Click on filter all
+    // Event handlers.
+    // Click on filter all.
     onClickAll() {
         this.handleFilter('all');
     }
-    // Click on filter remaining
+    // Click on filter remaining.
     onClickRemaining() {
         this.handleFilter('remaining');
     }
-    // Click on filter completed
+    // Click on filter completed.
     onClickCompleted() {
         this.handleFilter('completed');
     }
+    // Click clear completed.
+    onClickClearCompleted() {
+        this.handleRemoveCompleted();
+    }
 }
 
-Object.assign(StatsView.prototype, {
+Object.assign(Stats.prototype, {
     // Delegated events.
     events : {
         'click .all' : 'onClickAll',
         'click .remaining' : 'onClickRemaining',
-        'click .completed' : 'onClickCompleted'
+        'click .completed' : 'onClickCompleted',
+        'click .clear-completed' : 'onClickClearCompleted',
     },
     // Template.
     template : (model, filter) => `
@@ -68,4 +73,4 @@ Object.assign(StatsView.prototype, {
     `
 });
 
-export default StatsView;
+export default Stats;
