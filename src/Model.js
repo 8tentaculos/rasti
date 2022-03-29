@@ -36,12 +36,12 @@ import Emitter from './Emitter';
  * todo.toggle(); // Completed: true
  */
 export default class Model extends Emitter {
-    constructor(attrs) {
+    constructor(attrs = {}) {
         super();
         // Call preinitialize.
-        this.preinitialize(attrs);
+        this.preinitialize.apply(this, arguments);
         // attributes object.
-        this.attributes = Object.assign({}, (this.defaults || {}), (attrs || {}));
+        this.attributes = Object.assign({}, (this.defaults || {}), attrs);
         // Previous attributes.
         this.previous = {};
         // Generate getters/setters for every attr.

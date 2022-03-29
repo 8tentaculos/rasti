@@ -70,10 +70,10 @@ const viewOptions = {
  * document.body.appendChild(counterView.render().el);
  */
 export default class View extends Emitter {
-    constructor(options) {
+    constructor(options = {}) {
         super();
         // Call preinitialize.
-        this.preinitialize(options);
+        this.preinitialize.apply(this, arguments);
         // Generate unique id.
         // Useful to generate elements ids.
         this.uid = `uid${++View.uid}`;
@@ -84,12 +84,9 @@ export default class View extends Emitter {
         // so they can be destroyed.
         this.children = [];
         // Extend "this" with options, mapping viewOptions keys.
-        if (options) {
-            Object.keys(options)
-                .forEach(key => {
-                    if (viewOptions[key]) this[key] = options[key];
-                });
-        }
+        Object.keys(options).forEach(key => {
+            if (viewOptions[key]) this[key] = options[key];
+        });
         // Ensure that the view has a root element at `this.el`.
         this.ensureElement();
     }
