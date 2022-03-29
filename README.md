@@ -2,7 +2,7 @@
 
 Rasti is a minimalistic JavaScript MV library for building user interfaces.<br />
 It gives structure to applications by providing [models](docs/api.md#module_Model) that emit events on properties changes, and [views](docs/api.md#module_View) with declarative event handling to define UI components.<br />
-Rasti is inspired by Backbone. You can consider it as an ES6 subset of Backbone with no dependencies.<br />
+Rasti is inspired by Backbone architecture. You can consider it as an ES6 subset of Backbone for modern browsers.<br />
 It's ideal for building simple lightweight applications, without the need of config or boilerplate. Projects where a resulting small codebase is prioritized over using a complex rendering system.<br />
 The project is [hosted on GitHub](https://github.com/8tentaculos/rasti), and it's available for use under the [MIT](LICENSE.md) software license.<br />
 You can report bugs and discuss features on the [GitHub issues page](https://github.com/8tentaculos/rasti/issues).
@@ -64,9 +64,11 @@ class ElapsedTime extends View {
         clearInterval(this.interval);
     }
 }
-// Append view element into DOM.
+// Render view and append view's element into body.
 document.body.appendChild(new ElapsedTime().render().el);
 ```
+
+[Try it on CodePen](https://codepen.io/8tentaculos/pen/dyXgGMp?editors=0010)
 
 The [rasti npm package](https://www.npmjs.com/package/rasti) includes precompiled production and development UMD builds in the dist folder. They can be used directly without a bundler and are thus compatible with many popular JavaScript module loaders and environments.<br />
 The UMD builds make Rasti available as a window.Rasti global variable.
