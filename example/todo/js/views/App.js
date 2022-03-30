@@ -1,111 +1,72 @@
 import { View } from 'https://unpkg.com/rasti/es';
 
+import ListView from './List.js';
 import TodoView from './Todo.js';
 import StatsView from './Stats.js';
 
-import TodoModel from '../models/Todo.js';
-
 import { ENTER_KEY } from '../constants.js';
 
-// App ui
+// App ui view.
 class App extends View {
-    // Do some initialization on the constructor
+    // Do some initialization on the constructor.
     constructor(options) {
         super(options);
-        // Set default todos filter
-        this.filter = 'all';
-        // Bind methods to this
-        this.addTodo = this.addTodo.bind(this);
-        this.removeTodo = this.removeTodo.bind(this);
-        this.update = this.update.bind(this);
-        // Listen on model events
-        this.model.on('todos:add', this.addTodo);
-        this.model.on('todos:remove', this.removeTodo);
-        this.model.on('todos:update', this.update);
+        // Bind methods to this.
+        this.onTodosChange = this.onTodosChange.bind(this);
+        // Listen on model events.
+        this.model.on('todos:change', this.onTodosChange);
     }
-    // Lifecycle method, called when view is destroyed
+    // Lifecycle method, called when view is destroyed.
     onDestroy() {
-        // Stop listening to model events when view is destroyed
-        this.model.off('todos:add', this.addTodo);
-        this.model.off('todos:remove', this.removeTodo);
-        this.model.off('todos:update', this.update);
+        // Stop listening to model events when view is destroyed.
+        this.model.off('todos:change', this.onTodosChange);
     }
-    // Render app
+    // Render app.
     render() {
-        // Remember to destroy children first if view adds children on render
+        // Remember to destroy children first if view adds children on render.
         this.destroyChildren()
-        // Render template inside element
+        // Render template inside element.
         this.el.innerHTML = this.template(this.model);
-        // Cache some dom elements now present on the document
+        // Cache some dom elements now present under `this.el`.
         this.$input = this.$('.new-todo');
         this.$allCheckbox = this.$('.toggle-all');
-        this.$list = this.$('.todo-list');
-        this.$footer = this.$('.footer');
-        // Render todos according filter
-        this.model[this.filter].forEach(this.addTodo);
-        // Add stats child view and render it. 
+        // Add list child view and render it. 
         // Remember that addChild and render methods return the view itself.
+        this.list = this.addChild(
+            new ListView({
+                // Render on footer cached element.
+                el : this.$('.todo-list'),
+                // Pass app model.
+                model : this.model
+            }).render()
+        );
+        // Add stats child view and render it. 
         this.stats = this.addChild(
             new StatsView({
-                // Stats view options
-                // Render on footer cached element
-                el : this.$footer,
-                // Pass app model
-                model : this.model,
-                // Current filter
-                filter : this.filter,
-                // A handler to be called from stats to filter todos
-                handleFilter : (filter) => {
-                    this.filter = filter;
-                    this.render();
-                },
-                // Clear all completed todo items, destroying their models.
-                handleRemoveCompleted : () => {
-                    this.model.removeCompleted();
-                }
-            })
-        ).render(); // Render stats
-
+                // Render on footer cached element.
+                el : this.$('.footer'),
+                // Pass app model.
+                model : this.model
+            }).render()
+        );
+        // Return the view itself for chaining.
         return this;
     }
-    // Update stats and ui
-    update() {
+    // Update stats and ui.
+    onTodosChange() {
         this.$allCheckbox.checked = this.model.todos.length && !this.model.remaining.length;
-        this.stats.render();
-    }
-    // Create todo view and append it to the dom
-    addTodo(todo) {
-        let view = this.addChild(
-            new TodoView({
-                model : todo,
-                handleRemove : () => this.model.removeTodo(todo)
-            })
-        );
-
-        this.$list.appendChild(view.render().el);
-    }
-    // Remove todo from dom and destroy view
-    removeTodo(todo) {
-        let view = this.children.find(child => child.model === todo);
-        if (view) view.destroy({ remove : true });
     }
     // Event handlers
     // KeyPress on input. If you hit return in the main input field, create new todo model.
     onKeyPressNewTodo(event) {
         if (event.which === ENTER_KEY && this.$input.value) {
-            // Create todo model
-            let model = new TodoModel({
-                // Model attributes
-                // Take title from input
-                title : this.$input.value
-            });
-            // Add todo model to app model
-            this.model.addTodo(model);
-            // Clear input
+            // Add todo to app model.
+            this.model.addTodo({ title : this.$input.value });
+            // Clear input.
             this.$input.value = '';
         }
     }
-    // Click on toggle
+    // Click on toggle.
     onClickToggleAll(event) {
         let completed = this.$allCheckbox.checked;
         this.model.toggleAll(completed);

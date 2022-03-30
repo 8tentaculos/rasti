@@ -294,6 +294,7 @@ label[for='toggle-all'] {
 .filters.remaining li a.remaining,
 .filters.completed li a.completed {
     border-color: rgba(175, 47, 47, 0.2);
+    font-weight: bold;
 }
 
 .clear-completed,

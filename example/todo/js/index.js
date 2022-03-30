@@ -3,12 +3,12 @@ import TodoModel from './models/Todo.js';
 import AppView from './views/App.js';
 
 // Get saved todos from localStorage
-const savedTodos = (JSON.parse(localStorage.getItem('todos')) || []).map(todo => new TodoModel(todo));
+const attrs = JSON.parse(localStorage.getItem('todos')) || {};
 // Instantiate app model
-const model = new AppModel(savedTodos);
+const model = new AppModel(attrs);
 // Save changes on every update
-model.on('todos:update', () => {
-  localStorage.setItem('todos', JSON.stringify(model.todos));
+model.on('change', () => {
+  localStorage.setItem('todos', JSON.stringify(model));
 });
 // DOM node where the app will be rendered
 const el = document.getElementById('root');

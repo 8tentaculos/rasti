@@ -2,7 +2,7 @@ import { View } from 'https://unpkg.com/rasti/es';
 
 import { ENTER_KEY, ESC_KEY } from '../constants.js';
 
-// Todo ui.
+// Single todo view.
 class Todo extends View {
     // Do some initialization on the constructor.
     constructor(options) {
@@ -25,7 +25,7 @@ class Todo extends View {
         this.el.innerHTML = this.template(this.model);
         // Cache ref to input dom element.
         this.$input = this.$('.edit');
-
+        // Return the view itself for chaining.
         return this;
     }
     // Toggle the 'completed' state of the model.
@@ -39,28 +39,26 @@ class Todo extends View {
         // Focus input field.
         this.$input.focus();
     }
-    // Close the "editing" mode, discarding changes.
+    // Close the 'editing' mode, discarding changes.
     close() {
         // Check 'editing' class.
         if (!this.el.classList.contains('editing')) return;
         // Also reset the hidden input back to the original value.
         setTimeout(() => { this.$input.value = this.model.title; }, 10);
-        // Remove 'editing' class from element.
+        // Quit editing. Remove 'editing' class from element.
         this.el.classList.remove('editing');
     }
     // Close the 'editing' mode, saving changes.
     saveAndClose() {
         // Check 'editing' class.
         if (!this.el.classList.contains('editing')) return;
-        
+        // Get value from dom.
         let value = this.$input.value;
-        
+        // If not empty, set model title.
         if (value) {
             this.model.title = value;
-        } else {
-            this.clear();
         }
-        
+        // Quit editing. Remove 'editing' class from element.
         this.el.classList.remove('editing');
     }
     // Event handlers
@@ -76,17 +74,17 @@ class Todo extends View {
             this.close();
         }
     }
-    // Click destroy
+    // Click destroy.
     onClickDestroy() {
-        // Call handler
+        // Call handler.
         this.handleRemove();
     }
 }
 
 Object.assign(Todo.prototype, {
-    // Element tag name
+    // Element tag name.
     tag : 'li',
-    // Delegated events
+    // Delegated events.
     events : {
         'click .toggle' : 'toggle',
         'dblclick label' : 'edit',
@@ -95,7 +93,7 @@ Object.assign(Todo.prototype, {
         'keypress .edit' : 'onKeyPressEdit',
         'focusout .edit' : 'close',
     },
-    // Template
+    // Template.
     template : (model) => `
         <div class="view${model.completed ? ' completed' : ''}">
             <input class="toggle" type="checkbox"${model.completed ? ' checked' : ''}>

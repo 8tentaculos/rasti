@@ -126,11 +126,11 @@ export default class View extends Emitter {
     destroy({ remove } = {}) {
         // Call destroy on children.
         this.destroyChildren();
-        // Undelegate "this.el" event listeners
+        // Undelegate `this.el` event listeners
         this.undelegateEvents();
-        // Unbind "this" events.
+        // Unbind `this` events.
         this.off();
-        // Remove "this.el" if "options.remove" is true.
+        // Remove `this.el` if "options.remove" is true.
         if (remove) this.removeElement();
         // Call onDestroy lifecycle method
         this.onDestroy();

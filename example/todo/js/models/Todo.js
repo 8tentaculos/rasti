@@ -1,6 +1,6 @@
 import { Model } from 'https://unpkg.com/rasti/es';
 
-// Todo model
+// Todo model.
 class Todo extends Model {
     toggle() {
         this.completed = !this.completed; 
