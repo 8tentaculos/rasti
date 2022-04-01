@@ -90,7 +90,7 @@ export default class View extends Emitter {
         // Ensure that the view has a root element at `this.el`.
         this.ensureElement();
     }
-    
+
     /**
      * If you define a preinitialize method, it will be invoked when the view is first created, before any instantiation logic is run.
      * @param {object} attrs Object containing model attributes to extend `this.attributes`.
@@ -135,13 +135,13 @@ export default class View extends Emitter {
         // Call onDestroy lifecycle method
         this.onDestroy();
     }
-    
+
     /**
      * `onDestroy` lifecycle method is called after view is destroyed.
      * Override with your code. Useful to stop listening to model's events.
      */
     onDestroy() {}
-    
+
     /**
      * Add a view as a child.
      * Children views are stored at `this.children`, and destroyed when the parent is destroyed.
@@ -153,7 +153,7 @@ export default class View extends Emitter {
         this.children.push(child);
         return child;
     }
-    
+
     /**
      * Call destroy method on children views.
      */
@@ -161,7 +161,7 @@ export default class View extends Emitter {
         while(this.children.length)
             this.children.shift().destroy();
     }
-    
+
     /**
      * Ensure that the view has a root element at `this.el`.
      * You shouldn't call this method directly. It's called from constructor.
@@ -176,7 +176,7 @@ export default class View extends Emitter {
         // Delegate events on element.
         this.delegateEvents();
     }
-    
+
     /**
      * Create an element.
      * Called from constructor if `this.el` is undefined, to ensure
@@ -194,18 +194,19 @@ export default class View extends Emitter {
 
         return el;
     }
-    
+
     /**
      * Remove `this.el` from DOM.
      */
     removeElement() {
         this.el.parentNode.removeChild(this.el);
     }
-    
+
     /**
      * Provide declarative listeners for DOM events within a view. If an events hash is not passed directly, uses `this.events` as the source.<br />
      * Events are written in the format `{'event selector' : 'listener'}`. The listener may be either the name of a method on the view, or a direct function body.
-     * Omitting the selector causes the event to be bound to the view's root element (`this.el`). By default, `delegateEvents` is called within the View's constructor, 
+     * Omitting the selector causes the event to be bound to the view's root element (`this.el`).<br />
+     * By default, `delegateEvents` is called within the View's constructor, 
      * so if you have a simple events hash, all of your DOM events will always already be connected, and you will never have to call this function yourself. <br />
      * All attached listeners are bound to the view automatically, so when the listeners are invoked, `this` continues to refer to the view object.<br />
      * When `delegateEvents` is run again, perhaps with a different events hash, all listeners are removed and delegated afresh.
@@ -261,7 +262,7 @@ export default class View extends Emitter {
 
         return this;
     }
-    
+
     /**
      * Removes all of the view's delegated events. Useful if you want to disable or remove a view from the DOM temporarily. Called automatically when the view is destroyed.
      * @return {Rasti.View} Return `this` for chaining.
@@ -275,7 +276,7 @@ export default class View extends Emitter {
 
         return this;
     }
-    
+
     /**
      * Render the view.
      * This method should be overridden with custom logic.

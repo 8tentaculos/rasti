@@ -379,7 +379,8 @@ Remove `this.el` from DOM.
 ### view.delegateEvents([events]) ⇒ <code>Rasti.View</code>
 Provide declarative listeners for DOM events within a view. If an events hash is not passed directly, uses `this.events` as the source.<br />
 Events are written in the format `{'event selector' : 'listener'}`. The listener may be either the name of a method on the view, or a direct function body.
-Omitting the selector causes the event to be bound to the view's root element (`this.el`). By default, `delegateEvents` is called within the View's constructor, 
+Omitting the selector causes the event to be bound to the view's root element (`this.el`).<br />
+By default, `delegateEvents` is called within the View's constructor, 
 so if you have a simple events hash, all of your DOM events will always already be connected, and you will never have to call this function yourself. <br />
 All attached listeners are bound to the view automatically, so when the listeners are invoked, `this` continues to refer to the view object.<br />
 When `delegateEvents` is run again, perhaps with a different events hash, all listeners are removed and delegated afresh.
