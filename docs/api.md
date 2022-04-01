@@ -275,8 +275,8 @@ document.body.appendChild(counterView.render().el);
     * [.ensureElement()](#module_View__ensureElement)
     * [.createElement(tag, attrs)](#module_View__createElement) ⇒ <code>node</code>
     * [.removeElement()](#module_View__removeElement)
-    * [.delegateEvents([events])](#module_View__delegateEvents)
-    * [.undelegateEvents()](#module_View__undelegateEvents)
+    * [.delegateEvents([events])](#module_View__delegateEvents) ⇒ <code>Rasti.View</code>
+    * [.undelegateEvents()](#module_View__undelegateEvents) ⇒ <code>Rasti.View</code>
     * [.render()](#module_View__render) ⇒ <code>Rasti.View</code>
 
 <a name="module_View__preinitialize" id="module_View__preinitialize"></a>
@@ -376,31 +376,34 @@ Remove `this.el` from DOM.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
 <a name="module_View__delegateEvents" id="module_View__delegateEvents"></a>
-### view.delegateEvents([events])
-Delegate event listeners. Called at the constructor.
-Parse `events` parameter or `this.events`, and bind event listeners to `this.el`.<br />
-Events are written in the format `{'event selector': 'listener'}`.
-The listener may be either the name of a method on the view,
-or a direct function body.
-Omitting the selector causes the event to be bound to `this.el`.
+### view.delegateEvents([events]) ⇒ <code>Rasti.View</code>
+Provide declarative listeners for DOM events within a view. If an events hash is not passed directly, uses `this.events` as the source.<br />
+Events are written in the format `{'event selector' : 'listener'}`. The listener may be either the name of a method on the view, or a direct function body.
+Omitting the selector causes the event to be bound to the view's root element (`this.el`). By default, `delegateEvents` is called within the View's constructor, 
+so if you have a simple events hash, all of your DOM events will always already be connected, and you will never have to call this function yourself. <br />
+All attached listeners are bound to the view automatically, so when the listeners are invoked, `this` continues to refer to the view object.<br />
+When `delegateEvents` is run again, perhaps with a different events hash, all listeners are removed and delegated afresh.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
+**Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| [events] | <code>object</code> | Object in the format `{'event selector' : 'listener"'}`. Used to bind delegated event listeners to root element. |
+| [events] | <code>object</code> | Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to root element. |
 
 **Example**  
 ```js
-view.prototype.events = {
-     'click button.ok' : 'onClickOkButton'
+MyView.prototype.events = {
+     'click button.ok' : 'onClickOkButton',
+     'click button.cancel' : function() {}
 };
 ```
 <a name="module_View__undelegateEvents" id="module_View__undelegateEvents"></a>
-### view.undelegateEvents()
-Undelegate event listeners. Called when the view is destroyed.
+### view.undelegateEvents() ⇒ <code>Rasti.View</code>
+Removes all of the view's delegated events. Useful if you want to disable or remove a view from the DOM temporarily. Called automatically when the view is destroyed.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
+**Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
 <a name="module_View__render" id="module_View__render"></a>
 ### view.render() ⇒ <code>Rasti.View</code>
 Render the view.
