@@ -215,5 +215,28 @@ describe('Rasti', () => {
                 new MouseEvent('click', { bubbles: true })
             );
         });
+
+        it('must undelegate and delegate events', (done) => {
+            class MyView extends View {}
+
+            MyView.prototype.template = () => '<section><button>click me</button></section>';
+
+            MyView.prototype.events = {
+                'click section button' : () => done(new Error('Failed undelegating event listener'))
+            };
+            
+            let v = new MyView();
+
+            document.body.appendChild(
+                v.delegateEvents({
+                    'click section button' : () => done()
+                }).render().el
+            );
+
+            v.$('section button').dispatchEvent(
+                new MouseEvent('click', { bubbles: true })
+            );
+        });
+
     });
 });
