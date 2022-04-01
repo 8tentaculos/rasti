@@ -31,13 +31,13 @@ describe('Rasti', () => {
             let l3 = () => {};
             let l4 = () => {};
 
-            // Add listeners for two events and check listeners object
+            // Add listeners for two events and check listeners object.
             e.on('myEventA', l1);
             e.on('myEventA', l2);
             e.on('myEventB', l3);
             e.on('myEventB', l4);
 
-            // Check listeners for myEventA
+            // Check listeners for myEventA.
             expect(e.listeners).to.exist;
             expect(e.listeners['myEventA']).to.exist;
             expect(e.listeners['myEventA'][0]).to.be.a('function');
@@ -45,7 +45,7 @@ describe('Rasti', () => {
             expect(e.listeners['myEventA'][1]).to.be.a('function');
             expect(e.listeners['myEventA'][1]).to.be.equal(l2);
 
-            // Check listeners for myEventB
+            // Check listeners for myEventB.
             expect(e.listeners['myEventB']).to.include(l3);
             expect(e.listeners['myEventB']).to.include(l4);
         });
@@ -71,13 +71,13 @@ describe('Rasti', () => {
             e.on('myEventB', l3);
             e.on('myEventB', l4);
 
-            // Remove l1 listener from myEventA
+            // Remove l1 listener from myEventA.
             e.off('myEventA', l1);
 
             expect(e.listeners['myEventA']).to.have.lengthOf(1);
             expect(e.listeners['myEventA'][0]).to.be.equal(l2);
 
-            // Remove all listeners from myEventB
+            // Remove all listeners from myEventB.
             e.off('myEventB');
 
             expect(e.listeners['myEventB']).to.not.be.ok;
