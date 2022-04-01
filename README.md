@@ -1,7 +1,7 @@
 # <a href='http://rasti.js.org'><img src='logo.svg' height='80' alt='Rasti' aria-label='rasti.js.org' /></a>
 
 Rasti is a minimalistic JavaScript MV library for building user interfaces.<br />
-It gives structure to applications by providing [models](docs/api.md#module_Model) that emit events on properties changes, and [views](docs/api.md#module_View) with declarative dom events handling to define UI components.<br />
+It gives structure to applications by providing [models](docs/api.md#module_Model) that emit events on properties changes, and [views](docs/api.md#module_View) with declarative DOM events handling to define UI components.<br />
 Rasti is inspired by the Backbone.js architecture. It can be considered as an ES6 subset of Backbone.js for modern browsers.<br />
 It's ideal for building simple lightweight applications, without the need of configuration or boilerplate. Projects where a resulting small codebase is prioritized over using a complex rendering system.<br />
 The project is [hosted on GitHub](https://github.com/8tentaculos/rasti), and it's available for use under the [MIT](LICENSE.md) software license.<br />

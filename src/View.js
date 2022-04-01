@@ -203,20 +203,25 @@ export default class View extends Emitter {
     }
     
     /**
-     * Delegate event listeners. Called at the constructor.
-     * Parse `events` parameter or `this.events`, and bind event listeners to `this.el`.<br />
-     * Events are written in the format `{'event selector': 'listener'}`.
-     * The listener may be either the name of a method on the view,
-     * or a direct function body.
-     * Omitting the selector causes the event to be bound to `this.el`.
-     * @param {object} [events] Object in the format `{'event selector' : 'listener"'}`. Used to bind delegated event listeners to root element.
+     * Provide declarative listeners for DOM events within a view. If an events hash is not passed directly, uses `this.events` as the source.<br />
+     * Events are written in the format `{'event selector' : 'listener'}`. The listener may be either the name of a method on the view, or a direct function body.
+     * Omitting the selector causes the event to be bound to the view's root element (`this.el`). By default, `delegateEvents` is called within the View's constructor, 
+     * so if you have a simple events hash, all of your DOM events will always already be connected, and you will never have to call this function yourself. <br />
+     * All attached listeners are bound to the view automatically, so when the listeners are invoked, `this` continues to refer to the view object.<br />
+     * When `delegateEvents` is run again, perhaps with a different events hash, all listeners are removed and delegated afresh.
+     * @param {object} [events] Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to root element.
+     * @return {Rasti.View} Return `this` for chaining.
      * @example
-     * view.prototype.events = {
-     *      'click button.ok' : 'onClickOkButton'
+     * MyView.prototype.events = {
+     *      'click button.ok' : 'onClickOkButton',
+     *      'click button.cancel' : function() {}
      * };
      */
     delegateEvents(events = this.events) {
-        if (!events) return;
+        if (!events) return this;
+
+        if (this.delegatedEventListeners.length) this.undelegateEvents();
+
         // Store events by type i.e.: "click", "submit", etc.
         let eventTypes = {};
 
@@ -226,7 +231,11 @@ export default class View extends Emitter {
                 selector = keyParts.join(' '),
                 listener = events[key];
 
-            if (typeof listener === 'string') listener = this[listener].bind(this);
+            listener = (
+                typeof listener === 'string' ?  
+                    this[listener] : 
+                    listener
+            ).bind(this);
 
             if (!eventTypes[type]) eventTypes[type] = [];
 
@@ -249,10 +258,13 @@ export default class View extends Emitter {
             this.delegatedEventListeners.push({ type, listener : typeListener });
             this.el.addEventListener(type, typeListener);
         });
+
+        return this;
     }
     
     /**
-     * Undelegate event listeners. Called when the view is destroyed.
+     * Removes all of the view's delegated events. Useful if you want to disable or remove a view from the DOM temporarily. Called automatically when the view is destroyed.
+     * @return {Rasti.View} Return `this` for chaining.
      */
     undelegateEvents() {
         this.delegatedEventListeners.forEach(({ type, listener }) => {
@@ -260,6 +272,8 @@ export default class View extends Emitter {
         });
 
         this.delegatedEventListeners = [];
+
+        return this;
     }
     
     /**
