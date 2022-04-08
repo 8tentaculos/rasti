@@ -219,7 +219,7 @@ If `this.el` is not present, an element will be created using `this.tag` (or `di
 | el | <code>node</code> | Every view has a root element, `this.el`. If not present it will be created. |
 | tag | <code>string</code> | If `this.el` is not present, an element will be created using `this.tag`. Default is `div`. |
 | attributes | <code>object</code> | If `this.el` is not present, an element will be created using `this.attributes`. |
-| events | <code>object</code> | Object in the format `{'event selector' : 'listener"'}`. Used to bind delegated event listeners to root element. |
+| events | <code>object</code> | Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to root element. |
 | model | <code>object</code> | A `Rasti.Model` or any object containing data and business logic. |
 | template | <code>function</code> | A function that receives data and returns a markup string (html for example). |
 

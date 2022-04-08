@@ -27,7 +27,7 @@ const viewOptions = {
  * @property {node} el Every view has a root element, `this.el`. If not present it will be created.
  * @property {string} tag If `this.el` is not present, an element will be created using `this.tag`. Default is `div`.
  * @property {object} attributes If `this.el` is not present, an element will be created using `this.attributes`.
- * @property {object} events Object in the format `{'event selector' : 'listener"'}`. Used to bind delegated event listeners to root element.
+ * @property {object} events Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to root element.
  * @property {object} model A `Rasti.Model` or any object containing data and business logic.
  * @property {function} template A function that receives data and returns a markup string (html for example).
  * @example
