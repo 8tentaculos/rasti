@@ -128,6 +128,12 @@ describe('Rasti', () => {
             m.set({test : true});
             expect(m.get('test')).to.be.true;
         });
+        
+        it('must set and get attribute using setter', () => {
+            let m = new Model({ test : false });
+            m.test = true;
+            expect(m.test).to.be.true;
+        });
 
         it('must set attribute and emit change event', (done) => {
             let m = new Model();
