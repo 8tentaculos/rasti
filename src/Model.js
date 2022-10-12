@@ -64,8 +64,8 @@ export default class Model extends Emitter {
         Object.defineProperty(
             this,
             key, {
-                get: () => this.get(key),
-                set: (value) => this.set(key, value)
+                get : () => this.get(key),
+                set : (value) => { this.set(key, value); }
             }
         );
     }
