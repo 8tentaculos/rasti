@@ -248,7 +248,7 @@ export default class View extends Emitter {
         Object.keys(eventTypes).forEach(type => {
             let self = this;
             let typeListener = function(event) {
-                eventTypes[type].forEach(function({ selector, listener}) {
+                eventTypes[type].forEach(function({ selector, listener }) {
                     if ((!selector && self.el === event.target) ||
                         (indexOf.call(self.el.querySelectorAll(selector), event.target) > -1)) {
                         listener(event, self);

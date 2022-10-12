@@ -125,15 +125,21 @@ describe('Rasti', () => {
 
         it('must set and get attribute as object', () => {
             let m = new Model();
-            m.set({test : true});
+            m.set({ test : true });
             expect(m.get('test')).to.be.true;
+        });
+        
+        it('must set and get attribute using setter', () => {
+            let m = new Model({ test : false });
+            m.test = true;
+            expect(m.test).to.be.true;
         });
 
         it('must set attribute and emit change event', (done) => {
             let m = new Model();
             m.on('change:test', () => done());
-            m.set({test : true});
-            m.set({test : false});
+            m.set({ test : true });
+            m.set({ test : false });
         });
 
         it('must set attribute using setter and emit change event', (done) => {

@@ -5,4 +5,3 @@ lib
 dist
 es
 .DS_Store
-v8-compile-cache-*
