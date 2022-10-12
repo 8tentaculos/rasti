@@ -1,4 +1,4 @@
-# <a href='http://rasti.js.org'><img src='/docs/logo.svg' height='80' alt='Rasti' aria-label='rasti.js.org' /></a>
+# <a href="http://rasti.js.org"><img src="https://raw.githubusercontent.com/8tentaculos/rasti/master/docs/logo.svg" height="80" alt="Rasti" aria-label="rasti.js.org" /></a>
 
 Rasti is a minimalistic JavaScript MV library for building user interfaces.<br />
 It gives structure to applications by providing [models](docs/api.md#module_Model) that emit events on properties changes, and [views](docs/api.md#module_View) with declarative DOM events handling to define UI components.<br />
