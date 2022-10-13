@@ -72,7 +72,7 @@ The rasti [GitHub repository](https://github.com/8tentaculos/rasti) includes, in
 
 ## API
 
-Complete [API documentation](https://rasti.js.org/#/docs/api).
+Complete [API documentation](docs/api.md).
 
 ## License
 

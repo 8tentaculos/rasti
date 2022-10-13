@@ -1,4 +1,5 @@
-## Emitter :id=module_Emitter
+<a name="module_emitter" id="module_emitter"></a>
+## Emitter
 Emitter is a class that can be extended giving the subclass the ability to emit 
 and bind custom named events. Model and View inherits from it.
 
@@ -19,13 +20,14 @@ const app = new App();
 app.on('ready', () => console.log('app is ready!'));
 ```
 
-* [Emitter](#module_Emitter)
-    * [.on(type, listener)](#module_Emitter__on)
-    * [.once(type, listener)](#module_Emitter__once)
-    * [.off([type], [listener])](#module_Emitter__off)
-    * [.emit(type)](#module_Emitter__emit)
+* [Emitter](#module_emitter)
+    * [.on(type, listener)](#module_emitter__on)
+    * [.once(type, listener)](#module_emitter__once)
+    * [.off([type], [listener])](#module_emitter__off)
+    * [.emit(type)](#module_emitter__emit)
 
-### emitter.on(type, listener) :id=module_Emitter__on
+<a name="module_emitter__on" id="module_emitter__on"></a>
+### emitter.on(type, listener)
 Adds event listener.
 
 **Kind**: instance method of [<code>Emitter</code>](#module_Emitter)  
@@ -39,7 +41,8 @@ Adds event listener.
 ```js
 this.model.on('change', this.render.bind(this)); // Re render when model changes.
 ```
-### emitter.once(type, listener) :id=module_Emitter__once
+<a name="module_emitter__once" id="module_emitter__once"></a>
+### emitter.once(type, listener)
 Adds event listener that executes once.
 
 **Kind**: instance method of [<code>Emitter</code>](#module_Emitter)  
@@ -53,7 +56,8 @@ Adds event listener that executes once.
 ```js
 this.model.once('change', () => console.log('This will happen once'));
 ```
-### emitter.off([type], [listener]) :id=module_Emitter__off
+<a name="module_emitter__off" id="module_emitter__off"></a>
+### emitter.off([type], [listener])
 Removes event listeners.
 
 **Kind**: instance method of [<code>Emitter</code>](#module_Emitter)  
@@ -67,7 +71,8 @@ Removes event listeners.
 ```js
 this.model.off('change'); // Stop listening to changes.
 ```
-### emitter.emit(type) :id=module_Emitter__emit
+<a name="module_emitter__emit" id="module_emitter__emit"></a>
+### emitter.emit(type)
 Emits event of specified type. Listeners will receive specified arguments.
 
 **Kind**: instance method of [<code>Emitter</code>](#module_Emitter)  
@@ -81,7 +86,8 @@ Emits event of specified type. Listeners will receive specified arguments.
 ```js
 this.emit('invalid'); // Emit validation error event.
 ```
-## Model :id=module_Model
+<a name="module_model" id="module_model"></a>
+## Model
 - Orchestrates data and business logic.
 - Emits events when data changes.
 
@@ -123,14 +129,15 @@ todo.on('change:completed', () => console.log('Completed:', todo.completed));
 todo.toggle(); // Completed: true
 ```
 
-* [Model](#module_Model)
-    * [.preinitialize(attrs)](#module_Model__preinitialize)
-    * [.defineAttribute(key)](#module_Model__defineAttribute)
-    * [.get(key)](#module_Model__get) ⇒ <code>any</code>
-    * [.set(key, [value])](#module_Model__set) ⇒ <code>this</code>
-    * [.toJSON()](#module_Model__toJSON) ⇒ <code>object</code>
+* [Model](#module_model)
+    * [.preinitialize(attrs)](#module_model__preinitialize)
+    * [.defineAttribute(key)](#module_model__defineattribute)
+    * [.get(key)](#module_model__get) ⇒ <code>any</code>
+    * [.set(key, [value])](#module_model__set) ⇒ <code>this</code>
+    * [.toJSON()](#module_model__tojson) ⇒ <code>object</code>
 
-### model.preinitialize(attrs) :id=module_Model__preinitialize
+<a name="module_model__preinitialize" id="module_model__preinitialize"></a>
+### model.preinitialize(attrs)
 If you define a preinitialize method, it will be invoked when the Model is first created, before any instantiation logic is run for the Model.
 
 **Kind**: instance method of [<code>Model</code>](#module_Model)  
@@ -139,7 +146,8 @@ If you define a preinitialize method, it will be invoked when the Model is first
 | --- | --- | --- |
 | attrs | <code>object</code> | Object containing model attributes to extend `this.attributes`. |
 
-### model.defineAttribute(key) :id=module_Model__defineAttribute
+<a name="module_model__defineattribute" id="module_model__defineattribute"></a>
+### model.defineAttribute(key)
 Generate getter/setter for the given key. In order to emit `change` events.
 This method is called internally by the constructor
 for `this.attributes`.
@@ -150,7 +158,8 @@ for `this.attributes`.
 | --- | --- | --- |
 | key | <code>string</code> | Attribute key. |
 
-### model.get(key) ⇒ <code>any</code> :id=module_Model__get
+<a name="module_model__get" id="module_model__get"></a>
+### model.get(key) ⇒ <code>any</code>
 Get an attribute from `this.attributes`.
 This method is called internally by generated getters.
 
@@ -161,7 +170,8 @@ This method is called internally by generated getters.
 | --- | --- | --- |
 | key | <code>string</code> | Attribute key. |
 
-### model.set(key, [value]) ⇒ <code>this</code> :id=module_Model__set
+<a name="module_model__set" id="module_model__set"></a>
+### model.set(key, [value]) ⇒ <code>this</code>
 Set an attribute into `this.attributes`.
 Emit `change` and `change:attribute` if value change.
 Could be called in two forms, `this.set('key', value)` and
@@ -177,13 +187,15 @@ This method is called internally by generated setters.
 | key | <code>string</code> | Attribute key or object containing keys/values. |
 | [value] |  | Attribute value. |
 
-### model.toJSON() ⇒ <code>object</code> :id=module_Model__toJSON
+<a name="module_model__tojson" id="module_model__tojson"></a>
+### model.toJSON() ⇒ <code>object</code>
 Return object representation of the model to be used for JSON serialization.
 By default returns `this.attributes`.
 
 **Kind**: instance method of [<code>Model</code>](#module_Model)  
 **Returns**: <code>object</code> - Object representation of the model to be used for JSON serialization.  
-## View :id=module_View
+<a name="module_view" id="module_view"></a>
+## View
 - Listens for changes and renders UI.
 - Handles user input and interactivity.
 - Sends captured input to the model.
@@ -252,22 +264,23 @@ const counterView = new CounterView({ model });
 document.body.appendChild(counterView.render().el);
 ```
 
-* [View](#module_View)
-    * [.preinitialize(attrs)](#module_View__preinitialize)
-    * [.$(selector)](#module_View__$) ⇒ <code>node</code>
-    * [.$$(selector)](#module_View__$$) ⇒ <code>Array.&lt;node&gt;</code>
-    * [.destroy()](#module_View__destroy)
-    * [.onDestroy()](#module_View__onDestroy)
-    * [.addChild(child)](#module_View__addChild) ⇒ <code>Rasti.View</code>
-    * [.destroyChildren()](#module_View__destroyChildren)
-    * [.ensureElement()](#module_View__ensureElement)
-    * [.createElement(tag, attrs)](#module_View__createElement) ⇒ <code>node</code>
-    * [.removeElement()](#module_View__removeElement)
-    * [.delegateEvents([events])](#module_View__delegateEvents) ⇒ <code>Rasti.View</code>
-    * [.undelegateEvents()](#module_View__undelegateEvents) ⇒ <code>Rasti.View</code>
-    * [.render()](#module_View__render) ⇒ <code>Rasti.View</code>
+* [View](#module_view)
+    * [.preinitialize(attrs)](#module_view__preinitialize)
+    * [.$(selector)](#module_view__$) ⇒ <code>node</code>
+    * [.$$(selector)](#module_view__$$) ⇒ <code>Array.&lt;node&gt;</code>
+    * [.destroy()](#module_view__destroy)
+    * [.onDestroy()](#module_view__ondestroy)
+    * [.addChild(child)](#module_view__addchild) ⇒ <code>Rasti.View</code>
+    * [.destroyChildren()](#module_view__destroychildren)
+    * [.ensureElement()](#module_view__ensureelement)
+    * [.createElement(tag, attrs)](#module_view__createelement) ⇒ <code>node</code>
+    * [.removeElement()](#module_view__removeelement)
+    * [.delegateEvents([events])](#module_view__delegateevents) ⇒ <code>Rasti.View</code>
+    * [.undelegateEvents()](#module_view__undelegateevents) ⇒ <code>Rasti.View</code>
+    * [.render()](#module_view__render) ⇒ <code>Rasti.View</code>
 
-### view.preinitialize(attrs) :id=module_View__preinitialize
+<a name="module_view__preinitialize" id="module_view__preinitialize"></a>
+### view.preinitialize(attrs)
 If you define a preinitialize method, it will be invoked when the view is first created, before any instantiation logic is run.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
@@ -276,7 +289,8 @@ If you define a preinitialize method, it will be invoked when the view is first 
 | --- | --- | --- |
 | attrs | <code>object</code> | Object containing model attributes to extend `this.attributes`. |
 
-### view.$(selector) ⇒ <code>node</code> :id=module_View__$
+<a name="module_view__$" id="module_view__$"></a>
+### view.$(selector) ⇒ <code>node</code>
 Returns the first element that match the selector, 
 scoped to DOM elements within the current view's root element (`this.el`).
 
@@ -287,7 +301,8 @@ scoped to DOM elements within the current view's root element (`this.el`).
 | --- | --- | --- |
 | selector | <code>string</code> | CSS selector. |
 
-### view.$$(selector) ⇒ <code>Array.&lt;node&gt;</code> :id=module_View__$$
+<a name="module_view__$$" id="module_view__$$"></a>
+### view.$$(selector) ⇒ <code>Array.&lt;node&gt;</code>
 Returns a list of elements that match the selector, 
 scoped to DOM elements within the current view's root element (`this.el`).
 
@@ -298,7 +313,8 @@ scoped to DOM elements within the current view's root element (`this.el`).
 | --- | --- | --- |
 | selector | <code>string</code> | CSS selector. |
 
-### view.destroy() :id=module_View__destroy
+<a name="module_view__destroy" id="module_view__destroy"></a>
+### view.destroy()
 Destroy the view.
 Destroy children views if any, undelegate events, stop listening to events, call `onDestroy` lifecycle method.
 Pass options.remove as true to remove the view's root element (`this.el`) from the DOM.
@@ -309,12 +325,14 @@ Pass options.remove as true to remove the view's root element (`this.el`) from t
 | --- | --- | --- |
 | options.remove | <code>object</code> | Remove the view's root element (`this.el`) from the DOM. |
 
-### view.onDestroy() :id=module_View__onDestroy
+<a name="module_view__ondestroy" id="module_view__ondestroy"></a>
+### view.onDestroy()
 `onDestroy` lifecycle method is called after view is destroyed.
 Override with your code. Useful to stop listening to model's events.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
-### view.addChild(child) ⇒ <code>Rasti.View</code> :id=module_View__addChild
+<a name="module_view__addchild" id="module_view__addchild"></a>
+### view.addChild(child) ⇒ <code>Rasti.View</code>
 Add a view as a child.
 Children views are stored at `this.children`, and destroyed when the parent is destroyed.
 Returns the child for chaining.
@@ -325,18 +343,21 @@ Returns the child for chaining.
 | --- | --- |
 | child | <code>Rasti.View</code> | 
 
-### view.destroyChildren() :id=module_View__destroyChildren
+<a name="module_view__destroychildren" id="module_view__destroychildren"></a>
+### view.destroyChildren()
 Call destroy method on children views.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
-### view.ensureElement() :id=module_View__ensureElement
+<a name="module_view__ensureelement" id="module_view__ensureelement"></a>
+### view.ensureElement()
 Ensure that the view has a root element at `this.el`.
 You shouldn't call this method directly. It's called from constructor.
 You may override it if you want to use a different logic or to 
 postpone element creation.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
-### view.createElement(tag, attrs) ⇒ <code>node</code> :id=module_View__createElement
+<a name="module_view__createelement" id="module_view__createelement"></a>
+### view.createElement(tag, attrs) ⇒ <code>node</code>
 Create an element.
 Called from constructor if `this.el` is undefined, to ensure
 the view to have a root element.
@@ -349,11 +370,13 @@ the view to have a root element.
 | tag | <code>string</code> | <code>&quot;div&quot;</code> | Tag for the element. Default to `div` |
 | attrs | <code>object</code> |  | Attributes for the element. |
 
-### view.removeElement() :id=module_View__removeElement
+<a name="module_view__removeelement" id="module_view__removeelement"></a>
+### view.removeElement()
 Remove `this.el` from DOM.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
-### view.delegateEvents([events]) ⇒ <code>Rasti.View</code> :id=module_View__delegateEvents
+<a name="module_view__delegateevents" id="module_view__delegateevents"></a>
+### view.delegateEvents([events]) ⇒ <code>Rasti.View</code>
 Provide declarative listeners for DOM events within a view. If an events hash is not passed directly, uses `this.events` as the source.<br />
 Events are written in the format `{'event selector' : 'listener'}`. The listener may be either the name of a method on the view, or a direct function body.
 Omitting the selector causes the event to be bound to the view's root element (`this.el`).<br />
@@ -376,12 +399,14 @@ MyView.prototype.events = {
      'click button.cancel' : function() {}
 };
 ```
-### view.undelegateEvents() ⇒ <code>Rasti.View</code> :id=module_View__undelegateEvents
+<a name="module_view__undelegateevents" id="module_view__undelegateevents"></a>
+### view.undelegateEvents() ⇒ <code>Rasti.View</code>
 Removes all of the view's delegated events. Useful if you want to disable or remove a view from the DOM temporarily. Called automatically when the view is destroyed.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
 **Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
-### view.render() ⇒ <code>Rasti.View</code> :id=module_View__render
+<a name="module_view__render" id="module_view__render"></a>
+### view.render() ⇒ <code>Rasti.View</code>
 Render the view.
 This method should be overridden with custom logic.
 The default implementation sets innerHTML of `this.el` with `this.template`.
