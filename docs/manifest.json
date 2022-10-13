@@ -7,5 +7,6 @@
     }],
     "background_color": "#ffffff",
     "theme_color": "#ef0b72",
-    "display": "fullscreen"
+    "display": "fullscreen",
+    "description": "Minimalistic JavaScript MV library for building user interfaces."
 }
