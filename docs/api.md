@@ -1,23 +1,130 @@
+<a name="module_component" id="module_component"></a>
+## Component
+Components are a special kind of view that is designed to be easily composable, 
+making it simple to add child views and build complex user interfaces. 
+Unlike views, which are render-agnostic, components have a specific set of rendering 
+guidelines that allow for a more declarative development style. With components, 
+developers can create modular building blocks that can be easily composed with other 
+components to build complex user interfaces.
+
+**Example**  
+```js
+import { Component, Model } from 'rasti';
+// Create Timer component.
+const Timer = Component.create`
+   <div>Seconds: ${({ model }) => model.seconds}</div>
+`;
+// Create model to store seconds.
+const model = new Model({ seconds: 0 });
+// Mount timer on body.
+Timer.mount({ model }, document.body);
+// Increment `model.seconds` every second.
+setInterval(() => model.seconds++, 1000);
+```
+
+* [Component](#module_component)
+    * _instance_
+        * [.onCreate()](#module_component__oncreate)
+        * [.onChange(model, key, value)](#module_component__onchange)
+        * [.onRender()](#module_component__onrender)
+        * [.onDestroy()](#module_component__ondestroy)
+    * _static_
+        * [.extend(object)](#module_component_extend)
+        * [.mount(options, el)](#module_component_mount) ⇒ <code>Rasti.View</code>
+        * [.create()](#module_component_create)
+
+<a name="module_component__oncreate" id="module_component__oncreate"></a>
+### component.onCreate()
+Lifecycle method. Called when the view is created.
+
+**Kind**: instance method of [<code>Component</code>](#module_Component)  
+<a name="module_component__onchange" id="module_component__onchange"></a>
+### component.onChange(model, key, value)
+Lifecycle method. Called when model emits `change` event.
+By default calls render method.
+This method should be extended with custom logic.
+Maybe comparing new attributes with previous ones and calling
+render when needed. Or doing some dom transformation.
+
+**Kind**: instance method of [<code>Component</code>](#module_Component)  
+
+| Param |
+| --- |
+| model | 
+| key | 
+| value | 
+
+<a name="module_component__onrender" id="module_component__onrender"></a>
+### component.onRender()
+Lifecycle method. Called when the view is rendered.
+
+**Kind**: instance method of [<code>Component</code>](#module_Component)  
+<a name="module_component__ondestroy" id="module_component__ondestroy"></a>
+### component.onDestroy()
+Lifecycle method. Called when the view is destroyed.
+
+**Kind**: instance method of [<code>Component</code>](#module_Component)  
+<a name="module_component_extend" id="module_component_extend"></a>
+### Component.extend(object)
+Helper method to create a Component view subclass extending some methods.
+
+**Kind**: static method of [<code>Component</code>](#module_Component)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| object | <code>object</code> | Object containing methods to be added to the new view subclass. |
+
+<a name="module_component_mount" id="module_component_mount"></a>
+### Component.mount(options, el) ⇒ <code>Rasti.View</code>
+Mount the component into the dom.
+It instantiate the Component view using options, 
+appends its element into the DOM (if `el` is provided).
+And returns the view instance.
+
+**Kind**: static method of [<code>Component</code>](#module_Component)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| options | <code>object</code> | The view options. |
+| el | <code>node</code> | Dom element to append the view element. |
+
+<a name="module_component_create" id="module_component_create"></a>
+### Component.create()
+create is a tagged template that receives an HTML string, 
+and returns a Component.
+
+**Kind**: static method of [<code>Component</code>](#module_Component)  
 <a name="module_emitter" id="module_emitter"></a>
 ## Emitter
-Emitter is a class that can be extended giving the subclass the ability to emit 
-and bind custom named events. Model and View inherits from it.
+`Emitter` is a class that provides an easy way to implement the observer pattern 
+in your applications. It can be extended to create new classes that have the 
+ability to emit and bind custom named events. 
+Emitter is used by `Model` and `View` classes, which inherit from it to implement 
+event-driven functionality.
 
 **Example**  
 ```js
 import { Emitter } from 'rasti';
-// Define App class, inherits from Emitter.
-class App extends Emitter {
+class MyEmitter extends Emitter {
     constructor() {
-        super()
-        // Fetch data and emit `ready` event.
-        fetch('/api/init').then(() => this.emit('ready')); 
+        super();
+        this.count = 0;
+    }
+
+    incrementCount() {
+        this.count++;
+        this.emit('countChanged', this.count);
     }
 }
-// Instantiate App.
-const app = new App();
-// Add event listener to ready event.
-app.on('ready', () => console.log('app is ready!'));
+
+const myEmitter = new MyEmitter();
+
+myEmitter.on('countChanged', (count) => {
+    console.log(`Count changed to ${count}`);
+});
+
+myEmitter.incrementCount(); // Output: "Count changed to 1"
+myEmitter.incrementCount(); // Output: "Count changed to 2"
 ```
 
 * [Emitter](#module_emitter)
@@ -91,15 +198,14 @@ this.emit('invalid'); // Emit validation error event.
 - Orchestrates data and business logic.
 - Emits events when data changes.
 
-A Model manages an internal table of data attributes, and triggers "change" events 
-when any of its data is modified.<br />
-Models may handle syncing data with a persistence layer.<br />
-Design your models as the atomic reusable objects containing all of the helpful functions for 
-manipulating their particular bit of data.<br /> 
-Models should be able to be passed around throughout your app, and used anywhere that bit of data is needed.<br />
-Rasti Models stores its attributes in `this.attributes`, which is extended from `this.defaults` and constructor `attrs` parameter.
-For every attribute, a getter is generated, which retrieve the model property from `this.attributes`.
-And a setter, which sets the model property in `this.attributes` and emits `change` and `change:attribute` events.
+A `Model` manages an internal table of data attributes and triggers change events when any of its data is modified. 
+Models may handle syncing data with a persistence layer. To design your models, create atomic, reusable objects 
+that contain all the necessary functions for manipulating their specific data. 
+Models should be easily passed throughout your app and used anywhere the corresponding data is needed.
+Rasti `Models` stores its attributes in `this.attributes`, which is extended from `this.defaults` and the 
+constructor `attrs` parameter. For every attribute, a getter is generated to retrieve the model property 
+from `this.attributes`, and a setter is created to set the model property in `this.attributes` and emit `change` 
+and `change:attribute` events.
 
 
 | Param | Type | Description |
@@ -108,25 +214,31 @@ And a setter, which sets the model property in `this.attributes` and emits `chan
 
 **Example**  
 ```js
+import { Model } from 'rasti';
 // Todo model
-class TodoModel extends Rasti.Model {
+class TodoModel extends Model {
+    preinitialize() {
+        // Todo model has `title` and `completed` default attributes. `defaults` will extend `this.attributes`. 
+        // Getters and setters are generated for `this.attributtes`, in order to emit `change` events.
+        this.defaults = {
+            title : '',
+            completed : false
+        };
+    }
+
     toggle() {
         // Set completed property. This will call a setter that will set `completed` 
         // in this.attributes, and emit `change` and `change:completed` events.
         this.completed = !this.completed; 
     }
 }
-// Todo model has `title` and `completed` default attributes. `defaults` will extend `this.attributes`. Getters and setters are generated for `this.attributtes`, in order to emit `change` events.
-TodoModel.prototype.defaults = {
-    title : '',
-    completed : false
-};
+
 // Create todo. Pass `title` attribute as argument.
-const todo = new TodoModel({ title : 'Learn Rasti' });
+const todo = new TodoModel({ title : 'Create Rasti app' });
 // Listen to `change:completed` event.
 todo.on('change:completed', () => console.log('Completed:', todo.completed));
 // Complete todo.
-todo.toggle(); // Completed: true
+todo.toggle(); // Output: "Completed: true"
 ```
 
 * [Model](#module_model)
@@ -200,12 +312,13 @@ By default returns `this.attributes`.
 - Handles user input and interactivity.
 - Sends captured input to the model.
 
-A View is an atomic chunk of user interface. It often renders the data from a specific model, 
-or number of models, but views can also be data-less chunks of UI that stand alone.<br /> 
-Models must be unaware of views. Instead, views listen to the model "change" events, 
-and react or re-render themselves appropriately.<br />
-Views has a root element, `this.el`. That element is used for event delegation. Elements lookups are scoped to that element. And render and dom manipulations should be done inside that element. 
-If `this.el` is not present, an element will be created using `this.tag` (or `div` as default), and `this.attributes`.<br />
+A `View` is an atomic unit of the user interface that can render the data from a specific model or multiple models.
+However, views can also be independent and have no associated data.
+Models must be unaware of views. Views, on the other hand, may render model data and listen to the change events 
+emitted by the models to re-render themselves based on changes.
+Each view has a root element, this.el, which is used for event delegation. 
+All element lookups are scoped to this element, and any rendering or DOM manipulations should be done inside it. 
+If this.el is not present, an element will be created using this.tag (defaulting to div) and this.attributes.
 
 
 | Param | Type | Description |
@@ -225,43 +338,25 @@ If `this.el` is not present, an element will be created using `this.tag` (or `di
 
 **Example**  
 ```js
-// Counter view.
-class CounterView extends View {
+import { View } from 'rasti';
+
+class Timer extends View {
     constructor(options) {
         super(options);
-        // Bind method to `this`, to be called as listener.
-        this.render = this.render.bind(this);
-        // Listen to model change and re render.
-        this.model.on('change:count', this.render);
+        // Create model to store internal state. Set `seconds` attribute into 0.
+        this.model = new Model({ seconds : 0 });
+        // Listen to changes in model `seconds` attribute and re render.
+        this.model.on('change:seconds', this.render.bind(this));
+        // Increment model `seconds` attribute every 1000 milliseconds.
+        this.interval = setInterval(() => this.model.seconds++, 1000);
     }
-    onDestroy() {
-        // Unbind events when destroyed.
-        this.model.off('change:count', this.render);
-    }
-    // Listener method. Called when button is clicked.
-    onClickIncrement() {
-        // Increment count on model.
-        this.model.count++;
+
+    template(model) {
+        return `Seconds: <span>${model.seconds}</span>`;
     }
 }
-Object.assign(CounterView.prototype, {
-    // Set delegated events.
-    // Call `onClickIncrement` when button is clicked.
-    events : {
-        'click button' : 'onClickIncrement'
-    },
-    // View's template.
-    template : (model) => `
-        <div>The count is: ${model.count}</div>
-        <button>Increment</button>
-    `
-});
-// Model.
-const model = new Model({ count : 0 });
-// Instantiate CounterView.
-const counterView = new CounterView({ model });
-// Add to DOM.
-document.body.appendChild(counterView.render().el);
+// Render view and append view's element into body.
+document.body.appendChild(new Timer().render().el);
 ```
 
 * [View](#module_view)

@@ -1,21 +1,33 @@
 /**
- * Emitter is a class that can be extended giving the subclass the ability to emit 
- * and bind custom named events. Model and View inherits from it.
+ * `Emitter` is a class that provides an easy way to implement the observer pattern 
+ * in your applications. It can be extended to create new classes that have the 
+ * ability to emit and bind custom named events. 
+ * Emitter is used by `Model` and `View` classes, which inherit from it to implement 
+ * event-driven functionality.
+ *
  * @module
  * @example
  * import { Emitter } from 'rasti';
- * // Define App class, inherits from Emitter.
- * class App extends Emitter {
+ * class MyEmitter extends Emitter {
  *     constructor() {
- *         super()
- *         // Fetch data and emit `ready` event.
- *         fetch('/api/init').then(() => this.emit('ready')); 
+ *         super();
+ *         this.count = 0;
+ *     }
+ *
+ *     incrementCount() {
+ *         this.count++;
+ *         this.emit('countChanged', this.count);
  *     }
  * }
- * // Instantiate App.
- * const app = new App();
- * // Add event listener to ready event.
- * app.on('ready', () => console.log('app is ready!'));
+ *
+ * const myEmitter = new MyEmitter();
+ *
+ * myEmitter.on('countChanged', (count) => {
+ *     console.log(`Count changed to ${count}`);
+ * });
+ *
+ * myEmitter.incrementCount(); // Output: "Count changed to 1"
+ * myEmitter.incrementCount(); // Output: "Count changed to 2"
  */
 export default class Emitter {
     /**

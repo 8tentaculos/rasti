@@ -3,6 +3,7 @@ import * as Rasti from '../src/index';
 import Emitter from '../src/Emitter';
 import Model from '../src/Model';
 import View from '../src/View';
+import Component from '../src/Component';
 
 describe('Rasti', () => {
 
@@ -17,19 +18,19 @@ describe('Rasti', () => {
         });
 
         it('should instantiate', () => {
-            let e = new Emitter();
+            const e = new Emitter();
 
             expect(e).to.exist;
             expect(e).to.be.an.instanceof(Emitter);
         });
 
         it('should add listener', () => {
-            let e = new Emitter();
+            const e = new Emitter();
 
-            let l1 = () => {};
-            let l2 = () => {};
-            let l3 = () => {};
-            let l4 = () => {};
+            const l1 = () => {};
+            const l2 = () => {};
+            const l3 = () => {};
+            const l4 = () => {};
 
             // Add listeners for two events and check listeners object.
             e.on('myEventA', l1);
@@ -51,7 +52,7 @@ describe('Rasti', () => {
         });
 
         it('should emit event', (done) => {
-            let e = new Emitter();
+            const e = new Emitter();
 
             e.on('myEvent', done);
 
@@ -59,12 +60,12 @@ describe('Rasti', () => {
         });
 
         it('should stop listening', () => {
-            let e = new Emitter();
+            const e = new Emitter();
 
-            let l1 = () => {};
-            let l2 = () => {};
-            let l3 = () => {};
-            let l4 = () => {};
+            const l1 = () => {};
+            const l2 = () => {};
+            const l3 = () => {};
+            const l4 = () => {};
 
             e.on('myEventA', l1);
             e.on('myEventA', l2);
@@ -89,7 +90,7 @@ describe('Rasti', () => {
         });
 
         it('should emit once', () => {
-            let e = new Emitter();
+            const e = new Emitter();
             let count = 0;
 
             e.once('myEvent', () => { count++; });
@@ -118,44 +119,46 @@ describe('Rasti', () => {
         });
 
         it('must set and get attribute as key/value', () => {
-            let m = new Model();
+            const m = new Model();
             m.set('test', true);
             expect(m.get('test')).to.be.true;
         });
 
         it('must set and get attribute as object', () => {
-            let m = new Model();
+            const m = new Model();
             m.set({ test : true });
             expect(m.get('test')).to.be.true;
         });
         
         it('must set and get attribute using setter', () => {
-            let m = new Model({ test : false });
+            const m = new Model({ test : false });
             m.test = true;
             expect(m.test).to.be.true;
         });
 
         it('must set attribute and emit change event', (done) => {
-            let m = new Model();
+            const m = new Model();
             m.on('change:test', () => done());
             m.set({ test : true });
             m.set({ test : false });
         });
 
         it('must set attribute using setter and emit change event', (done) => {
-            let m = new Model({ test : true });
+            const m = new Model({ test : true });
             m.on('change:test', () => done());
             m.test = false;
         });
 
         it('must set attribute and have previous value', () => {
-            let m = new Model({ test : true });
+            const m = new Model({ test : true });
             m.test = false;
             expect(m.previous.test).to.be.true;
         });
     });
 
     describe('View', () => {
+        beforeEach(() => document.body.innerHTML = '');
+
         it('must exists', () => {
             expect(View).to.exist;
         });
@@ -171,24 +174,24 @@ describe('Rasti', () => {
         });
 
         it('must have element', () => {
-            let v = new View();
+            const v = new View();
             expect(v.el).to.exist;
             v.destroy();
         });
 
         it('must call onDestroy', (done) => {
-            let v = new View({ onDestroy : done });
+            const v = new View({ onDestroy : done });
             v.destroy();
         });
 
         it('must addChild', () => {
-            let v = new View();
-            let c = v.addChild(new View());
+            const v = new View();
+            const c = v.addChild(new View());
             expect(c).to.equal(v.children[0]);
         });
 
         it('must call onDestroy on children', (done) => {
-            let v = new View();
+            const v = new View();
             v.addChild(new View({ onDestroy : done }));
             v.destroyChildren();
         });
@@ -196,9 +199,9 @@ describe('Rasti', () => {
         it('must have unique uid', () => {
             class MyView extends View {}
 
-            let v1 = new View();
-            let v2 = new MyView();
-            let v3 = new View();
+            const v1 = new View();
+            const v2 = new MyView();
+            const v3 = new View();
 
             expect(v1.uid).not.to.be.equal(v2.uid);
             expect(v2.uid).not.to.be.equal(v3.uid);
@@ -213,7 +216,7 @@ describe('Rasti', () => {
                 'click section button' : () => done()
             };
             
-            let v = new MyView();
+            const v = new MyView();
 
             document.body.appendChild(v.render().el);
 
@@ -231,7 +234,7 @@ describe('Rasti', () => {
                 'click section button' : () => done(new Error('Failed undelegating event listener'))
             };
             
-            let v = new MyView();
+            const v = new MyView();
 
             document.body.appendChild(
                 v.delegateEvents({
@@ -242,6 +245,132 @@ describe('Rasti', () => {
             v.$('section button').dispatchEvent(
                 new MouseEvent('click', { bubbles: true })
             );
+        });
+
+    });
+
+    describe('Component', () => {
+        beforeEach(() => document.body.innerHTML = '');
+
+        it('must exists', () => {
+            expect(Component).to.exist;
+        });
+
+        it('must mount on dom', () => {
+            Component.create`<div id="test-node"></div>`.mount({}, document.body);
+            expect(document.getElementById('test-node')).to.exist;
+        });
+
+        it('must mount outside document', () => {
+            const el = document.createElement('div');
+            expect(el.childNodes.length).to.be.equal(0);
+            Component.create`<div></div>`.mount({}, el);
+
+            expect(el.childNodes.length).to.be.equal(1);
+        });
+
+        it('must mount child component', () => {
+            const Button = Component.create`<button>click me</button>`;
+            const Main = Component.create`<div id="test-node">${() => Button.mount()}</div>`;
+
+            const c = Main.mount({}, document.body);
+
+            expect(document.querySelector('button')).to.be.equal(c.children[0].el);
+        });
+
+        it('must re render on model change', () => {
+            const c = Component.create`<div id="test-node">${({ model }) => model.count}</div>`.mount({
+                model: new Model({ count: 0 }),
+            }, document.body);
+
+            expect(document.getElementById('test-node').innerHTML).to.be.equal('0');
+
+            c.model.count = 1;
+
+            expect(document.getElementById('test-node').innerHTML).to.be.equal('1');
+        });
+
+        it('must re render and destroy children', () => {
+            const Button = Component.create`<button>click me</button>`;
+            const Main = Component.create`<div id="test-node">${() => Button.mount()}</div>`;
+
+            const c = Main.mount({ model : new Model({ count : 0 }) }, document.body);
+
+            const child = c.children[0];
+
+            c.model.count = 1;
+
+            expect(c.children[0]).not.to.be.equal(child);
+        });
+
+        it('must re render and recycle children', () => {
+            const Button = Component.create`<button>click me</button>`;
+            const Main = Component.create`<div id="test-node">${() => Button.mount({ key : 'btn' })}</div>`;
+
+            const c = Main.mount({ model: new Model({ count: 0 }) }, document.body);
+
+            const child = c.children[0];
+
+            c.model.count = 1;
+
+            expect(c.children[0]).to.be.equal(child);
+            expect(document.querySelector('button')).to.be.equal(child.el);
+        });
+
+        it('must hydrate existing dom', () => {
+            View.uid = 0;
+
+            document.body.innerHTML = '<div id="test-node"><button id="rasti-component-uid2">click me</button></div>';
+
+            const Button = Component.create`<button>click me</button>`;
+            const Main = Component.create`<div id="test-node">${() => Button.mount()}</div>`;
+
+            const c = Main.mount({}, document.body, true);
+
+            expect(document.querySelector('button')).to.be.equal(c.children[0].el);
+        });
+
+        it('must delegate events', (done) => {
+            const c = Component.create`
+                <section onClick=${{ 'button' : () => done() }}>
+                    <button>click me</button>
+                </section>
+            `.mount({}, document.body);
+
+            c.$('section button').dispatchEvent(
+                new MouseEvent('click', { bubbles: true })
+            );
+        });
+
+        it('must delegate events on root element', (done) => {
+            const c = Component.create`
+                <button onClick=${{ '&': () => done() }}>click me</button>
+            `.mount({}, document.body);
+
+            c.el.dispatchEvent(
+                new MouseEvent('click', { bubbles: true })
+            );
+        });
+
+        it('must be extended', () => {
+            const c = Component.create`<div id="test-node"></div>`.extend({
+                foo : function() {},
+            }).mount();
+
+            expect(c.foo).to.be.a('function');
+        });
+
+        it('must be extended twice', () => {
+            const C1 = Component.create`<div id="test-node"></div>`.extend({
+                foo : function () { },
+            });
+
+            const c2 = C1.extend({
+                bar : function () { },
+            }).mount();
+
+            expect(c2.foo).to.be.a('function');
+            expect(c2.bar).to.be.a('function');
         });
 
     });

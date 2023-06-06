@@ -1,9 +1,9 @@
 # <a href="http://rasti.js.org"><img src="docs/logo.svg" height="80" alt="Rasti" aria-label="rasti.js.org" /></a>
 
-Rasti is a minimalistic JavaScript MV library for building user interfaces.<br />
-It gives structure to applications by providing [models](docs/api.md#module_Model) that emit events on properties changes, and [views](docs/api.md#module_View) with declarative DOM events handling to define UI components.<br />
-Rasti is inspired by the Backbone.js architecture. It can be considered as an ES6 subset of Backbone.js for modern browsers.<br />
-It's ideal for building simple lightweight applications, without the need of configuration or boilerplate. Projects where a resulting small codebase is prioritized over using a complex rendering system.<br />
+Rasti is a lightweight Javascript library designed for building user interfaces.<br />
+Its goal is to help you create projects with a small codebase and without the need for boilerplate.<br />
+Rasti offers a low-level Model and View with an API similar to Backbone.js, but it also provides a higher-level Component class that enables a more composable and declarative approach to building UI components.<br />
+With Rasti, you can easily create reusable UI components that are both modular and easy to understand.<br />
 The project is [hosted on GitHub](https://github.com/8tentaculos/rasti), and it's available for use under the [MIT](LICENSE.md) software license.<br />
 You can report bugs and discuss features on the [GitHub issues page](https://github.com/8tentaculos/rasti/issues).
 
@@ -20,13 +20,13 @@ $ npm install --save rasti
 ```
 
 ```javascript
-import { Model, View } from 'rasti';
+import { Model, Component } from 'rasti';
 ```
 
 #### Using native modules
 
 ```javascript
-import { Model, View } from 'https://unpkg.com/rasti/es';
+import { Model, Component } from 'https://unpkg.com/rasti/es';
 ```
 
 #### Using `<script>` tag
@@ -36,29 +36,22 @@ import { Model, View } from 'https://unpkg.com/rasti/es';
 ```
 
 ```javascript
-const { Model, View } = Rasti;
+const { Model, Component } = Rasti;
 ```
 
-#### A simple `View`
+#### A simple `Component`
 
 ```javascript
-class Timer extends View {
-    constructor(options) {
-        super(options);
-        // Create model to store internal state. Set `seconds` attribute into 0.
-        this.model = new Model({ seconds : 0 });
-        // Listen to changes in model `seconds` attribute and re render.
-        this.model.on('change:seconds', this.render.bind(this));
-        // Increment model `seconds` attribute every 1000 milliseconds.
-        this.interval = setInterval(() => this.model.seconds++, 1000);
-    }
-  
-    template(model) {
-        return `Seconds: <span>${model.seconds}</span>`;
-    }
-}
-// Render view and append view's element into body.
-document.body.appendChild(new Timer().render().el);
+// Create Timer component.
+const Timer = Component.create`
+   <div>Seconds: <span>${({ model }) => model.seconds}</span></div>
+`;
+// Create model to store seconds.
+const model = new Model({ seconds: 0 });
+// Mount timer on body.
+Timer.mount({ model }, document.body);
+// Increment `model.seconds` every second.
+setInterval(() => model.seconds++, 1000);
 ```
 
 [Try it on CodePen](https://codepen.io/8tentaculos/pen/dyXgGMp?editors=0010)
@@ -68,7 +61,7 @@ The UMD builds make Rasti available as a `window.Rasti` global variable.
 
 ## Example
 
-The rasti [GitHub repository](https://github.com/8tentaculos/rasti) includes, in the [example folder](https://github.com/8tentaculos/rasti/tree/master/example/todo), an example [TODO application](http://rasti.js.org/example/todo/index.html) that can be used as starter project.
+The rasti [GitHub repository](https://github.com/8tentaculos/rasti) includes, in the [example folder](https://github.com/8tentaculos/rasti/tree/master/example), examples of a TODO application that can be used as starter projects. One of them, uses [Views](http://rasti.js.org/example/todo/index.html), while the other one uses [Components](http://rasti.js.org/example/todo-component/index.html).
 
 ## API
 

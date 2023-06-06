@@ -3,37 +3,42 @@ import Emitter from './Emitter';
  * - Orchestrates data and business logic.
  * - Emits events when data changes.
  * 
- * A Model manages an internal table of data attributes, and triggers "change" events 
- * when any of its data is modified.<br />
- * Models may handle syncing data with a persistence layer.<br />
- * Design your models as the atomic reusable objects containing all of the helpful functions for 
- * manipulating their particular bit of data.<br /> 
- * Models should be able to be passed around throughout your app, and used anywhere that bit of data is needed.<br />
- * Rasti Models stores its attributes in `this.attributes`, which is extended from `this.defaults` and constructor `attrs` parameter.
- * For every attribute, a getter is generated, which retrieve the model property from `this.attributes`.
- * And a setter, which sets the model property in `this.attributes` and emits `change` and `change:attribute` events.
+ * A `Model` manages an internal table of data attributes and triggers change events when any of its data is modified. 
+ * Models may handle syncing data with a persistence layer. To design your models, create atomic, reusable objects 
+ * that contain all the necessary functions for manipulating their specific data. 
+ * Models should be easily passed throughout your app and used anywhere the corresponding data is needed.
+ * Rasti `Models` stores its attributes in `this.attributes`, which is extended from `this.defaults` and the 
+ * constructor `attrs` parameter. For every attribute, a getter is generated to retrieve the model property 
+ * from `this.attributes`, and a setter is created to set the model property in `this.attributes` and emit `change` 
+ * and `change:attribute` events.
  * @module
  * @param {object} attrs Object containing model attributes to extend `this.attributes`. Getters and setters are generated for `this.attributtes`, in order to emit `change` events.
  * @example
+ * import { Model } from 'rasti';
  * // Todo model
- * class TodoModel extends Rasti.Model {
+ * class TodoModel extends Model {
+ *     preinitialize() {
+ *         // Todo model has `title` and `completed` default attributes. `defaults` will extend `this.attributes`. 
+ *         // Getters and setters are generated for `this.attributtes`, in order to emit `change` events.
+ *         this.defaults = {
+ *             title : '',
+ *             completed : false
+ *         };
+ *     }
+ * 
  *     toggle() {
  *         // Set completed property. This will call a setter that will set `completed` 
  *         // in this.attributes, and emit `change` and `change:completed` events.
  *         this.completed = !this.completed; 
  *     }
  * }
- * // Todo model has `title` and `completed` default attributes. `defaults` will extend `this.attributes`. Getters and setters are generated for `this.attributtes`, in order to emit `change` events.
- * TodoModel.prototype.defaults = {
- *     title : '',
- *     completed : false
- * };
+ *
  * // Create todo. Pass `title` attribute as argument.
- * const todo = new TodoModel({ title : 'Learn Rasti' });
+ * const todo = new TodoModel({ title : 'Create Rasti app' });
  * // Listen to `change:completed` event.
  * todo.on('change:completed', () => console.log('Completed:', todo.completed));
  * // Complete todo.
- * todo.toggle(); // Completed: true
+ * todo.toggle(); // Output: "Completed: true"
  */
 export default class Model extends Emitter {
     constructor(attrs = {}) {

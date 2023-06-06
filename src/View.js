@@ -16,12 +16,13 @@ const viewOptions = {
  * - Handles user input and interactivity.
  * - Sends captured input to the model.
  *
- * A View is an atomic chunk of user interface. It often renders the data from a specific model, 
- * or number of models, but views can also be data-less chunks of UI that stand alone.<br /> 
- * Models must be unaware of views. Instead, views listen to the model "change" events, 
- * and react or re-render themselves appropriately.<br />
- * Views has a root element, `this.el`. That element is used for event delegation. Elements lookups are scoped to that element. And render and dom manipulations should be done inside that element. 
- * If `this.el` is not present, an element will be created using `this.tag` (or `div` as default), and `this.attributes`.<br />
+ * A `View` is an atomic unit of the user interface that can render the data from a specific model or multiple models.
+ * However, views can also be independent and have no associated data.
+ * Models must be unaware of views. Views, on the other hand, may render model data and listen to the change events 
+ * emitted by the models to re-render themselves based on changes.
+ * Each `View` has a root element, `this.el`, which is used for event delegation. 
+ * All element lookups are scoped to this element, and any rendering or DOM manipulations should be done inside it. 
+ * If `this.el` is not present, an element will be created using `this.tag` (defaulting to div) and `this.attributes`.
  * @module
  * @param {object} options Object containing options. The following keys will be merged to `this`: el, tag, attributes, events, model, template, onDestroy.
  * @property {node} el Every view has a root element, `this.el`. If not present it will be created.
@@ -31,43 +32,25 @@ const viewOptions = {
  * @property {object} model A `Rasti.Model` or any object containing data and business logic.
  * @property {function} template A function that receives data and returns a markup string (html for example).
  * @example
- * // Counter view.
- * class CounterView extends View {
+ * import { View } from 'rasti';
+ * 
+ * class Timer extends View {
  *     constructor(options) {
  *         super(options);
- *         // Bind method to `this`, to be called as listener.
- *         this.render = this.render.bind(this);
- *         // Listen to model change and re render.
- *         this.model.on('change:count', this.render);
+ *         // Create model to store internal state. Set `seconds` attribute into 0.
+ *         this.model = new Model({ seconds : 0 });
+ *         // Listen to changes in model `seconds` attribute and re render.
+ *         this.model.on('change:seconds', this.render.bind(this));
+ *         // Increment model `seconds` attribute every 1000 milliseconds.
+ *         this.interval = setInterval(() => this.model.seconds++, 1000);
  *     }
- *     onDestroy() {
- *         // Unbind events when destroyed.
- *         this.model.off('change:count', this.render);
- *     }
- *     // Listener method. Called when button is clicked.
- *     onClickIncrement() {
- *         // Increment count on model.
- *         this.model.count++;
+ *
+ *     template(model) {
+ *         return `Seconds: <span>${model.seconds}</span>`;
  *     }
  * }
- * Object.assign(CounterView.prototype, {
- *     // Set delegated events.
- *     // Call `onClickIncrement` when button is clicked.
- *     events : {
- *         'click button' : 'onClickIncrement'
- *     },
- *     // View's template.
- *     template : (model) => `
- *         <div>The count is: ${model.count}</div>
- *         <button>Increment</button>
- *     `
- * });
- * // Model.
- * const model = new Model({ count : 0 });
- * // Instantiate CounterView.
- * const counterView = new CounterView({ model });
- * // Add to DOM.
- * document.body.appendChild(counterView.render().el);
+ * // Render view and append view's element into body.
+ * document.body.appendChild(new Timer().render().el);
  */
 export default class View extends Emitter {
     constructor(options = {}) {
@@ -133,7 +116,7 @@ export default class View extends Emitter {
         // Remove `this.el` if "options.remove" is true.
         if (remove) this.removeElement();
         // Call onDestroy lifecycle method
-        this.onDestroy();
+        this.onDestroy.apply(this, arguments);
     }
 
     /**
