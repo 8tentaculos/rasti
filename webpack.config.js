@@ -1,11 +1,11 @@
-import webpack from 'webpack';
-import path from 'path';
+require('webpack');
+const path = require('path');
 
 const { NODE_ENV } = process.env;
 
 const filename = `rasti${NODE_ENV === 'production' ? '.min' : ''}.js`;
 
-export default {
+module.exports = {
     mode : NODE_ENV || 'development',
     entry : [
       './src/index',

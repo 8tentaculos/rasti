@@ -1,2 +1,2 @@
 #! /bin/sh
-docker run --rm -it -e NODE_ENV=development -p 3000:3000 -v $PWD:/srv/rasti -w="/srv/rasti" node:14 bash
+docker run --rm -it -e NODE_ENV=development -p 3000:3000 -v $PWD:/srv/rasti -w="/srv/rasti" node:19 bash
