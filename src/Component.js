@@ -32,7 +32,7 @@ const getAttributes = text => {
  */
 const evalExpression = (expression, context, ...args) =>
     typeof expression === 'function' ?
-        expression.call(context, ...args) :
+        expression.apply(context, args) :
         expression;
 
 /**
@@ -64,11 +64,13 @@ export default class Component extends View {
         // Store options by default.
         this.options = options;
         // Ensure id.
-        if (!this.attributes.id) {
+        if (this.attributes.id) {
+            this.id = evalExpression(this.attributes.id, this, this);
+        } else {
             // Generate a unique id and set it as id attribute.
-            this.attributes.id = `rasti-component-${this.uid}`;
+            this.id = `rasti-component-${this.uid}`;
             // Add id to template including root element (this.el) as part of it.
-            this.template.outer = this.template.outer.replace(/^<([a-z]+)/, `<$1 id="${this.attributes.id}"`);
+            this.template.outer = this.template.outer.replace(/^<([a-z]+)/, `<$1 id="${this.id}"`);
         }
         // Bind onChange to this to be used as listener.
         // Store bound version, so it can be removed on onDestroy method.
@@ -90,7 +92,7 @@ export default class Component extends View {
     }
 
     findElement(parent) {
-        return (parent || document).querySelector(`#${evalExpression(this.attributes.id, this, this)}`);
+        return (parent || document).querySelector(`#${this.id}`);
     }
 
     /*
@@ -240,7 +242,7 @@ export default class Component extends View {
                 );
 
                 if (found) {
-                    out = `<${found.tag} id="${evalExpression(found.attributes.id, found, found)}"></${found.tag}>`;
+                    out = `<${found.tag} id="${evalExpression(found.id, found, found)}"></${found.tag}>`;
                     recycledChildren.push(found);
                     result.destroy();
                 } else {
@@ -296,6 +298,7 @@ export default class Component extends View {
      * @static
      * @param {object} options The view options.
      * @param {node} el Dom element to append the view element.
+     * @param {boolean} hydrate If true, the view will use existing html.
      * @return {Rasti.View}
      */
     static mount(options = {}, el, hydrate) {
@@ -370,26 +373,22 @@ export default class Component extends View {
         const Current = this;
 
         // Create subclass for this component.
-        class SubComponent extends Current {
-            preinitialize() {
-                // Set template data.
-                this.template = {
-                    // Template including root element (this.el) as part of the template.
-                    outer: string,
-                    // Template for innerHTML of root element.
-                    inner: result[3],
-                    // Template expressions.
-                    expressions,
-                };
-                // Set root element tag.
-                this.tag = result[1];
-                // Set attributes.
-                this.attributes = Object.assign({}, attributes);
-                // Set events.
-                this.events = events;
-            }
-        }
-        // Return `Component` class.
-        return SubComponent;
+        return Current.extend({
+            // Set events.
+            events,
+            // Set attributes.
+            attributes,
+            // Set template data.
+            template : {
+                // Template including root element (this.el) as part of the template.
+                outer: string,
+                // Template for innerHTML of root element.
+                inner: result[3],
+                // Template expressions.
+                expressions,
+            },
+            // Set root element tag.
+            tag : result[1]
+        });
     }
 }
