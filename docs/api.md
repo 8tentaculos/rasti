@@ -3,16 +3,14 @@
 Components are a special kind of view that is designed to be easily composable, 
 making it simple to add child views and build complex user interfaces. 
 Unlike views, which are render-agnostic, components have a specific set of rendering 
-guidelines that allow for a more declarative development style. With components, 
-developers can create modular building blocks that can be easily composed with other 
-components to build complex user interfaces.
+guidelines that allow for a more declarative development style.
 
 **Example**  
 ```js
 import { Component, Model } from 'rasti';
 // Create Timer component.
 const Timer = Component.create`
-   <div>Seconds: ${({ model }) => model.seconds}</div>
+   <div>Seconds: <span>${({ model }) => model.seconds}</span></div>
 `;
 // Create model to store seconds.
 const model = new Model({ seconds: 0 });
@@ -30,7 +28,7 @@ setInterval(() => model.seconds++, 1000);
         * [.onDestroy()](#module_component__ondestroy)
     * _static_
         * [.extend(object)](#module_component_extend)
-        * [.mount(options, el)](#module_component_mount) ⇒ <code>Rasti.View</code>
+        * [.mount(options, el, hydrate)](#module_component_mount) ⇒ <code>Rasti.View</code>
         * [.create()](#module_component_create)
 
 <a name="module_component__oncreate" id="module_component__oncreate"></a>
@@ -75,7 +73,7 @@ Helper method to create a Component view subclass extending some methods.
 | object | <code>object</code> | Object containing methods to be added to the new view subclass. |
 
 <a name="module_component_mount" id="module_component_mount"></a>
-### Component.mount(options, el) ⇒ <code>Rasti.View</code>
+### Component.mount(options, el, hydrate) ⇒ <code>Rasti.View</code>
 Mount the component into the dom.
 It instantiate the Component view using options, 
 appends its element into the DOM (if `el` is provided).
@@ -87,6 +85,7 @@ And returns the view instance.
 | --- | --- | --- |
 | options | <code>object</code> | The view options. |
 | el | <code>node</code> | Dom element to append the view element. |
+| hydrate | <code>boolean</code> | If true, the view will use existing html. |
 
 <a name="module_component_create" id="module_component_create"></a>
 ### Component.create()
@@ -316,9 +315,9 @@ A `View` is an atomic unit of the user interface that can render the data from a
 However, views can also be independent and have no associated data.
 Models must be unaware of views. Views, on the other hand, may render model data and listen to the change events 
 emitted by the models to re-render themselves based on changes.
-Each view has a root element, this.el, which is used for event delegation. 
+Each `View` has a root element, `this.el`, which is used for event delegation. 
 All element lookups are scoped to this element, and any rendering or DOM manipulations should be done inside it. 
-If this.el is not present, an element will be created using this.tag (defaulting to div) and this.attributes.
+If `this.el` is not present, an element will be created using `this.tag` (defaulting to div) and `this.attributes`.
 
 
 | Param | Type | Description |
