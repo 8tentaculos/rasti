@@ -1,7 +1,6 @@
 import { View } from 'https://unpkg.com/rasti/es';
 
 import ListView from './List.js';
-import TodoView from './Todo.js';
 import StatsView from './Stats.js';
 
 import { ENTER_KEY } from '../constants.js';
