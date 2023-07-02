@@ -1,6 +1,7 @@
+dist: precise
 language: node_js
 node_js:
-  - "18"
+  - "19"
 script:
   - npm run clean
   - npm run build
