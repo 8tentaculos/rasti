@@ -64,14 +64,11 @@ export default class Component extends View {
         // Store options by default.
         this.options = options;
         // Ensure id.
-        if (this.attributes.id) {
-            this.id = evalExpression(this.attributes.id, this, this);
-        } else {
+        this.id = this.attributes.id ? 
+            // If id is provided, evaluate it.
+            evalExpression(this.attributes.id, this, this) :
             // Generate a unique id and set it as id attribute.
-            this.id = `rasti-component-${this.uid}`;
-            // Add id to template including root element (this.el) as part of it.
-            this.template.outer = this.template.outer.replace(/^<([a-z]+)/, `<$1 id="${this.id}"`);
-        }
+            `rasti-component-${this.uid}`;
         // Bind onChange to this to be used as listener.
         // Store bound version, so it can be removed on onDestroy method.
         this.onChange = this.onChange.bind(this);
@@ -178,8 +175,12 @@ export default class Component extends View {
     toString() {
         // Normally there won't be any children, but if there are, destroy them.
         this.destroyChildren();
+        // Add id to template including root element (this.el) as part of it.
+        const tpl = this.attributes.id ?
+            this.template.outer :
+            this.template.outer.replace(/^<([a-z]+)/, `<$1 id="${this.id}"`);
         // Replace expressions.
-        return this.replaceExpressions(this.template.outer, (result) => {
+        return this.replaceExpressions(tpl, (result) => {
             let out = result;
             // Return empty string if result is null or undefined.
             if (result === null || typeof result === 'undefined') out = '';
