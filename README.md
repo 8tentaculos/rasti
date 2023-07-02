@@ -7,7 +7,7 @@ It's ideal for building simple lightweight applications, without the need of con
 The project is [hosted on GitHub](https://github.com/8tentaculos/rasti), and it's available for use under the [MIT](LICENSE.md) software license.<br />
 You can report bugs and discuss features on the [GitHub issues page](https://github.com/8tentaculos/rasti/issues).
 
-[![build status](https://img.shields.io/travis/8tentaculos/rasti/master.svg?style=flat-square)](https://travis-ci.org/8tentaculos/rasti)
+[![Build Status](https://app.travis-ci.com/8tentaculos/rasti.svg?branch=master)](https://app.travis-ci.com/8tentaculos/rasti)
 [![npm version](https://img.shields.io/npm/v/rasti.svg?style=flat-square)](https://www.npmjs.com/package/rasti)
 [![npm downloads](https://img.shields.io/npm/dm/rasti.svg?style=flat-square)](https://www.npmjs.com/package/rasti)
 
