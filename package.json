@@ -17,10 +17,10 @@
     "posttest": "npm run lint",
     "lint": "eslint src test",
     "test": "cross-env BABEL_ENV=commonjs mocha --require @babel/register --require jsdom-global/register --reporter nyan test/*.js",
-    "build:commonjs": "cross-env BABEL_ENV=commonjs babel src --out-dir lib",
+    "build:commonjs": "cross-env BABEL_ENV=commonjs BROWSERSLIST='defaults' babel src --out-dir lib",
     "build:es": "cross-env BABEL_ENV=es BROWSERSLIST='supports es6-module' babel src --out-dir es",
-    "build:umd": "cross-env BABEL_ENV=commonjs NODE_ENV=development webpack",
-    "build:umd:min": "cross-env BABEL_ENV=commonjs NODE_ENV=production webpack",
+    "build:umd": "cross-env BABEL_ENV=commonjs BROWSERSLIST='defaults' NODE_ENV=development webpack",
+    "build:umd:min": "cross-env BABEL_ENV=commonjs BROWSERSLIST='defaults' NODE_ENV=production webpack",
     "docs:api": "jsdoc2md --module-index-format none --helper jsdoc2md/helper.js --partial jsdoc2md/header.hbs --partial jsdoc2md/sig-link.hbs --partial jsdoc2md/sig-link-html.hbs --partial jsdoc2md/sig-link-parent.hbs --files src/**/*.js > docs/api.md"
   },
   "repository": "github:8tentaculos/rasti",
