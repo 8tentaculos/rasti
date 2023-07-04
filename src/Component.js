@@ -36,11 +36,12 @@ const evalExpression = (expression, context, ...args) =>
         expression;
 
 /**
- * Components are a special kind of view that is designed to be easily composable, 
+ * Components are a special kind of `View` that is designed to be easily composable, 
  * making it simple to add child views and build complex user interfaces. 
  * Unlike views, which are render-agnostic, components have a specific set of rendering 
  * guidelines that allow for a more declarative development style.
  * @module
+ * @param {object} options Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onRender, onCreate, onChange.
  * @example
  * import { Component, Model } from 'rasti';
  * // Create Timer component.

@@ -8,26 +8,32 @@
  * @module
  * @example
  * import { Emitter } from 'rasti';
- * class MyEmitter extends Emitter {
+ * // Custom cart
+ * class ShoppingCart extends Emitter {
  *     constructor() {
  *         super();
- *         this.count = 0;
+ *         this.items = [];
  *     }
  *
- *     incrementCount() {
- *         this.count++;
- *         this.emit('countChanged', this.count);
+ *     addItem(item) {
+ *         this.items.push(item);
+ *         // Emit a custom event called `itemAdded`.
+ *         // Pass the added item as an argument to the event listener.
+ *         this.emit('itemAdded', item);
  *     }
  * }
- *
- * const myEmitter = new MyEmitter();
- *
- * myEmitter.on('countChanged', (count) => {
- *     console.log(`Count changed to ${count}`);
+ * // Create an instance of ShoppingCart and Logger
+ * const cart = new ShoppingCart();
+ * // Listen to the `itemAdded` event and log the added item using the logger.
+ * cart.on('itemAdded', (item) => {
+ *     console.log(`Item added to cart: ${item.name} - Price: $${item.price}`);
  * });
+ * // Simulate adding items to the cart
+ * const item1 = { name : 'Smartphone', price : 1000 };
+ * const item2 = { name : 'Headphones', price : 150 };
  *
- * myEmitter.incrementCount(); // Output: "Count changed to 1"
- * myEmitter.incrementCount(); // Output: "Count changed to 2"
+ * cart.addItem(item1); // Output: "Item added to cart: Smartphone - Price: $1000"
+ * cart.addItem(item2); // Output: "Item added to cart: Headphones - Price: $150"
  */
 export default class Emitter {
     /**

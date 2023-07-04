@@ -1,9 +1,14 @@
 <a name="module_component" id="module_component"></a>
 ## Component
-Components are a special kind of view that is designed to be easily composable, 
+Components are a special kind of `View` that is designed to be easily composable, 
 making it simple to add child views and build complex user interfaces. 
 Unlike views, which are render-agnostic, components have a specific set of rendering 
 guidelines that allow for a more declarative development style.
+
+
+| Param | Type | Description |
+| --- | --- | --- |
+| options | <code>object</code> | Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onRender, onCreate, onChange. |
 
 **Example**  
 ```js
@@ -104,26 +109,32 @@ event-driven functionality.
 **Example**  
 ```js
 import { Emitter } from 'rasti';
-class MyEmitter extends Emitter {
+// Custom cart
+class ShoppingCart extends Emitter {
     constructor() {
         super();
-        this.count = 0;
+        this.items = [];
     }
 
-    incrementCount() {
-        this.count++;
-        this.emit('countChanged', this.count);
+    addItem(item) {
+        this.items.push(item);
+        // Emit a custom event called `itemAdded`.
+        // Pass the added item as an argument to the event listener.
+        this.emit('itemAdded', item);
     }
 }
-
-const myEmitter = new MyEmitter();
-
-myEmitter.on('countChanged', (count) => {
-    console.log(`Count changed to ${count}`);
+// Create an instance of ShoppingCart and Logger
+const cart = new ShoppingCart();
+// Listen to the `itemAdded` event and log the added item using the logger.
+cart.on('itemAdded', (item) => {
+    console.log(`Item added to cart: ${item.name} - Price: $${item.price}`);
 });
+// Simulate adding items to the cart
+const item1 = { name : 'Smartphone', price : 1000 };
+const item2 = { name : 'Headphones', price : 150 };
 
-myEmitter.incrementCount(); // Output: "Count changed to 1"
-myEmitter.incrementCount(); // Output: "Count changed to 2"
+cart.addItem(item1); // Output: "Item added to cart: Smartphone - Price: $1000"
+cart.addItem(item2); // Output: "Item added to cart: Headphones - Price: $150"
 ```
 
 * [Emitter](#module_emitter)
@@ -214,30 +225,33 @@ and `change:attribute` events.
 **Example**  
 ```js
 import { Model } from 'rasti';
-// Todo model
-class TodoModel extends Model {
+// Product model
+class ProductModel extends Model {
     preinitialize() {
-        // Todo model has `title` and `completed` default attributes. `defaults` will extend `this.attributes`. 
-        // Getters and setters are generated for `this.attributtes`, in order to emit `change` events.
+        // The Product model has `name` and `price` default attributes.
+        // `defaults` will extend `this.attributes`.
+        // Getters and setters are generated for `this.attributes`,
+        // in order to emit `change` events.
         this.defaults = {
-            title : '',
-            completed : false
+            name: '',
+            price: 0
         };
     }
 
-    toggle() {
-        // Set completed property. This will call a setter that will set `completed` 
-        // in this.attributes, and emit `change` and `change:completed` events.
-        this.completed = !this.completed; 
+    setDiscount(discountPercentage) {
+        // Apply a discount to the price property.
+        // This will call a setter that will update `price` in `this.attributes`,
+        // and emit `change` and `change:price` events.
+        const discount = this.price * (discountPercentage / 100);
+        this.price -= discount;
     }
 }
-
-// Create todo. Pass `title` attribute as argument.
-const todo = new TodoModel({ title : 'Create Rasti app' });
-// Listen to `change:completed` event.
-todo.on('change:completed', () => console.log('Completed:', todo.completed));
-// Complete todo.
-todo.toggle(); // Output: "Completed: true"
+// Create a product instance with a name and price.
+const product = new ProductModel({ name: 'Smartphone', price: 1000 });
+// Listen to the `change:price` event.
+product.on('change:price', () => console.log('New Price:', product.price));
+// Apply a 10% discount to the product.
+product.setDiscount(10); // Output: "New Price: 900"
 ```
 
 * [Model](#module_model)

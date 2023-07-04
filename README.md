@@ -1,9 +1,10 @@
 # <a href="http://rasti.js.org"><img src="docs/logo.svg" height="80" alt="Rasti" aria-label="rasti.js.org" /></a>
 
-Rasti is a lightweight Javascript library designed for building user interfaces.<br />
-Its goal is to help you create projects with a small codebase and without the need for boilerplate.<br />
-Rasti offers a low-level Model and View with an API similar to Backbone.js, but it also provides a higher-level Component class that enables a more composable and declarative approach to building UI components.<br />
-With Rasti, you can easily create reusable UI components that are both modular and easy to understand.<br />
+
+Rasti is a minimalistic, ultra-lightweight JavaScript library designed for efficient user interface development.<br />
+Its goal is to help you create projects with a compact codebase, eliminating the need for boilerplate.<br />
+While offering a low-level Model and View with a Backbone.js-like API, Rasti also introduces a higher-level Component class that enables a more composable and declarative approach to building UI components.<br />
+
 The project is [hosted on GitHub](https://github.com/8tentaculos/rasti), and it's available for use under the [MIT](LICENSE.md) software license.<br />
 You can report bugs and discuss features on the [GitHub issues page](https://github.com/8tentaculos/rasti/issues).
 
@@ -54,7 +55,7 @@ Timer.mount({ model }, document.body);
 setInterval(() => model.seconds++, 1000);
 ```
 
-[Try it on CodePen](https://codepen.io/8tentaculos/pen/dyXgGMp?editors=0010)
+[Try it on CodePen](https://codepen.io/8tentaculos/pen/gOQxaOE?editors=0010)
 
 The [rasti npm package](https://www.npmjs.com/package/rasti) includes precompiled production and development UMD builds in the dist folder. They can be used directly without a bundler and are thus compatible with many popular JavaScript module loaders and environments.<br />
 The UMD builds make Rasti available as a `window.Rasti` global variable.

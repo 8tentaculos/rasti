@@ -15,30 +15,33 @@ import Emitter from './Emitter';
  * @param {object} attrs Object containing model attributes to extend `this.attributes`. Getters and setters are generated for `this.attributtes`, in order to emit `change` events.
  * @example
  * import { Model } from 'rasti';
- * // Todo model
- * class TodoModel extends Model {
+ * // Product model
+ * class ProductModel extends Model {
  *     preinitialize() {
- *         // Todo model has `title` and `completed` default attributes. `defaults` will extend `this.attributes`. 
- *         // Getters and setters are generated for `this.attributtes`, in order to emit `change` events.
+ *         // The Product model has `name` and `price` default attributes.
+ *         // `defaults` will extend `this.attributes`.
+ *         // Getters and setters are generated for `this.attributes`,
+ *         // in order to emit `change` events.
  *         this.defaults = {
- *             title : '',
- *             completed : false
+ *             name: '',
+ *             price: 0
  *         };
  *     }
- * 
- *     toggle() {
- *         // Set completed property. This will call a setter that will set `completed` 
- *         // in this.attributes, and emit `change` and `change:completed` events.
- *         this.completed = !this.completed; 
+ *
+ *     setDiscount(discountPercentage) {
+ *         // Apply a discount to the price property.
+ *         // This will call a setter that will update `price` in `this.attributes`,
+ *         // and emit `change` and `change:price` events.
+ *         const discount = this.price * (discountPercentage / 100);
+ *         this.price -= discount;
  *     }
  * }
- *
- * // Create todo. Pass `title` attribute as argument.
- * const todo = new TodoModel({ title : 'Create Rasti app' });
- * // Listen to `change:completed` event.
- * todo.on('change:completed', () => console.log('Completed:', todo.completed));
- * // Complete todo.
- * todo.toggle(); // Output: "Completed: true"
+ * // Create a product instance with a name and price.
+ * const product = new ProductModel({ name: 'Smartphone', price: 1000 });
+ * // Listen to the `change:price` event.
+ * product.on('change:price', () => console.log('New Price:', product.price));
+ * // Apply a 10% discount to the product.
+ * product.setDiscount(10); // Output: "New Price: 900"
  */
 export default class Model extends Emitter {
     constructor(attrs = {}) {
