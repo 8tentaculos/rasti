@@ -37,7 +37,7 @@ const evalExpression = (expression, context, ...args) =>
 
 /**
  * Components are a special kind of `View` that is designed to be easily composable, 
- * making it simple to add child views and build complex user interfaces. 
+ * making it simple to add child views and build complex user interfaces.<br />
  * Unlike views, which are render-agnostic, components have a specific set of rendering 
  * guidelines that allow for a more declarative development style.
  * @module
@@ -116,7 +116,8 @@ export default class Component extends View {
     }
 
     /**
-     * Lifecycle method. Called when the view is created.
+     * Lifecycle method. Called when the view is created at the end of the constructor.
+     * @param options {object} The view options.
      */
     onCreate() {}
 
@@ -126,9 +127,9 @@ export default class Component extends View {
      * This method should be extended with custom logic.
      * Maybe comparing new attributes with previous ones and calling
      * render when needed. Or doing some dom transformation.
-     * @param model
-     * @param key
-     * @param value
+     * @param model {Rasti.Model}
+     * @param key {string}
+     * @param value {any}
      */
     onChange() {
         this.render();
@@ -275,9 +276,9 @@ export default class Component extends View {
     }
 
     /**
-     * Helper method to create a Component view subclass extending some methods.
+     * Helper method used to extend a `Component`, creating a subclass.
      * @static
-     * @param {object} object Object containing methods to be added to the new view subclass.
+     * @param {object} object Object containing methods to be added to the new `Component` subclass. Also can be a function that receives the parent prototype and returns an object.
      */
     static extend(object) {
         const Current = this;
@@ -324,10 +325,10 @@ export default class Component extends View {
         return view;
     }
     /**
-    * create is a tagged template that receives an HTML string, 
-    * and returns a Component.
-    * @static
-    */
+     * Tagged template that receives an HTML string, 
+     * and returns a `Component`.
+     * @static
+     */
     static create(strings, ...expressions) {
         const parts = [];
         // Replace functions and objects interpolations with `{number}`.

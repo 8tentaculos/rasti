@@ -17,10 +17,10 @@ const viewOptions = {
  * - Sends captured input to the model.
  *
  * A `View` is an atomic unit of the user interface that can render the data from a specific model or multiple models.
- * However, views can also be independent and have no associated data.
+ * However, views can also be independent and have no associated data.<br />
  * Models must be unaware of views. Views, on the other hand, may render model data and listen to the change events 
- * emitted by the models to re-render themselves based on changes.
- * Each `View` has a root element, `this.el`, which is used for event delegation. 
+ * emitted by the models to re-render themselves based on changes.<br />
+ * Each `View` has a root element, `this.el`, which is used for event delegation.<br />
  * All element lookups are scoped to this element, and any rendering or DOM manipulations should be done inside it. 
  * If `this.el` is not present, an element will be created using `this.tag` (defaulting to div) and `this.attributes`.
  * @module

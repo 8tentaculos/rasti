@@ -1,7 +1,7 @@
 <a name="module_component" id="module_component"></a>
 ## Component
 Components are a special kind of `View` that is designed to be easily composable, 
-making it simple to add child views and build complex user interfaces. 
+making it simple to add child views and build complex user interfaces.<br />
 Unlike views, which are render-agnostic, components have a specific set of rendering 
 guidelines that allow for a more declarative development style.
 
@@ -27,7 +27,7 @@ setInterval(() => model.seconds++, 1000);
 
 * [Component](#module_component)
     * _instance_
-        * [.onCreate()](#module_component__oncreate)
+        * [.onCreate(options)](#module_component__oncreate)
         * [.onChange(model, key, value)](#module_component__onchange)
         * [.onRender()](#module_component__onrender)
         * [.onDestroy()](#module_component__ondestroy)
@@ -37,10 +37,15 @@ setInterval(() => model.seconds++, 1000);
         * [.create()](#module_component_create)
 
 <a name="module_component__oncreate" id="module_component__oncreate"></a>
-### component.onCreate()
-Lifecycle method. Called when the view is created.
+### component.onCreate(options)
+Lifecycle method. Called when the view is created at the end of the constructor.
 
 **Kind**: instance method of [<code>Component</code>](#module_Component)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| options | <code>object</code> | The view options. |
+
 <a name="module_component__onchange" id="module_component__onchange"></a>
 ### component.onChange(model, key, value)
 Lifecycle method. Called when model emits `change` event.
@@ -51,11 +56,11 @@ render when needed. Or doing some dom transformation.
 
 **Kind**: instance method of [<code>Component</code>](#module_Component)  
 
-| Param |
-| --- |
-| model | 
-| key | 
-| value | 
+| Param | Type |
+| --- | --- |
+| model | <code>Rasti.Model</code> | 
+| key | <code>string</code> | 
+| value | <code>any</code> | 
 
 <a name="module_component__onrender" id="module_component__onrender"></a>
 ### component.onRender()
@@ -69,13 +74,13 @@ Lifecycle method. Called when the view is destroyed.
 **Kind**: instance method of [<code>Component</code>](#module_Component)  
 <a name="module_component_extend" id="module_component_extend"></a>
 ### Component.extend(object)
-Helper method to create a Component view subclass extending some methods.
+Helper method used to extend a `Component`, creating a subclass.
 
 **Kind**: static method of [<code>Component</code>](#module_Component)  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| object | <code>object</code> | Object containing methods to be added to the new view subclass. |
+| object | <code>object</code> | Object containing methods to be added to the new `Component` subclass. Also can be a function that receives the parent prototype and returns an object. |
 
 <a name="module_component_mount" id="module_component_mount"></a>
 ### Component.mount(options, el, hydrate) ⇒ <code>Rasti.View</code>
@@ -94,15 +99,15 @@ And returns the view instance.
 
 <a name="module_component_create" id="module_component_create"></a>
 ### Component.create()
-create is a tagged template that receives an HTML string, 
-and returns a Component.
+Tagged template that receives an HTML string, 
+and returns a `Component`.
 
 **Kind**: static method of [<code>Component</code>](#module_Component)  
 <a name="module_emitter" id="module_emitter"></a>
 ## Emitter
 `Emitter` is a class that provides an easy way to implement the observer pattern 
-in your applications. It can be extended to create new classes that have the 
-ability to emit and bind custom named events. 
+in your applications.<br />
+It can be extended to create new classes that have the ability to emit and bind custom named events.<br /> 
 Emitter is used by `Model` and `View` classes, which inherit from it to implement 
 event-driven functionality.
 
@@ -208,11 +213,11 @@ this.emit('invalid'); // Emit validation error event.
 - Orchestrates data and business logic.
 - Emits events when data changes.
 
-A `Model` manages an internal table of data attributes and triggers change events when any of its data is modified. 
+A `Model` manages an internal table of data attributes and triggers change events when any of its data is modified.<br />
 Models may handle syncing data with a persistence layer. To design your models, create atomic, reusable objects 
-that contain all the necessary functions for manipulating their specific data. 
-Models should be easily passed throughout your app and used anywhere the corresponding data is needed.
-Rasti `Models` stores its attributes in `this.attributes`, which is extended from `this.defaults` and the 
+that contain all the necessary functions for manipulating their specific data.<br />
+Models should be easily passed throughout your app and used anywhere the corresponding data is needed.<br />
+Rasti models stores its attributes in `this.attributes`, which is extended from `this.defaults` and the 
 constructor `attrs` parameter. For every attribute, a getter is generated to retrieve the model property 
 from `this.attributes`, and a setter is created to set the model property in `this.attributes` and emit `change` 
 and `change:attribute` events.
@@ -326,10 +331,10 @@ By default returns `this.attributes`.
 - Sends captured input to the model.
 
 A `View` is an atomic unit of the user interface that can render the data from a specific model or multiple models.
-However, views can also be independent and have no associated data.
+However, views can also be independent and have no associated data.<br />
 Models must be unaware of views. Views, on the other hand, may render model data and listen to the change events 
-emitted by the models to re-render themselves based on changes.
-Each `View` has a root element, `this.el`, which is used for event delegation. 
+emitted by the models to re-render themselves based on changes.<br />
+Each `View` has a root element, `this.el`, which is used for event delegation.<br />
 All element lookups are scoped to this element, and any rendering or DOM manipulations should be done inside it. 
 If `this.el` is not present, an element will be created using `this.tag` (defaulting to div) and `this.attributes`.
 
