@@ -1,4 +1,4 @@
-import { Component } from 'https://unpkg.com/rasti@2.0.0-alpha.0/es/';
+import { Component } from 'https://unpkg.com/rasti@2.0.0-alpha.0/es';
 
 const ToggleAll = Component.create`
     <span

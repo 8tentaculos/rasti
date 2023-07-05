@@ -1,5 +1,5 @@
-import { Model } from 'https://unpkg.com/rasti@2.0.0-alpha.0/es/';
-import { Component } from 'https://unpkg.com/rasti@2.0.0-alpha.0/es/';
+import { Model } from 'https://unpkg.com/rasti@2.0.0-alpha.0/es';
+import { Component } from 'https://unpkg.com/rasti@2.0.0-alpha.0/es';
 
 import { ENTER_KEY, ESC_KEY } from '../constants.js';
 
