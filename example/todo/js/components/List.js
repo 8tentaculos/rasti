@@ -1,8 +1,8 @@
-import component from '/lib/component.js';
+import { Component } from 'https://unpkg.com/rasti@2.0.0-alpha.0/es/';
 
 import Todo from './Todo.js';
 
-const List = component`
+const List = Component.create`
     <ul class="todo-list">
         ${({ model }) => model.filtered.map(todo => new Todo({
             model : todo,

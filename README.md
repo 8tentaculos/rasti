@@ -62,7 +62,7 @@ The UMD builds make Rasti available as a `window.Rasti` global variable.
 
 ## Example
 
-The rasti [GitHub repository](https://github.com/8tentaculos/rasti) includes, in the [example folder](https://github.com/8tentaculos/rasti/tree/master/example), examples of a TODO application that can be used as starter projects. One of them, uses [Views](http://rasti.js.org/example/todo/index.html), while the other one uses [Components](http://rasti.js.org/example/todo-component/index.html).
+The rasti [GitHub repository](https://github.com/8tentaculos/rasti) includes, in the [example folder](https://github.com/8tentaculos/rasti/tree/master/example/todo), an example [TODO application](http://rasti.js.org/example/todo/index.html) that can be used as starter project.
 
 ## API
 
