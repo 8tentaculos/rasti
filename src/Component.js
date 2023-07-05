@@ -245,7 +245,7 @@ export default class Component extends View {
                 );
 
                 if (found) {
-                    out = `<${found.tag} id="${evalExpression(found.id, found, found)}"></${found.tag}>`;
+                    out = `<${found.tag} id="${found.id}"></${found.tag}>`;
                     recycledChildren.push(found);
                     result.destroy();
                 } else {
