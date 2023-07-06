@@ -69,7 +69,7 @@ export default class Component extends View {
             // If id is provided, evaluate it.
             evalExpression(this.attributes.id, this, this) :
             // Generate a unique id and set it as id attribute.
-            `rasti-component-${this.uid}`;
+            Component.ID_TEMPLATE(this.uid);
         // Bind onChange to this to be used as listener.
         // Store bound version, so it can be removed on onDestroy method.
         this.onChange = this.onChange.bind(this);
@@ -148,27 +148,39 @@ export default class Component extends View {
     /*
      * Replace expressions.
      */
-    replaceExpressions(string, parseExpressionResult) {
+    replaceExpressions(string, addChild) {
         return string
-            .replace(/{(\d+)}/g, (match) => {
+            .replace(new RegExp(Component.EXPRESSION_PLACEHOLDER_TEMPLATE('(\\d+)'), 'g'), (match) => {
                 // Get expression index.
-                const idx = match.match(/{(\d+)}/)[1];
+                const idx = match.match(new RegExp(Component.EXPRESSION_PLACEHOLDER_TEMPLATE('(\\d+)')))[1];
                 // Eval expression. Pass view as argument.
                 const result = this.template.expressions[idx].call(this, this);
                 // Treat all expressions as arrays.
                 const results = result instanceof Array ? result : [result];
                 // Replace expression with the result of the evaluation.
-                return results.reduce((out, current) => {
+                return results.reduce((out, result) => {
+                    let parsed;
+                    // If result is true, replace it with a placeholder.
+                    if (result === true) parsed = Component.TRUE_PLACEHOLDER;
+                    // If result is false, replace it with a placeholder.
+                    else if (result === false) parsed = Component.FALSE_PLACEHOLDER;
+                    // Replace null or undefined with empty string.
+                    else if (result === null || typeof result === 'undefined') parsed = '';
+                    // If result is a view, call addChild callback.
+                    else if (result && typeof result.render === 'function') parsed = addChild(result);
+                    // Return expression itself.
+                    else parsed = result;
                     // Concatenate expressions.
-                    out += parseExpressionResult(current);
-                    return out;
+                    return out + parsed;
                 }, '');
 
             })
             // Replace `attribute="true"` with `attribute`
-            .replace(/([a-z]+)=["|']true["|']/g, '$1')
-            // Replace `attribute="false"` with ``
-            .replace(/([a-z]+)=["|']false["|']/g, '');
+            .replace(new RegExp(`([a-z]+)=["|']${Component.TRUE_PLACEHOLDER}["|']`, 'g'), '$1')
+            // Replace `attribute="false"` with empty string.
+            .replace(new RegExp(`([a-z]+)=["|']${Component.FALSE_PLACEHOLDER}["|']`, 'g'), '')
+            // Replace rest of false expressions with empty string.
+            .replace(new RegExp(Component.FALSE_PLACEHOLDER, 'g'), '');
     }
 
     /*
@@ -182,17 +194,9 @@ export default class Component extends View {
             this.template.outer :
             this.template.outer.replace(/^<([a-z]+)/, `<$1 id="${this.id}"`);
         // Replace expressions.
-        return this.replaceExpressions(tpl, (result) => {
-            let out = result;
-            // Return empty string if result is null or undefined.
-            if (result === null || typeof result === 'undefined') out = '';
-            // If result is a view, add it to children array.
-            else if (result && typeof result.render === 'function') {
-                // Add child component.
-                this.addChild(result);
-            }
-
-            return out;
+        return this.replaceExpressions(tpl, (component) => {
+            // Add child component.
+            return this.addChild(component);
         });
     }
 
@@ -233,42 +237,40 @@ export default class Component extends View {
 
         // Replace expressions.
         // Set html text inside `this.el`. Make it part of the dom.
-        this.el.innerHTML = this.replaceExpressions(this.template.inner, (result) => {
-            let out = result;
-            // Return empty string if result is null or undefined.
-            if (result === null || typeof result === 'undefined') out = '';
+        this.el.innerHTML = this.replaceExpressions(this.template.inner, (component) => {
+            let out = component;
+            // Check if child already exists.
+            const found = component.key && previousChildren.find(
+                previousChild => previousChild.key === component.key
+            );
 
-            // If result is a view, add it to children array.
-            else if (result && typeof result.render === 'function') {
-                const found = result.key && previousChildren.find(
-                    previousChild => previousChild.key === result.key
-                );
-
-                if (found) {
-                    out = `<${found.tag} id="${found.id}"></${found.tag}>`;
-                    recycledChildren.push(found);
-                    result.destroy();
-                } else {
-                    nextChildren.push(result);
-                }
+            if (found) {
+                // If child already exists, replace it html by its root element.
+                out = `<${found.tag} id="${found.id}"></${found.tag}>`;
+                // Add child to recycled children.
+                recycledChildren.push(found);
+                // Destroy new child component. Use recycled one instead.
+                component.destroy();
+            } else {
+                // Not found. Add new child component.
+                nextChildren.push(component);
             }
-            
+            // Component html.
             return out;
         });
-
+        // Add new children. Hydrate them.
         nextChildren.forEach(nextChild => {
             this.addChild(nextChild).hydrate(this.el);
         });
-
+        // Replace children root elements with recycled components.
         recycledChildren.forEach(recycledChild => {
             this.el.replaceChild(this.addChild(recycledChild).el, recycledChild.findElement(this.el));
         });
-
+        // Destroy unused children.
         previousChildren.forEach(previousChild => {
             const found = recycledChildren.indexOf(previousChild) > -1;
             if (!found) previousChild.destroy();
         });
-
         // Call onRender lifecycle method.
         this.onRender.call(this);
         // Return this for chaining.
@@ -340,7 +342,7 @@ export default class Component extends View {
             if (expressions[i]) {
                 parts.push(
                     typeof expressions[i] === 'function' || typeof expressions[i] === 'object' ?
-                        `{${i}}` :
+                        Component.EXPRESSION_PLACEHOLDER_TEMPLATE(i) :
                         expressions[i]
                 );
             }
@@ -356,8 +358,10 @@ export default class Component extends View {
         let events = {};
         // Filter events. Replace placeholders `{number}` with expressions.
         attributes = Object.keys(attributes).reduce((out, key) => {
-            const matchKey = key.match(/on(([A-Z]{1}[a-z]+)+)/); // Is Event?
-            const matchValue = attributes[key].match(/{(\d+)}/); // Is placeholder for function or object?
+            // Is Event?
+            const matchKey = key.match(/on(([A-Z]{1}[a-z]+)+)/);
+            // Is placeholder for function or object?
+            const matchValue = attributes[key].match(new RegExp(Component.EXPRESSION_PLACEHOLDER_TEMPLATE('(\\d+)')));
             // Get expression or value.
             const value = matchValue && matchValue[1] ? expressions[matchValue[1]] : attributes[key];
             // Is event handler.
@@ -395,3 +399,8 @@ export default class Component extends View {
         });
     }
 }
+
+Component.ID_TEMPLATE = (uid) => `rasti-component-${uid}`;
+Component.EXPRESSION_PLACEHOLDER_TEMPLATE = (idx) => `__RASTI_EXPRESSION{${idx}}`;
+Component.TRUE_PLACEHOLDER = '__RASTI_TRUE';
+Component.FALSE_PLACEHOLDER = '__RASTI_FALSE';
