@@ -229,48 +229,52 @@ export default class Component extends View {
             }
         });
 
-        const previousChildren = this.children;
-        this.children = [];
+        // Check for `template.inner`.
+        // Root element may be a self enclosed tag element without innerHTML.
+        if (this.template.inner) {
+            const previousChildren = this.children;
+            this.children = [];
 
-        const nextChildren = [];
-        const recycledChildren = [];
+            const nextChildren = [];
+            const recycledChildren = [];
 
-        // Replace expressions.
-        // Set html text inside `this.el`. Make it part of the dom.
-        this.el.innerHTML = this.replaceExpressions(this.template.inner, (component) => {
-            let out = component;
-            // Check if child already exists.
-            const found = component.key && previousChildren.find(
-                previousChild => previousChild.key === component.key
-            );
+            // Replace expressions.
+            // Set html text inside `this.el`. Make it part of the dom.
+            this.el.innerHTML = this.replaceExpressions(this.template.inner, (component) => {
+                let out = component;
+                // Check if child already exists.
+                const found = component.key && previousChildren.find(
+                    previousChild => previousChild.key === component.key
+                );
 
-            if (found) {
-                // If child already exists, replace it html by its root element.
-                out = `<${found.tag} id="${found.id}"></${found.tag}>`;
-                // Add child to recycled children.
-                recycledChildren.push(found);
-                // Destroy new child component. Use recycled one instead.
-                component.destroy();
-            } else {
-                // Not found. Add new child component.
-                nextChildren.push(component);
-            }
-            // Component html.
-            return out;
-        });
-        // Add new children. Hydrate them.
-        nextChildren.forEach(nextChild => {
-            this.addChild(nextChild).hydrate(this.el);
-        });
-        // Replace children root elements with recycled components.
-        recycledChildren.forEach(recycledChild => {
-            this.el.replaceChild(this.addChild(recycledChild).el, recycledChild.findElement(this.el));
-        });
-        // Destroy unused children.
-        previousChildren.forEach(previousChild => {
-            const found = recycledChildren.indexOf(previousChild) > -1;
-            if (!found) previousChild.destroy();
-        });
+                if (found) {
+                    // If child already exists, replace it html by its root element.
+                    out = `<${found.tag} id="${found.id}"></${found.tag}>`;
+                    // Add child to recycled children.
+                    recycledChildren.push(found);
+                    // Destroy new child component. Use recycled one instead.
+                    component.destroy();
+                } else {
+                    // Not found. Add new child component.
+                    nextChildren.push(component);
+                }
+                // Component html.
+                return out;
+            });
+            // Add new children. Hydrate them.
+            nextChildren.forEach(nextChild => {
+                this.addChild(nextChild).hydrate(this.el);
+            });
+            // Replace children root elements with recycled components.
+            recycledChildren.forEach(recycledChild => {
+                this.el.replaceChild(this.addChild(recycledChild).el, recycledChild.findElement(this.el));
+            });
+            // Destroy unused children.
+            previousChildren.forEach(previousChild => {
+                const found = recycledChildren.indexOf(previousChild) > -1;
+                if (!found) previousChild.destroy();
+            });
+        }
         // Call onRender lifecycle method.
         this.onRender.call(this);
         // Return this for chaining.
@@ -350,7 +354,7 @@ export default class Component extends View {
         // Create output text for main template.
         const main = parts.join('').trim().replace(/\n/g, '');
         // Extract outer tag, attributes and inner html.
-        const result = main.match(/^<([a-z]+)(.*?)>(.*)<\/\1>$/);
+        const result = main.match(/^<([a-z]+)(.*?)>(.*)<\/\1>$/) || main.match(/^<([a-z]+)(.*?)\/>$/);
         // Remove events listeners.
         const string = main.replace(/on([A-Z]{1}[a-z]+)+=[^>\s]+/g, '');
         // Parse attributes from html text into an object.

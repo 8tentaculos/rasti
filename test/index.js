@@ -261,6 +261,11 @@ describe('Rasti', () => {
             expect(document.getElementById('test-node')).to.exist;
         });
 
+        it('must be created with a self enclosed tag', () => {
+            Component.create`<input id="test-node" type="text" />`.mount({}, document.body);
+            expect(document.getElementById('test-node')).to.exist;
+        });
+
         it('must mount outside document', () => {
             const el = document.createElement('div');
             expect(el.childNodes.length).to.be.equal(0);
