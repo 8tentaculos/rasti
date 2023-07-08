@@ -1,6 +1,6 @@
-import Emitter from './Emitter';
-import Model from './Model';
-import View from './View';
-import Component from './Component';
+import Emitter from './Emitter.js';
+import Model from './Model.js';
+import View from './View.js';
+import Component from './Component.js';
 
 export { Emitter, Model, View, Component };
