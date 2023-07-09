@@ -45,7 +45,9 @@ const { Model, Component } = Rasti;
 ```javascript
 // Create Timer component.
 const Timer = Component.create`
-   <div>Seconds: <span>${({ model }) => model.seconds}</span></div>
+    <div>
+        Seconds: <span>${({ model }) => model.seconds}</span>
+    </div>
 `;
 // Create model to store seconds.
 const model = new Model({ seconds: 0 });
