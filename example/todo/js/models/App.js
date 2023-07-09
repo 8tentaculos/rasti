@@ -1,4 +1,4 @@
-import { Model } from 'https://unpkg.com/rasti/es';
+import { Model } from 'https://esm.run/rasti';
 
 import TodoModel from './Todo.js';
 

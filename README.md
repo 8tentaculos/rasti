@@ -10,6 +10,7 @@ You can report bugs and discuss features on the [GitHub issues page](https://git
 [![Build Status](https://app.travis-ci.com/8tentaculos/rasti.svg?branch=master)](https://app.travis-ci.com/8tentaculos/rasti)
 [![npm version](https://img.shields.io/npm/v/rasti.svg?style=flat-square)](https://www.npmjs.com/package/rasti)
 [![npm downloads](https://img.shields.io/npm/dm/rasti.svg?style=flat-square)](https://www.npmjs.com/package/rasti)
+[![](https://data.jsdelivr.com/v1/package/npm/rasti/badge?style=rounded)](https://www.jsdelivr.com/package/npm/rasti)
 
 ## Getting started
 
@@ -23,16 +24,16 @@ $ npm install --save rasti
 import { Model, View } from 'rasti';
 ```
 
-#### Using native modules
+#### Using ES modules
 
 ```javascript
-import { Model, View } from 'https://unpkg.com/rasti/es';
+import { Model, View } from 'https://esm.run/rasti';
 ```
 
 #### Using `<script>` tag
 
 ```html
-<script src="https://unpkg.com/rasti/dist/rasti.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/rasti/dist/rasti.min.js"></script>
 ```
 
 ```javascript

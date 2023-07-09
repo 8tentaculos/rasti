@@ -1,4 +1,4 @@
-import { View } from 'https://unpkg.com/rasti/es';
+import { View } from 'https://esm.run/rasti';
 
 // Stats, filters and controls view.
 class Stats extends View {

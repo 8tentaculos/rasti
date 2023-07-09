@@ -1,5 +1,4 @@
 import AppModel from './models/App.js';
-import TodoModel from './models/Todo.js';
 import AppView from './views/App.js';
 
 // Get saved todos from localStorage

@@ -1,4 +1,4 @@
-import { Model } from 'https://unpkg.com/rasti/es';
+import { Model } from 'https://esm.run/rasti';
 
 // Todo model.
 class Todo extends Model {

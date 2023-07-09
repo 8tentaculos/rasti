@@ -1,4 +1,4 @@
-import { View } from 'https://unpkg.com/rasti/es';
+import { View } from 'https://esm.run/rasti';
 
 import TodoView from './Todo.js';
 
