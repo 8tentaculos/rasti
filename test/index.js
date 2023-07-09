@@ -285,7 +285,7 @@ describe('Rasti', () => {
 
         it('must re render on model change', () => {
             const c = Component.create`<div id="test-node">${({ model }) => model.count}</div>`.mount({
-                model: new Model({ count: 0 }),
+                model : new Model({ count : 0 }),
             }, document.body);
 
             expect(document.getElementById('test-node').innerHTML).to.be.equal('0');
@@ -293,6 +293,18 @@ describe('Rasti', () => {
             c.model.count = 1;
 
             expect(document.getElementById('test-node').innerHTML).to.be.equal('1');
+        });
+
+        it('must re render and change attributes', () => {
+            const c = Component.create`
+                <input id="test-node" type="text" disabled="${({ model }) => model.disabled}" />
+            `.mount({ model : new Model({ disabled : false }) }, document.body);
+
+            expect(document.getElementById('test-node').disabled).to.be.false;
+
+            c.model.disabled = true;
+
+            expect(document.getElementById('test-node').disabled).to.be.true;
         });
 
         it('must re render and destroy children', () => {

@@ -1,21 +1,33 @@
 <a name="module_component" id="module_component"></a>
-## Component
+## Component ⇐ <code>Rasti.View</code>
 Components are a special kind of `View` that is designed to be easily composable, 
 making it simple to add child views and build complex user interfaces.<br />
 Unlike views, which are render-agnostic, components have a specific set of rendering 
-guidelines that allow for a more declarative development style.
+guidelines that allow for a more declarative development style.<br />
+Components are defined with the `create` static method, which takes a tagged template.
 
+**Extends**: <code>Rasti.View</code>  
 
 | Param | Type | Description |
 | --- | --- | --- |
 | options | <code>object</code> | Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onRender, onCreate, onChange. |
+
+**Properties**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| key | <code>string</code> | A unique key to identify the component. Used to recycle child components. |
+| model | <code>object</code> | A `Rasti.Model` or any emitter object containing data and business logic. |
+| state | <code>object</code> | A `Rasti.Model` or any emitter object containing data and business logic, to be used as internal state. |
 
 **Example**  
 ```js
 import { Component, Model } from 'rasti';
 // Create Timer component.
 const Timer = Component.create`
-   <div>Seconds: <span>${({ model }) => model.seconds}</span></div>
+    <div>
+        Seconds: <span>${({ model }) => model.seconds}</span>
+    </div>
 `;
 // Create model to store seconds.
 const model = new Model({ seconds: 0 });
@@ -25,7 +37,7 @@ Timer.mount({ model }, document.body);
 setInterval(() => model.seconds++, 1000);
 ```
 
-* [Component](#module_component)
+* [Component](#module_component) ⇐ <code>Rasti.View</code>
     * _instance_
         * [.onCreate(options)](#module_component__oncreate)
         * [.onChange(model, key, value)](#module_component__onchange)
@@ -33,8 +45,8 @@ setInterval(() => model.seconds++, 1000);
         * [.onDestroy()](#module_component__ondestroy)
     * _static_
         * [.extend(object)](#module_component_extend)
-        * [.mount(options, el, hydrate)](#module_component_mount) ⇒ <code>Rasti.View</code>
-        * [.create()](#module_component_create)
+        * [.mount(options, el, hydrate)](#module_component_mount) ⇒ <code>Rasti.Component</code>
+        * [.create(HTML)](#module_component_create) ⇒ <code>Rasti.Component</code>
 
 <a name="module_component__oncreate" id="module_component__oncreate"></a>
 ### component.onCreate(options)
@@ -83,7 +95,7 @@ Helper method used to extend a `Component`, creating a subclass.
 | object | <code>object</code> | Object containing methods to be added to the new `Component` subclass. Also can be a function that receives the parent prototype and returns an object. |
 
 <a name="module_component_mount" id="module_component_mount"></a>
-### Component.mount(options, el, hydrate) ⇒ <code>Rasti.View</code>
+### Component.mount(options, el, hydrate) ⇒ <code>Rasti.Component</code>
 Mount the component into the dom.
 It instantiate the Component view using options, 
 appends its element into the DOM (if `el` is provided).
@@ -98,11 +110,24 @@ And returns the view instance.
 | hydrate | <code>boolean</code> | If true, the view will use existing html. |
 
 <a name="module_component_create" id="module_component_create"></a>
-### Component.create()
-Tagged template that receives an HTML string, 
-and returns a `Component`.
+### Component.create(HTML) ⇒ <code>Rasti.Component</code>
+Takes a tagged template containing an HTML string, 
+and returns a new `Component` class.
+- The template outer tag and attributes will be used to create the view's root element.
+- Boolean attributes should be passed in the form of `attribute="${() => true}"`.
+- Event handlers should be passed, at the root element, in the form of `onEventName=${{'selector' : listener }}`. Where `selector` is a css selector. The event will be delegated to the view's root element.
+- The template inner HTML will be used as the view's template.
+- Template interpolations that are functions will be evaluated on the render process. Receiving the view instance as argument. And being bound to it.
+- If the function returns `null`, `undefined`, `false` or empty string, the interpolation won't render any content.
+- If the function returns a component instance, it will be added as a child component.
+- If the function returns an array, each item will be evaluated as above.
 
 **Kind**: static method of [<code>Component</code>](#module_Component)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| HTML | <code>string</code> | template for the component. |
+
 <a name="module_emitter" id="module_emitter"></a>
 ## Emitter
 `Emitter` is a class that provides an easy way to implement the observer pattern 
@@ -209,7 +234,7 @@ Emits event of specified type. Listeners will receive specified arguments.
 this.emit('invalid'); // Emit validation error event.
 ```
 <a name="module_model" id="module_model"></a>
-## Model
+## Model ⇐ <code>Rasti.Emitter</code>
 - Orchestrates data and business logic.
 - Emits events when data changes.
 
@@ -222,6 +247,7 @@ constructor `attrs` parameter. For every attribute, a getter is generated to ret
 from `this.attributes`, and a setter is created to set the model property in `this.attributes` and emit `change` 
 and `change:attribute` events.
 
+**Extends**: <code>Rasti.Emitter</code>  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -259,7 +285,7 @@ product.on('change:price', () => console.log('New Price:', product.price));
 product.setDiscount(10); // Output: "New Price: 900"
 ```
 
-* [Model](#module_model)
+* [Model](#module_model) ⇐ <code>Rasti.Emitter</code>
     * [.preinitialize(attrs)](#module_model__preinitialize)
     * [.defineAttribute(key)](#module_model__defineattribute)
     * [.get(key)](#module_model__get) ⇒ <code>any</code>
@@ -325,7 +351,7 @@ By default returns `this.attributes`.
 **Kind**: instance method of [<code>Model</code>](#module_Model)  
 **Returns**: <code>object</code> - Object representation of the model to be used for JSON serialization.  
 <a name="module_view" id="module_view"></a>
-## View
+## View ⇐ <code>Rasti.Emitter</code>
 - Listens for changes and renders UI.
 - Handles user input and interactivity.
 - Sends captured input to the model.
@@ -338,6 +364,7 @@ Each `View` has a root element, `this.el`, which is used for event delegation.<b
 All element lookups are scoped to this element, and any rendering or DOM manipulations should be done inside it. 
 If `this.el` is not present, an element will be created using `this.tag` (defaulting to div) and `this.attributes`.
 
+**Extends**: <code>Rasti.Emitter</code>  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -377,7 +404,7 @@ class Timer extends View {
 document.body.appendChild(new Timer().render().el);
 ```
 
-* [View](#module_view)
+* [View](#module_view) ⇐ <code>Rasti.Emitter</code>
     * [.preinitialize(attrs)](#module_view__preinitialize)
     * [.$(selector)](#module_view__$) ⇒ <code>node</code>
     * [.$$(selector)](#module_view__$$) ⇒ <code>Array.&lt;node&gt;</code>

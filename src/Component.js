@@ -28,6 +28,14 @@ const getAttributes = text => {
 };
 
 /*
+ * Helper function. If first arg is a placeholder for an expression, return the expression.
+ */
+const getExpression = (placeholder, expressions) => {
+    const match = placeholder.match(new RegExp(Component.EXPRESSION_PLACEHOLDER_TEMPLATE('(\\d+)')));
+    return match && match[1] ? expressions[match[1]] : placeholder;
+};
+
+/*
  * Helper function. If expression is a function, call it with context and args.
  */
 const evalExpression = (expression, context, ...args) =>
@@ -39,9 +47,14 @@ const evalExpression = (expression, context, ...args) =>
  * Components are a special kind of `View` that is designed to be easily composable, 
  * making it simple to add child views and build complex user interfaces.<br />
  * Unlike views, which are render-agnostic, components have a specific set of rendering 
- * guidelines that allow for a more declarative development style.
+ * guidelines that allow for a more declarative development style.<br />
+ * Components are defined with the `create` static method, which takes a tagged template.
  * @module
+ * @extends Rasti.View
  * @param {object} options Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onRender, onCreate, onChange.
+ * @property {string} key A unique key to identify the component. Used to recycle child components.
+ * @property {object} model A `Rasti.Model` or any emitter object containing data and business logic.
+ * @property {object} state A `Rasti.Model` or any emitter object containing data and business logic, to be used as internal state.
  * @example
  * import { Component, Model } from 'rasti';
  * // Create Timer component.
@@ -153,10 +166,9 @@ export default class Component extends View {
     replaceExpressions(string, addChild) {
         return string
             .replace(new RegExp(Component.EXPRESSION_PLACEHOLDER_TEMPLATE('(\\d+)'), 'g'), (match) => {
-                // Get expression index.
-                const idx = match.match(new RegExp(Component.EXPRESSION_PLACEHOLDER_TEMPLATE('(\\d+)')))[1];
+                const expression = getExpression(match, this.template.expressions);
                 // Eval expression. Pass view as argument.
-                const result = this.template.expressions[idx].call(this, this);
+                const result = evalExpression(expression, this, this);
                 // Treat all expressions as arrays.
                 const results = result instanceof Array ? result : [result];
                 // Replace expression with the result of the evaluation.
@@ -310,7 +322,7 @@ export default class Component extends View {
      * @param {object} options The view options.
      * @param {node} el Dom element to append the view element.
      * @param {boolean} hydrate If true, the view will use existing html.
-     * @return {Rasti.View}
+     * @return {Rasti.Component}
      */
     static mount(options = {}, el, hydrate) {
         // Instantiate view.
@@ -333,9 +345,19 @@ export default class Component extends View {
         return view;
     }
     /**
-     * Tagged template that receives an HTML string, 
-     * and returns a `Component`.
+     * Takes a tagged template containing an HTML string, 
+     * and returns a new `Component` class.
+     * - The template outer tag and attributes will be used to create the view's root element.
+     * - Boolean attributes should be passed in the form of `attribute="${() => true}"`.
+     * - Event handlers should be passed, at the root element, in the form of `onEventName=${{'selector' : listener }}`. Where `selector` is a css selector. The event will be delegated to the view's root element.
+     * - The template inner HTML will be used as the view's template.
+     * - Template interpolations that are functions will be evaluated on the render process. Receiving the view instance as argument. And being bound to it.
+     * - If the function returns `null`, `undefined`, `false` or empty string, the interpolation won't render any content.
+     * - If the function returns a component instance, it will be added as a child component.
+     * - If the function returns an array, each item will be evaluated as above.
      * @static
+     * @param {string} HTML template for the component.
+     * @return {Rasti.Component}
      */
     static create(strings, ...expressions) {
         const parts = [];
@@ -369,9 +391,8 @@ export default class Component extends View {
             // Is Event?
             const matchKey = key.match(/on(([A-Z]{1}[a-z]+)+)/);
             // Is placeholder for function or object?
-            const matchValue = attributes[key].match(new RegExp(Component.EXPRESSION_PLACEHOLDER_TEMPLATE('(\\d+)')));
             // Get expression or value.
-            const value = matchValue && matchValue[1] ? expressions[matchValue[1]] : attributes[key];
+            const value = getExpression(attributes[key], expressions);
             // Is event handler. Add to events object.
             if (matchKey && matchKey[1]) {
                 const eventType = matchKey[1].toLowerCase();
@@ -386,7 +407,6 @@ export default class Component extends View {
         }, {});
 
         const Current = this;
-
         // Create subclass for this component.
         return Current.extend({
             // Set events.

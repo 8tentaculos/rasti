@@ -3,7 +3,7 @@
 
 Rasti is a minimalistic, ultra-lightweight JavaScript library designed for efficient user interface development.<br />
 Its goal is to help you create projects with a compact codebase, eliminating the need for boilerplate.<br />
-While offering a low-level Model and View with a Backbone.js-like API, Rasti also introduces a higher-level Component class that enables a more composable and declarative approach to building UI components.<br />
+While offering a low-level [Model](docs/api.md#module_Model) and [View](docs/api.md#module_View) with a Backbone.js-like API, Rasti also introduces a higher-level [Component](docs/api.md#module_Component) class that enables a more composable and declarative approach to building UI components.<br />
 
 The project is [hosted on GitHub](https://github.com/8tentaculos/rasti), and it's available for use under the [MIT](LICENSE.md) software license.<br />
 You can report bugs and discuss features on the [GitHub issues page](https://github.com/8tentaculos/rasti/issues).

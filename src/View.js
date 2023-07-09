@@ -24,6 +24,7 @@ const viewOptions = {
  * All element lookups are scoped to this element, and any rendering or DOM manipulations should be done inside it. 
  * If `this.el` is not present, an element will be created using `this.tag` (defaulting to div) and `this.attributes`.
  * @module
+ * @extends Rasti.Emitter
  * @param {object} options Object containing options. The following keys will be merged to `this`: el, tag, attributes, events, model, template, onDestroy.
  * @property {node} el Every view has a root element, `this.el`. If not present it will be created.
  * @property {string} tag If `this.el` is not present, an element will be created using `this.tag`. Default is `div`.

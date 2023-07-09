@@ -12,6 +12,7 @@ import Emitter from './Emitter';
  * from `this.attributes`, and a setter is created to set the model property in `this.attributes` and emit `change` 
  * and `change:attribute` events.
  * @module
+ * @extends Rasti.Emitter
  * @param {object} attrs Object containing model attributes to extend `this.attributes`. Getters and setters are generated for `this.attributtes`, in order to emit `change` events.
  * @example
  * import { Model } from 'rasti';
