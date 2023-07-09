@@ -359,8 +359,10 @@ export default class Component extends View {
         const string = main.replace(/on([A-Z]{1}[a-z]+)+=[^>\s]+/g, '');
         // Parse attributes from html text into an object.
         let attributes = getAttributes(result[2]);
+        // Events to be delegated.
         let events = {};
-        // Filter events. Replace placeholders `{number}` with expressions.
+        // Filter events. To generate events object.
+        // Generate attributes object, replace placeholders with expressions.
         attributes = Object.keys(attributes).reduce((out, key) => {
             // Is Event?
             const matchKey = key.match(/on(([A-Z]{1}[a-z]+)+)/);
@@ -368,7 +370,7 @@ export default class Component extends View {
             const matchValue = attributes[key].match(new RegExp(Component.EXPRESSION_PLACEHOLDER_TEMPLATE('(\\d+)')));
             // Get expression or value.
             const value = matchValue && matchValue[1] ? expressions[matchValue[1]] : attributes[key];
-            // Is event handler.
+            // Is event handler. Add to events object.
             if (matchKey && matchKey[1]) {
                 const eventType = matchKey[1].toLowerCase();
                 Object.keys(value).forEach(
@@ -376,7 +378,7 @@ export default class Component extends View {
                 );
                 return out;
             }
-            // Is function expression.
+            // Is attribute. Add to attributes object.
             out[key] = value;
             return out;
         }, {});
