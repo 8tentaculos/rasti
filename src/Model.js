@@ -1,4 +1,4 @@
-import Emitter from './Emitter';
+import Emitter from './Emitter.js';
 /**
  * - Orchestrates data and business logic.
  * - Emits events when data changes.
