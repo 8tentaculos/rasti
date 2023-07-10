@@ -1,4 +1,4 @@
-import Emitter from './Emitter';
+import Emitter from './Emitter.js';
 
 // This options keys will be extended on view instance.
 const viewOptions = {
