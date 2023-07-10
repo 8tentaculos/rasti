@@ -1,4 +1,4 @@
-import View from './View';
+import View from './View.js';
 
 // This options keys will be extended on view instance.
 const componentOptions = {
