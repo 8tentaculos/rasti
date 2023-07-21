@@ -16,12 +16,11 @@ const componentOptions = {
  */
 const getAttributes = text => {
     const attributes = {};
-    const re = /(\w+)=["']?((?:.(?!["']?\s+(?:\S+)=|\s*\/?[>"']))+.)["']?/gi;
+    const re = /(\w+)(?:=["']?((?:.(?!["']?\s+(?:\S+)=|\s*\/?[>"']))+.)["']?)?/g;
 
     let result;
     while ((result = re.exec(text)) !== null) {
-        attributes[result[1]] = result[2] ?
-            result[2].replace(/'|"/g, '') : true;
+        attributes[result[1]] = typeof result[2] === 'undefined' ? true : result[2];
     }
 
     return attributes;
@@ -31,7 +30,10 @@ const getAttributes = text => {
  * Helper function. If first arg is a placeholder for an expression, return the expression.
  */
 const getExpression = (placeholder, expressions) => {
-    const match = placeholder.match(new RegExp(Component.EXPRESSION_PLACEHOLDER_TEMPLATE('(\\d+)')));
+    const match = placeholder &&
+        placeholder.match && 
+        placeholder.match(new RegExp(Component.EXPRESSION_PLACEHOLDER_TEMPLATE('(\\d+)')));
+
     return match && match[1] ? expressions[match[1]] : placeholder;
 };
 

@@ -295,11 +295,36 @@ describe('Rasti', () => {
             expect(document.getElementById('test-node').innerHTML).to.be.equal('1');
         });
 
-        it('must re render and change attributes', () => {
+        it('must parse attributes', () => {
             const c = Component.create`
                 <input
                     id="test-node"
                     class="test-class-1 test-class-2"
+                    type="text"
+                    readonly
+                    disabled="${({ model }) => model.disabled}"
+                />
+            `.mount({ model : new Model({ disabled : false }) }, document.body);
+
+            const el = document.getElementById('test-node');
+
+            expect(el.className).to.be.equal('test-class-1 test-class-2');
+            expect(el.hasAttribute('readonly')).to.be.true;
+            expect(el.disabled).to.be.false;
+
+            c.render();
+
+            expect(c.attributes.readonly).to.be.true;
+
+            expect(el.className).to.be.equal('test-class-1 test-class-2');
+            expect(el.hasAttribute('readonly')).to.be.true;
+            expect(el.disabled).to.be.false;
+        });
+
+        it('must re render and change attributes', () => {
+            const c = Component.create`
+                <input
+                    id="test-node"
                     type="text"
                     disabled="${({ model }) => model.disabled}"
                 />
@@ -310,7 +335,6 @@ describe('Rasti', () => {
             c.model.disabled = true;
 
             expect(document.getElementById('test-node').disabled).to.be.true;
-            expect(document.getElementById('test-node').className).to.be.equal('test-class-1 test-class-2');
         });
 
         it('must re render and destroy children', () => {
