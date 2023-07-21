@@ -16,7 +16,7 @@ const componentOptions = {
  */
 const getAttributes = text => {
     const attributes = {};
-    const re = /([a-z]+)=?(\S+)?/gi;
+    const re = /(\w+)=["']?((?:.(?!["']?\s+(?:\S+)=|\s*\/?[>"']))+.)["']?/gi;
 
     let result;
     while ((result = re.exec(text)) !== null) {

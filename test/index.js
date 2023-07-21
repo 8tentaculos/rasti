@@ -297,7 +297,12 @@ describe('Rasti', () => {
 
         it('must re render and change attributes', () => {
             const c = Component.create`
-                <input id="test-node" type="text" disabled="${({ model }) => model.disabled}" />
+                <input
+                    id="test-node"
+                    class="test-class-1 test-class-2"
+                    type="text"
+                    disabled="${({ model }) => model.disabled}"
+                />
             `.mount({ model : new Model({ disabled : false }) }, document.body);
 
             expect(document.getElementById('test-node').disabled).to.be.false;
@@ -305,6 +310,7 @@ describe('Rasti', () => {
             c.model.disabled = true;
 
             expect(document.getElementById('test-node').disabled).to.be.true;
+            expect(document.getElementById('test-node').className).to.be.equal('test-class-1 test-class-2');
         });
 
         it('must re render and destroy children', () => {
