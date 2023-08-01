@@ -244,5 +244,23 @@ describe('Rasti', () => {
             );
         });
 
+        it('must delegate events on root element', (done) => {
+            class MyView extends View {}
+
+            MyView.prototype.template = () => '<section><button>click me</button></section>';
+
+            MyView.prototype.events = {
+                'click' : () => done()
+            };
+            
+            let v = new MyView();
+
+            document.body.appendChild(v.render().el);
+
+            v.$('section button').dispatchEvent(
+                new MouseEvent('click', { bubbles: true })
+            );
+        });
+
     });
 });

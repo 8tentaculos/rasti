@@ -78,7 +78,7 @@ export default class View extends Emitter {
         // Useful to generate elements ids.
         this.uid = `uid${++View.uid}`;
         // Store delegated events listeners,
-        // so they can be unbinded later.
+        // so they can be unbound later.
         this.delegatedEventListeners = [];
         // Store child views,
         // so they can be destroyed.
@@ -227,13 +227,15 @@ export default class View extends Emitter {
         let eventTypes = {};
 
         Object.keys(events).forEach(key => {
-            let keyParts = key.split(' '),
-                type = keyParts.shift(),
-                selector = keyParts.join(' '),
-                listener = events[key];
+            const keyParts = key.split(' ');
+            const type = keyParts.shift();
+            const selector = keyParts.join(' ');
 
+            let listener = events[key];
+            // Listener may be a string representing a method name on the view,
+            // or a function.
             listener = (
-                typeof listener === 'string' ?  
+                typeof listener === 'string' ?
                     this[listener] : 
                     listener
             ).bind(this);
@@ -243,15 +245,12 @@ export default class View extends Emitter {
             eventTypes[type].push({ selector, listener });
         });
 
-        const indexOf = Array.prototype.indexOf;
-
         Object.keys(eventTypes).forEach(type => {
-            let self = this;
-            let typeListener = function (event) {
-                eventTypes[type].forEach(function ({ selector, listener }) {
-                    if (indexOf.call(selector ? self.el.querySelectorAll(selector) : [self.el], event.target) > -1) {
-                        listener(event, self);
-                    }
+            // Listener for the type of event.
+            const typeListener = (event) => {
+                // Iterate and run every individual listener if the selector matches.
+                eventTypes[type].forEach(({ selector, listener }) => {
+                    if (!selector || event.target.closest(selector)) listener(event, this);
                 });
             };
 
