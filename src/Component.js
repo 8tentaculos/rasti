@@ -283,7 +283,10 @@ export default class Component extends View {
             });
             // Replace children root elements with recycled components.
             recycledChildren.forEach(recycledChild => {
-                this.el.replaceChild(this.addChild(recycledChild).el, recycledChild.findElement(this.el));
+                const toBeReplaced = recycledChild.findElement(this.el);
+                const toBeRecycled = this.addChild(recycledChild).el;
+                toBeReplaced.replaceWith(toBeRecycled);
+                
             });
             // Destroy unused children.
             previousChildren.forEach(previousChild => {
