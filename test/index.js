@@ -176,12 +176,19 @@ describe('Rasti', () => {
         it('must have element', () => {
             const v = new View();
             expect(v.el).to.exist;
-            v.destroy();
         });
 
         it('must call onDestroy', (done) => {
             const v = new View({ onDestroy : done });
             v.destroy();
+        });
+
+        it('must be destroyed and removed from dom', () => {
+            const v = new View({ attributes : { id : 'test-node' } });
+            document.body.appendChild(v.render().el);
+            expect(document.getElementById('test-node')).to.exist;
+            v.destroy().removeElement();
+            expect(document.getElementById('test-node')).to.not.exist;
         });
 
         it('must addChild', () => {

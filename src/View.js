@@ -104,25 +104,24 @@ export default class View extends Emitter {
     /**
      * Destroy the view.
      * Destroy children views if any, undelegate events, stop listening to events, call `onDestroy` lifecycle method.
-     * Pass options.remove as true to remove the view's root element (`this.el`) from the DOM.
-     * @param {object} options.remove Remove the view's root element (`this.el`) from the DOM.
      */
-    destroy({ remove } = {}) {
+    destroy() {
         // Call destroy on children.
         this.destroyChildren();
         // Undelegate `this.el` event listeners
         this.undelegateEvents();
         // Unbind `this` events.
         this.off();
-        // Remove `this.el` if "options.remove" is true.
-        if (remove) this.removeElement();
         // Call onDestroy lifecycle method
         this.onDestroy.apply(this, arguments);
+        // Return `this` for chaining.
+        return this;
     }
 
     /**
      * `onDestroy` lifecycle method is called after view is destroyed.
      * Override with your code. Useful to stop listening to model's events.
+     * @param {object} options Options object or any arguments passed to `destroy` method.
      */
     onDestroy() {}
 
@@ -241,7 +240,7 @@ export default class View extends Emitter {
             this.delegatedEventListeners.push({ type, listener : typeListener });
             this.el.addEventListener(type, typeListener);
         });
-
+        // Return `this` for chaining.
         return this;
     }
 
@@ -255,7 +254,7 @@ export default class View extends Emitter {
         });
 
         this.delegatedEventListeners = [];
-
+        // Return `this` for chaining.
         return this;
     }
 
@@ -270,6 +269,7 @@ export default class View extends Emitter {
      */
     render() {
         if (this.template) this.el.innerHTML = this.template(this.model);
+        // Return `this` for chaining.
         return this;
     }
 }
