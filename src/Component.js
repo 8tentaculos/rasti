@@ -106,18 +106,40 @@ export default class Component extends View {
         if (this.el) this.delegateEvents();
     }
 
+    /*
+     * Find view's element on parent node, using id.
+     */
     findElement(parent) {
         return (parent || document).querySelector(`#${this.id}`);
     }
 
     /*
-     * Used internally on the render process. Attach the view to the dom element.
+     * Used internally on the render process.
+     * Attach the view to the dom element.
      */
     hydrate(parent) {
         this.el = this.findElement(parent);
         this.delegateEvents();
         this.children.forEach(child => child.hydrate(this.el));
-        this.onRender.call(this);
+        this.onRender.call(this, 'hydrate');
+    }
+
+    /*
+     * Used internally on the render process.
+     * Reuse a view that has `key` when its parent is rendered.
+     */
+    recycle(parent) {
+        if (parent) {
+            // Find element to be replaced. It has same id.
+            const toBeReplaced = this.findElement(parent);
+            // Replace it with this.el.
+            toBeReplaced.replaceWith(this.el);
+        }
+        // Call recycle on children without arguments.
+        // Only execute `onRender`.
+        this.children.forEach(child => child.recycle());
+        // Call `onRender` lifecycle method.
+        this.onRender.call(this, 'recycle');
     }
 
     /*
@@ -144,9 +166,9 @@ export default class Component extends View {
      * This method should be extended with custom logic.
      * Maybe comparing new attributes with previous ones and calling
      * render when needed. Or doing some dom transformation.
-     * @param model {Rasti.Model}
-     * @param key {string}
-     * @param value {any}
+     * @param model {Rasti.Model} The model that emitted the event.
+     * @param key {string} The key that changed.
+     * @param value {any} The new value.
      */
     onChange() {
         this.render();
@@ -154,11 +176,13 @@ export default class Component extends View {
 
     /**
      * Lifecycle method. Called when the view is rendered.
+     * @param type {string} The render type. Can be `render`, `hydrate` or `recycle`.
      */
     onRender() {}
-    
+
     /**
      * Lifecycle method. Called when the view is destroyed.
+     * @param {object} options Options object or any arguments passed to `destroy` method.
      */
     onDestroy() {}
 
@@ -283,10 +307,7 @@ export default class Component extends View {
             });
             // Replace children root elements with recycled components.
             recycledChildren.forEach(recycledChild => {
-                const toBeReplaced = recycledChild.findElement(this.el);
-                const toBeRecycled = this.addChild(recycledChild).el;
-                toBeReplaced.replaceWith(toBeRecycled);
-                
+                this.addChild(recycledChild).recycle(this.el);
             });
             // Destroy unused children.
             previousChildren.forEach(previousChild => {
@@ -295,7 +316,7 @@ export default class Component extends View {
             });
         }
         // Call onRender lifecycle method.
-        this.onRender.call(this);
+        this.onRender.call(this, 'render');
         // Return this for chaining.
         return this;
     }
@@ -332,7 +353,6 @@ export default class Component extends View {
     static mount(options = {}, el, hydrate) {
         // Instantiate view.
         const view = new this(options);
-
         // If `el` is passed, mount component.
         if (el) {
             if (hydrate) {
@@ -346,7 +366,7 @@ export default class Component extends View {
             }
             view.hydrate(el);
         }
-
+        // Return view instance.
         return view;
     }
     /**
