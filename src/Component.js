@@ -14,7 +14,7 @@ const componentOptions = {
  * @param text {string} html text
  * @return {object} Object with keys / values representing attributes.
  */
-const getAttributes = text => {
+const extractAttributes = text => {
     const attributes = {};
     const re = /(\w+)(?:=["']?((?:.(?!["']?\s+(?:\S+)=|\s*\/?[>"']))+.)["']?)?/g;
 
@@ -114,6 +114,36 @@ export default class Component extends View {
     }
 
     /*
+     * Eval attributes expressions.
+     */
+    getAttributes() {
+        const add = {};
+        const remove = {};
+        const attrs = [];
+
+        Object.keys(this.attributes).forEach(key => {
+            if (key === 'id') return;
+            // Evaluate attribute value.
+            let value = evalExpression(this.attributes[key], this, this);
+            // Transform bool attribute values
+            if (value === false) {
+                remove[key] = true;
+            } else if (value === true) {
+                add[key] = '';
+                attrs.push(key);
+            } else {
+                add[key] = value;
+                attrs.push(`${key}="${value}"`);
+            }
+        });
+
+        add.id = this.id;
+        attrs.push(`id="${this.id}"`);
+
+        return { add, remove, html : attrs.join(' ') };
+    }
+
+    /*
      * Used internally on the render process.
      * Attach the view to the dom element.
      */
@@ -129,15 +159,10 @@ export default class Component extends View {
      * Reuse a view that has `key` when its parent is rendered.
      */
     recycle(parent) {
-        if (parent) {
-            // Find element to be replaced. It has same id.
-            const toBeReplaced = this.findElement(parent);
-            // Replace it with this.el.
-            toBeReplaced.replaceWith(this.el);
-        }
-        // Call recycle on children without arguments.
-        // Only execute `onRender`.
-        this.children.forEach(child => child.recycle());
+        // Find element to be replaced. It has same id.
+        const toBeReplaced = this.findElement(parent);
+        // Replace it with this.el.
+        toBeReplaced.replaceWith(this.el);
         // Call `onRender` lifecycle method.
         this.onRender.call(this, 'recycle');
     }
@@ -145,8 +170,8 @@ export default class Component extends View {
     /*
      * Override. Add some custom logic to super `destroy` method.
      */
-    destroy(options) {
-        super.destroy(options);
+    destroy() {
+        super.destroy.apply(this, arguments);
         // Stop listening to `change`.
         // Set destroyed flag to prevent a last render after destroyed. TODO: Review
         if (this.model) this.model.off('change', this.onChange);
@@ -229,15 +254,15 @@ export default class Component extends View {
     toString() {
         // Normally there won't be any children, but if there are, destroy them.
         this.destroyChildren();
-        // Add id to template including root element (this.el) as part of it.
-        const tpl = this.attributes.id ?
-            this.template.outer :
-            this.template.outer.replace(/^<([a-z]+)/, `<$1 id="${this.id}"`);
         // Replace expressions.
-        return this.replaceExpressions(tpl, (component) => {
+        const inner = this.template.inner && this.replaceExpressions(this.template.inner, (component) => {
             // Add child component.
             return this.addChild(component);
         });
+        // Generate outer template.
+        return inner ?
+            `<${this.tag} ${this.getAttributes().html}>${inner}</${this.tag}>` :
+            `<${this.tag} ${this.getAttributes().html} />`;
     }
 
     /*
@@ -246,40 +271,32 @@ export default class Component extends View {
     render() {
         // Prevent a last re render if view is already destroyed.
         if (this.destroyed) return this;
-        // If "this.el" is not present,
-        // create a new element according "this.tag"
-        // and "this.attributes".
+        // If `this.el` is not present, create a new `this.tag` element.
         if (!this.el) {
             this.el = this.createElement(this.tag);
             this.delegateEvents();
         }
         // Set `this.el` attributes.
-        Object.keys(this.attributes).forEach(key => {
-            // Omit changing id.
-            if (key === 'id') return;
-            // Evaluate attribute value.
-            let value = evalExpression(this.attributes[key], this, this);
-            // Transform bool attribute values
-            if (value === false) {
-                // Remove false attributes.
-                this.el.removeAttribute(key);
-            } else {
-                if (value === true) value = '';
-                this.el.setAttribute(key, value);
-            }
+        const attributes = this.getAttributes();
+        // Remove attributes.
+        Object.keys(attributes.remove).forEach(key => {
+            this.el.removeAttribute(key);
         });
-
-        // Check for `template.inner`.
-        // Root element may be a self enclosed tag element without innerHTML.
+        // Add attributes.
+        Object.keys(attributes.add).forEach(key => {
+            this.el.setAttribute(key, attributes.add[key]);
+        });
+        // Check for `template.inner` to see if view has innerHTML.
         if (this.template.inner) {
             const previousChildren = this.children;
+
             this.children = [];
 
             const nextChildren = [];
             const recycledChildren = [];
-
-            // Replace expressions.
-            // Set html text inside `this.el`. Make it part of the dom.
+            // Store active element.
+            const activeElement = document.activeElement;
+            // Replace expressions. Set html inside of `this.el`.
             this.el.innerHTML = this.replaceExpressions(this.template.inner, (component) => {
                 let out = component;
                 // Check if child already exists.
@@ -314,6 +331,10 @@ export default class Component extends View {
                 const found = recycledChildren.indexOf(previousChild) > -1;
                 if (!found) previousChild.destroy();
             });
+            // Restore focus.
+            if (this.el.contains(activeElement)) {
+                activeElement.focus();
+            }
         }
         // Call onRender lifecycle method.
         this.onRender.call(this, 'render');
@@ -404,10 +425,8 @@ export default class Component extends View {
         const main = parts.join('').trim().replace(/\n/g, '');
         // Extract outer tag, attributes and inner html.
         const result = main.match(/^<([a-z]+)(.*?)>(.*)<\/\1>$/) || main.match(/^<([a-z]+)(.*?)\/>$/);
-        // Remove events listeners.
-        const string = main.replace(/on([A-Z]{1}[a-z]+)+=[^>\s]+/g, '');
         // Parse attributes from html text into an object.
-        let attributes = getAttributes(result[2]);
+        let attributes = extractAttributes(result[2]);
         // Events to be delegated.
         let events = {};
         // Filter events. To generate events object.
@@ -438,12 +457,10 @@ export default class Component extends View {
             events,
             // Set attributes.
             attributes,
-            // Set template data.
+            // Set template.
             template : {
-                // Template including root element (this.el) as part of the template.
-                outer: string,
                 // Template for innerHTML of root element.
-                inner: result[3],
+                inner : result[3],
                 // Template expressions.
                 expressions,
             },
