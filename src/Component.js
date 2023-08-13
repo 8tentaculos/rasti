@@ -125,6 +125,7 @@ export default class Component extends View {
             if (key === 'id') return;
             // Evaluate attribute value.
             let value = evalExpression(this.attributes[key], this, this);
+
             // Transform bool attribute values
             if (value === false) {
                 remove[key] = true;
@@ -132,6 +133,8 @@ export default class Component extends View {
                 add[key] = '';
                 attrs.push(key);
             } else {
+                if (value === null || typeof value === 'undefined') value = '';
+
                 add[key] = value;
                 attrs.push(`${key}="${value}"`);
             }
