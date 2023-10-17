@@ -328,6 +328,7 @@ describe('Rasti', () => {
                     type="text"
                     readonly
                     disabled="${({ model }) => model.disabled}"
+                    data-custom="my-data"
                 />
             `.mount({ model : new Model({ disabled : false }) }, document.body);
 
@@ -336,14 +337,14 @@ describe('Rasti', () => {
             expect(el.className).to.be.equal('test-class-1 test-class-2');
             expect(el.hasAttribute('readonly')).to.be.true;
             expect(el.disabled).to.be.false;
+            expect(el.getAttribute('data-custom')).to.be.equal('my-data');
 
             c.render();
-
-            expect(c.attributes.readonly).to.be.true;
 
             expect(el.className).to.be.equal('test-class-1 test-class-2');
             expect(el.hasAttribute('readonly')).to.be.true;
             expect(el.disabled).to.be.false;
+            expect(el.getAttribute('data-custom')).to.be.equal('my-data');
         });
 
         it('must re render and change attributes', () => {

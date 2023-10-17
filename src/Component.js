@@ -16,7 +16,7 @@ const componentOptions = {
  */
 const extractAttributes = text => {
     const attributes = {};
-    const re = /(\w+)(?:=["']?((?:.(?!["']?\s+(?:\S+)=|\s*\/?[>"']))+.)["']?)?/g;
+    const re = /([\w|data-]+)(?:=["']?((?:.(?!["']?\s+(?:\S+)=|\s*\/?[>"']))+.)["']?)?/g;
 
     let result;
     while ((result = re.exec(text)) !== null) {
