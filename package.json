@@ -1,6 +1,6 @@
 {
   "name": "rasti",
-  "version": "2.0.0-alpha.7",
+  "version": "2.0.0-alpha.8",
   "description": "Minimalistic, ultra-lightweight JavaScript library for building user interfaces.",
   "main": "lib/index.js",
   "jsnext:main": "es/index.js",
