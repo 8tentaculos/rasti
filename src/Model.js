@@ -91,7 +91,7 @@ export default class Model extends Emitter {
 
     /**
      * Set an attribute into `this.attributes`.
-     * Emit `change` and `change:attribute` if value change.
+     * Emit `change` and `change:attribute` if a value change.
      * Could be called in two forms, `this.set('key', value)` and
      * `this.set({ key : value })`.
      * This method is called internally by generated setters.
@@ -101,19 +101,55 @@ export default class Model extends Emitter {
      * @emits change
      * @emits change:attribute
      */
-    set(key, value) {
-        let attrs = typeof key === 'object' ? key : { [key] : value };
+    set(key, value, ...rest) {
+        let attrs, args;
+        // Handle both `"key", value` and `{key: value}` style arguments.
+        if (typeof key === 'object') {
+            attrs = key;
+            args = [value, ...rest];
+        } else {
+            attrs = { [key] : value };
+            args = rest;
+        }
+        // Are we in a nested `set` call?
+        // Calling a `set` inside a `change:attribute` or `change` event listener
+        const changing = this._changing;
+        this._changing = true;
+        // Store changed attributes.
+        const changed = {};
+        // Store previous attributes.
+        if (!changing) {
+            this.previous = Object.assign({}, this.attributes);
+        }
+        // Set attributes.
         Object.keys(attrs).forEach(key => {
-            let changed = key in this.attributes && attrs[key] !== this.attributes[key];
-
-            this.previous[key] = this.attributes[key];
-            this.attributes[key] = attrs[key];
-            // Emit change events.
-            if (changed) {
-                this.emit('change', this, key, attrs[key]);
-                this.emit(`change:${key}`, this, attrs[key]);
+            // Use equality to determine if value changed.
+            if (attrs[key] !== this.attributes[key]) {
+                changed[key] = attrs[key];
+                this.attributes[key] = attrs[key];
             }
         });
+
+        const changedKeys = Object.keys(changed);
+        // Pending `change` event arguments.
+        if (changedKeys.length) this._pending = ['change', this, changed, ...args];
+        // Emit `change:attribute` events.
+        changedKeys.forEach(key => {
+            this.emit(`change:${key}`, this, attrs[key], ...args);
+        });
+        // Don't emit `change` event until the end of the nested 
+        // `set` calls inside `change:attribute` event listeners.
+        if (changing) return this;
+        // Emit `change` events, that might be nested.
+        while(this._pending) {
+            const pendingChange = this._pending;
+            this._pending = null;
+            this.emit.apply(this, pendingChange);
+        }
+        // Reset flags.
+        this._pending = null;
+        this._changing = false;
+
         return this;
     }
 
