@@ -195,8 +195,8 @@ export default class Component extends View {
      * Maybe comparing new attributes with previous ones and calling
      * render when needed. Or doing some dom transformation.
      * @param model {Rasti.Model} The model that emitted the event.
-     * @param key {string} The key that changed.
-     * @param value {any} The new value.
+     * @param changed {object} Object containing keys and values that has changed.
+     * @param [...args] {any} Any extra arguments passed to set method.
      */
     onChange() {
         this.render();

@@ -40,9 +40,9 @@ setInterval(() => model.seconds++, 1000);
 * [Component](#module_component) ⇐ <code>Rasti.View</code>
     * _instance_
         * [.onCreate(options)](#module_component__oncreate)
-        * [.onChange(model, key, value)](#module_component__onchange)
-        * [.onRender()](#module_component__onrender)
-        * [.onDestroy()](#module_component__ondestroy)
+        * [.onChange(model, changed)](#module_component__onchange)
+        * [.onRender(type)](#module_component__onrender)
+        * [.onDestroy(options)](#module_component__ondestroy)
     * _static_
         * [.extend(object)](#module_component_extend)
         * [.mount(options, el, hydrate)](#module_component_mount) ⇒ <code>Rasti.Component</code>
@@ -59,7 +59,7 @@ Lifecycle method. Called when the view is created at the end of the constructor.
 | options | <code>object</code> | The view options. |
 
 <a name="module_component__onchange" id="module_component__onchange"></a>
-### component.onChange(model, key, value)
+### component.onChange(model, changed)
 Lifecycle method. Called when model emits `change` event.
 By default calls render method.
 This method should be extended with custom logic.
@@ -68,22 +68,32 @@ render when needed. Or doing some dom transformation.
 
 **Kind**: instance method of [<code>Component</code>](#module_Component)  
 
-| Param | Type |
-| --- | --- |
-| model | <code>Rasti.Model</code> | 
-| key | <code>string</code> | 
-| value | <code>any</code> | 
+| Param | Type | Description |
+| --- | --- | --- |
+| model | <code>Rasti.Model</code> | The model that emitted the event. |
+| changed | <code>object</code> | Object containing keys and values that has changed. |
+| [...args] | <code>any</code> | Any extra arguments passed to set method. |
 
 <a name="module_component__onrender" id="module_component__onrender"></a>
-### component.onRender()
+### component.onRender(type)
 Lifecycle method. Called when the view is rendered.
 
 **Kind**: instance method of [<code>Component</code>](#module_Component)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| type | <code>string</code> | The render type. Can be `render`, `hydrate` or `recycle`. |
+
 <a name="module_component__ondestroy" id="module_component__ondestroy"></a>
-### component.onDestroy()
+### component.onDestroy(options)
 Lifecycle method. Called when the view is destroyed.
 
 **Kind**: instance method of [<code>Component</code>](#module_Component)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| options | <code>object</code> | Options object or any arguments passed to `destroy` method. |
+
 <a name="module_component_extend" id="module_component_extend"></a>
 ### Component.extend(object)
 Helper method used to extend a `Component`, creating a subclass.
@@ -329,7 +339,7 @@ This method is called internally by generated getters.
 <a name="module_model__set" id="module_model__set"></a>
 ### model.set(key, [value]) ⇒ <code>this</code>
 Set an attribute into `this.attributes`.
-Emit `change` and `change:attribute` if value change.
+Emit `change` and `change:attribute` if a value change.
 Could be called in two forms, `this.set('key', value)` and
 `this.set({ key : value })`.
 This method is called internally by generated setters.
@@ -409,7 +419,7 @@ document.body.appendChild(new Timer().render().el);
     * [.$(selector)](#module_view__$) ⇒ <code>node</code>
     * [.$$(selector)](#module_view__$$) ⇒ <code>Array.&lt;node&gt;</code>
     * [.destroy()](#module_view__destroy)
-    * [.onDestroy()](#module_view__ondestroy)
+    * [.onDestroy(options)](#module_view__ondestroy)
     * [.addChild(child)](#module_view__addchild) ⇒ <code>Rasti.View</code>
     * [.destroyChildren()](#module_view__destroychildren)
     * [.ensureElement()](#module_view__ensureelement)
@@ -457,20 +467,19 @@ scoped to DOM elements within the current view's root element (`this.el`).
 ### view.destroy()
 Destroy the view.
 Destroy children views if any, undelegate events, stop listening to events, call `onDestroy` lifecycle method.
-Pass options.remove as true to remove the view's root element (`this.el`) from the DOM.
+
+**Kind**: instance method of [<code>View</code>](#module_View)  
+<a name="module_view__ondestroy" id="module_view__ondestroy"></a>
+### view.onDestroy(options)
+`onDestroy` lifecycle method is called after view is destroyed.
+Override with your code. Useful to stop listening to model's events.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| options.remove | <code>object</code> | Remove the view's root element (`this.el`) from the DOM. |
+| options | <code>object</code> | Options object or any arguments passed to `destroy` method. |
 
-<a name="module_view__ondestroy" id="module_view__ondestroy"></a>
-### view.onDestroy()
-`onDestroy` lifecycle method is called after view is destroyed.
-Override with your code. Useful to stop listening to model's events.
-
-**Kind**: instance method of [<code>View</code>](#module_View)  
 <a name="module_view__addchild" id="module_view__addchild"></a>
 ### view.addChild(child) ⇒ <code>Rasti.View</code>
 Add a view as a child.
