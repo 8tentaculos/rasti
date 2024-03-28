@@ -91,8 +91,8 @@ export default class Component extends View {
         // Store bound version, so it can be removed on onDestroy method.
         this.onChange = this.onChange.bind(this);
         // Listen to model changes and call onChange.
-        if (this.model) this.model.on('change', this.onChange);
-        if (this.state) this.state.on('change', this.onChange);
+        if (this.model && this.model.on) this.model.on('change', this.onChange);
+        if (this.state && this.state.on) this.state.on('change', this.onChange);
         // Call life cycle method.
         this.onCreate.apply(this, arguments);
     }
@@ -177,8 +177,8 @@ export default class Component extends View {
         super.destroy.apply(this, arguments);
         // Stop listening to `change`.
         // Set destroyed flag to prevent a last render after destroyed. TODO: Review
-        if (this.model) this.model.off('change', this.onChange);
-        if (this.state) this.state.off('change', this.onChange);
+        if (this.model && this.model.off) this.model.off('change', this.onChange);
+        if (this.state && this.state.off) this.state.off('change', this.onChange);
         this.destroyed = true;
     }
 
