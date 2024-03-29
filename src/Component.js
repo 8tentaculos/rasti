@@ -74,7 +74,7 @@ const evalExpression = (expression, context, ...args) =>
  */
 export default class Component extends View {
     constructor(options = {}) {
-        super(options);
+        super(...arguments);
         // Extend "this" with options, mapping componentOptions keys.
         Object.keys(options).forEach(key => {
             if (componentOptions[key]) this[key] = options[key];
@@ -100,11 +100,10 @@ export default class Component extends View {
         if (this.el) {
             this.delegateEvents();
             this.id = this.el.id;
-            this.tag = this.el.tagName;
         }
         // Ensure id.
         if (!this.id) {
-            this.id = this.attributes.id ? 
+            this.id = this.attributes && this.attributes.id ? 
                 // If id is provided, evaluate it.
                 evalExpression(this.attributes.id, this, this) :
                 // Generate a unique id and set it as id attribute.
@@ -125,28 +124,30 @@ export default class Component extends View {
     getAttributes() {
         const add = { id : this.id };
         const remove = {};
-        const attrs = [`id="${this.id}"`];
+        const html = [`id="${this.id}"`];
 
-        Object.keys(this.attributes).forEach(key => {
-            if (key === 'id') return;
-            // Evaluate attribute value.
-            let value = evalExpression(this.attributes[key], this, this);
+        if (this.attributes) {
+            Object.keys(this.attributes).forEach(key => {
+                if (key === 'id') return;
+                // Evaluate attribute value.
+                let value = evalExpression(this.attributes[key], this, this);
 
-            // Transform bool attribute values
-            if (value === false) {
-                remove[key] = true;
-            } else if (value === true) {
-                add[key] = '';
-                attrs.push(key);
-            } else {
-                if (value === null || typeof value === 'undefined') value = '';
+                // Transform bool attribute values
+                if (value === false) {
+                    remove[key] = true;
+                } else if (value === true) {
+                    add[key] = '';
+                    html.push(key);
+                } else {
+                    if (value === null || typeof value === 'undefined') value = '';
 
-                add[key] = value;
-                attrs.push(`${key}="${value}"`);
-            }
-        });
+                    add[key] = value;
+                    html.push(`${key}="${value}"`);
+                }
+            });
+        }
 
-        return { add, remove, html : attrs.join(' ') };
+        return { add, remove, html : html.join(' ') };
     }
 
     /*
@@ -260,15 +261,21 @@ export default class Component extends View {
     toString() {
         // Normally there won't be any children, but if there are, destroy them.
         this.destroyChildren();
-        // Replace expressions.
-        const inner = this.template.inner && this.replaceExpressions(this.template.inner, (component) => {
-            // Add child component.
-            return this.addChild(component);
-        });
+        // Get tag name.
+        const tag = this.tag || 'div';
+        // Get attributes.
+        const attributes = this.getAttributes().html;
+        // Replace expressions of inner template.
+        const inner = this.template &&
+            this.template.inner &&
+            this.replaceExpressions(this.template.inner, (component) => {
+                // Add child component.
+                return this.addChild(component);
+            });
         // Generate outer template.
         return inner ?
-            `<${this.tag} ${this.getAttributes().html}>${inner}</${this.tag}>` :
-            `<${this.tag} ${this.getAttributes().html} />`;
+            `<${tag} ${attributes}>${inner}</${tag}>` :
+            `<${tag} ${attributes} />`;
     }
 
     /*
@@ -293,7 +300,7 @@ export default class Component extends View {
             this.el.setAttribute(key, attributes.add[key]);
         });
         // Check for `template.inner` to see if view has innerHTML.
-        if (this.template.inner) {
+        if (this.template && this.template.inner) {
             const previousChildren = this.children;
 
             this.children = [];
@@ -377,7 +384,7 @@ export default class Component extends View {
      * @param {boolean} hydrate If true, the view will use existing html.
      * @return {Rasti.Component}
      */
-    static mount(options = {}, el, hydrate) {
+    static mount(options, el, hydrate) {
         // Instantiate view.
         const view = new this(options);
         // If `el` is passed, mount component.
@@ -475,11 +482,6 @@ export default class Component extends View {
         });
     }
 }
-
-Component.prototype.tag = 'div';
-Component.prototype.attributes = {};
-Component.prototype.template = {};
-Component.prototype.events = {};
 
 Component.ID_TEMPLATE = (uid) => `rasti-component-${uid}`;
 Component.EXPRESSION_PLACEHOLDER_TEMPLATE = (idx) => `__RASTI_EXPRESSION{${idx}}`;
