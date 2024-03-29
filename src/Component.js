@@ -81,12 +81,6 @@ export default class Component extends View {
         });
         // Store options by default.
         this.options = options;
-        // Ensure id.
-        this.id = this.attributes.id ? 
-            // If id is provided, evaluate it.
-            evalExpression(this.attributes.id, this, this) :
-            // Generate a unique id and set it as id attribute.
-            Component.ID_TEMPLATE(this.uid);
         // Bind onChange to this to be used as listener.
         // Store bound version, so it can be removed on onDestroy method.
         this.onChange = this.onChange.bind(this);
@@ -103,7 +97,19 @@ export default class Component extends View {
      */
     ensureElement() {
         // If el is provided, delegate events.
-        if (this.el) this.delegateEvents();
+        if (this.el) {
+            this.delegateEvents();
+            this.id = this.el.id;
+            this.tag = this.el.tagName;
+        }
+        // Ensure id.
+        if (!this.id) {
+            this.id = this.attributes.id ? 
+                // If id is provided, evaluate it.
+                evalExpression(this.attributes.id, this, this) :
+                // Generate a unique id and set it as id attribute.
+                Component.ID_TEMPLATE(this.uid);
+        }
     }
 
     /*
@@ -117,9 +123,9 @@ export default class Component extends View {
      * Eval attributes expressions.
      */
     getAttributes() {
-        const add = {};
+        const add = { id : this.id };
         const remove = {};
-        const attrs = [];
+        const attrs = [`id="${this.id}"`];
 
         Object.keys(this.attributes).forEach(key => {
             if (key === 'id') return;
@@ -139,9 +145,6 @@ export default class Component extends View {
                 attrs.push(`${key}="${value}"`);
             }
         });
-
-        add.id = this.id;
-        attrs.push(`id="${this.id}"`);
 
         return { add, remove, html : attrs.join(' ') };
     }
@@ -309,7 +312,7 @@ export default class Component extends View {
 
                 if (found) {
                     // If child already exists, replace it html by its root element.
-                    out = `<${found.tag} id="${found.id}"></${found.tag}>`;
+                    out = `<${found.el.tagName} id="${found.el.id}"></${found.el.tagName}>`;
                     // Add child to recycled children.
                     recycledChildren.push(found);
                     // Destroy new child component. Use recycled one instead.
@@ -472,6 +475,11 @@ export default class Component extends View {
         });
     }
 }
+
+Component.prototype.tag = 'div';
+Component.prototype.attributes = {};
+Component.prototype.template = {};
+Component.prototype.events = {};
 
 Component.ID_TEMPLATE = (uid) => `rasti-component-${uid}`;
 Component.EXPRESSION_PLACEHOLDER_TEMPLATE = (idx) => `__RASTI_EXPRESSION{${idx}}`;
