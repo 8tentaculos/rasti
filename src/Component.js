@@ -405,6 +405,7 @@ export default class Component extends View {
         // Return view instance.
         return view;
     }
+
     /**
      * Takes a tagged template containing an HTML string, 
      * and returns a new `Component` class.
