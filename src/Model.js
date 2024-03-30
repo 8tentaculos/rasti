@@ -3,37 +3,46 @@ import Emitter from './Emitter.js';
  * - Orchestrates data and business logic.
  * - Emits events when data changes.
  * 
- * A Model manages an internal table of data attributes, and triggers "change" events 
- * when any of its data is modified.<br />
- * Models may handle syncing data with a persistence layer.<br />
- * Design your models as the atomic reusable objects containing all of the helpful functions for 
- * manipulating their particular bit of data.<br /> 
- * Models should be able to be passed around throughout your app, and used anywhere that bit of data is needed.<br />
- * Rasti Models stores its attributes in `this.attributes`, which is extended from `this.defaults` and constructor `attrs` parameter.
- * For every attribute, a getter is generated, which retrieve the model property from `this.attributes`.
- * And a setter, which sets the model property in `this.attributes` and emits `change` and `change:attribute` events.
+ * A `Model` manages an internal table of data attributes and triggers change events when any of its data is modified.  
+ * Models may handle syncing data with a persistence layer. To design your models, create atomic, reusable objects 
+ * that contain all the necessary functions for manipulating their specific data.  
+ * Models should be easily passed throughout your app and used anywhere the corresponding data is needed.  
+ * Rasti models stores its attributes in `this.attributes`, which is extended from `this.defaults` and the 
+ * constructor `attrs` parameter. For every attribute, a getter is generated to retrieve the model property 
+ * from `this.attributes`, and a setter is created to set the model property in `this.attributes` and emit `change` 
+ * and `change:attribute` events.
  * @module
+ * @extends Rasti.Emitter
  * @param {object} attrs Object containing model attributes to extend `this.attributes`. Getters and setters are generated for `this.attributtes`, in order to emit `change` events.
  * @example
- * // Todo model
- * class TodoModel extends Rasti.Model {
- *     toggle() {
- *         // Set completed property. This will call a setter that will set `completed` 
- *         // in this.attributes, and emit `change` and `change:completed` events.
- *         this.completed = !this.completed; 
+ * import { Model } from 'rasti';
+ * // Product model
+ * class ProductModel extends Model {
+ *     preinitialize() {
+ *         // The Product model has `name` and `price` default attributes.
+ *         // `defaults` will extend `this.attributes`.
+ *         // Getters and setters are generated for `this.attributes`,
+ *         // in order to emit `change` events.
+ *         this.defaults = {
+ *             name: '',
+ *             price: 0
+ *         };
+ *     }
+ *
+ *     setDiscount(discountPercentage) {
+ *         // Apply a discount to the price property.
+ *         // This will call a setter that will update `price` in `this.attributes`,
+ *         // and emit `change` and `change:price` events.
+ *         const discount = this.price * (discountPercentage / 100);
+ *         this.price -= discount;
  *     }
  * }
- * // Todo model has `title` and `completed` default attributes. `defaults` will extend `this.attributes`. Getters and setters are generated for `this.attributtes`, in order to emit `change` events.
- * TodoModel.prototype.defaults = {
- *     title : '',
- *     completed : false
- * };
- * // Create todo. Pass `title` attribute as argument.
- * const todo = new TodoModel({ title : 'Learn Rasti' });
- * // Listen to `change:completed` event.
- * todo.on('change:completed', () => console.log('Completed:', todo.completed));
- * // Complete todo.
- * todo.toggle(); // Completed: true
+ * // Create a product instance with a name and price.
+ * const product = new ProductModel({ name: 'Smartphone', price: 1000 });
+ * // Listen to the `change:price` event.
+ * product.on('change:price', () => console.log('New Price:', product.price));
+ * // Apply a 10% discount to the product.
+ * product.setDiscount(10); // Output: "New Price: 900"
  */
 export default class Model extends Emitter {
     constructor(attrs = {}) {
@@ -82,7 +91,7 @@ export default class Model extends Emitter {
 
     /**
      * Set an attribute into `this.attributes`.
-     * Emit `change` and `change:attribute` if value change.
+     * Emit `change` and `change:attribute` if a value change.
      * Could be called in two forms, `this.set('key', value)` and
      * `this.set({ key : value })`.
      * This method is called internally by generated setters.
@@ -92,19 +101,55 @@ export default class Model extends Emitter {
      * @emits change
      * @emits change:attribute
      */
-    set(key, value) {
-        let attrs = typeof key === 'object' ? key : { [key] : value };
+    set(key, value, ...rest) {
+        let attrs, args;
+        // Handle both `"key", value` and `{key: value}` style arguments.
+        if (typeof key === 'object') {
+            attrs = key;
+            args = [value, ...rest];
+        } else {
+            attrs = { [key] : value };
+            args = rest;
+        }
+        // Are we in a nested `set` call?
+        // Calling a `set` inside a `change:attribute` or `change` event listener
+        const changing = this._changing;
+        this._changing = true;
+        // Store changed attributes.
+        const changed = {};
+        // Store previous attributes.
+        if (!changing) {
+            this.previous = Object.assign({}, this.attributes);
+        }
+        // Set attributes.
         Object.keys(attrs).forEach(key => {
-            let changed = key in this.attributes && attrs[key] !== this.attributes[key];
-
-            this.previous[key] = this.attributes[key];
-            this.attributes[key] = attrs[key];
-            // Emit change events.
-            if (changed) {
-                this.emit('change', this, key, attrs[key]);
-                this.emit(`change:${key}`, this, attrs[key]);
+            // Use equality to determine if value changed.
+            if (attrs[key] !== this.attributes[key]) {
+                changed[key] = attrs[key];
+                this.attributes[key] = attrs[key];
             }
         });
+
+        const changedKeys = Object.keys(changed);
+        // Pending `change` event arguments.
+        if (changedKeys.length) this._pending = ['change', this, changed, ...args];
+        // Emit `change:attribute` events.
+        changedKeys.forEach(key => {
+            this.emit(`change:${key}`, this, attrs[key], ...args);
+        });
+        // Don't emit `change` event until the end of the nested 
+        // `set` calls inside `change:attribute` event listeners.
+        if (changing) return this;
+        // Emit `change` events, that might be nested.
+        while(this._pending) {
+            const pendingChange = this._pending;
+            this._pending = null;
+            this.emit.apply(this, pendingChange);
+        }
+        // Reset flags.
+        this._pending = null;
+        this._changing = false;
+
         return this;
     }
 

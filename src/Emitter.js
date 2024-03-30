@@ -1,21 +1,39 @@
 /**
- * Emitter is a class that can be extended giving the subclass the ability to emit 
- * and bind custom named events. Model and View inherits from it.
+ * `Emitter` is a class that provides an easy way to implement the observer pattern 
+ * in your applications.  
+ * It can be extended to create new classes that have the ability to emit and bind custom named events.   
+ * Emitter is used by `Model` and `View` classes, which inherit from it to implement 
+ * event-driven functionality.
+ *
  * @module
  * @example
  * import { Emitter } from 'rasti';
- * // Define App class, inherits from Emitter.
- * class App extends Emitter {
+ * // Custom cart
+ * class ShoppingCart extends Emitter {
  *     constructor() {
- *         super()
- *         // Fetch data and emit `ready` event.
- *         fetch('/api/init').then(() => this.emit('ready')); 
+ *         super();
+ *         this.items = [];
+ *     }
+ *
+ *     addItem(item) {
+ *         this.items.push(item);
+ *         // Emit a custom event called `itemAdded`.
+ *         // Pass the added item as an argument to the event listener.
+ *         this.emit('itemAdded', item);
  *     }
  * }
- * // Instantiate App.
- * const app = new App();
- * // Add event listener to ready event.
- * app.on('ready', () => console.log('app is ready!'));
+ * // Create an instance of ShoppingCart and Logger
+ * const cart = new ShoppingCart();
+ * // Listen to the `itemAdded` event and log the added item using the logger.
+ * cart.on('itemAdded', (item) => {
+ *     console.log(`Item added to cart: ${item.name} - Price: $${item.price}`);
+ * });
+ * // Simulate adding items to the cart
+ * const item1 = { name : 'Smartphone', price : 1000 };
+ * const item2 = { name : 'Headphones', price : 150 };
+ *
+ * cart.addItem(item1); // Output: "Item added to cart: Smartphone - Price: $1000"
+ * cart.addItem(item2); // Output: "Item added to cart: Headphones - Price: $150"
  */
 export default class Emitter {
     /**

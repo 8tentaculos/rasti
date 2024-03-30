@@ -16,13 +16,15 @@ const viewOptions = {
  * - Handles user input and interactivity.
  * - Sends captured input to the model.
  *
- * A View is an atomic chunk of user interface. It often renders the data from a specific model, 
- * or number of models, but views can also be data-less chunks of UI that stand alone.<br /> 
- * Models must be unaware of views. Instead, views listen to the model "change" events, 
- * and react or re-render themselves appropriately.<br />
- * Views has a root element, `this.el`. That element is used for event delegation. Elements lookups are scoped to that element. And render and dom manipulations should be done inside that element. 
- * If `this.el` is not present, an element will be created using `this.tag` (or `div` as default), and `this.attributes`.<br />
+ * A `View` is an atomic unit of the user interface that can render the data from a specific model or multiple models.
+ * However, views can also be independent and have no associated data.  
+ * Models must be unaware of views. Views, on the other hand, may render model data and listen to the change events 
+ * emitted by the models to re-render themselves based on changes.  
+ * Each `View` has a root element, `this.el`, which is used for event delegation.  
+ * All element lookups are scoped to this element, and any rendering or DOM manipulations should be done inside it. 
+ * If `this.el` is not present, an element will be created using `this.tag` (defaulting to div) and `this.attributes`.
  * @module
+ * @extends Rasti.Emitter
  * @param {object} options Object containing options. The following keys will be merged to `this`: el, tag, attributes, events, model, template, onDestroy.
  * @property {node} el Every view has a root element, `this.el`. If not present it will be created.
  * @property {string} tag If `this.el` is not present, an element will be created using `this.tag`. Default is `div`.
@@ -31,43 +33,25 @@ const viewOptions = {
  * @property {object} model A `Rasti.Model` or any object containing data and business logic.
  * @property {function} template A function that receives data and returns a markup string (html for example).
  * @example
- * // Counter view.
- * class CounterView extends View {
+ * import { View } from 'rasti';
+ * 
+ * class Timer extends View {
  *     constructor(options) {
  *         super(options);
- *         // Bind method to `this`, to be called as listener.
- *         this.render = this.render.bind(this);
- *         // Listen to model change and re render.
- *         this.model.on('change:count', this.render);
+ *         // Create model to store internal state. Set `seconds` attribute into 0.
+ *         this.model = new Model({ seconds : 0 });
+ *         // Listen to changes in model `seconds` attribute and re render.
+ *         this.model.on('change:seconds', this.render.bind(this));
+ *         // Increment model `seconds` attribute every 1000 milliseconds.
+ *         this.interval = setInterval(() => this.model.seconds++, 1000);
  *     }
- *     onDestroy() {
- *         // Unbind events when destroyed.
- *         this.model.off('change:count', this.render);
- *     }
- *     // Listener method. Called when button is clicked.
- *     onClickIncrement() {
- *         // Increment count on model.
- *         this.model.count++;
+ *
+ *     template(model) {
+ *         return `Seconds: <span>${model.seconds}</span>`;
  *     }
  * }
- * Object.assign(CounterView.prototype, {
- *     // Set delegated events.
- *     // Call `onClickIncrement` when button is clicked.
- *     events : {
- *         'click button' : 'onClickIncrement'
- *     },
- *     // View's template.
- *     template : (model) => `
- *         <div>The count is: ${model.count}</div>
- *         <button>Increment</button>
- *     `
- * });
- * // Model.
- * const model = new Model({ count : 0 });
- * // Instantiate CounterView.
- * const counterView = new CounterView({ model });
- * // Add to DOM.
- * document.body.appendChild(counterView.render().el);
+ * // Render view and append view's element into body.
+ * document.body.appendChild(new Timer().render().el);
  */
 export default class View extends Emitter {
     constructor(options = {}) {
@@ -120,25 +104,24 @@ export default class View extends Emitter {
     /**
      * Destroy the view.
      * Destroy children views if any, undelegate events, stop listening to events, call `onDestroy` lifecycle method.
-     * Pass options.remove as true to remove the view's root element (`this.el`) from the DOM.
-     * @param {object} options.remove Remove the view's root element (`this.el`) from the DOM.
      */
-    destroy({ remove } = {}) {
+    destroy() {
         // Call destroy on children.
         this.destroyChildren();
         // Undelegate `this.el` event listeners
         this.undelegateEvents();
         // Unbind `this` events.
         this.off();
-        // Remove `this.el` if "options.remove" is true.
-        if (remove) this.removeElement();
         // Call onDestroy lifecycle method
-        this.onDestroy();
+        this.onDestroy.apply(this, arguments);
+        // Return `this` for chaining.
+        return this;
     }
 
     /**
      * `onDestroy` lifecycle method is called after view is destroyed.
      * Override with your code. Useful to stop listening to model's events.
+     * @param {object} options Options object or any arguments passed to `destroy` method.
      */
     onDestroy() {}
 
@@ -203,12 +186,12 @@ export default class View extends Emitter {
     }
 
     /**
-     * Provide declarative listeners for DOM events within a view. If an events hash is not passed directly, uses `this.events` as the source.<br />
+     * Provide declarative listeners for DOM events within a view. If an events hash is not passed directly, uses `this.events` as the source.  
      * Events are written in the format `{'event selector' : 'listener'}`. The listener may be either the name of a method on the view, or a direct function body.
-     * Omitting the selector causes the event to be bound to the view's root element (`this.el`).<br />
+     * Omitting the selector causes the event to be bound to the view's root element (`this.el`).  
      * By default, `delegateEvents` is called within the View's constructor, 
-     * so if you have a simple events hash, all of your DOM events will always already be connected, and you will never have to call this function yourself. <br />
-     * All attached listeners are bound to the view automatically, so when the listeners are invoked, `this` continues to refer to the view object.<br />
+     * so if you have a simple events hash, all of your DOM events will always already be connected, and you will never have to call this function yourself.   
+     * All attached listeners are bound to the view automatically, so when the listeners are invoked, `this` continues to refer to the view object.  
      * When `delegateEvents` is run again, perhaps with a different events hash, all listeners are removed and delegated afresh.
      * @param {object} [events] Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to root element.
      * @return {Rasti.View} Return `this` for chaining.
@@ -257,7 +240,7 @@ export default class View extends Emitter {
             this.delegatedEventListeners.push({ type, listener : typeListener });
             this.el.addEventListener(type, typeListener);
         });
-
+        // Return `this` for chaining.
         return this;
     }
 
@@ -271,7 +254,7 @@ export default class View extends Emitter {
         });
 
         this.delegatedEventListeners = [];
-
+        // Return `this` for chaining.
         return this;
     }
 
@@ -286,6 +269,7 @@ export default class View extends Emitter {
      */
     render() {
         if (this.template) this.el.innerHTML = this.template(this.model);
+        // Return `this` for chaining.
         return this;
     }
 }

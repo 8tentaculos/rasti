@@ -8,5 +8,5 @@
     "background_color": "#ffffff",
     "theme_color": "#ef0b72",
     "display": "fullscreen",
-    "description": "Minimalistic JavaScript MV library for building user interfaces."
+    "description": "Rasti is a minimalistic and ultra-lightweight JavaScript library for building user interfaces."
 }
