@@ -104,6 +104,7 @@ export default class View extends Emitter {
     /**
      * Destroy the view.
      * Destroy children views if any, undelegate events, stop listening to events, call `onDestroy` lifecycle method.
+     * @return {Rasti.View} Return `this` for chaining.
      */
     destroy() {
         // Call destroy on children.

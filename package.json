@@ -1,7 +1,7 @@
 {
   "name": "rasti",
   "version": "2.0.0-alpha.10",
-  "description": "Rasti is a minimalistic and ultra-lightweight JavaScript library for building user interfaces.",
+  "description": "Rasti is a minimalistic JavaScript library for building user interfaces.",
   "main": "lib/index.js",
   "jsnext:main": "es/index.js",
   "files": [

@@ -1,6 +1,6 @@
 # <a href="http://rasti.js.org"><img src="docs/logo.svg" height="80" alt="Rasti" aria-label="rasti.js.org" /></a>
 
-Rasti is a minimalistic and ultra-lightweight JavaScript library for building user interfaces.  
+Rasti is a minimalistic JavaScript library for building user interfaces.  
 It is designed to simplify the creation of complex dynamic applications by providing a declarative API for building reusable and composable UI components.  
 Rasti is based on web standards, has a small footprint, and can be used directly in the browser without requiring any boilerplate or configuration.  
 
@@ -72,12 +72,12 @@ Complete [API documentation](docs/api.md).
 
 ## Powered by Rasti
 
-### [Crypto Babylon](https://cryptobabylon.net)
+### Crypto Babylon
 
 [Crypto Babylon](https://cryptobabylon.net), a markets analytics platform, leverages the capabilities of Rasti.  
 The Rasti rendering system is responsible for efficiently rendering a table containing over 300 rows. Additionally, it seamlessly updates the DOM in real-time, handling thousands of messages per second from multiple WebSocket connections.
 
-### [jsPacman](https://pacman.js.org)
+### jsPacman
 
 [jsPacman](https://pacman.js.org), a JavaScript DOM-based remake of the classic Ms. Pac-Man game, utilizes Rasti at a low level for its custom game engine.
 
