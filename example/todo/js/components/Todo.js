@@ -1,5 +1,5 @@
-import { Model } from 'https://esm.run/rasti@alpha';
-import { Component } from 'https://esm.run/rasti@alpha';
+import { Model } from 'https://esm.run/rasti';
+import { Component } from 'https://esm.run/rasti';
 
 import { ENTER_KEY, ESC_KEY } from '../constants.js';
 

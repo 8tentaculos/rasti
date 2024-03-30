@@ -1,4 +1,4 @@
-import { Component } from 'https://esm.run/rasti@alpha';
+import { Component } from 'https://esm.run/rasti';
 
 const ToggleAll = Component.create`
     <span
