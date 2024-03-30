@@ -1,7 +1,7 @@
 /**
  * `Emitter` is a class that provides an easy way to implement the observer pattern 
- * in your applications.<br />
- * It can be extended to create new classes that have the ability to emit and bind custom named events.<br /> 
+ * in your applications.  
+ * It can be extended to create new classes that have the ability to emit and bind custom named events.   
  * Emitter is used by `Model` and `View` classes, which inherit from it to implement 
  * event-driven functionality.
  *

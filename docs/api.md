@@ -1,9 +1,9 @@
 <a name="module_component" id="module_component"></a>
 ## Component ⇐ <code>Rasti.View</code>
 Components are a special kind of `View` that is designed to be easily composable, 
-making it simple to add child views and build complex user interfaces.<br />
+making it simple to add child views and build complex user interfaces.  
 Unlike views, which are render-agnostic, components have a specific set of rendering 
-guidelines that allow for a more declarative development style.<br />
+guidelines that allow for a more declarative development style.  
 Components are defined with the `create` static method, which takes a tagged template.
 
 **Extends**: <code>Rasti.View</code>  
@@ -141,8 +141,8 @@ and returns a new `Component` class.
 <a name="module_emitter" id="module_emitter"></a>
 ## Emitter
 `Emitter` is a class that provides an easy way to implement the observer pattern 
-in your applications.<br />
-It can be extended to create new classes that have the ability to emit and bind custom named events.<br /> 
+in your applications.  
+It can be extended to create new classes that have the ability to emit and bind custom named events.   
 Emitter is used by `Model` and `View` classes, which inherit from it to implement 
 event-driven functionality.
 
@@ -248,10 +248,10 @@ this.emit('invalid'); // Emit validation error event.
 - Orchestrates data and business logic.
 - Emits events when data changes.
 
-A `Model` manages an internal table of data attributes and triggers change events when any of its data is modified.<br />
+A `Model` manages an internal table of data attributes and triggers change events when any of its data is modified.  
 Models may handle syncing data with a persistence layer. To design your models, create atomic, reusable objects 
-that contain all the necessary functions for manipulating their specific data.<br />
-Models should be easily passed throughout your app and used anywhere the corresponding data is needed.<br />
+that contain all the necessary functions for manipulating their specific data.  
+Models should be easily passed throughout your app and used anywhere the corresponding data is needed.  
 Rasti models stores its attributes in `this.attributes`, which is extended from `this.defaults` and the 
 constructor `attrs` parameter. For every attribute, a getter is generated to retrieve the model property 
 from `this.attributes`, and a setter is created to set the model property in `this.attributes` and emit `change` 
@@ -367,10 +367,10 @@ By default returns `this.attributes`.
 - Sends captured input to the model.
 
 A `View` is an atomic unit of the user interface that can render the data from a specific model or multiple models.
-However, views can also be independent and have no associated data.<br />
+However, views can also be independent and have no associated data.  
 Models must be unaware of views. Views, on the other hand, may render model data and listen to the change events 
-emitted by the models to re-render themselves based on changes.<br />
-Each `View` has a root element, `this.el`, which is used for event delegation.<br />
+emitted by the models to re-render themselves based on changes.  
+Each `View` has a root element, `this.el`, which is used for event delegation.  
 All element lookups are scoped to this element, and any rendering or DOM manipulations should be done inside it. 
 If `this.el` is not present, an element will be created using `this.tag` (defaulting to div) and `this.attributes`.
 
@@ -526,12 +526,12 @@ Remove `this.el` from DOM.
 **Kind**: instance method of [<code>View</code>](#module_View)  
 <a name="module_view__delegateevents" id="module_view__delegateevents"></a>
 ### view.delegateEvents([events]) ⇒ <code>Rasti.View</code>
-Provide declarative listeners for DOM events within a view. If an events hash is not passed directly, uses `this.events` as the source.<br />
+Provide declarative listeners for DOM events within a view. If an events hash is not passed directly, uses `this.events` as the source.  
 Events are written in the format `{'event selector' : 'listener'}`. The listener may be either the name of a method on the view, or a direct function body.
-Omitting the selector causes the event to be bound to the view's root element (`this.el`).<br />
+Omitting the selector causes the event to be bound to the view's root element (`this.el`).  
 By default, `delegateEvents` is called within the View's constructor, 
-so if you have a simple events hash, all of your DOM events will always already be connected, and you will never have to call this function yourself. <br />
-All attached listeners are bound to the view automatically, so when the listeners are invoked, `this` continues to refer to the view object.<br />
+so if you have a simple events hash, all of your DOM events will always already be connected, and you will never have to call this function yourself.   
+All attached listeners are bound to the view automatically, so when the listeners are invoked, `this` continues to refer to the view object.  
 When `delegateEvents` is run again, perhaps with a different events hash, all listeners are removed and delegated afresh.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  

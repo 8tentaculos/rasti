@@ -3,10 +3,10 @@ import Emitter from './Emitter.js';
  * - Orchestrates data and business logic.
  * - Emits events when data changes.
  * 
- * A `Model` manages an internal table of data attributes and triggers change events when any of its data is modified.<br />
+ * A `Model` manages an internal table of data attributes and triggers change events when any of its data is modified.  
  * Models may handle syncing data with a persistence layer. To design your models, create atomic, reusable objects 
- * that contain all the necessary functions for manipulating their specific data.<br />
- * Models should be easily passed throughout your app and used anywhere the corresponding data is needed.<br />
+ * that contain all the necessary functions for manipulating their specific data.  
+ * Models should be easily passed throughout your app and used anywhere the corresponding data is needed.  
  * Rasti models stores its attributes in `this.attributes`, which is extended from `this.defaults` and the 
  * constructor `attrs` parameter. For every attribute, a getter is generated to retrieve the model property 
  * from `this.attributes`, and a setter is created to set the model property in `this.attributes` and emit `change` 

@@ -17,10 +17,10 @@ const viewOptions = {
  * - Sends captured input to the model.
  *
  * A `View` is an atomic unit of the user interface that can render the data from a specific model or multiple models.
- * However, views can also be independent and have no associated data.<br />
+ * However, views can also be independent and have no associated data.  
  * Models must be unaware of views. Views, on the other hand, may render model data and listen to the change events 
- * emitted by the models to re-render themselves based on changes.<br />
- * Each `View` has a root element, `this.el`, which is used for event delegation.<br />
+ * emitted by the models to re-render themselves based on changes.  
+ * Each `View` has a root element, `this.el`, which is used for event delegation.  
  * All element lookups are scoped to this element, and any rendering or DOM manipulations should be done inside it. 
  * If `this.el` is not present, an element will be created using `this.tag` (defaulting to div) and `this.attributes`.
  * @module
@@ -186,12 +186,12 @@ export default class View extends Emitter {
     }
 
     /**
-     * Provide declarative listeners for DOM events within a view. If an events hash is not passed directly, uses `this.events` as the source.<br />
+     * Provide declarative listeners for DOM events within a view. If an events hash is not passed directly, uses `this.events` as the source.  
      * Events are written in the format `{'event selector' : 'listener'}`. The listener may be either the name of a method on the view, or a direct function body.
-     * Omitting the selector causes the event to be bound to the view's root element (`this.el`).<br />
+     * Omitting the selector causes the event to be bound to the view's root element (`this.el`).  
      * By default, `delegateEvents` is called within the View's constructor, 
-     * so if you have a simple events hash, all of your DOM events will always already be connected, and you will never have to call this function yourself. <br />
-     * All attached listeners are bound to the view automatically, so when the listeners are invoked, `this` continues to refer to the view object.<br />
+     * so if you have a simple events hash, all of your DOM events will always already be connected, and you will never have to call this function yourself.   
+     * All attached listeners are bound to the view automatically, so when the listeners are invoked, `this` continues to refer to the view object.  
      * When `delegateEvents` is run again, perhaps with a different events hash, all listeners are removed and delegated afresh.
      * @param {object} [events] Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to root element.
      * @return {Rasti.View} Return `this` for chaining.

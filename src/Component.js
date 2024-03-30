@@ -47,9 +47,9 @@ const evalExpression = (expression, context, ...args) =>
 
 /**
  * Components are a special kind of `View` that is designed to be easily composable, 
- * making it simple to add child views and build complex user interfaces.<br />
+ * making it simple to add child views and build complex user interfaces.  
  * Unlike views, which are render-agnostic, components have a specific set of rendering 
- * guidelines that allow for a more declarative development style.<br />
+ * guidelines that allow for a more declarative development style.  
  * Components are defined with the `create` static method, which takes a tagged template.
  * @module
  * @extends Rasti.View

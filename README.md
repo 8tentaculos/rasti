@@ -1,11 +1,11 @@
 # <a href="http://rasti.js.org"><img src="docs/logo.svg" height="80" alt="Rasti" aria-label="rasti.js.org" /></a>
 
 
-Rasti is a minimalistic, ultra-lightweight JavaScript library designed for efficient user interface development.<br />
-Its goal is to help you create projects with a compact codebase, eliminating the need for boilerplate.<br />
-While offering a low-level [Model](docs/api.md#module_Model) and [View](docs/api.md#module_View) with a Backbone.js-like API, Rasti also introduces a higher-level [Component](docs/api.md#module_Component) class that enables a more composable and declarative approach to building UI components.<br />
+Rasti is a minimalistic and ultra-lightweight JavaScript library for building user interfaces.  
+Its goal is to help you create complex dynamic applications with a compact codebase, utilizing web standards, without the need for a transpiler or boilerplate.  
+It provides an expressive API to create reusable and composable UI components using a declarative approach.  
 
-The project is [hosted on GitHub](https://github.com/8tentaculos/rasti), and it's available for use under the [MIT](LICENSE.md) software license.<br />
+The project is [hosted on GitHub](https://github.com/8tentaculos/rasti), and it's available for use under the [MIT](LICENSE.md) software license.  
 You can report bugs and discuss features on the [GitHub issues page](https://github.com/8tentaculos/rasti/issues).
 
 [![Travis (.com)](https://img.shields.io/travis/com/8tentaculos/rasti?style=flat-square)](https://app.travis-ci.com/8tentaculos/rasti)
@@ -18,7 +18,7 @@ You can report bugs and discuss features on the [GitHub issues page](https://git
 #### Using npm
 
 ```bash
-$ npm install --save rasti
+$ npm install rasti
 ```
 
 ```javascript
@@ -60,7 +60,7 @@ setInterval(() => model.seconds++, 1000);
 
 [Try it on CodePen](https://codepen.io/8tentaculos/pen/gOQxaOE?editors=0010)
 
-The [rasti npm package](https://www.npmjs.com/package/rasti) includes precompiled production and development UMD builds in the dist folder. They can be used directly without a bundler and are thus compatible with many popular JavaScript module loaders and environments.<br />
+The [rasti npm package](https://www.npmjs.com/package/rasti) includes precompiled production and development UMD builds in the dist folder. They can be used directly without a bundler and are thus compatible with many popular JavaScript module loaders and environments.  
 The UMD builds make Rasti available as a `window.Rasti` global variable.
 
 ## Example
@@ -70,6 +70,17 @@ The rasti [GitHub repository](https://github.com/8tentaculos/rasti) includes, in
 ## API
 
 Complete [API documentation](docs/api.md).
+
+## Powered by Rasti
+
+### [Crypto Babylon](https://cryptobabylon.net)
+
+[Crypto Babylon](https://cryptobabylon.net), a markets analytics platform, leverages the capabilities of Rasti.  
+The Rasti rendering system is responsible for efficiently rendering a table containing over 300 rows. Additionally, it seamlessly updates the DOM in real-time, handling thousands of messages per second from multiple WebSocket connections.
+
+### [jsPacman](https://pacman.js.org)
+
+[jsPacman](https://pacman.js.org), a JavaScript DOM-based remake of the classic Ms. Pac-Man game, utilizes Rasti at a low level for its custom game engine.
 
 ## License
 
