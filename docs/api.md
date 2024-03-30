@@ -338,11 +338,13 @@ This method is called internally by generated getters.
 
 <a name="module_model__set" id="module_model__set"></a>
 ### model.set(key, [value]) ⇒ <code>this</code>
-Set an attribute into `this.attributes`.
-Emit `change` and `change:attribute` if a value change.
+Set an attribute into `this.attributes`.  
+Emit `change` and `change:attribute` if a value change.  
 Could be called in two forms, `this.set('key', value)` and
-`this.set({ key : value })`.
-This method is called internally by generated setters.
+`this.set({ key : value })`.  
+This method is called internally by generated setters.  
+The `change` event listener will receive the model instance, an object containing the changed attributes, and the rest of the arguments passed to `set` method.  
+The `change:attribute` event listener will receive the model instance, the new attribute value, and the rest of the arguments passed to `set` method.
 
 **Kind**: instance method of [<code>Model</code>](#module_Model)  
 **Returns**: <code>this</code> - This model.  
@@ -418,13 +420,13 @@ document.body.appendChild(new Timer().render().el);
     * [.preinitialize(attrs)](#module_view__preinitialize)
     * [.$(selector)](#module_view__$) ⇒ <code>node</code>
     * [.$$(selector)](#module_view__$$) ⇒ <code>Array.&lt;node&gt;</code>
-    * [.destroy()](#module_view__destroy)
+    * [.destroy()](#module_view__destroy) ⇒ <code>Rasti.View</code>
     * [.onDestroy(options)](#module_view__ondestroy)
     * [.addChild(child)](#module_view__addchild) ⇒ <code>Rasti.View</code>
     * [.destroyChildren()](#module_view__destroychildren)
     * [.ensureElement()](#module_view__ensureelement)
     * [.createElement(tag, attrs)](#module_view__createelement) ⇒ <code>node</code>
-    * [.removeElement()](#module_view__removeelement)
+    * [.removeElement()](#module_view__removeelement) ⇒ <code>Rasti.View</code>
     * [.delegateEvents([events])](#module_view__delegateevents) ⇒ <code>Rasti.View</code>
     * [.undelegateEvents()](#module_view__undelegateevents) ⇒ <code>Rasti.View</code>
     * [.render()](#module_view__render) ⇒ <code>Rasti.View</code>
@@ -464,11 +466,12 @@ scoped to DOM elements within the current view's root element (`this.el`).
 | selector | <code>string</code> | CSS selector. |
 
 <a name="module_view__destroy" id="module_view__destroy"></a>
-### view.destroy()
+### view.destroy() ⇒ <code>Rasti.View</code>
 Destroy the view.
 Destroy children views if any, undelegate events, stop listening to events, call `onDestroy` lifecycle method.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
+**Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
 <a name="module_view__ondestroy" id="module_view__ondestroy"></a>
 ### view.onDestroy(options)
 `onDestroy` lifecycle method is called after view is destroyed.
@@ -520,10 +523,11 @@ the view to have a root element.
 | attrs | <code>object</code> |  | Attributes for the element. |
 
 <a name="module_view__removeelement" id="module_view__removeelement"></a>
-### view.removeElement()
+### view.removeElement() ⇒ <code>Rasti.View</code>
 Remove `this.el` from DOM.
 
 **Kind**: instance method of [<code>View</code>](#module_View)  
+**Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
 <a name="module_view__delegateevents" id="module_view__delegateevents"></a>
 ### view.delegateEvents([events]) ⇒ <code>Rasti.View</code>
 Provide declarative listeners for DOM events within a view. If an events hash is not passed directly, uses `this.events` as the source.  

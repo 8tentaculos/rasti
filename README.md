@@ -1,4 +1,4 @@
-# <a href="http://rasti.js.org"><img src="docs/logo.svg" height="80" alt="Rasti" aria-label="rasti.js.org" /></a>
+# <a href="http://rasti.js.org"><img src="docs/logo.svg" height="80" alt="Rasti.js - JavaScript library for building user interfaces" aria-label="rasti.js.org" /></a>
 
 Rasti is a minimalistic JavaScript library for building user interfaces.  
 It is designed to simplify the creation of complex dynamic applications by providing a declarative API for building reusable and composable UI components.  
@@ -14,7 +14,7 @@ You can report bugs and discuss features on the [GitHub issues page](https://git
 
 ## Getting started
 
-#### Using npm
+### Using npm
 
 ```bash
 $ npm install rasti
@@ -24,13 +24,13 @@ $ npm install rasti
 import { Model, Component } from 'rasti';
 ```
 
-#### Using ES modules
+### Using ES modules
 
 ```javascript
 import { Model, Component } from 'https://esm.run/rasti';
 ```
 
-#### Using `<script>` tag
+### Using `<script>` tag
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/rasti/dist/rasti.min.js"></script>
@@ -40,7 +40,11 @@ import { Model, Component } from 'https://esm.run/rasti';
 const { Model, Component } = Rasti;
 ```
 
-#### A simple `Component`
+  The [rasti npm package](https://www.npmjs.com/package/rasti) includes precompiled production and development UMD builds in the dist folder. They can be used directly without a bundler and are thus compatible with many popular JavaScript module loaders and environments.  
+  The UMD builds make Rasti available as a `window.Rasti` global variable.
+
+
+### A simple `Component`
 
 ```javascript
 // Create Timer component.
@@ -58,9 +62,6 @@ setInterval(() => model.seconds++, 1000);
 ```
 
 [Try it on CodePen](https://codepen.io/8tentaculos/pen/gOQxaOE?editors=0010)
-
-The [rasti npm package](https://www.npmjs.com/package/rasti) includes precompiled production and development UMD builds in the dist folder. They can be used directly without a bundler and are thus compatible with many popular JavaScript module loaders and environments.  
-The UMD builds make Rasti available as a `window.Rasti` global variable.
 
 ## Example
 

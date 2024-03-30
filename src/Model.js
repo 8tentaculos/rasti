@@ -90,11 +90,13 @@ export default class Model extends Emitter {
     }
 
     /**
-     * Set an attribute into `this.attributes`.
-     * Emit `change` and `change:attribute` if a value change.
+     * Set an attribute into `this.attributes`.  
+     * Emit `change` and `change:attribute` if a value change.  
      * Could be called in two forms, `this.set('key', value)` and
-     * `this.set({ key : value })`.
-     * This method is called internally by generated setters.
+     * `this.set({ key : value })`.  
+     * This method is called internally by generated setters.  
+     * The `change` event listener will receive the model instance, an object containing the changed attributes, and the rest of the arguments passed to `set` method.  
+     * The `change:attribute` event listener will receive the model instance, the new attribute value, and the rest of the arguments passed to `set` method.
      * @param {string} key Attribute key or object containing keys/values.
      * @param [value] Attribute value.
      * @return {this} This model.
