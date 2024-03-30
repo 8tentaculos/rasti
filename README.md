@@ -1,9 +1,8 @@
 # <a href="http://rasti.js.org"><img src="docs/logo.svg" height="80" alt="Rasti" aria-label="rasti.js.org" /></a>
 
-
 Rasti is a minimalistic and ultra-lightweight JavaScript library for building user interfaces.  
-Its goal is to help you create complex dynamic applications with a compact codebase, utilizing web standards, without the need for a transpiler or boilerplate.  
-It provides an expressive API to create reusable and composable UI components using a declarative approach.  
+It is designed to simplify the creation of complex dynamic applications by providing a declarative API for building reusable and composable UI components.  
+Rasti is based on web standards, has a small footprint, and can be used directly in the browser without requiring any boilerplate or configuration.  
 
 The project is [hosted on GitHub](https://github.com/8tentaculos/rasti), and it's available for use under the [MIT](LICENSE.md) software license.  
 You can report bugs and discuss features on the [GitHub issues page](https://github.com/8tentaculos/rasti/issues).
