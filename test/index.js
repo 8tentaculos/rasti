@@ -350,11 +350,23 @@ describe('Rasti', () => {
             expect(document.getElementById('test-node')).to.exist;
         });
 
+        it('must be instantiated with new', () => {
+            const el = document.createElement('div');
+            const c = new Component({ el });
+            expect(c.render().el.tagName.toLowerCase()).to.be.equal('div');
+        });
+
+        it('must be instantiated with new on existing element', () => {
+            document.body.innerHTML = '<div id="test-node"></div>';
+            const c = new Component({ el : document.getElementById('test-node') });
+            expect(c.render().el.id).to.be.equal('test-node');
+        });
+
         it('must mount outside document', () => {
             const el = document.createElement('div');
             expect(el.childNodes.length).to.be.equal(0);
-            Component.create`<div></div>`.mount({}, el);
 
+            Component.create`<div></div>`.mount({}, el);
             expect(el.childNodes.length).to.be.equal(1);
         });
 
