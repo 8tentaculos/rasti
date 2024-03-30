@@ -318,8 +318,10 @@ export default class Component extends View {
                 );
 
                 if (found) {
+                    const tag = found.el.tagName.toLowerCase();
+                    const id = found.el.id;
                     // If child already exists, replace it html by its root element.
-                    out = `<${found.el.tagName} id="${found.el.id}"></${found.el.tagName}>`;
+                    out = `<${tag} id="${id}"></${tag}>`;
                     // Add child to recycled children.
                     recycledChildren.push(found);
                     // Destroy new child component. Use recycled one instead.
