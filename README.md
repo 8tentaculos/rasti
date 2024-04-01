@@ -63,6 +63,34 @@ setInterval(() => model.seconds++, 1000);
 
 [Try it on CodePen](https://codepen.io/8tentaculos/pen/gOQxaOE?editors=0010)
 
+### Adding sub components
+
+```javascript
+import { Component, Model } from 'https://esm.run/rasti@alpha';
+// Create Button component.
+const Button = Component.create`
+    <button
+        onClick="${{ '&' : function() { this.options.onClick() } }}"
+    >
+        ${({ options }) => options.label}
+    </button>
+`;
+// Create Counter component.
+const Counter = Component.create`
+    <div>
+        ${({ model }) => Button.mount({ label : '-', onClick : () => model.count-- })}
+        <span>${({ model }) => model.count}</span>
+        ${({ model }) => Button.mount({ label : '+', onClick : () => model.count++ })}
+    </div>
+`;
+// Create model to store count.
+const model = new Model({ count: 0 });
+// Mount counter on body.
+Counter.mount({ model }, document.body);
+```
+
+[Try it on CodePen](https://codepen.io/8tentaculos/pen/ZEZarEQ?editors=0010)
+
 ## Example
 
 The rasti [GitHub repository](https://github.com/8tentaculos/rasti) includes, in the [example folder](https://github.com/8tentaculos/rasti/tree/master/example/todo), an example [TODO application](http://rasti.js.org/example/todo/index.html) that can be used as starter project.
