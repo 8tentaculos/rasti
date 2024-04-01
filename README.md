@@ -66,7 +66,6 @@ setInterval(() => model.seconds++, 1000);
 ### Adding sub components
 
 ```javascript
-import { Component, Model } from 'https://esm.run/rasti@alpha';
 // Create Button component.
 const Button = Component.create`
     <button
