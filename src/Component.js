@@ -180,10 +180,12 @@ export default class Component extends View {
     destroy() {
         super.destroy.apply(this, arguments);
         // Stop listening to `change`.
-        // Set destroyed flag to prevent a last render after destroyed. TODO: Review
         if (this.model && this.model.off) this.model.off('change', this.onChange);
         if (this.state && this.state.off) this.state.off('change', this.onChange);
+        // Set destroyed flag to prevent a last render after destroyed.
         this.destroyed = true;
+        // Return `this` for chaining.
+        return this;
     }
 
     /**

@@ -12,19 +12,18 @@ describe('Rasti', () => {
     });
 
     describe('Emitter', () => {
-
-        it('should exists', () => {
+        it('must exists', () => {
             expect(Emitter).to.exist;
         });
 
-        it('should instantiate', () => {
+        it('must instantiate', () => {
             const e = new Emitter();
 
             expect(e).to.exist;
             expect(e).to.be.an.instanceof(Emitter);
         });
 
-        it('should add listener', () => {
+        it('must add listener', () => {
             const e = new Emitter();
 
             const l1 = () => {};
@@ -51,7 +50,7 @@ describe('Rasti', () => {
             expect(e.listeners['myEventB']).to.include(l4);
         });
 
-        it('should emit event', (done) => {
+        it('must emit event', (done) => {
             const e = new Emitter();
 
             e.on('myEvent', done);
@@ -59,7 +58,7 @@ describe('Rasti', () => {
             e.emit('myEvent');
         });
 
-        it('should stop listening', () => {
+        it('must stop listening', () => {
             const e = new Emitter();
 
             const l1 = () => {};
@@ -89,7 +88,7 @@ describe('Rasti', () => {
             expect(e.listeners).to.be.empty;
         });
 
-        it('should emit once', () => {
+        it('must emit once', () => {
             const e = new Emitter();
             let count = 0;
 
@@ -331,6 +330,17 @@ describe('Rasti', () => {
             );
         });
 
+        it('must return this from chainable methods', () => {
+            const v = new View();
+
+            document.body.appendChild(v.render().el);
+
+            expect(v.render()).to.be.equal(v);
+            expect(v.delegateEvents()).to.be.equal(v);
+            expect(v.undelegateEvents()).to.be.equal(v);
+            expect(v.destroy()).to.be.equal(v);
+            expect(v.removeElement()).to.be.equal(v);
+        });
     });
 
     describe('Component', () => {
@@ -517,5 +527,16 @@ describe('Rasti', () => {
             expect(c2.bar).to.be.a('function');
         });
 
+        it('must return this from chainable methods', () => {
+            const c = new Component();
+
+            document.body.appendChild(c.render().el);
+
+            expect(c.render()).to.be.equal(c);
+            expect(c.delegateEvents()).to.be.equal(c);
+            expect(c.undelegateEvents()).to.be.equal(c);
+            expect(c.destroy()).to.be.equal(c);
+            expect(c.removeElement()).to.be.equal(c);
+        });
     });
 });
