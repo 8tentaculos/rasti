@@ -92,6 +92,21 @@ export default class Component extends View {
     }
 
     /*
+    * Tell if component is a container.
+    * In which case, it will not have an element by itself.
+    * It will render a single expression which is expected to return a single component as child.
+    * `this.el` will be a reference to that child component's element.
+    * @return {boolean}
+    */
+    isContainer() {
+        return !!(!this.tag && 
+            this.template && 
+            this.template.inner && 
+            this.template.expressions && 
+            this.template.expressions.length === 1);
+    }
+
+    /*
      * Override. We don't want to ensure an element on instantiation.
      * We will provide it later.
      */
@@ -102,7 +117,7 @@ export default class Component extends View {
             this.id = this.el.id;
         }
         // Ensure id.
-        if (!this.id) {
+        if (!this.isContainer() && !this.id) {
             this.id = this.attributes && this.attributes.id ? 
                 // If id is provided, evaluate it.
                 evalExpression(this.attributes.id, this, this) :
@@ -113,6 +128,8 @@ export default class Component extends View {
 
     /*
      * Find view's element on parent node, using id.
+     * @param parent {node} The parent node.
+     * @return {node} The component's element.
      */
     findElement(parent) {
         return (parent || document).querySelector(`#${this.id}`);
@@ -120,6 +137,7 @@ export default class Component extends View {
 
     /*
      * Eval attributes expressions.
+     * @return {object} Object containing add, remove and html properties.
      */
     getAttributes() {
         const add = { id : this.id };
@@ -153,29 +171,46 @@ export default class Component extends View {
     /*
      * Used internally on the render process.
      * Attach the view to the dom element.
+     * @param parent {node} The parent node.
+     * @return {Rasti.Component} The component instance.
      */
     hydrate(parent) {
-        this.el = this.findElement(parent);
-        this.delegateEvents();
-        this.children.forEach(child => child.hydrate(this.el));
+        if (!this.isContainer()) {
+            this.el = this.findElement(parent);
+            this.delegateEvents();
+            this.children.forEach(child => child.hydrate(this.el));
+        } else {
+            this.children[0].hydrate(parent);
+            this.el = this.children[0].el;
+        }
+        // Call `onRender` lifecycle method.
         this.onRender.call(this, 'hydrate');
+        // Return `this` for chaining.
+        return this;
     }
 
     /*
      * Used internally on the render process.
      * Reuse a view that has `key` when its parent is rendered.
+     * @param parent {node} The parent node.
+     * @return {Rasti.Component} The component instance.
      */
     recycle(parent) {
         // Find element to be replaced. It has same id.
-        const toBeReplaced = this.findElement(parent);
+        const toBeReplaced = (
+            this.isContainer() ? this.children[0] : this
+        ).findElement(parent);
         // Replace it with this.el.
         toBeReplaced.replaceWith(this.el);
         // Call `onRender` lifecycle method.
         this.onRender.call(this, 'recycle');
+        // Return `this` for chaining.
+        return this;
     }
 
     /*
      * Override. Add some custom logic to super `destroy` method.
+     * @param {object} options Options object or any arguments passed to `destroy` method will be passed to `onDestroy` method.
      */
     destroy() {
         super.destroy.apply(this, arguments);
@@ -263,10 +298,6 @@ export default class Component extends View {
     toString() {
         // Normally there won't be any children, but if there are, destroy them.
         this.destroyChildren();
-        // Get tag name.
-        const tag = this.tag || 'div';
-        // Get attributes.
-        const attributes = this.getAttributes().html;
         // Replace expressions of inner template.
         const inner = this.template &&
             this.template.inner &&
@@ -274,6 +305,12 @@ export default class Component extends View {
                 // Add child component.
                 return this.addChild(component);
             });
+        // If component is a container, return inner which will be an expression thats return a single component.
+        if (this.isContainer()) return inner;
+        // Get tag name.
+        const tag = this.tag || 'div';
+        // Get attributes.
+        const attributes = this.getAttributes().html;
         // Generate outer template.
         return inner ?
             `<${tag} ${attributes}>${inner}</${tag}>` :
@@ -286,33 +323,36 @@ export default class Component extends View {
     render() {
         // Prevent a last re render if view is already destroyed.
         if (this.destroyed) return this;
-        // If `this.el` is not present, create a new `this.tag` element.
-        if (!this.el) {
-            this.el = this.createElement(this.tag);
-            this.delegateEvents();
+
+        if (!this.isContainer()) {
+            // If `this.el` is not present, create a new `this.tag` element.
+            if (!this.el) {
+                this.el = this.createElement(this.tag);
+                this.delegateEvents();
+            }
+            // Set `this.el` attributes.
+            const attributes = this.getAttributes();
+            // Remove attributes.
+            Object.keys(attributes.remove).forEach(key => {
+                this.el.removeAttribute(key);
+            });
+            // Add attributes.
+            Object.keys(attributes.add).forEach(key => {
+                this.el.setAttribute(key, attributes.add[key]);
+            });
         }
-        // Set `this.el` attributes.
-        const attributes = this.getAttributes();
-        // Remove attributes.
-        Object.keys(attributes.remove).forEach(key => {
-            this.el.removeAttribute(key);
-        });
-        // Add attributes.
-        Object.keys(attributes.add).forEach(key => {
-            this.el.setAttribute(key, attributes.add[key]);
-        });
         // Check for `template.inner` to see if view has innerHTML.
         if (this.template && this.template.inner) {
-            const previousChildren = this.children;
-
-            this.children = [];
+            // Store active element.
+            const activeElement = document.activeElement;
 
             const nextChildren = [];
             const recycledChildren = [];
-            // Store active element.
-            const activeElement = document.activeElement;
+
+            const previousChildren = this.children;
+            this.children = [];
             // Replace expressions. Set html inside of `this.el`.
-            this.el.innerHTML = this.replaceExpressions(this.template.inner, (component) => {
+            const inner = this.replaceExpressions(this.template.inner, (component) => {
                 let out = component;
                 // Check if child already exists.
                 const found = component.key && previousChildren.find(
@@ -335,14 +375,31 @@ export default class Component extends View {
                 // Component html.
                 return out;
             });
-            // Add new children. Hydrate them.
-            nextChildren.forEach(nextChild => {
-                this.addChild(nextChild).hydrate(this.el);
-            });
-            // Replace children root elements with recycled components.
-            recycledChildren.forEach(recycledChild => {
-                this.addChild(recycledChild).recycle(this.el);
-            });
+
+            if (this.isContainer()) {
+                if (nextChildren[0]) {
+                    const fragment = this.createElement('template');
+                    fragment.innerHTML = inner;
+                    // Add new child and hydrate it.
+                    this.addChild(nextChildren[0]).hydrate(fragment.content);
+
+                    const nextEl = fragment.content.children[0];
+                    this.el.replaceWith(nextEl);
+                    this.el = nextEl;
+                } else if (recycledChildren[0]) {
+                    this.addChild(recycledChildren[0]);
+                }
+            } else {
+                this.el.innerHTML = inner;
+                // Add new children. Hydrate them.
+                nextChildren.forEach(nextChild => {
+                    this.addChild(nextChild).hydrate(this.el);
+                });
+                // Replace children root elements with recycled components.
+                recycledChildren.forEach(recycledChild => {
+                    this.addChild(recycledChild).recycle(this.el);
+                });
+            }
             // Destroy unused children.
             previousChildren.forEach(previousChild => {
                 const found = recycledChildren.indexOf(previousChild) > -1;
@@ -396,11 +453,11 @@ export default class Component extends View {
             if (hydrate) {
                 view.toString();
             } else {
-                const fragment = document.createElement('template');
+                const fragment = this.prototype.createElement('template');
                 // Add html text into element inner html.
                 fragment.innerHTML = view;
                 // Add to dom.
-                el.appendChild(fragment.content);
+                el.appendChild(fragment.content.children[0]);
             }
             view.hydrate(el);
         }
@@ -424,6 +481,8 @@ export default class Component extends View {
      * @return {Rasti.Component}
      */
     static create(strings, ...expressions) {
+        let tag, attributes, inner, events;
+
         const parts = [];
         // Replace functions and objects interpolations with `{number}`.
         // Where `number` is the index on expressions array.
@@ -443,30 +502,35 @@ export default class Component extends View {
         const main = parts.join('').trim().replace(/\n/g, '');
         // Extract outer tag, attributes and inner html.
         const result = main.match(/^<([a-z]+)(.*?)>(.*)<\/\1>$/) || main.match(/^<([a-z]+)(.*?)\/>$/);
-        // Parse attributes from html text into an object.
-        let attributes = extractAttributes(result[2]);
-        // Events to be delegated.
-        let events = {};
-        // Filter events. To generate events object.
-        // Generate attributes object, replace placeholders with expressions.
-        attributes = Object.keys(attributes).reduce((out, key) => {
-            // Is Event?
-            const matchKey = key.match(/on(([A-Z]{1}[a-z]+)+)/);
-            // Is placeholder for function or object?
-            // Get expression or value.
-            const value = getExpression(attributes[key], expressions);
-            // Is event handler. Add to events object.
-            if (matchKey && matchKey[1]) {
-                const eventType = matchKey[1].toLowerCase();
-                Object.keys(value).forEach(
-                    selector => events[`${eventType}${selector === '&' ? '' : ` ${selector}`}`] = value[selector]
-                );
+
+        if (result) {
+            tag = result[1];
+            inner = result[3];
+            // Parse attributes from html text into an object.
+            attributes = extractAttributes(result[2]);
+            // Events to be delegated.
+            events = {};
+            // Filter events. To generate events object.
+            // Generate attributes object, replace placeholders with expressions.
+            attributes = Object.keys(attributes).reduce((out, key) => {
+                // Is Event?
+                const matchKey = key.match(/on(([A-Z]{1}[a-z]+)+)/);
+                // Is placeholder for function or object?
+                // Get expression or value.
+                const value = getExpression(attributes[key], expressions);
+                // Is event handler. Add to events object.
+                if (matchKey && matchKey[1]) {
+                    const eventType = matchKey[1].toLowerCase();
+                    Object.keys(value).forEach(
+                        selector => events[`${eventType}${selector === '&' ? '' : ` ${selector}`}`] = value[selector]
+                    );
+                    return out;
+                }
+                // Is attribute. Add to attributes object.
+                out[key] = value;
                 return out;
-            }
-            // Is attribute. Add to attributes object.
-            out[key] = value;
-            return out;
-        }, {});
+            }, {});
+        } else inner = main;
 
         const Current = this;
         // Create subclass for this component.
@@ -478,12 +542,12 @@ export default class Component extends View {
             // Set template.
             template : {
                 // Template for innerHTML of root element.
-                inner : result[3],
+                inner,
                 // Template expressions.
                 expressions,
             },
             // Set root element tag.
-            tag : result[1]
+            tag
         });
     }
 }

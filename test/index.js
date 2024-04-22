@@ -538,5 +538,78 @@ describe('Rasti', () => {
             expect(c.destroy()).to.be.equal(c);
             expect(c.removeElement()).to.be.equal(c);
         });
+
+        it('must create container', () => {
+            const Child = Component.create`<button>click me</button>`;
+            const Container = Component.create`${() => Child.mount()}`;
+
+            const c = Container.mount({}, document.body);
+
+            expect(Container).to.exist;
+            expect(document.querySelector('button')).to.exist;
+            expect(c.el).to.be.equal(c.children[0].el);
+            c.render();
+            expect(document.querySelector('button')).to.exist;
+            expect(c.el).to.be.equal(c.children[0].el);
+        });
+
+        it('must create nested container', () => {
+            const Child = Component.create`<button>click me</button>`;
+            const Container = Component.create`${() => Child.mount()}`;
+            const Main = Component.create`${() => Container.mount()}`;
+
+            const c = Main.mount({}, document.body);
+
+            expect(document.querySelector('button')).to.exist;
+            expect(c.el).to.be.equal(c.children[0].el);
+            expect(c.el).to.be.equal(c.children[0].children[0].el);
+            c.render();
+            expect(document.querySelector('button')).to.exist;
+            expect(c.el).to.be.equal(c.children[0].el);
+            expect(c.el).to.be.equal(c.children[0].children[0].el);
+        });
+
+        it('must create container inside component', () => {
+            const Child = Component.create`<button>click me</button>`;
+            const Container = Component.create`${() => Child.mount()}`;
+            const Main = Component.create`<div id="test-node">${() => Container.mount()}</div>`;
+
+            const c = Main.mount({}, document.body);
+
+            expect(document.querySelector('button')).to.exist;
+            expect(c.children[0].el).to.be.equal(c.children[0].children[0].el);
+            c.render();
+            expect(document.querySelector('button')).to.exist;
+            expect(c.children[0].el).to.be.equal(c.children[0].children[0].el);
+        });
+
+        it('must create container inside component with key', () => {
+            const Button = Component.create`<button>click me</button>`;
+            const Span = Component.create`<span>hello world</span>`;
+
+            const ContainerButton = Component.create`${() => Button.mount()}`;
+            const ContainerSpan = Component.create`${() => Span.mount({ key : 'span' })}`;
+
+            const Main = Component.create`
+                <div id="test-node">
+                    ${() => [ContainerButton.mount({ key : 'btn' }), ContainerSpan.mount({ key : 'span' })]}
+                </div>
+            `;
+
+            const c = Main.mount({}, document.body);
+
+            const buttonEl = c.children[0].children[0].el;
+            const spanEl = c.children[1].children[0].el;
+
+            c.render();
+            expect(document.querySelector('button')).to.be.equal(buttonEl);
+            expect(document.querySelector('span')).to.be.equal(spanEl);
+            c.children[0].render();
+            c.children[1].render();
+            expect(document.querySelector('button')).to.exist;
+            expect(document.querySelector('span')).to.exist;
+            expect(document.querySelector('button')).not.to.be.equal(buttonEl);
+            expect(document.querySelector('span')).to.be.equal(spanEl);
+        });
     });
 });
