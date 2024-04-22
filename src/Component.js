@@ -479,10 +479,16 @@ export default class Component extends View {
      * - If the function returns a component instance, it will be added as a child component.
      * - If the function returns an array, each item will be evaluated as above.
      * @static
-     * @param {string} HTML template for the component.
+     * @param {string} HTML template for the component. Or a function that mounts a sub component.
      * @return {Rasti.Component}
      */
     static create(strings, ...expressions) {
+        // Containers can be created using create as a functions instead of a tagged template.
+        if (typeof strings === 'function') {
+            expressions = [strings];
+            strings = ['', ''];
+        }
+
         let tag, attributes, inner, events;
 
         const parts = [];

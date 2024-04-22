@@ -626,5 +626,19 @@ describe('Rasti', () => {
             expect(document.querySelector('button')).to.exist;
             expect(c.el).to.be.equal(c.children[0].el);
         });
+
+        it('must create container using a function', () => {
+            const Child = Component.create`<button>click me</button>`;
+            const Container = Component.create(() => Child.mount());
+
+            const c = Container.mount({}, document.body);
+
+            expect(Container).to.exist;
+            expect(document.querySelector('button')).to.exist;
+            expect(c.el).to.be.equal(c.children[0].el);
+            c.render();
+            expect(document.querySelector('button')).to.exist;
+            expect(c.el).to.be.equal(c.children[0].el);
+        });
     });
 });
