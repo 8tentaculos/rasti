@@ -380,11 +380,13 @@ export default class Component extends View {
                 if (nextChildren[0]) {
                     const fragment = this.createElement('template');
                     fragment.innerHTML = inner;
-                    // Add new child and hydrate it.
+                    // Add new child to dom fragment and hydrate it.
                     this.addChild(nextChildren[0]).hydrate(fragment.content);
-
+                    // Get next child element.
                     const nextEl = fragment.content.children[0];
-                    this.el.replaceWith(nextEl);
+                    // If `this.el` is present, replace it with nextEl.
+                    if (this.el) this.el.replaceWith(nextEl);
+                    // Set `this.el` to nextEl.
                     this.el = nextEl;
                 } else if (recycledChildren[0]) {
                     this.addChild(recycledChildren[0]);
