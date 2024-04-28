@@ -360,6 +360,11 @@ describe('Rasti', () => {
             expect(document.getElementById('test-node')).to.exist;
         });
 
+        it('must support header tags', () => {
+            Component.create`<h1 id="test-node"></h1>`.mount({}, document.body);
+            expect(document.getElementById('test-node')).to.exist;
+        });
+
         it('must be instantiated with new', () => {
             const el = document.createElement('div');
             const c = new Component({ el });

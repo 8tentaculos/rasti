@@ -442,7 +442,7 @@ export default class Component extends View {
         // Create output text for main template.
         const main = parts.join('').trim().replace(/\n/g, '');
         // Extract outer tag, attributes and inner html.
-        const result = main.match(/^<([a-z]+)(.*?)>(.*)<\/\1>$/) || main.match(/^<([a-z]+)(.*?)\/>$/);
+        const result = main.match(/^<([a-z]+[1-6]?)(.*?)>(.*)<\/\1>$/) || main.match(/^<([a-z]+)(.*?)\/>$/);
         // Parse attributes from html text into an object.
         let attributes = extractAttributes(result[2]);
         // Events to be delegated.
