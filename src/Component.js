@@ -249,12 +249,13 @@ export default class Component extends View {
                 }, '');
 
             })
-            // Replace `attribute="true"` with `attribute`
-            .replace(new RegExp(`([a-z]+)=["|']${Component.TRUE_PLACEHOLDER}["|']`, 'g'), '$1')
-            // Replace `attribute="false"` with empty string.
-            .replace(new RegExp(`([a-z]+)=["|']${Component.FALSE_PLACEHOLDER}["|']`, 'g'), '')
-            // Replace rest of false expressions with empty string.
-            .replace(new RegExp(Component.FALSE_PLACEHOLDER, 'g'), '');
+            // Replace `attribute="true"` with `attribute` and `attribute="false"` with empty string.
+            .replace(
+                new RegExp(`([\\w|data-]+)=(["'])?(${Component.TRUE_PLACEHOLDER}|${Component.FALSE_PLACEHOLDER})\\2`, 'g'),
+                (match, attribute, quote, placeholder) => placeholder === Component.TRUE_PLACEHOLDER ? attribute : ''
+            )
+            // Replace rest of true or false expressions with empty string.
+            .replace(new RegExp(`${Component.TRUE_PLACEHOLDER}|${Component.FALSE_PLACEHOLDER}`, 'g'), '');
     }
 
     /*
@@ -268,14 +269,14 @@ export default class Component extends View {
         // Get attributes.
         const attributes = this.getAttributes().html;
         // Replace expressions of inner template.
-        const inner = this.template &&
-            this.template.inner &&
+        const close = this.template && this.template.inner; 
+        const inner = close &&
             this.replaceExpressions(this.template.inner, (component) => {
                 // Add child component.
                 return this.addChild(component);
             });
         // Generate outer template.
-        return inner ?
+        return close ?
             `<${tag} ${attributes}>${inner}</${tag}>` :
             `<${tag} ${attributes} />`;
     }

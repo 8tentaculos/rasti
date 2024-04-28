@@ -356,7 +356,8 @@ describe('Rasti', () => {
         });
 
         it('must be created with a self enclosed tag', () => {
-            Component.create`<input id="test-node" type="text" />`.mount({}, document.body);
+            const c = Component.create`<input id="test-node" type="text" />`.mount({}, document.body);
+            expect(c.toString()).to.be.equal('<input id="test-node" type="text" />');
             expect(document.getElementById('test-node')).to.exist;
         });
 
@@ -447,6 +448,34 @@ describe('Rasti', () => {
             c.model.disabled = true;
 
             expect(document.getElementById('test-node').disabled).to.be.true;
+        });
+
+        it('must render true and false attributes', () => {
+            expect(
+                Component.create`<input id="test-node" disabled="${() => false}" />`.mount().toString()
+            ).to.be.equal('<input id="test-node" />');
+
+            expect(
+                Component.create`<div id="test-node"><input disabled="${() => false}" /></div>`.mount().toString()
+            ).to.be.equal('<div id="test-node"><input  /></div>');
+
+            expect(
+                Component.create`<input id="test-node" disabled="${() => true}" />`.mount().toString()
+            ).to.be.equal('<input id="test-node" disabled />');
+
+            expect(
+                Component.create`<div id="test-node"><input disabled="${() => true}" /></div>`.mount().toString()
+            ).to.be.equal('<div id="test-node"><input disabled /></div>');
+        });
+
+        it('must remove true and false placeholders', () => {
+            expect(
+                Component.create`<div id="test-node">${() => true}</div>`.mount().toString()
+            ).to.be.equal('<div id="test-node"></div>');
+
+            expect(
+                Component.create`<div id="test-node">${() => false}</div>`.mount().toString()
+            ).to.be.equal('<div id="test-node"></div>');
         });
 
         it('must re render and destroy children', () => {
