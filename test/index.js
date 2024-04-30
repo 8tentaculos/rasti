@@ -646,7 +646,7 @@ describe('Rasti', () => {
             expect(document.querySelector('span')).to.be.equal(spanEl);
         });
 
-        it('must mount using render', () => {
+        it('must mount container using render', () => {
             const Child = Component.create`<button>click me</button>`;
             const Container = Component.create`${() => Child.mount()}`;
 
