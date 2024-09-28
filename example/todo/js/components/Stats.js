@@ -4,10 +4,10 @@ const Stats = Component.create`
     <footer
         class="footer"
         onClick=${{
-            '.all' : function() { this.model.filter = 'all' },
-            '.remaining' : function() { this.model.filter = 'remaining' },
-            '.completed' : function() { this.model.filter = 'completed' },
-            '.clear-completed': function() { this.model.removeCompleted() },
+            'a.all' : function() { this.model.filter = 'all' },
+            'a.remaining' : function() { this.model.filter = 'remaining' },
+            'a.completed' : function() { this.model.filter = 'completed' },
+            'button.clear-completed': function() { this.model.removeCompleted() },
         }}
     >
         <span class="todo-count">

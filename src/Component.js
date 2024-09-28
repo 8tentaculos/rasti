@@ -507,16 +507,18 @@ export default class Component extends View {
                 );
             }
         });
-        // Create output text for main template.
-        const main = parts.join('').trim().replace(/\n/g, '');
+        // Create output string for main template. Add placeholders for new lines.
+        const main = parts.join('').trim().replace(/\n/g, Component.NEW_LINE_PLACEHOLDER);
         // Extract outer tag, attributes and inner html.
         const result = main.match(/^<([a-z]+[1-6]?)(.*?)>(.*)<\/\1>$/) || main.match(/^<([a-z]+)(.*?)\/>$/);
 
         if (result) {
+            // Get tag, attributes.
             tag = result[1];
-            inner = result[3];
-            // Parse attributes from html text into an object.
-            attributes = extractAttributes(result[2]);
+            // Get inner html. Restore new lines.
+            inner = result[3] && result[3].replace(new RegExp(Component.NEW_LINE_PLACEHOLDER, 'g'), '\n');
+            // Parse attributes from html string into an object. Remove new lines.
+            attributes = extractAttributes(result[2].replace(new RegExp(Component.NEW_LINE_PLACEHOLDER, 'g'), ''));
             // Events to be delegated.
             events = {};
             // Filter events. To generate events object.
@@ -545,24 +547,25 @@ export default class Component extends View {
         const Current = this;
         // Create subclass for this component.
         return Current.extend({
-            // Set events.
-            events,
+            // Set root element tag.
+            tag,
             // Set attributes.
             attributes,
+            // Set events.
+            events,
             // Set template.
             template : {
                 // Template for innerHTML of root element.
                 inner,
                 // Template expressions.
-                expressions,
-            },
-            // Set root element tag.
-            tag
+                expressions
+            }
         });
     }
 }
 
 Component.ID_TEMPLATE = (uid) => `rasti-component-${uid}`;
-Component.EXPRESSION_PLACEHOLDER_TEMPLATE = (idx) => `__RASTI_EXPRESSION{${idx}}`;
-Component.TRUE_PLACEHOLDER = '__RASTI_TRUE';
-Component.FALSE_PLACEHOLDER = '__RASTI_FALSE';
+Component.EXPRESSION_PLACEHOLDER_TEMPLATE = (idx) => `__RASTI_EXPRESSION_{${idx}}__`;
+Component.TRUE_PLACEHOLDER = '__RASTI_TRUE__';
+Component.FALSE_PLACEHOLDER = '__RASTI_FALSE__';
+Component.NEW_LINE_PLACEHOLDER = '__RASTI_NEW_LINE__';
