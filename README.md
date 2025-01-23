@@ -1,10 +1,12 @@
-<picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/logo.svg">
-    <img alt="Rasti.js" src="docs/logo.svg" height="80">
-</picture>
+<p align="center">
+    <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.svg">
+        <img alt="Rasti.js" src="docs/logo.svg" height="120">
+    </picture>
+</p>
 
 <p align="center">
-Modern MVC for building user interfaces
+    <b>Modern MVC for building user interfaces</b>
 </p>
 
 **Rasti** is a lightweight MVC library for building fast, reactive user interfaces. Inspired by **Backbone.js**, it retains a familiar API while removing non-essential features and introducing modern, declarative, and composable components to simplify complex UI development.
