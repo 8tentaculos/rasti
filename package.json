@@ -24,7 +24,7 @@
     "docs:api": "jsdoc2md --module-index-format none --helper jsdoc2md/helper.js --partial jsdoc2md/header.hbs --partial jsdoc2md/sig-link.hbs --partial jsdoc2md/sig-link-html.hbs --partial jsdoc2md/sig-link-parent.hbs --partial jsdoc2md/link.hbs --files src/**/*.js > docs/api.md"
   },
   "repository": "github:8tentaculos/rasti",
-  "homepage": "http://rasti.js.org",
+  "homepage": "https://rasti.js.org",
   "bugs": "https://github.com/8tentaculos/rasti/issues",
   "keywords": [
     "mvc",

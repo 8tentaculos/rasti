@@ -107,7 +107,7 @@ Counter.mount({ model }, document.body);
 
 ## Example
 
-The rasti [GitHub repository](https://github.com/8tentaculos/rasti) includes, in the [example folder](https://github.com/8tentaculos/rasti/tree/master/example/todo), an example [TODO application](http://rasti.js.org/example/todo/index.html) that can be used as starter project.
+The rasti [GitHub repository](https://github.com/8tentaculos/rasti) includes, in the [example folder](https://github.com/8tentaculos/rasti/tree/master/example/todo), an example [TODO application](https://rasti.js.org/example/todo/index.html) that can be used as starter project.
 
 ## API
 
