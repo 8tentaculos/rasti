@@ -1,7 +1,7 @@
 {{!-- node_modules/dmd/partials/shared/signature/sig-link-html.hbs --}}
 {{#if name}}{{#sig no-gfm=true ~}}
 {{{@depOpen}~}}
-<a href="#{{{escapedAnchor (anchorName)}}}">
+<a href="#{{{escapeAnchor (anchorName)}}}">
 {{~{@codeOpen}~}}
 {{#if @prefix}}{{@prefix}} {{/if~}}
 {{@accessSymbol}}{{#if (isEvent)}}"{{{name}}}"{{else}}{{{name}}}{{/if~}}

@@ -52,7 +52,7 @@ setInterval(() => model.seconds++, 1000);
 ### component.onCreate(options)
 Lifecycle method. Called when the view is created at the end of the constructor.
 
-**Kind**: instance method of [<code>Component</code>](#module_Component)  
+**Kind**: instance method of [<code>Component</code>](#module_component)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -66,7 +66,7 @@ This method should be extended with custom logic.
 Maybe comparing new attributes with previous ones and calling
 render when needed. Or doing some dom transformation.
 
-**Kind**: instance method of [<code>Component</code>](#module_Component)  
+**Kind**: instance method of [<code>Component</code>](#module_component)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -78,7 +78,7 @@ render when needed. Or doing some dom transformation.
 ### component.onRender(type)
 Lifecycle method. Called when the view is rendered.
 
-**Kind**: instance method of [<code>Component</code>](#module_Component)  
+**Kind**: instance method of [<code>Component</code>](#module_component)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -88,7 +88,7 @@ Lifecycle method. Called when the view is rendered.
 ### component.onDestroy(options)
 Lifecycle method. Called when the view is destroyed.
 
-**Kind**: instance method of [<code>Component</code>](#module_Component)  
+**Kind**: instance method of [<code>Component</code>](#module_component)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -98,7 +98,7 @@ Lifecycle method. Called when the view is destroyed.
 ### Component.extend(object)
 Helper method used to extend a `Component`, creating a subclass.
 
-**Kind**: static method of [<code>Component</code>](#module_Component)  
+**Kind**: static method of [<code>Component</code>](#module_component)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -111,7 +111,7 @@ It instantiate the Component view using options,
 appends its element into the DOM (if `el` is provided).
 And returns the view instance.
 
-**Kind**: static method of [<code>Component</code>](#module_Component)  
+**Kind**: static method of [<code>Component</code>](#module_component)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -132,7 +132,7 @@ and returns a new `Component` class.
 - If the function returns a component instance, it will be added as a child component.
 - If the function returns an array, each item will be evaluated as above.
 
-**Kind**: static method of [<code>Component</code>](#module_Component)  
+**Kind**: static method of [<code>Component</code>](#module_component)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -187,7 +187,7 @@ cart.addItem(item2); // Output: "Item added to cart: Headphones - Price: $150"
 ### emitter.on(type, listener)
 Adds event listener.
 
-**Kind**: instance method of [<code>Emitter</code>](#module_Emitter)  
+**Kind**: instance method of [<code>Emitter</code>](#module_emitter)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -202,7 +202,7 @@ this.model.on('change', this.render.bind(this)); // Re render when model changes
 ### emitter.once(type, listener)
 Adds event listener that executes once.
 
-**Kind**: instance method of [<code>Emitter</code>](#module_Emitter)  
+**Kind**: instance method of [<code>Emitter</code>](#module_emitter)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -217,7 +217,7 @@ this.model.once('change', () => console.log('This will happen once'));
 ### emitter.off([type], [listener])
 Removes event listeners.
 
-**Kind**: instance method of [<code>Emitter</code>](#module_Emitter)  
+**Kind**: instance method of [<code>Emitter</code>](#module_emitter)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -232,7 +232,7 @@ this.model.off('change'); // Stop listening to changes.
 ### emitter.emit(type)
 Emits event of specified type. Listeners will receive specified arguments.
 
-**Kind**: instance method of [<code>Emitter</code>](#module_Emitter)  
+**Kind**: instance method of [<code>Emitter</code>](#module_emitter)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -306,7 +306,7 @@ product.setDiscount(10); // Output: "New Price: 900"
 ### model.preinitialize(attrs)
 If you define a preinitialize method, it will be invoked when the Model is first created, before any instantiation logic is run for the Model.
 
-**Kind**: instance method of [<code>Model</code>](#module_Model)  
+**Kind**: instance method of [<code>Model</code>](#module_model)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -318,7 +318,7 @@ Generate getter/setter for the given key. In order to emit `change` events.
 This method is called internally by the constructor
 for `this.attributes`.
 
-**Kind**: instance method of [<code>Model</code>](#module_Model)  
+**Kind**: instance method of [<code>Model</code>](#module_model)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -329,7 +329,7 @@ for `this.attributes`.
 Get an attribute from `this.attributes`.
 This method is called internally by generated getters.
 
-**Kind**: instance method of [<code>Model</code>](#module_Model)  
+**Kind**: instance method of [<code>Model</code>](#module_model)  
 **Returns**: <code>any</code> - The attribute value.  
 
 | Param | Type | Description |
@@ -346,7 +346,7 @@ This method is called internally by generated setters.
 The `change` event listener will receive the model instance, an object containing the changed attributes, and the rest of the arguments passed to `set` method.  
 The `change:attribute` event listener will receive the model instance, the new attribute value, and the rest of the arguments passed to `set` method.
 
-**Kind**: instance method of [<code>Model</code>](#module_Model)  
+**Kind**: instance method of [<code>Model</code>](#module_model)  
 **Returns**: <code>this</code> - This model.  
 **Emits**: <code>event:change</code>, <code>change:attribute</code>  
 
@@ -360,7 +360,7 @@ The `change:attribute` event listener will receive the model instance, the new a
 Return object representation of the model to be used for JSON serialization.
 By default returns `this.attributes`.
 
-**Kind**: instance method of [<code>Model</code>](#module_Model)  
+**Kind**: instance method of [<code>Model</code>](#module_model)  
 **Returns**: <code>object</code> - Object representation of the model to be used for JSON serialization.  
 <a name="module_view" id="module_view"></a>
 ## View ⇐ <code>Rasti.Emitter</code>
@@ -435,7 +435,7 @@ document.body.appendChild(new Timer().render().el);
 ### view.preinitialize(attrs)
 If you define a preinitialize method, it will be invoked when the view is first created, before any instantiation logic is run.
 
-**Kind**: instance method of [<code>View</code>](#module_View)  
+**Kind**: instance method of [<code>View</code>](#module_view)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -446,7 +446,7 @@ If you define a preinitialize method, it will be invoked when the view is first 
 Returns the first element that match the selector, 
 scoped to DOM elements within the current view's root element (`this.el`).
 
-**Kind**: instance method of [<code>View</code>](#module_View)  
+**Kind**: instance method of [<code>View</code>](#module_view)  
 **Returns**: <code>node</code> - Element matching selector within the view's root element (`this.el`).  
 
 | Param | Type | Description |
@@ -458,7 +458,7 @@ scoped to DOM elements within the current view's root element (`this.el`).
 Returns a list of elements that match the selector, 
 scoped to DOM elements within the current view's root element (`this.el`).
 
-**Kind**: instance method of [<code>View</code>](#module_View)  
+**Kind**: instance method of [<code>View</code>](#module_view)  
 **Returns**: <code>Array.&lt;node&gt;</code> - List of elements matching selector within the view's root element (`this.el`).  
 
 | Param | Type | Description |
@@ -470,14 +470,14 @@ scoped to DOM elements within the current view's root element (`this.el`).
 Destroy the view.
 Destroy children views if any, undelegate events, stop listening to events, call `onDestroy` lifecycle method.
 
-**Kind**: instance method of [<code>View</code>](#module_View)  
+**Kind**: instance method of [<code>View</code>](#module_view)  
 **Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
 <a name="module_view__ondestroy" id="module_view__ondestroy"></a>
 ### view.onDestroy(options)
 `onDestroy` lifecycle method is called after view is destroyed.
 Override with your code. Useful to stop listening to model's events.
 
-**Kind**: instance method of [<code>View</code>](#module_View)  
+**Kind**: instance method of [<code>View</code>](#module_view)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -489,7 +489,7 @@ Add a view as a child.
 Children views are stored at `this.children`, and destroyed when the parent is destroyed.
 Returns the child for chaining.
 
-**Kind**: instance method of [<code>View</code>](#module_View)  
+**Kind**: instance method of [<code>View</code>](#module_view)  
 
 | Param | Type |
 | --- | --- |
@@ -499,7 +499,7 @@ Returns the child for chaining.
 ### view.destroyChildren()
 Call destroy method on children views.
 
-**Kind**: instance method of [<code>View</code>](#module_View)  
+**Kind**: instance method of [<code>View</code>](#module_view)  
 <a name="module_view__ensureelement" id="module_view__ensureelement"></a>
 ### view.ensureElement()
 Ensure that the view has a root element at `this.el`.
@@ -507,14 +507,14 @@ You shouldn't call this method directly. It's called from constructor.
 You may override it if you want to use a different logic or to 
 postpone element creation.
 
-**Kind**: instance method of [<code>View</code>](#module_View)  
+**Kind**: instance method of [<code>View</code>](#module_view)  
 <a name="module_view__createelement" id="module_view__createelement"></a>
 ### view.createElement(tag, attrs) ⇒ <code>node</code>
 Create an element.
 Called from constructor if `this.el` is undefined, to ensure
 the view to have a root element.
 
-**Kind**: instance method of [<code>View</code>](#module_View)  
+**Kind**: instance method of [<code>View</code>](#module_view)  
 **Returns**: <code>node</code> - The created element.  
 
 | Param | Type | Default | Description |
@@ -526,7 +526,7 @@ the view to have a root element.
 ### view.removeElement() ⇒ <code>Rasti.View</code>
 Remove `this.el` from DOM.
 
-**Kind**: instance method of [<code>View</code>](#module_View)  
+**Kind**: instance method of [<code>View</code>](#module_view)  
 **Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
 <a name="module_view__delegateevents" id="module_view__delegateevents"></a>
 ### view.delegateEvents([events]) ⇒ <code>Rasti.View</code>
@@ -538,7 +538,7 @@ so if you have a simple events hash, all of your DOM events will always already 
 All attached listeners are bound to the view automatically, so when the listeners are invoked, `this` continues to refer to the view object.  
 When `delegateEvents` is run again, perhaps with a different events hash, all listeners are removed and delegated afresh.
 
-**Kind**: instance method of [<code>View</code>](#module_View)  
+**Kind**: instance method of [<code>View</code>](#module_view)  
 **Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
 
 | Param | Type | Description |
@@ -556,7 +556,7 @@ MyView.prototype.events = {
 ### view.undelegateEvents() ⇒ <code>Rasti.View</code>
 Removes all of the view's delegated events. Useful if you want to disable or remove a view from the DOM temporarily. Called automatically when the view is destroyed.
 
-**Kind**: instance method of [<code>View</code>](#module_View)  
+**Kind**: instance method of [<code>View</code>](#module_view)  
 **Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
 <a name="module_view__render" id="module_view__render"></a>
 ### view.render() ⇒ <code>Rasti.View</code>
@@ -567,5 +567,5 @@ Conventions are to only manipulate the dom in the scope of `this.el`,
 and to return `this` for chaining.
 If you added any child view, you must call `this.destroyChildren`.
 
-**Kind**: instance method of [<code>View</code>](#module_View)  
+**Kind**: instance method of [<code>View</code>](#module_view)  
 **Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
