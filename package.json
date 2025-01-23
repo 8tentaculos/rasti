@@ -28,12 +28,12 @@
   "bugs": "https://github.com/8tentaculos/rasti/issues",
   "keywords": [
     "mvc",
-    "ui",
     "model",
     "view",
     "component",
-    "lightweight",
-    "es6",
+    "emitter",
+    "ui",
+    "user interface",
     "backbone"
   ],
   "author": "Alberto Masuelli <alberto.masuelli@gmail.com> (https://github.com/8tentaculos)",
