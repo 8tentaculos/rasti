@@ -1,18 +1,33 @@
-# <a href="http://rasti.js.org"><img src="docs/logo.svg" height="80" alt="Rasti.js - JavaScript library for building user interfaces" aria-label="rasti.js.org" /></a>
+<p align="center">
+    <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.svg">
+        <img alt="Rasti.js" src="docs/logo.svg" height="120">
+    </picture>
+</p>
 
-Rasti is a minimalistic JavaScript library for building user interfaces.  
-It is designed to simplify the creation of complex dynamic applications by providing a declarative API for building reusable and composable UI components.  
-Rasti is based on web standards, has a small footprint, and can be used directly in the browser without requiring any boilerplate or configuration.  
+<p align="center">
+    <b>Modern MVC for building user interfaces</b>
+</p>
 
-The project is [hosted on GitHub](https://github.com/8tentaculos/rasti), and it's available for use under the [MIT](LICENSE.md) software license.  
-You can report bugs and discuss features on the [GitHub issues page](https://github.com/8tentaculos/rasti/issues).
+**Rasti** is a lightweight MVC library for building fast, reactive user interfaces. Inspired by **Backbone.js**, it retains a familiar API while removing non-essential features and introducing modern, declarative, and composable components to simplify complex UI development.
 
 [![Travis (.com)](https://img.shields.io/travis/com/8tentaculos/rasti?style=flat-square)](https://app.travis-ci.com/8tentaculos/rasti)
 [![npm version](https://img.shields.io/npm/v/rasti.svg?style=flat-square)](https://www.npmjs.com/package/rasti)
+[![npm package minimized gzipped size](https://img.shields.io/bundlejs/size/rasti?style=flat-square)](https://unpkg.com/rasti/dist/rasti.min.js)
 [![npm downloads](https://img.shields.io/npm/dm/rasti.svg?style=flat-square)](https://www.npmjs.com/package/rasti)
-[![](https://data.jsdelivr.com/v1/package/npm/rasti/badge)](https://www.jsdelivr.com/package/npm/rasti)
+[![jsDelivr hits (npm)](https://img.shields.io/jsdelivr/npm/hm/rasti?style=flat-square)](https://www.jsdelivr.com/package/npm/rasti)
 
-## Getting started
+## Key Features  
+
+- 🌟 **Declarative Components**: Build dynamic UI components using intuitive template literals.  
+- 🎯 **Event Delegation**: Simplify event handling with built-in delegation.  
+- 🔗 **Model-View Binding**: Keep your UI and data in sync with ease.  
+- 🌐 **Server-Side Rendering**: Render as plain text for server-side use or static builds.  
+- ⚡ **Lightweight and Fast**: Minimal overhead with efficient rendering.  
+- 🕰️ **Legacy Compatibility**: Seamlessly integrates into existing **Backbone.js** projects.
+- 📐 **Standards-Based**: Built on modern web standards, no tooling required. 
+
+## Getting Started
 
 ### Using npm
 
@@ -39,10 +54,6 @@ import { Model, Component } from 'https://esm.run/rasti';
 ```javascript
 const { Model, Component } = Rasti;
 ```
-
-  The [rasti npm package](https://www.npmjs.com/package/rasti) includes precompiled production and development UMD builds in the dist folder. They can be used directly without a bundler and are thus compatible with many popular JavaScript module loaders and environments.  
-  The UMD builds make Rasti available as a `window.Rasti` global variable.
-
 
 ### A simple `Component`
 
@@ -90,25 +101,44 @@ Counter.mount({ model }, document.body);
 
 [Try it on CodePen](https://codepen.io/8tentaculos/pen/ZEZarEQ?editors=0010)
 
+## Why Choose **Rasti**?  
+
+- **Small Projects**: Perfect for lightweight apps, free from unnecessary overhead or tooling.  
+- **Efficient Rendering**: Ideal for rendering large dynamic tables or datasets without requiring virtual scrolling.  
+- **Legacy Maintenance**: Modernize your **Backbone.js** views gradually, allowing for incremental updates without the need for a complete rewrite.
+
 ## Example
 
-The rasti [GitHub repository](https://github.com/8tentaculos/rasti) includes, in the [example folder](https://github.com/8tentaculos/rasti/tree/master/example/todo), an example [TODO application](http://rasti.js.org/example/todo/index.html) that can be used as starter project.
+The rasti [GitHub repository](https://github.com/8tentaculos/rasti) includes, in the [example folder](https://github.com/8tentaculos/rasti/tree/master/example/todo), an example [TODO application](https://rasti.js.org/example/todo/index.html) that can be used as starter project.
 
 ## API
 
-Complete [API documentation](docs/api.md).
+Complete [API documentation](/docs/api.md).
 
-## Powered by Rasti
+## ⚠️ Important Note
 
-### Crypto Babylon
+**Rasti**, like many **Backbone.js** applications, uses `innerHTML` for rendering views and components. This approach provides speed and flexibility but requires you to ensure that all passed data is **trusted** or **properly sanitized**.
 
-[Crypto Babylon](https://cryptobabylon.net), a markets analytics platform, leverages the capabilities of Rasti.  
-The Rasti rendering system is responsible for efficiently rendering a table containing over 300 rows. Additionally, it seamlessly updates the DOM in real-time, handling thousands of messages per second from multiple WebSocket connections.
+If the data comes from user input or external sources, sanitize it before rendering to avoid potential security risks.
 
-### jsPacman
+For more details on data sanitization, refer to [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).
 
-[jsPacman](https://pacman.js.org), a JavaScript DOM-based remake of the classic Ms. Pac-Man game, utilizes Rasti at a low level for its custom game engine.
+
+## Powered by **Rasti**
+
+### [Crypto Babylon](https://cryptobabylon.net)  
+
+A market analytics platform efficiently rendering over 300 dynamic rows, updated in real-time with thousands of messages per second via multiple WebSocket connections.  
+
+### [jsPacman](https://pacman.js.org)
+
+A DOM-based remake of the classic Ms. Pac-Man game. **Rasti** powers its custom game engine.  
 
 ## License
 
-[MIT](LICENSE.md)
+**Rasti** is open-source and available under the [MIT License](LICENSE).
+
+## Contributing
+
+Contributions are welcome! Share feature ideas or report bugs on our [GitHub Issues page](https://github.com/8tentaculos/rasti/issues).
+
