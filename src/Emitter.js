@@ -44,13 +44,14 @@ export default class Emitter {
      * this.model.on('change', this.render.bind(this)); // Re render when model changes.
      */
     on(type, listener) {
+        // Validate listener.
         if (typeof listener !== 'function') {
             throw TypeError('Listener must be a function');
         }
-
+        // Create listeners object if it doesn't exist.
         if (!this.listeners) this.listeners = {};
         if (!this.listeners[type]) this.listeners[type] = [];
-
+        // Add listener.
         this.listeners[type].push(listener);
     }
 
@@ -62,15 +63,17 @@ export default class Emitter {
      * this.model.once('change', () => console.log('This will happen once'));
      */
     once(type, listener) {
+        // If listener is a function, wrap it to remove it after it is called.
         if (typeof listener === 'function') {
-            let self = this;
-            let _listener = listener;
+            const self = this;
+            const originalListener = listener;
 
             listener = function(...args) {
-                _listener(...args);
+                originalListener(...args);
                 self.off(type, listener);
             };
         }
+        // Add listener.
         this.on(type, listener);
     }
 
@@ -82,25 +85,22 @@ export default class Emitter {
      * this.model.off('change'); // Stop listening to changes.
      */
     off(type, listener) {
+        // No listeners.
+        if (!this.listeners) return;
+        // No type provided, remove all listeners.
         if (!type) {
-            this.listeners = {};
+            delete this.listeners;
+            return;
+        }
+        // No listeners for specified type.
+        if (!this.listeners[type]) return;
+        // No listener provided, remove all listeners for specified type.
+        if (!listener) {
+            delete this.listeners[type];
         } else {
-            if (!listener) {
-                delete this.listeners[type];
-            } else {
-                let listeners = this.listeners[type];
-                if (listeners) {
-                    let copy = listeners.slice();
-
-                    copy.forEach(function (fn, idx) {
-                        if (fn === listener) listeners.splice(idx, 1);
-                    });
-
-                    if (!listeners.length) {
-                        delete this.listeners[type];
-                    }
-                }
-            }
+            // Remove specific listener.
+            this.listeners[type] = this.listeners[type].filter(fn => fn !== listener);
+            if (!this.listeners[type].length) delete this.listeners[type];
         }
     }
 
@@ -112,14 +112,14 @@ export default class Emitter {
      * this.emit('invalid'); // Emit validation error event.
      */
     emit(type, ...args) {
-        let listeners = this.listeners && this.listeners[type];
-
-        if (!listeners || !listeners.length) return;
-
-        let copy = listeners.slice();
-
-        copy.forEach(function(fn) {
-            fn(...args);
-        });
+        // No listeners.
+        if (!this.listeners || !this.listeners[type]) return;
+        // Call listeners. Use `slice` to make a copy and prevent errors when 
+        // removing listeners inside a listener.
+        this.listeners[type]
+            .slice()
+            .forEach(function(fn) {
+                fn(...args);
+            });
     }
 }
