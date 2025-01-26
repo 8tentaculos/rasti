@@ -79,13 +79,11 @@ describe('Rasti', () => {
 
             // Remove all listeners from myEventB.
             e.off('myEventB');
+            expect(e.listeners['myEventB']).to.not.exist;
 
-            expect(e.listeners['myEventB']).to.not.be.ok;
-
-            // Remove all listeners
+            // Remove all listeners.
             e.off();
-
-            expect(e.listeners).to.be.empty;
+            expect(e.listeners).to.not.exist;
         });
 
         it('must emit once', () => {
@@ -94,7 +92,7 @@ describe('Rasti', () => {
 
             e.once('myEvent', () => { count++; });
 
-            // Emit event 2 times. Remember that default events are sync.
+            // Emit event 2 times.
             e.emit('myEvent');
             e.emit('myEvent');
 
@@ -115,6 +113,31 @@ describe('Rasti', () => {
             }
 
             new MyModel();
+        });
+
+        it('must initialize with defaults', () => {
+            class MyModel extends Model {}
+
+            MyModel.prototype.defaults = { test : true };
+
+            const m = new MyModel();
+            expect(m.get('test')).to.be.true;
+        });
+
+        it('must initialize with defaults as function', () => {
+            class MyModel extends Model {
+                defaults() {
+                    return { test : true };
+                }
+            }
+
+            const m = new MyModel();
+            expect(m.get('test')).to.be.true;
+        });
+
+        it('must initialize with attributes', () => {
+            const m = new Model({ test : true });
+            expect(m.get('test')).to.be.true;
         });
 
         it('must set and get attribute as key/value', () => {
@@ -234,6 +257,38 @@ describe('Rasti', () => {
         it('must have element', () => {
             const v = new View();
             expect(v.el).to.exist;
+        });
+
+        it('must create element with tag name', () => {
+            const v = new View({ tag : 'section' });
+            expect(v.el.tagName.toLowerCase()).to.be.equal('section');
+        });
+
+        it('must create element with attributes', () => {
+            const v = new View({ attributes : { id : 'test-node' } });
+            expect(v.el.id).to.be.equal('test-node');
+        });
+
+        it('must create element with tag as function', () => {
+            const v = new View({ tag : () => 'section' });
+            expect(v.el.tagName.toLowerCase()).to.be.equal('section');
+        });
+
+        it('must create element with attributes as function', () => {
+            const v = new View({ attributes : () => ({ id : 'test-node' }) });
+            expect(v.el.id).to.be.equal('test-node');
+        });
+
+        it('must provide element', () => {
+            const el = document.createElement('div');
+            const v = new View({ el });
+            expect(v.el).to.be.equal(el);
+        });
+
+        it('must provide element as function', () => {
+            const el = document.createElement('div');
+            const v = new View({ el : () => el });
+            expect(v.el).to.be.equal(el);
         });
 
         it('must call onDestroy', (done) => {

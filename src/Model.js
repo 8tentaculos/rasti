@@ -1,4 +1,6 @@
 import Emitter from './Emitter.js';
+import getResult from './utils/getResult.js';
+
 /**
  * - Orchestrates data and business logic.
  * - Emits events when data changes.
@@ -14,6 +16,8 @@ import Emitter from './Emitter.js';
  * @module
  * @extends Rasti.Emitter
  * @param {object} attrs Object containing model attributes to extend `this.attributes`. Getters and setters are generated for `this.attributtes`, in order to emit `change` events.
+ * @property {object} defaults Object containing default attributes for the model. It will extend `this.attributes`.
+ * @property {object} previous Object containing previous attributes when a change occurs.
  * @example
  * import { Model } from 'rasti';
  * // Product model
@@ -49,11 +53,13 @@ export default class Model extends Emitter {
         super();
         // Call preinitialize.
         this.preinitialize.apply(this, arguments);
-        // attributes object.
-        this.attributes = Object.assign({}, (this.defaults || {}), attrs);
-        // Previous attributes.
+        // Get defaults. If `this.defaults` is a function, call it.
+        const defaults = getResult(this.defaults, this, this) || {};
+        // Set attributes object with defaults and passed attributes.
+        this.attributes = Object.assign({}, defaults, attrs);
+        // Object to store previous attributes when a change occurs.
         this.previous = {};
-        // Generate getters/setters for every attr.
+        // Generate getters/setters for every attribute.
         Object.keys(this.attributes).forEach(this.defineAttribute.bind(this));
     }
 

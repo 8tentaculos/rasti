@@ -1,6 +1,9 @@
 import Emitter from './Emitter.js';
+import getResult from './utils/getResult.js';
 
-// This options keys will be extended on view instance.
+/*
+ * This options keys will be extended on view instance.
+ */
 const viewOptions = {
     el : true,
     tag : true,
@@ -26,10 +29,10 @@ const viewOptions = {
  * @module
  * @extends Rasti.Emitter
  * @param {object} options Object containing options. The following keys will be merged to `this`: el, tag, attributes, events, model, template, onDestroy.
- * @property {node} el Every view has a root element, `this.el`. If not present it will be created.
- * @property {string} tag If `this.el` is not present, an element will be created using `this.tag`. Default is `div`.
- * @property {object} attributes If `this.el` is not present, an element will be created using `this.attributes`.
- * @property {object} events Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to root element.
+ * @property {node} el Every view has a root element, `this.el`. If not present it will be created. If a function is passed, it will be called to get the element. It will be bound to the view instance and receive the view instance as argument.
+ * @property {string} tag If `this.el` is not present, an element will be created using `this.tag`. Default is `div`. If a function is passed, it will be called to get the tag name. It will be bound to the view instance and receive the view instance as argument.
+ * @property {object} attributes If `this.el` is not present, an element will be created using `this.attributes`. If a function is passed, it will be called to get the attributes. It will be bound to the view instance and receive the view instance as argument.
+ * @property {object} events Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to root element. If a function is passed, it will be called to get the events. It will be bound to the view instance and receive the view instance as argument.
  * @property {object} model A `Rasti.Model` or any object containing data and business logic.
  * @property {function} template A function that receives data and returns a markup string (html for example).
  * @example
@@ -154,10 +157,18 @@ export default class View extends Emitter {
      * postpone element creation.
      */ 
     ensureElement() {
-        // If "this.el" is not present,
-        // create a new element according "this.tag"
-        // and "this.attributes".
-        if (!this.el) this.el = this.createElement(this.tag, this.attributes);
+        // Element is already present.
+        if (this.el) {
+            // If "this.el" is a function, call it to get the element.
+            this.el = getResult(this.el, this, this);
+        } else {
+            // If "this.el" is not present,
+            // create a new element according "this.tag"
+            // and "this.attributes".
+            const tag = getResult(this.tag, this, this);
+            const attrs = getResult(this.attributes, this, this);
+            this.el = this.createElement(tag, attrs);
+        }
         // Delegate events on element.
         this.delegateEvents();
     }
@@ -206,7 +217,8 @@ export default class View extends Emitter {
      *      'click button.cancel' : function() {}
      * };
      */
-    delegateEvents(events = this.events) {
+    delegateEvents(events) {
+        if (!events) events = getResult(this.events, this, this);
         if (!events) return this;
 
         if (this.delegatedEventListeners.length) this.undelegateEvents();

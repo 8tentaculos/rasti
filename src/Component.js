@@ -1,6 +1,9 @@
 import View from './View.js';
+import getResult from './utils/getResult.js';
 
-// This options keys will be extended on view instance.
+/*
+ * This options keys will be extended on view instance.
+ */
 const componentOptions = {
     key : true,
     state : true,
@@ -36,14 +39,6 @@ const getExpression = (placeholder, expressions) => {
 
     return match && match[1] ? expressions[match[1]] : placeholder;
 };
-
-/*
- * Helper function. If expression is a function, call it with context and args.
- */
-const evalExpression = (expression, context, ...args) =>
-    typeof expression === 'function' ?
-        expression.apply(context, args) :
-        expression;
 
 /**
  * Components are a special kind of `View` that is designed to be easily composable, 
@@ -120,7 +115,7 @@ export default class Component extends View {
         if (!this.isContainer() && !this.id) {
             this.id = this.attributes && this.attributes.id ? 
                 // If id is provided, evaluate it.
-                evalExpression(this.attributes.id, this, this) :
+                getResult(this.attributes.id, this, this) :
                 // Generate a unique id and set it as id attribute.
                 Component.ID_TEMPLATE(this.uid);
         }
@@ -148,7 +143,7 @@ export default class Component extends View {
             Object.keys(this.attributes).forEach(key => {
                 if (key === 'id') return;
                 // Evaluate attribute value.
-                let value = evalExpression(this.attributes[key], this, this);
+                let value = getResult(this.attributes[key], this, this);
 
                 // Transform bool attribute values
                 if (value === false) {
@@ -263,7 +258,7 @@ export default class Component extends View {
             .replace(new RegExp(Component.EXPRESSION_PLACEHOLDER_TEMPLATE('(\\d+)'), 'g'), (match) => {
                 const expression = getExpression(match, this.template.expressions);
                 // Eval expression. Pass view as argument.
-                const result = evalExpression(expression, this, this);
+                const result = getResult(expression, this, this);
                 // Treat all expressions as arrays.
                 const results = result instanceof Array ? result : [result];
                 // Replace expression with the result of the evaluation.
