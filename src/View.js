@@ -202,13 +202,18 @@ export default class View extends Emitter {
     }
 
     /**
-     * Provide declarative listeners for DOM events within a view. If an events hash is not passed directly, uses `this.events` as the source.  
-     * Events are written in the format `{'event selector' : 'listener'}`. The listener may be either the name of a method on the view, or a direct function body.
+     * Provide declarative listeners for DOM events within a view. If an events hash is not passed directly, 
+     * uses `this.events` as the source.  
+     * Events are written in the format `{'event selector' : 'listener'}`. 
+     * The listener may be either the name of a method on the view, or a direct function body.
      * Omitting the selector causes the event to be bound to the view's root element (`this.el`).  
      * By default, `delegateEvents` is called within the View's constructor, 
-     * so if you have a simple events hash, all of your DOM events will always already be connected, and you will never have to call this function yourself.   
-     * All attached listeners are bound to the view automatically, so when the listeners are invoked, `this` continues to refer to the view object.  
-     * When `delegateEvents` is run again, perhaps with a different events hash, all listeners are removed and delegated afresh.
+     * so if you have a simple events hash, all of your DOM events will always already be connected, 
+     * and you will never have to call this function yourself.   
+     * All attached listeners are bound to the view automatically, so when the listeners are invoked, 
+     * `this` continues to refer to the view object.  
+     * When `delegateEvents` is run again, perhaps with a different events hash, all listeners 
+     * are removed and delegated afresh.
      * @param {object} [events] Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to root element.
      * @return {Rasti.View} Return `this` for chaining.
      * @example
@@ -262,7 +267,9 @@ export default class View extends Emitter {
     }
 
     /**
-     * Removes all of the view's delegated events. Useful if you want to disable or remove a view from the DOM temporarily. Called automatically when the view is destroyed.
+     * Removes all of the view's delegated events. 
+     * Useful if you want to disable or remove a view from the DOM temporarily. 
+     * Called automatically when the view is destroyed.
      * @return {Rasti.View} Return `this` for chaining.
      */
     undelegateEvents() {
@@ -276,12 +283,15 @@ export default class View extends Emitter {
     }
 
     /**
-     * Render the view.
+     * Renders the view.
      * This method should be overridden with custom logic.
-     * The default implementation sets innerHTML of `this.el` with `this.template`.
-     * Conventions are to only manipulate the dom in the scope of `this.el`, 
+     * The convention is to only manipulate the DOM within the scope of `this.el`,
      * and to return `this` for chaining.
-     * If you added any child view, you must call `this.destroyChildren`.
+     * If you add any child views, you must call `this.destroyChildren`.
+     * The default implementation sets the innerHTML of `this.el` with the result
+     * of calling `this.template`, passing `this.model` as an argument.
+     * If you use the default implementation, make sure your template function
+     * uses data that is safe to be inserted into the DOM.
      * @return {Rasti.View} Return `this` for chaining.
      */
     render() {

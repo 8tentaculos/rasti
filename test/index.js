@@ -422,8 +422,7 @@ describe('Rasti', () => {
         });
 
         it('must be instantiated with new', () => {
-            const el = document.createElement('div');
-            const c = new Component({ el });
+            const c = new Component();
             expect(c.render().el.tagName.toLowerCase()).to.be.equal('div');
         });
 

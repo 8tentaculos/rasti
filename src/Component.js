@@ -31,6 +31,9 @@ const extractAttributes = text => {
 
 /*
  * Helper function. If first arg is a placeholder for an expression, return the expression.
+ * Otherwise, return the placeholder itself.
+ * @param placeholder {string} Placeholder string.
+ * @param expressions {array} Array of expressions.
  */
 const getExpression = (placeholder, expressions) => {
     const match = placeholder &&
@@ -94,11 +97,7 @@ export default class Component extends View {
     * @return {boolean}
     */
     isContainer() {
-        return !!(!this.tag && 
-            this.template && 
-            this.template.inner && 
-            this.template.expressions && 
-            this.template.expressions.length === 1);
+        return !!(!this.tag && this.template);
     }
 
     /*
@@ -113,10 +112,9 @@ export default class Component extends View {
         }
         // Ensure id.
         if (!this.isContainer() && !this.id) {
-            this.id = this.attributes && this.attributes.id ? 
-                // If id is provided, evaluate it.
-                getResult(this.attributes.id, this, this) :
-                // Generate a unique id and set it as id attribute.
+            const attributes = getResult(this.attributes, this, this);
+            this.id = attributes && attributes.id ?
+                attributes.id :
                 Component.ID_TEMPLATE(this.uid);
         }
     }
@@ -140,11 +138,12 @@ export default class Component extends View {
         const html = [`id="${this.id}"`];
 
         if (this.attributes) {
-            Object.keys(this.attributes).forEach(key => {
+            const attributes = getResult(this.attributes, this, this);
+
+            Object.keys(attributes).forEach(key => {
                 if (key === 'id') return;
                 // Evaluate attribute value.
-                let value = getResult(this.attributes[key], this, this);
-
+                let value = attributes[key];
                 // Transform bool attribute values
                 if (value === false) {
                     remove[key] = true;
@@ -251,56 +250,16 @@ export default class Component extends View {
     onDestroy() {}
 
     /*
-     * Replace expressions.
-     */
-    replaceExpressions(string, addChild) {
-        return string
-            .replace(new RegExp(Component.EXPRESSION_PLACEHOLDER_TEMPLATE('(\\d+)'), 'g'), (match) => {
-                const expression = getExpression(match, this.template.expressions);
-                // Eval expression. Pass view as argument.
-                const result = getResult(expression, this, this);
-                // Treat all expressions as arrays.
-                const results = result instanceof Array ? result : [result];
-                // Replace expression with the result of the evaluation.
-                return results.reduce((out, result) => {
-                    let parsed;
-                    // If result is true, replace it with a placeholder.
-                    if (result === true) parsed = Component.TRUE_PLACEHOLDER;
-                    // If result is false, replace it with a placeholder.
-                    else if (result === false) parsed = Component.FALSE_PLACEHOLDER;
-                    // Replace null or undefined with empty string.
-                    else if (result === null || typeof result === 'undefined') parsed = '';
-                    // If result is a view, call addChild callback.
-                    else if (result && typeof result.render === 'function') parsed = addChild(result);
-                    // Return expression itself.
-                    else parsed = result;
-                    // Concatenate expressions.
-                    return out + parsed;
-                }, '');
-
-            })
-            // Replace `attribute="true"` with `attribute` and `attribute="false"` with empty string.
-            .replace(
-                new RegExp(`([\\w|data-]+)=(["'])?(${Component.TRUE_PLACEHOLDER}|${Component.FALSE_PLACEHOLDER})\\2`, 'g'),
-                (match, attribute, quote, placeholder) => placeholder === Component.TRUE_PLACEHOLDER ? attribute : ''
-            )
-            // Replace rest of true or false expressions with empty string.
-            .replace(new RegExp(`${Component.TRUE_PLACEHOLDER}|${Component.FALSE_PLACEHOLDER}`, 'g'), '');
-    }
-
-    /*
      * Treat the whole view as a HTML string.
      */
     toString() {
         // Normally there won't be any children, but if there are, destroy them.
         this.destroyChildren();
         // Replace expressions of inner template.
-        const close = this.template && this.template.inner; 
-        const inner = close &&
-            this.replaceExpressions(this.template.inner, (component) => {
-                // Add child component.
-                return this.addChild(component);
-            });
+        const inner = this.template && this.template.call(this, component => {
+            // Add child component.
+            return this.addChild(component);
+        });
         // If component is a container, return inner which will be an expression thats return a single component.
         if (this.isContainer()) return inner;
         // Get tag name.
@@ -308,7 +267,7 @@ export default class Component extends View {
         // Get attributes.
         const attributes = this.getAttributes().html;
         // Generate outer template.
-        return close ?
+        return this.template ?
             `<${tag} ${attributes}>${inner}</${tag}>` :
             `<${tag} ${attributes} />`;
     }
@@ -337,8 +296,8 @@ export default class Component extends View {
                 this.el.setAttribute(key, attributes.add[key]);
             });
         }
-        // Check for `template.inner` to see if view has innerHTML.
-        if (this.template && this.template.inner) {
+        // Check for `template` to see if view has innerHTML.
+        if (this.template) {
             // Store active element.
             const activeElement = document.activeElement;
 
@@ -348,7 +307,7 @@ export default class Component extends View {
             const previousChildren = this.children;
             this.children = [];
             // Replace expressions. Set html inside of `this.el`.
-            const inner = this.replaceExpressions(this.template.inner, (component) => {
+            const inner = this.template.call(this, component => {
                 let out = component;
                 // Check if child already exists.
                 const found = component.key && previousChildren.find(
@@ -485,7 +444,7 @@ export default class Component extends View {
             strings = ['', ''];
         }
 
-        let tag, attributes, inner, events;
+        let tag, attributes, events, template;
 
         const parts = [];
         // Replace functions and objects interpolations with `{number}`.
@@ -507,37 +466,87 @@ export default class Component extends View {
         // Extract outer tag, attributes and inner html.
         const result = main.match(/^<([a-z]+[1-6]?)(.*?)>(.*)<\/\1>$/) || main.match(/^<([a-z]+)(.*?)\/>$/);
 
+        let inner = main;
+
         if (result) {
             // Get tag, attributes.
             tag = result[1];
             // Get inner html. Restore new lines.
             inner = result[3] && result[3].replace(new RegExp(Component.NEW_LINE_PLACEHOLDER, 'g'), '\n');
             // Parse attributes from html string into an object. Remove new lines.
-            attributes = extractAttributes(result[2].replace(new RegExp(Component.NEW_LINE_PLACEHOLDER, 'g'), ''));
+            const attributesAndEvents = extractAttributes(result[2].replace(new RegExp(Component.NEW_LINE_PLACEHOLDER, 'g'), ''));
             // Events to be delegated.
-            events = {};
-            // Filter events. To generate events object.
-            // Generate attributes object, replace placeholders with expressions.
-            attributes = Object.keys(attributes).reduce((out, key) => {
+            const onlyEvents = {};
+            const onlyAttributes = Object.keys(attributesAndEvents).reduce((out, key) => {
                 // Is Event?
                 const matchKey = key.match(/on(([A-Z]{1}[a-z]+)+)/);
-                // Is placeholder for function or object?
-                // Get expression or value.
-                const value = getExpression(attributes[key], expressions);
-                // Is event handler. Add to events object.
+                // Is event handler. Add to eventTypes object.
                 if (matchKey && matchKey[1]) {
                     const eventType = matchKey[1].toLowerCase();
-                    Object.keys(value).forEach(
-                        selector => events[`${eventType}${selector === '&' ? '' : ` ${selector}`}`] = value[selector]
-                    );
+                    onlyEvents[eventType] = attributesAndEvents[key];
                     return out;
                 }
                 // Is attribute. Add to attributes object.
-                out[key] = value;
-
+                out[key] = attributesAndEvents[key];
                 return out;
             }, {});
-        } else inner = main;
+
+            attributes = function() {
+                return Object.keys(onlyAttributes).reduce((out, key) => {
+                    out[key] = getResult(getExpression(onlyAttributes[key], expressions), this, this);
+                    return out;
+                }, {});
+            };
+
+            events = function() {
+                return Object.keys(onlyEvents).reduce((out, key) => {
+                    const expression = getExpression(onlyEvents[key], expressions);
+                    const typeListeners = getResult(expression, this, this);
+
+                    Object.keys(typeListeners).forEach(selector => {
+                        out[`${key}${selector === '&' ? '' : ` ${selector}`}`] = typeListeners[selector];
+                    });
+
+                    return out;
+                }, {});
+            };
+        }
+
+        template = inner && function(addChild) {
+            // Replace expressions.
+            return inner
+                .replace(new RegExp(Component.EXPRESSION_PLACEHOLDER_TEMPLATE('(\\d+)'), 'g'), (match) => {
+                    const expression = getExpression(match, expressions);
+                    // Eval expression. Pass view as argument.
+                    const result = getResult(expression, this, this);
+                    // Treat all expressions as arrays.
+                    const results = result instanceof Array ? result : [result];
+                    // Replace expression with the result of the evaluation.
+                    return results.reduce((out, result) => {
+                        let parsed;
+                        // If result is true, replace it with a placeholder.
+                        if (result === true) parsed = Component.TRUE_PLACEHOLDER;
+                        // If result is false, replace it with a placeholder.
+                        else if (result === false) parsed = Component.FALSE_PLACEHOLDER;
+                        // Replace null or undefined with empty string.
+                        else if (result === null || typeof result === 'undefined') parsed = '';
+                        // If result is a view, call addChild callback.
+                        else if (result && typeof result.render === 'function') parsed = addChild(result);
+                        // Return expression itself.
+                        else parsed = result;
+                        // Concatenate expressions.
+                        return out + parsed;
+                    }, '');
+
+                })
+                // Replace `attribute="true"` with `attribute` and `attribute="false"` with empty string.
+                .replace(
+                    new RegExp(`([\\w|data-]+)=(["'])?(${Component.TRUE_PLACEHOLDER}|${Component.FALSE_PLACEHOLDER})\\2`, 'g'),
+                    (match, attribute, quote, placeholder) => placeholder === Component.TRUE_PLACEHOLDER ? attribute : ''
+                )
+                // Replace rest of true or false expressions with empty string.
+                .replace(new RegExp(`${Component.TRUE_PLACEHOLDER}|${Component.FALSE_PLACEHOLDER}`, 'g'), '');
+        };
 
         const Current = this;
         // Create subclass for this component.
@@ -549,12 +558,7 @@ export default class Component extends View {
             // Set events.
             events,
             // Set template.
-            template : {
-                // Template for innerHTML of root element.
-                inner,
-                // Template expressions.
-                expressions
-            }
+            template
         });
     }
 }
