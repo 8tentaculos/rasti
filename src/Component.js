@@ -108,24 +108,16 @@ export default class Component extends View {
         // If el is provided, delegate events.
         if (this.el) {
             this.delegateEvents();
-            this.id = this.el.id;
-        }
-        // Ensure id.
-        if (!this.isContainer() && !this.id) {
-            const attributes = getResult(this.attributes, this, this);
-            this.id = attributes && attributes.id ?
-                attributes.id :
-                Component.ID_TEMPLATE(this.uid);
         }
     }
 
     /*
-     * Find view's element on parent node, using id.
+     * Find view's element on parent node, using its data attribute.
      * @param parent {node} The parent node.
      * @return {node} The component's element.
      */
     findElement(parent) {
-        return (parent || document).querySelector(`#${this.id}`);
+        return (parent || document).querySelector(`[${Component.DATA_ATTRIBUTE}="${this.uid}"]`);
     }
 
     /*
@@ -133,15 +125,14 @@ export default class Component extends View {
      * @return {object} Object containing add, remove and html properties.
      */
     getAttributes() {
-        const add = { id : this.id };
+        const add = {};
         const remove = {};
-        const html = [`id="${this.id}"`];
+        const html = [];
 
         if (this.attributes) {
             const attributes = getResult(this.attributes, this, this);
 
             Object.keys(attributes).forEach(key => {
-                if (key === 'id') return;
                 // Evaluate attribute value.
                 let value = attributes[key];
                 // Transform bool attribute values
@@ -190,7 +181,7 @@ export default class Component extends View {
      * @return {Rasti.Component} The component instance.
      */
     recycle(parent) {
-        // Find element to be replaced. It has same id.
+        // Find element to be replaced. It has same data attribute as this component.
         const toBeReplaced = (
             this.isContainer() ? this.children[0] : this
         ).findElement(parent);
@@ -316,9 +307,8 @@ export default class Component extends View {
 
                 if (found) {
                     const tag = found.el.tagName.toLowerCase();
-                    const id = found.el.id;
                     // If child already exists, replace it html by its root element.
-                    out = `<${tag} id="${id}"></${tag}>`;
+                    out = `<${tag} ${Component.DATA_ATTRIBUTE}="${found.el.getAttribute(Component.DATA_ATTRIBUTE)}"></${tag}>`;
                     // Add child to recycled children.
                     recycledChildren.push(found);
                     // Destroy new child component. Use recycled one instead.
@@ -495,7 +485,7 @@ export default class Component extends View {
                 return Object.keys(onlyAttributes).reduce((out, key) => {
                     out[key] = getResult(getExpression(onlyAttributes[key], expressions), this, this);
                     return out;
-                }, {});
+                }, { [Component.DATA_ATTRIBUTE] : this.uid });
             };
 
             events = function() {
@@ -563,8 +553,8 @@ export default class Component extends View {
     }
 }
 
-Component.ID_TEMPLATE = (uid) => `rasti-component-${uid}`;
 Component.EXPRESSION_PLACEHOLDER_TEMPLATE = (idx) => `__RASTI_EXPRESSION_{${idx}}__`;
 Component.TRUE_PLACEHOLDER = '__RASTI_TRUE__';
 Component.FALSE_PLACEHOLDER = '__RASTI_FALSE__';
 Component.NEW_LINE_PLACEHOLDER = '__RASTI_NEW_LINE__';
+Component.DATA_ATTRIBUTE = 'data-rasti';

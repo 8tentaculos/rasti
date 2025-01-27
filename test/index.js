@@ -399,7 +399,10 @@ describe('Rasti', () => {
     });
 
     describe('Component', () => {
-        beforeEach(() => document.body.innerHTML = '');
+        beforeEach(() => {
+            document.body.innerHTML = '';
+            View.uid = 0;
+        });
 
         it('must exists', () => {
             expect(Component).to.exist;
@@ -412,7 +415,7 @@ describe('Rasti', () => {
 
         it('must be created with a self enclosed tag', () => {
             const c = Component.create`<input id="test-node" type="text" />`.mount({}, document.body);
-            expect(c.toString()).to.be.equal('<input id="test-node" type="text" />');
+            expect(c.toString()).to.be.equal('<input data-rasti="uid1" id="test-node" type="text" />');
             expect(document.getElementById('test-node')).to.exist;
         });
 
@@ -507,29 +510,29 @@ describe('Rasti', () => {
         it('must render true and false attributes', () => {
             expect(
                 Component.create`<input id="test-node" disabled="${() => false}" />`.mount().toString()
-            ).to.be.equal('<input id="test-node" />');
+            ).to.be.equal('<input data-rasti="uid1" id="test-node" />');
 
             expect(
                 Component.create`<div id="test-node"><input disabled="${() => false}" /></div>`.mount().toString()
-            ).to.be.equal('<div id="test-node"><input  /></div>');
+            ).to.be.equal('<div data-rasti="uid2" id="test-node"><input  /></div>');
 
             expect(
                 Component.create`<input id="test-node" disabled="${() => true}" />`.mount().toString()
-            ).to.be.equal('<input id="test-node" disabled />');
+            ).to.be.equal('<input data-rasti="uid3" id="test-node" disabled />');
 
             expect(
                 Component.create`<div id="test-node"><input disabled="${() => true}" /></div>`.mount().toString()
-            ).to.be.equal('<div id="test-node"><input disabled /></div>');
+            ).to.be.equal('<div data-rasti="uid4" id="test-node"><input disabled /></div>');
         });
 
         it('must remove true and false placeholders', () => {
             expect(
                 Component.create`<div id="test-node">${() => true}</div>`.mount().toString()
-            ).to.be.equal('<div id="test-node"></div>');
+            ).to.be.equal('<div data-rasti="uid1" id="test-node"></div>');
 
             expect(
                 Component.create`<div id="test-node">${() => false}</div>`.mount().toString()
-            ).to.be.equal('<div id="test-node"></div>');
+            ).to.be.equal('<div data-rasti="uid2" id="test-node"></div>');
         });
 
         it('must re render and destroy children', () => {
@@ -560,12 +563,10 @@ describe('Rasti', () => {
         });
 
         it('must hydrate existing dom', () => {
-            View.uid = 0;
-
-            document.body.innerHTML = '<div id="test-node"><button id="rasti-component-uid2">click me</button></div>';
+            document.body.innerHTML = '<div data-rasti="uid1"><button data-rasti="uid2">click me</button></div>';
 
             const Button = Component.create`<button>click me</button>`;
-            const Main = Component.create`<div id="test-node">${() => Button.mount()}</div>`;
+            const Main = Component.create`<div>${() => Button.mount()}</div>`;
 
             const c = Main.mount({}, document.body, true);
 
