@@ -557,4 +557,4 @@ Component.EXPRESSION_PLACEHOLDER_TEMPLATE = (idx) => `__RASTI_EXPRESSION_{${idx}
 Component.TRUE_PLACEHOLDER = '__RASTI_TRUE__';
 Component.FALSE_PLACEHOLDER = '__RASTI_FALSE__';
 Component.NEW_LINE_PLACEHOLDER = '__RASTI_NEW_LINE__';
-Component.DATA_ATTRIBUTE = 'data-rasti';
+Component.DATA_ATTRIBUTE = 'data-rasti-uid';
