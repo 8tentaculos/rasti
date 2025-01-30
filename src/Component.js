@@ -117,7 +117,7 @@ export default class Component extends View {
      * @return {node} The component's element.
      */
     findElement(parent) {
-        return (parent || document).querySelector(`[${Component.DATA_ATTRIBUTE}="${this.uid}"]`);
+        return (parent || document).querySelector(`[${Component.UID_DATA_ATTRIBUTE}="${this.uid}"]`);
     }
 
     /*
@@ -308,7 +308,7 @@ export default class Component extends View {
                 if (found) {
                     const tag = found.el.tagName.toLowerCase();
                     // If child already exists, replace it html by its root element.
-                    out = `<${tag} ${Component.DATA_ATTRIBUTE}="${found.el.getAttribute(Component.DATA_ATTRIBUTE)}"></${tag}>`;
+                    out = `<${tag} ${Component.UID_DATA_ATTRIBUTE}="${found.el.getAttribute(Component.UID_DATA_ATTRIBUTE)}"></${tag}>`;
                     // Add child to recycled children.
                     recycledChildren.push(found);
                     // Destroy new child component. Use recycled one instead.
@@ -485,7 +485,7 @@ export default class Component extends View {
                 return Object.keys(onlyAttributes).reduce((out, key) => {
                     out[key] = getResult(getExpression(onlyAttributes[key], expressions), this, this);
                     return out;
-                }, { [Component.DATA_ATTRIBUTE] : this.uid });
+                }, { [Component.UID_DATA_ATTRIBUTE] : this.uid });
             };
 
             events = function() {
@@ -557,4 +557,4 @@ Component.EXPRESSION_PLACEHOLDER_TEMPLATE = (idx) => `__RASTI_EXPRESSION_{${idx}
 Component.TRUE_PLACEHOLDER = '__RASTI_TRUE__';
 Component.FALSE_PLACEHOLDER = '__RASTI_FALSE__';
 Component.NEW_LINE_PLACEHOLDER = '__RASTI_NEW_LINE__';
-Component.DATA_ATTRIBUTE = 'data-rasti-uid';
+Component.UID_DATA_ATTRIBUTE = 'data-rasti-uid';

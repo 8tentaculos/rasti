@@ -415,7 +415,7 @@ describe('Rasti', () => {
 
         it('must be created with a self enclosed tag', () => {
             const c = Component.create`<input id="test-node" type="text" />`.mount({}, document.body);
-            expect(c.toString()).to.be.equal(`<input ${Component.DATA_ATTRIBUTE}="uid1" id="test-node" type="text" />`);
+            expect(c.toString()).to.be.equal(`<input ${Component.UID_DATA_ATTRIBUTE}="uid1" id="test-node" type="text" />`);
             expect(document.getElementById('test-node')).to.exist;
         });
 
@@ -510,29 +510,29 @@ describe('Rasti', () => {
         it('must render true and false attributes', () => {
             expect(
                 Component.create`<input id="test-node" disabled="${() => false}" />`.mount().toString()
-            ).to.be.equal(`<input ${Component.DATA_ATTRIBUTE}="uid1" id="test-node" />`);
+            ).to.be.equal(`<input ${Component.UID_DATA_ATTRIBUTE}="uid1" id="test-node" />`);
 
             expect(
                 Component.create`<div id="test-node"><input disabled="${() => false}" /></div>`.mount().toString()
-            ).to.be.equal(`<div ${Component.DATA_ATTRIBUTE}="uid2" id="test-node"><input  /></div>`);
+            ).to.be.equal(`<div ${Component.UID_DATA_ATTRIBUTE}="uid2" id="test-node"><input  /></div>`);
 
             expect(
                 Component.create`<input id="test-node" disabled="${() => true}" />`.mount().toString()
-            ).to.be.equal(`<input ${Component.DATA_ATTRIBUTE}="uid3" id="test-node" disabled />`);
+            ).to.be.equal(`<input ${Component.UID_DATA_ATTRIBUTE}="uid3" id="test-node" disabled />`);
 
             expect(
                 Component.create`<div id="test-node"><input disabled="${() => true}" /></div>`.mount().toString()
-            ).to.be.equal(`<div ${Component.DATA_ATTRIBUTE}="uid4" id="test-node"><input disabled /></div>`);
+            ).to.be.equal(`<div ${Component.UID_DATA_ATTRIBUTE}="uid4" id="test-node"><input disabled /></div>`);
         });
 
         it('must remove true and false placeholders', () => {
             expect(
                 Component.create`<div id="test-node">${() => true}</div>`.mount().toString()
-            ).to.be.equal(`<div ${Component.DATA_ATTRIBUTE}="uid1" id="test-node"></div>`);
+            ).to.be.equal(`<div ${Component.UID_DATA_ATTRIBUTE}="uid1" id="test-node"></div>`);
 
             expect(
                 Component.create`<div id="test-node">${() => false}</div>`.mount().toString()
-            ).to.be.equal(`<div ${Component.DATA_ATTRIBUTE}="uid2" id="test-node"></div>`);
+            ).to.be.equal(`<div ${Component.UID_DATA_ATTRIBUTE}="uid2" id="test-node"></div>`);
         });
 
         it('must re render and destroy children', () => {
@@ -563,7 +563,7 @@ describe('Rasti', () => {
         });
 
         it('must hydrate existing dom', () => {
-            document.body.innerHTML = `<div ${Component.DATA_ATTRIBUTE}="uid1"><button ${Component.DATA_ATTRIBUTE}="uid2">click me</button></div>`;
+            document.body.innerHTML = `<div ${Component.UID_DATA_ATTRIBUTE}="uid1"><button ${Component.UID_DATA_ATTRIBUTE}="uid2">click me</button></div>`;
 
             const Button = Component.create`<button>click me</button>`;
             const Main = Component.create`<div>${() => Button.mount()}</div>`;
