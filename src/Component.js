@@ -254,7 +254,7 @@ export default class Component extends View {
         // If component is a container, return inner which will be an expression thats return a single component.
         if (this.isContainer()) return inner;
         // Get tag name.
-        const tag = this.tag || 'div';
+        const tag = getResult(this.tag, this, this) || 'div';
         // Get attributes.
         const attributes = this.getAttributes().html;
         // Generate outer template.
@@ -273,7 +273,7 @@ export default class Component extends View {
         if (!this.isContainer()) {
             // If `this.el` is not present, create a new `this.tag` element.
             if (!this.el) {
-                this.el = this.createElement(this.tag);
+                this.el = this.createElement(getResult(this.tag, this, this));
                 this.delegateEvents();
             }
             // Set `this.el` attributes.
