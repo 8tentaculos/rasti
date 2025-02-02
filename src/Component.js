@@ -386,7 +386,7 @@ export default class Component extends View {
      * It instantiate the Component view using options, 
      * appends its element into the DOM (if `el` is provided).
      * And returns the view instance.
-     * <br><br> &#9888; **Security Notice:** `Component` utilizes `innerHTML` on a document fragment for rendering, which may introduce Cross - Site Scripting (XSS) risks. Ensure that any user-generated content is properly sanitized before inserting it into the DOM. For best practices on secure data handling, refer to the[OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
+     * <br><br> &#9888; **Security Notice:** `Component` utilizes `innerHTML` on a document fragment for rendering, which may introduce Cross - Site Scripting (XSS) risks. Ensure that any user-generated content is properly sanitized before inserting it into the DOM. For best practices on secure data handling, refer to the [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
      * @static
      * @param {object} options The view options.
      * @param {node} el Dom element to append the view element.
