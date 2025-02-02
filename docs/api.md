@@ -110,6 +110,7 @@ Mount the component into the dom.
 It instantiate the Component view using options, 
 appends its element into the DOM (if `el` is provided).
 And returns the view instance.
+<br><br> ⚠️ **Security Notice:** Component utilizes `innerHTML` on a document fragment for rendering, which may introduce Cross - Site Scripting (XSS) risks. Ensure that any user-generated content is properly sanitized before inserting it into the DOM. For best practices on secure data handling, refer to the[OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
 
 **Kind**: static method of [<code>Component</code>](#module_component)  
 
@@ -252,7 +253,7 @@ A `Model` manages an internal table of data attributes and triggers change event
 Models may handle syncing data with a persistence layer. To design your models, create atomic, reusable objects 
 that contain all the necessary functions for manipulating their specific data.  
 Models should be easily passed throughout your app and used anywhere the corresponding data is needed.  
-Rasti models stores its attributes in `this.attributes`, which is extended from `this.defaults` and the 
+Rasti models store their attributes in `this.attributes`, which is extended from `this.defaults` and the 
 constructor `attrs` parameter. For every attribute, a getter is generated to retrieve the model property 
 from `this.attributes`, and a setter is created to set the model property in `this.attributes` and emit `change` 
 and `change:attribute` events.
@@ -261,7 +262,7 @@ and `change:attribute` events.
 
 | Param | Type | Description |
 | --- | --- | --- |
-| attrs | <code>object</code> | Object containing model attributes to extend `this.attributes`. Getters and setters are generated for `this.attributtes`, in order to emit `change` events. |
+| attrs | <code>object</code> | Object containing model attributes to extend `this.attributes`. Getters and setters are generated for `this.attributes`, in order to emit `change` events. |
 
 **Example**  
 ```js
@@ -339,7 +340,7 @@ This method is called internally by generated getters.
 <a name="module_model__set" id="module_model__set"></a>
 ### model.set(key, [value]) ⇒ <code>this</code>
 Set an attribute into `this.attributes`.  
-Emit `change` and `change:attribute` if a value change.  
+Emit `change` and `change:attribute` if a value changes.  
 Could be called in two forms, `this.set('key', value)` and
 `this.set({ key : value })`.  
 This method is called internally by generated setters.  
@@ -368,7 +369,7 @@ By default returns `this.attributes`.
 - Handles user input and interactivity.
 - Sends captured input to the model.
 
-A `View` is an atomic unit of the user interface that can render the data from a specific model or multiple models.
+A `View` is an atomic unit of the user interface that can render data from a specific model or multiple models.
 However, views can also be independent and have no associated data.  
 Models must be unaware of views. Views, on the other hand, may render model data and listen to the change events 
 emitted by the models to re-render themselves based on changes.  
@@ -389,9 +390,9 @@ If `this.el` is not present, an element will be created using `this.tag` (defaul
 | el | <code>node</code> | Every view has a root element, `this.el`. If not present it will be created. |
 | tag | <code>string</code> | If `this.el` is not present, an element will be created using `this.tag`. Default is `div`. |
 | attributes | <code>object</code> | If `this.el` is not present, an element will be created using `this.attributes`. |
-| events | <code>object</code> | Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to root element. |
+| events | <code>object</code> | Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to the root element. |
 | model | <code>object</code> | A `Rasti.Model` or any object containing data and business logic. |
-| template | <code>function</code> | A function that receives data and returns a markup string (html for example). |
+| template | <code>function</code> | A function that receives data and returns a markup string (e.g., HTML). |
 
 **Example**  
 ```js
@@ -400,9 +401,9 @@ import { View } from 'rasti';
 class Timer extends View {
     constructor(options) {
         super(options);
-        // Create model to store internal state. Set `seconds` attribute into 0.
+        // Create model to store internal state. Set `seconds` attribute to 0.
         this.model = new Model({ seconds : 0 });
-        // Listen to changes in model `seconds` attribute and re render.
+        // Listen to changes in model `seconds` attribute and re-render.
         this.model.on('change:seconds', this.render.bind(this));
         // Increment model `seconds` attribute every 1000 milliseconds.
         this.interval = setInterval(() => this.model.seconds++, 1000);
@@ -412,7 +413,7 @@ class Timer extends View {
         return `Seconds: <span>${model.seconds}</span>`;
     }
 }
-// Render view and append view's element into body.
+// Render view and append view's element into the body.
 document.body.appendChild(new Timer().render().el);
 ```
 
@@ -443,7 +444,7 @@ If you define a preinitialize method, it will be invoked when the view is first 
 
 <a name="module_view__$" id="module_view__$"></a>
 ### view.$(selector) ⇒ <code>node</code>
-Returns the first element that match the selector, 
+Returns the first element that matches the selector, 
 scoped to DOM elements within the current view's root element (`this.el`).
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
@@ -474,7 +475,7 @@ Destroy children views if any, undelegate events, stop listening to events, call
 **Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
 <a name="module_view__ondestroy" id="module_view__ondestroy"></a>
 ### view.onDestroy(options)
-`onDestroy` lifecycle method is called after view is destroyed.
+`onDestroy` lifecycle method is called after the view is destroyed.
 Override with your code. Useful to stop listening to model's events.
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
@@ -503,7 +504,7 @@ Call destroy method on children views.
 <a name="module_view__ensureelement" id="module_view__ensureelement"></a>
 ### view.ensureElement()
 Ensure that the view has a root element at `this.el`.
-You shouldn't call this method directly. It's called from constructor.
+You shouldn't call this method directly. It's called from the constructor.
 You may override it if you want to use a different logic or to 
 postpone element creation.
 
@@ -511,8 +512,8 @@ postpone element creation.
 <a name="module_view__createelement" id="module_view__createelement"></a>
 ### view.createElement(tag, attrs) ⇒ <code>node</code>
 Create an element.
-Called from constructor if `this.el` is undefined, to ensure
-the view to have a root element.
+Called from the constructor if `this.el` is undefined, to ensure
+the view has a root element.
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
 **Returns**: <code>node</code> - The created element.  
@@ -524,7 +525,7 @@ the view to have a root element.
 
 <a name="module_view__removeelement" id="module_view__removeelement"></a>
 ### view.removeElement() ⇒ <code>Rasti.View</code>
-Remove `this.el` from DOM.
+Remove `this.el` from the DOM.
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
 **Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
@@ -543,7 +544,7 @@ When `delegateEvents` is run again, perhaps with a different events hash, all li
 
 | Param | Type | Description |
 | --- | --- | --- |
-| [events] | <code>object</code> | Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to root element. |
+| [events] | <code>object</code> | Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to the root element. |
 
 **Example**  
 ```js
@@ -563,9 +564,10 @@ Removes all of the view's delegated events. Useful if you want to disable or rem
 Render the view.
 This method should be overridden with custom logic.
 The default implementation sets innerHTML of `this.el` with `this.template`.
-Conventions are to only manipulate the dom in the scope of `this.el`, 
+Conventions are to only manipulate the DOM in the scope of `this.el`, 
 and to return `this` for chaining.
 If you added any child view, you must call `this.destroyChildren`.
+<br><br> ⚠️ **Security Notice:** The default implementation utilizes `innerHTML` on the root elementfor rendering, which may introduce Cross - Site Scripting (XSS) risks. Ensure that any user-generated content is properly sanitized before inserting it into the DOM. For best practices on secure data handling, refer to the[OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
 **Returns**: <code>Rasti.View</code> - Return `this` for chaining.  

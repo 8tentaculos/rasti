@@ -1,4 +1,5 @@
 import Emitter from './Emitter.js';
+
 /**
  * - Orchestrates data and business logic.
  * - Emits events when data changes.
@@ -7,13 +8,13 @@ import Emitter from './Emitter.js';
  * Models may handle syncing data with a persistence layer. To design your models, create atomic, reusable objects 
  * that contain all the necessary functions for manipulating their specific data.  
  * Models should be easily passed throughout your app and used anywhere the corresponding data is needed.  
- * Rasti models stores its attributes in `this.attributes`, which is extended from `this.defaults` and the 
+ * Rasti models store their attributes in `this.attributes`, which is extended from `this.defaults` and the 
  * constructor `attrs` parameter. For every attribute, a getter is generated to retrieve the model property 
  * from `this.attributes`, and a setter is created to set the model property in `this.attributes` and emit `change` 
  * and `change:attribute` events.
  * @module
  * @extends Rasti.Emitter
- * @param {object} attrs Object containing model attributes to extend `this.attributes`. Getters and setters are generated for `this.attributtes`, in order to emit `change` events.
+ * @param {object} attrs Object containing model attributes to extend `this.attributes`. Getters and setters are generated for `this.attributes`, in order to emit `change` events.
  * @example
  * import { Model } from 'rasti';
  * // Product model
@@ -91,7 +92,7 @@ export default class Model extends Emitter {
 
     /**
      * Set an attribute into `this.attributes`.  
-     * Emit `change` and `change:attribute` if a value change.  
+     * Emit `change` and `change:attribute` if a value changes.  
      * Could be called in two forms, `this.set('key', value)` and
      * `this.set({ key : value })`.  
      * This method is called internally by generated setters.  
@@ -143,7 +144,7 @@ export default class Model extends Emitter {
         // `set` calls inside `change:attribute` event listeners.
         if (changing) return this;
         // Emit `change` events, that might be nested.
-        while(this._pending) {
+        while (this._pending) {
             const pendingChange = this._pending;
             this._pending = null;
             this.emit.apply(this, pendingChange);

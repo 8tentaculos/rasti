@@ -115,15 +115,6 @@ The rasti [GitHub repository](https://github.com/8tentaculos/rasti) includes, in
 
 Complete [API documentation](/docs/api.md).
 
-## ⚠️ Important Note
-
-**Rasti**, like many **Backbone.js** applications, uses `innerHTML` for rendering views and components. This approach provides speed and flexibility but requires you to ensure that all passed data is **trusted** or **properly sanitized**.
-
-If the data comes from user input or external sources, sanitize it before rendering to avoid potential security risks.
-
-For more details on data sanitization, refer to [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).
-
-
 ## Powered by **Rasti**
 
 ### [Crypto Babylon](https://cryptobabylon.net)  

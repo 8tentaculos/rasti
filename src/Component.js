@@ -1,6 +1,6 @@
 import View from './View.js';
 
-// This options keys will be extended on view instance.
+// These option keys will be extended on the component instance.
 const componentOptions = {
     key : true,
     state : true,
@@ -10,9 +10,9 @@ const componentOptions = {
 };
 
 /*
- * Helper function. Extract attributes from html tag
- * @param text {string} html text
- * @return {object} Object with keys / values representing attributes.
+ * Helper function. Extract attributes from an HTML tag.
+ * @param text {string} HTML text.
+ * @return {object} Object with keys/values representing attributes.
  */
 const extractAttributes = text => {
     const attributes = {};
@@ -27,18 +27,18 @@ const extractAttributes = text => {
 };
 
 /*
- * Helper function. If first arg is a placeholder for an expression, return the expression.
+ * Helper function. If the first argument is a placeholder for an expression, return the expression.
  */
 const getExpression = (placeholder, expressions) => {
     const match = placeholder &&
-        placeholder.match && 
+        placeholder.match &&
         placeholder.match(new RegExp(Component.EXPRESSION_PLACEHOLDER_TEMPLATE('(\\d+)')));
 
     return match && match[1] ? expressions[match[1]] : placeholder;
 };
 
 /*
- * Helper function. If expression is a function, call it with context and args.
+ * Helper function. If the expression is a function, call it with context and args.
  */
 const evalExpression = (expression, context, ...args) =>
     typeof expression === 'function' ?
@@ -81,13 +81,13 @@ export default class Component extends View {
         });
         // Store options by default.
         this.options = options;
-        // Bind onChange to this to be used as listener.
-        // Store bound version, so it can be removed on onDestroy method.
+        // Bind onChange to this to be used as a listener.
+        // Store bound version, so it can be removed in the onDestroy method.
         this.onChange = this.onChange.bind(this);
         // Listen to model changes and call onChange.
         if (this.model && this.model.on) this.model.on('change', this.onChange);
         if (this.state && this.state.on) this.state.on('change', this.onChange);
-        // Call life cycle method.
+        // Call lifecycle method.
         this.onCreate.apply(this, arguments);
     }
 
@@ -103,7 +103,7 @@ export default class Component extends View {
         }
         // Ensure id.
         if (!this.id) {
-            this.id = this.attributes && this.attributes.id ? 
+            this.id = this.attributes && this.attributes.id ?
                 // If id is provided, evaluate it.
                 evalExpression(this.attributes.id, this, this) :
                 // Generate a unique id and set it as id attribute.
@@ -112,14 +112,14 @@ export default class Component extends View {
     }
 
     /*
-     * Find view's element on parent node, using id.
+     * Find the view's element in the parent node, using id.
      */
     findElement(parent) {
         return (parent || document).querySelector(`#${this.id}`);
     }
 
     /*
-     * Eval attributes expressions.
+     * Evaluate attribute expressions.
      */
     getAttributes() {
         const add = { id : this.id };
@@ -132,7 +132,7 @@ export default class Component extends View {
                 // Evaluate attribute value.
                 let value = evalExpression(this.attributes[key], this, this);
 
-                // Transform bool attribute values
+                // Transform boolean attribute values
                 if (value === false) {
                     remove[key] = true;
                 } else if (value === true) {
@@ -151,8 +151,8 @@ export default class Component extends View {
     }
 
     /*
-     * Used internally on the render process.
-     * Attach the view to the dom element.
+     * Used internally in the render process.
+     * Attach the view to the DOM element.
      */
     hydrate(parent) {
         this.el = this.findElement(parent);
@@ -162,7 +162,7 @@ export default class Component extends View {
     }
 
     /*
-     * Used internally on the render process.
+     * Used internally in the render process.
      * Reuse a view that has `key` when its parent is rendered.
      */
     recycle(parent) {
@@ -383,6 +383,7 @@ export default class Component extends View {
      * It instantiate the Component view using options, 
      * appends its element into the DOM (if `el` is provided).
      * And returns the view instance.
+     * <br><br> ⚠️ **Security Notice:** Component utilizes `innerHTML` on a document fragment for rendering, which may introduce Cross - Site Scripting (XSS) risks. Ensure that any user-generated content is properly sanitized before inserting it into the DOM. For best practices on secure data handling, refer to the[OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
      * @static
      * @param {object} options The view options.
      * @param {node} el Dom element to append the view element.
