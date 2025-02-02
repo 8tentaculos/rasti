@@ -269,7 +269,7 @@ export default class View extends Emitter {
      * Conventions are to only manipulate the DOM in the scope of `this.el`, 
      * and to return `this` for chaining.
      * If you added any child view, you must call `this.destroyChildren`.
-     * <br><br> &#9888; **Security Notice:** The default implementation utilizes `innerHTML` on the root elementfor rendering, which may introduce Cross - Site Scripting (XSS) risks. Ensure that any user-generated content is properly sanitized before inserting it into the DOM. For best practices on secure data handling, refer to the[OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
+     * <br><br> &#9888; **Security Notice:** The default implementation utilizes `innerHTML` on the root elementfor rendering, which may introduce Cross - Site Scripting (XSS) risks. Ensure that any user-generated content is properly sanitized before inserting it into the DOM. For best practices on secure data handling, refer to the [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
      * @return {Rasti.View} Return `this` for chaining.
      */
     render() {
