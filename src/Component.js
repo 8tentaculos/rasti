@@ -38,7 +38,7 @@ const extractAttributes = text => {
 const getExpression = (placeholder, expressions) => {
     const match = placeholder &&
         placeholder.match &&
-        placeholder.match(new RegExp(Component.EXPRESSION_PLACEHOLDER_TEMPLATE('(\\d+)')));
+        placeholder.match(new RegExp(Component.PLACEHOLDER_EXPRESSION('(\\d+)')));
 
     return match && match[1] ? expressions[match[1]] : placeholder;
 };
@@ -117,7 +117,7 @@ export default class Component extends View {
      * @return {node} The component's element.
      */
     findElement(parent) {
-        return (parent || document).querySelector(`[${Component.UID_DATA_ATTRIBUTE}="${this.uid}"]`);
+        return (parent || document).querySelector(`[${Component.DATA_ATTRIBUTE_UID}="${this.uid}"]`);
     }
 
     /*
@@ -169,7 +169,7 @@ export default class Component extends View {
             this.el = this.children[0].el;
         }
         // Call `onRender` lifecycle method.
-        this.onRender.call(this, 'hydrate');
+        this.onRender.call(this, Component.RENDER_TYPE_HYDRATE);
         // Return `this` for chaining.
         return this;
     }
@@ -188,7 +188,7 @@ export default class Component extends View {
         // Replace it with this.el.
         toBeReplaced.replaceWith(this.el);
         // Call `onRender` lifecycle method.
-        this.onRender.call(this, 'recycle');
+        this.onRender.call(this, Component.RENDER_TYPE_RECYCLE);
         // Return `this` for chaining.
         return this;
     }
@@ -244,7 +244,7 @@ export default class Component extends View {
         if (this.isContainer()) return this.children[0].getRecyclePlaceholder();
         
         const tag = getResult(this.tag, this, this) || 'div';
-        const attributes = `${Component.UID_DATA_ATTRIBUTE}="${this.uid}"`;
+        const attributes = `${Component.DATA_ATTRIBUTE_UID}="${this.uid}"`;
 
         return this.template ?
             `<${tag} ${attributes}></${tag}>` :
@@ -368,7 +368,7 @@ export default class Component extends View {
             }
         }
         // Call onRender lifecycle method.
-        this.onRender.call(this, 'render');
+        this.onRender.call(this, Component.RENDER_TYPE_RENDER);
         // Return this for chaining.
         return this;
     }
@@ -457,13 +457,13 @@ export default class Component extends View {
             if (expressions[i]) {
                 parts.push(
                     typeof expressions[i] === 'function' || typeof expressions[i] === 'object' ?
-                        Component.EXPRESSION_PLACEHOLDER_TEMPLATE(i) :
+                        Component.PLACEHOLDER_EXPRESSION(i) :
                         expressions[i]
                 );
             }
         });
         // Create output string for main template. Add placeholders for new lines.
-        const main = parts.join('').trim().replace(/\n/g, Component.NEW_LINE_PLACEHOLDER);
+        const main = parts.join('').trim().replace(/\n/g, Component.PLACEHOLDER_NEW_LINE);
         // Extract outer tag, attributes and inner html.
         const result = main.match(/^<([a-z]+[1-6]?)(.*?)>(.*)<\/\1>$/) || main.match(/^<([a-z]+)(.*?)\/>$/);
 
@@ -473,9 +473,9 @@ export default class Component extends View {
             // Get tag, attributes.
             tag = result[1];
             // Get inner html. Restore new lines.
-            inner = result[3] && result[3].replace(new RegExp(Component.NEW_LINE_PLACEHOLDER, 'g'), '\n');
+            inner = result[3] && result[3].replace(new RegExp(Component.PLACEHOLDER_NEW_LINE, 'g'), '\n');
             // Parse attributes from html string into an object. Remove new lines.
-            const attributesAndEvents = extractAttributes(result[2].replace(new RegExp(Component.NEW_LINE_PLACEHOLDER, 'g'), ''));
+            const attributesAndEvents = extractAttributes(result[2].replace(new RegExp(Component.PLACEHOLDER_NEW_LINE, 'g'), ''));
             // Events to be delegated.
             const onlyEvents = {};
             const onlyAttributes = Object.keys(attributesAndEvents).reduce((out, key) => {
@@ -496,7 +496,7 @@ export default class Component extends View {
                 return Object.keys(onlyAttributes).reduce((out, key) => {
                     out[key] = getResult(getExpression(onlyAttributes[key], expressions), this, this);
                     return out;
-                }, { [Component.UID_DATA_ATTRIBUTE] : this.uid });
+                }, { [Component.DATA_ATTRIBUTE_UID] : this.uid });
             };
 
             events = function() {
@@ -516,7 +516,7 @@ export default class Component extends View {
         template = inner && function(addChild) {
             // Replace expressions.
             return inner
-                .replace(new RegExp(Component.EXPRESSION_PLACEHOLDER_TEMPLATE('(\\d+)'), 'g'), (match) => {
+                .replace(new RegExp(Component.PLACEHOLDER_EXPRESSION('(\\d+)'), 'g'), (match) => {
                     const expression = getExpression(match, expressions);
                     // Eval expression. Pass view as argument.
                     const result = getResult(expression, this, this);
@@ -526,9 +526,9 @@ export default class Component extends View {
                     return results.reduce((out, result) => {
                         let parsed;
                         // If result is true, replace it with a placeholder.
-                        if (result === true) parsed = Component.TRUE_PLACEHOLDER;
+                        if (result === true) parsed = Component.PLACEHOLDER_TRUE;
                         // If result is false, replace it with a placeholder.
-                        else if (result === false) parsed = Component.FALSE_PLACEHOLDER;
+                        else if (result === false) parsed = Component.PLACEHOLDER_FALSE;
                         // Replace null or undefined with empty string.
                         else if (result === null || typeof result === 'undefined') parsed = '';
                         // If result is a view, call addChild callback.
@@ -542,11 +542,11 @@ export default class Component extends View {
                 })
                 // Replace `attribute="true"` with `attribute` and `attribute="false"` with empty string.
                 .replace(
-                    new RegExp(`([\\w|data-]+)=(["'])?(${Component.TRUE_PLACEHOLDER}|${Component.FALSE_PLACEHOLDER})\\2`, 'g'),
-                    (match, attribute, quote, placeholder) => placeholder === Component.TRUE_PLACEHOLDER ? attribute : ''
+                    new RegExp(`([\\w|data-]+)=(["'])?(${Component.PLACEHOLDER_TRUE}|${Component.PLACEHOLDER_FALSE})\\2`, 'g'),
+                    (match, attribute, quote, placeholder) => placeholder === Component.PLACEHOLDER_TRUE ? attribute : ''
                 )
                 // Replace rest of true or false expressions with empty string.
-                .replace(new RegExp(`${Component.TRUE_PLACEHOLDER}|${Component.FALSE_PLACEHOLDER}`, 'g'), '');
+                .replace(new RegExp(`${Component.PLACEHOLDER_TRUE}|${Component.PLACEHOLDER_FALSE}`, 'g'), '');
         };
 
         const Current = this;
@@ -564,8 +564,11 @@ export default class Component extends View {
     }
 }
 
-Component.EXPRESSION_PLACEHOLDER_TEMPLATE = (idx) => `__RASTI_EXPRESSION_{${idx}}__`;
-Component.TRUE_PLACEHOLDER = '__RASTI_TRUE__';
-Component.FALSE_PLACEHOLDER = '__RASTI_FALSE__';
-Component.NEW_LINE_PLACEHOLDER = '__RASTI_NEW_LINE__';
-Component.UID_DATA_ATTRIBUTE = 'data-rasti-uid';
+Component.PLACEHOLDER_EXPRESSION = (idx) => `__RASTI_EXPRESSION_{${idx}}__`;
+Component.PLACEHOLDER_TRUE = '__RASTI_TRUE__';
+Component.PLACEHOLDER_FALSE = '__RASTI_FALSE__';
+Component.PLACEHOLDER_NEW_LINE = '__RASTI_NEW_LINE__';
+Component.DATA_ATTRIBUTE_UID = 'data-rasti-uid';
+Component.RENDER_TYPE_HYDRATE = 'hydrate';
+Component.RENDER_TYPE_RECYCLE = 'recycle';
+Component.RENDER_TYPE_RENDER = 'render';
