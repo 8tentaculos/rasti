@@ -240,6 +240,17 @@ export default class Component extends View {
      */
     onDestroy() {}
 
+    getRecyclePlaceholder() {
+        if (this.isContainer()) return this.children[0].getRecyclePlaceholder();
+        
+        const tag = getResult(this.tag, this, this) || 'div';
+        const attributes = `${Component.UID_DATA_ATTRIBUTE}="${this.uid}"`;
+
+        return this.template ?
+            `<${tag} ${attributes}></${tag}>` :
+            `<${tag} ${attributes} />`;
+    }
+
     /*
      * Treat the whole view as a HTML string.
      */
@@ -306,9 +317,8 @@ export default class Component extends View {
                 );
 
                 if (found) {
-                    const tag = found.el.tagName.toLowerCase();
                     // If child already exists, replace it html by its root element.
-                    out = `<${tag} ${Component.UID_DATA_ATTRIBUTE}="${found.el.getAttribute(Component.UID_DATA_ATTRIBUTE)}"></${tag}>`;
+                    out = found.getRecyclePlaceholder();
                     // Add child to recycled children.
                     recycledChildren.push(found);
                     // Destroy new child component. Use recycled one instead.
