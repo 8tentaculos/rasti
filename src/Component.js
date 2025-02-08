@@ -181,10 +181,10 @@ export default class Component extends View {
      * @return {Rasti.Component} The component instance.
      */
     recycle(parent) {
-        // Find element to be replaced. It has same data attribute as this component.
-        const toBeReplaced = (
-            this.isContainer() ? this.children[0] : this
-        ).findElement(parent);
+        // If component is a container, call recycle on its child.
+        if (this.isContainer()) return this.children[0].recycle(parent);
+        // Find placeholder element to be replaced. It has same data attribute as this component.
+        const toBeReplaced = this.findElement(parent);
         // Replace it with this.el.
         toBeReplaced.replaceWith(this.el);
         // Call `onRender` lifecycle method.
