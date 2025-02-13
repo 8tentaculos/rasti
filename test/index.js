@@ -419,6 +419,18 @@ describe('Rasti', () => {
             expect(document.getElementById('test-node')).to.exist;
         });
 
+        it('must be created with a function tag', () => {
+            const c = Component.create`<${() => 'div'} id="test-node"><span></span></${() => 'div'}>`.mount({}, document.body);
+            expect(c.toString()).to.be.equal(`<div ${Component.DATA_ATTRIBUTE_UID}="uid1" id="test-node"><span></span></div>`);
+            expect(document.getElementById('test-node')).to.exist;
+        });
+
+        it('must be created with a function tag with self enclosed tag', () => {
+            const c = Component.create`<${() => 'input'} id="test-node" type="text" />`.mount({}, document.body);
+            expect(c.toString()).to.be.equal(`<input ${Component.DATA_ATTRIBUTE_UID}="uid1" id="test-node" type="text" />`);
+            expect(document.getElementById('test-node')).to.exist;
+        });
+
         it('must support header tags', () => {
             Component.create`<h1 id="test-node"></h1>`.mount({}, document.body);
             expect(document.getElementById('test-node')).to.exist;

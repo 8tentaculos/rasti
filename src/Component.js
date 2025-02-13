@@ -465,13 +465,17 @@ export default class Component extends View {
         // Create output string for main template. Add placeholders for new lines.
         const main = parts.join('').trim().replace(/\n/g, Component.PLACEHOLDER_NEW_LINE);
         // Extract outer tag, attributes and inner html.
-        const result = main.match(/^<([a-z]+[1-6]?)(.*?)>(.*)<\/\1>$/) || main.match(/^<([a-z]+)(.*?)\/>$/);
+        const result = main.match(/^<([a-z]+[1-6]?|__RASTI_EXPRESSION_{\d}__)(.*?)>(.*)<\/(?:\1|__RASTI_EXPRESSION_{\d}__)>$/) ||
+            main.match(/^<([a-z]+[1-6]?|__RASTI_EXPRESSION_{\d}__)(.*?)\/>$/);
 
         let inner = main;
 
         if (result) {
             // Get tag, attributes.
-            tag = result[1];
+            tag = function() {
+                return getResult(getExpression(result[1], expressions), this, this);
+            };
+
             // Get inner html. Restore new lines.
             inner = result[3] && result[3].replace(new RegExp(Component.PLACEHOLDER_NEW_LINE, 'g'), '\n');
             // Parse attributes from html string into an object. Remove new lines.
