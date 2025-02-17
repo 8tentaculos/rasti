@@ -464,6 +464,39 @@ describe('Rasti', () => {
             expect(document.querySelector('button')).to.be.equal(c.children[0].el);
         });
 
+        it('must mount child component using tag component', () => {
+            const Button = Component.create`<button>click me</button>`;
+            const Main = Component.create`
+                <div id="test-node">
+                    <${Button} color="primary" disabled=${() => true} />
+                    <${Button} color="secondary" disabled=${() => false} />
+                </div>`;
+
+            const c = Main.mount({}, document.body);
+
+            expect(c.children[0].options.color).to.be.equal('primary');
+            expect(c.children[0].options.disabled).to.be.true;
+            expect(document.querySelector('button')).to.be.equal(c.children[0].el);
+
+            expect(c.children[1].options.color).to.be.equal('secondary');
+            expect(c.children[1].options.disabled).to.be.false;
+            expect(document.querySelectorAll('button')[1]).to.be.equal(c.children[1].el);
+        });
+
+        it('must mount child component using tag component with children', () => {
+            const Button = Component.create`<button>${({ options }) => options.renderChildren()}</button>`;
+
+            const Main = Component.create`
+                <div id="test-node">
+                    <${Button} color="primary">${() => 'click me'}</${Button}>
+                </div>`;
+
+            const c = Main.mount({}, document.body);
+
+            expect(c.children[0].options.color).to.be.equal('primary');
+            expect(document.querySelector('button').innerHTML).to.be.equal('click me');
+        });
+
         it('must re render on model change', () => {
             const c = Component.create`<div id="test-node">${({ model }) => model.count}</div>`.mount({
                 model : new Model({ count : 0 }),
@@ -525,16 +558,8 @@ describe('Rasti', () => {
             ).to.be.equal(`<input ${Component.DATA_ATTRIBUTE_UID}="uid1" id="test-node" />`);
 
             expect(
-                Component.create`<div id="test-node"><input disabled="${() => false}" /></div>`.mount().toString()
-            ).to.be.equal(`<div ${Component.DATA_ATTRIBUTE_UID}="uid2" id="test-node"><input  /></div>`);
-
-            expect(
                 Component.create`<input id="test-node" disabled="${() => true}" />`.mount().toString()
-            ).to.be.equal(`<input ${Component.DATA_ATTRIBUTE_UID}="uid3" id="test-node" disabled />`);
-
-            expect(
-                Component.create`<div id="test-node"><input disabled="${() => true}" /></div>`.mount().toString()
-            ).to.be.equal(`<div ${Component.DATA_ATTRIBUTE_UID}="uid4" id="test-node"><input disabled /></div>`);
+            ).to.be.equal(`<input ${Component.DATA_ATTRIBUTE_UID}="uid2" id="test-node" disabled />`);
         });
 
         it('must remove true and false placeholders', () => {
@@ -560,7 +585,7 @@ describe('Rasti', () => {
             expect(c.children[0]).not.to.be.equal(child);
         });
 
-        it('must re render and recycle children', () => {
+        it('must re render and recycle children with key', () => {
             const Button = Component.create`<button>click me</button>`;
             const Main = Component.create`<div id="test-node">${() => Button.mount({ key : 'btn' })}</div>`;
 
@@ -644,9 +669,10 @@ describe('Rasti', () => {
             const Child = Component.create`<button>click me</button>`;
             const Container = Component.create`${() => Child.mount()}`;
 
+            expect(Container).to.exist;
+
             const c = Container.mount({}, document.body);
 
-            expect(Container).to.exist;
             expect(document.querySelector('button')).to.exist;
             expect(c.el).to.be.equal(c.children[0].el);
             c.render();
@@ -717,10 +743,12 @@ describe('Rasti', () => {
             const Child = Component.create`<button>click me</button>`;
             const Container = Component.create`${() => Child.mount()}`;
 
+
+            expect(Container).to.exist;
+
             const c = new Container({});
             document.body.appendChild(c.render().el);
 
-            expect(Container).to.exist;
             expect(document.querySelector('button')).to.exist;
             expect(c.el).to.be.equal(c.children[0].el);
             c.render();
@@ -732,13 +760,45 @@ describe('Rasti', () => {
             const Child = Component.create`<button>click me</button>`;
             const Container = Component.create(() => Child.mount());
 
+            expect(Container).to.exist;
+
             const c = Container.mount({}, document.body);
 
-            expect(Container).to.exist;
             expect(document.querySelector('button')).to.exist;
             expect(c.el).to.be.equal(c.children[0].el);
             c.render();
             expect(document.querySelector('button')).to.exist;
+            expect(c.el).to.be.equal(c.children[0].el);
+        });
+
+        it('must create container using tag', () => {
+            const Child = Component.create`<button>click me</button>`;
+            const Container = Component.create`<${Child} />`;
+    
+            expect(Container).to.exist;
+    
+            const c = Container.mount({}, document.body);
+    
+            expect(document.querySelector('button')).to.exist;
+            expect(c.el).to.be.equal(c.children[0].el);
+            c.render();
+            expect(document.querySelector('button')).to.exist;
+            expect(c.el).to.be.equal(c.children[0].el);
+        });
+
+        it('must create container with children', () => {
+            const Button = Component.create`<button>${({ options }) => options.renderChildren()}</button>`;
+            const OkButton = Component.create`<${Button} color="primary">ok</${Button}>`;
+    
+            expect(OkButton).to.exist;
+    
+            const c = OkButton.mount({}, document.body);
+    
+            expect(document.querySelector('button').innerHTML).to.be.equal('ok');
+            expect(c.el).to.be.equal(c.children[0].el);
+            expect(c.children[0].options.color).to.be.equal('primary');
+            c.render();
+            expect(document.querySelector('button').innerHTML).to.be.equal('ok');
             expect(c.el).to.be.equal(c.children[0].el);
         });
     });

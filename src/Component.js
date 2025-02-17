@@ -447,9 +447,10 @@ export default class Component extends View {
 
         let tag, attributes, events, template;
 
+        const ph = Component.PLACEHOLDER_EXPRESSION('(\\d+)');
+
         const parts = [];
-        // Replace functions and objects interpolations with `{number}`.
-        // Where `number` is the index on expressions array.
+        // Replace functions and objects interpolations with a placeholder.
         strings.forEach((string, i) => {
             // Add string part.
             parts.push(string);
@@ -462,24 +463,92 @@ export default class Component extends View {
                 );
             }
         });
+
+        const expandComponents = main => {
+            return main.replace(
+                new RegExp(`(<${ph}(.*?)>(.*)</${ph}>)|(<${ph}(.*?) />)`,'g'),
+                (all, nonVoid, open, attrs, inner, close, selfEnclosed, tag, selfEnclosedAttrs) => {
+                    let cmp, options, renderChildren;
+
+                    if (nonVoid) {
+                        if (!(expressions[open].prototype instanceof Component)) return all;
+                        if (expressions[open] !== expressions[close]) return all;
+
+                        cmp = open;
+                        options = attrs;
+
+                        const expanded = expandComponents(inner);
+                        renderChildren = function() {
+                            return expanded.replace(new RegExp(ph, 'g'), (match, idx) => {
+                                return getResult(expressions[idx], this, this);
+                            });
+                        };
+                    } else {
+                        if (!(expressions[tag].prototype instanceof Component)) return all;
+
+                        cmp = tag;
+                        options = selfEnclosedAttrs;
+                    }
+
+                    cmp = expressions[cmp];
+                    // Parse attributes into an object.
+                    options = extractAttributes(options.replace(new RegExp(Component.PLACEHOLDER_NEW_LINE, 'g'), ''));
+                    // Create mount function.
+                    const mount = function() {
+                        options = Object.keys(options).reduce((out, key) => {
+                            out[key] = getResult(getExpression(options[key], expressions), this, this);
+                            return out;
+                        }, {});
+                        return cmp.mount(Object.assign({ renderChildren }, options));
+                    };
+                    // Add mount function to expression.
+                    expressions.push(mount);
+                    // Replace whole string with expression placeholder.
+                    return Component.PLACEHOLDER_EXPRESSION(expressions.length - 1);
+                }
+            );
+        };
+
         // Create output string for main template. Add placeholders for new lines.
-        const main = parts.join('').trim().replace(/\n/g, Component.PLACEHOLDER_NEW_LINE);
-        // Extract outer tag, attributes and inner html.
-        const result = main.match(/^<([a-z]+[1-6]?|__RASTI_EXPRESSION_{\d}__)(.*?)>(.*)<\/(?:\1|__RASTI_EXPRESSION_{\d}__)>$/) ||
-            main.match(/^<([a-z]+[1-6]?|__RASTI_EXPRESSION_{\d}__)(.*?)\/>$/);
+        const main = expandComponents(parts.join('').trim().replace(/\n/g, Component.PLACEHOLDER_NEW_LINE));
 
         let inner = main;
+        let isNonVoid = false;
+
+        const result = main.match(
+            new RegExp(`(^<([a-z]+[1-6]?|${ph})(.*?)>(.*)</(\\2|${ph})>$)|(^<([a-z]+[1-6]?|${ph})(.*?)/>$)`)
+        );
 
         if (result) {
+            const [
+                ,
+                nonVoid,
+                nonVoidTag,
+                nonVoidTagIdx,
+                nonVoidAttrs,
+                nonVoidInner,
+                ,,,
+                selfEnclosedTag,
+                selfEnclosedTagIdx,
+                selfEnclosedAttrs
+            ] = result;
+
+            let tagExpression = nonVoid ? nonVoidTag : selfEnclosedTag;
+            let tagIdx = nonVoid ? nonVoidTagIdx : selfEnclosedTagIdx;
+            if (typeof tagIdx !== 'undefined') tagExpression = expressions[tagIdx];
+            else tagExpression = tagExpression.replace(new RegExp(Component.PLACEHOLDER_NEW_LINE, 'g'), '');
             // Get tag, attributes.
             tag = function() {
-                return getResult(getExpression(result[1], expressions), this, this);
+                return getResult(tagExpression, this, this);
             };
 
+            isNonVoid = !!nonVoid;
             // Get inner html. Restore new lines.
-            inner = result[3] && result[3].replace(new RegExp(Component.PLACEHOLDER_NEW_LINE, 'g'), '\n');
+            inner = nonVoid && nonVoidInner.replace(new RegExp(Component.PLACEHOLDER_NEW_LINE, 'g'), '\n');
             // Parse attributes from html string into an object. Remove new lines.
-            const attributesAndEvents = extractAttributes(result[2].replace(new RegExp(Component.PLACEHOLDER_NEW_LINE, 'g'), ''));
+            const attributesAndEvents = extractAttributes(
+                (nonVoid ? nonVoidAttrs : selfEnclosedAttrs).replace(new RegExp(Component.PLACEHOLDER_NEW_LINE, 'g'), '')
+            );
             // Events to be delegated.
             const onlyEvents = {};
             const onlyAttributes = Object.keys(attributesAndEvents).reduce((out, key) => {
@@ -517,41 +586,26 @@ export default class Component extends View {
             };
         }
 
-        template = inner && function(addChild) {
-            // Replace expressions.
-            return inner
-                .replace(new RegExp(Component.PLACEHOLDER_EXPRESSION('(\\d+)'), 'g'), (match) => {
-                    const expression = getExpression(match, expressions);
+        if (inner || isNonVoid) {
+            template = function(addChild) {
+                // Replace expressions.
+                return (inner || '').replace(new RegExp(ph, 'g'), (match, idx) => {
                     // Eval expression. Pass view as argument.
-                    const result = getResult(expression, this, this);
+                    const result = getResult(expressions[idx], this, this);
                     // Treat all expressions as arrays.
                     const results = result instanceof Array ? result : [result];
                     // Replace expression with the result of the evaluation.
                     return results.reduce((out, result) => {
-                        let parsed;
-                        // If result is true, replace it with a placeholder.
-                        if (result === true) parsed = Component.PLACEHOLDER_TRUE;
-                        // If result is false, replace it with a placeholder.
-                        else if (result === false) parsed = Component.PLACEHOLDER_FALSE;
-                        // Replace null or undefined with empty string.
-                        else if (result === null || typeof result === 'undefined') parsed = '';
-                        // If result is a view, call addChild callback.
-                        else if (result && typeof result.render === 'function') parsed = addChild(result);
-                        // Return expression itself.
-                        else parsed = result;
-                        // Concatenate expressions.
-                        return out + parsed;
-                    }, '');
-
-                })
-                // Replace `attribute="true"` with `attribute` and `attribute="false"` with empty string.
-                .replace(
-                    new RegExp(`([\\w|data-]+)=(["'])?(${Component.PLACEHOLDER_TRUE}|${Component.PLACEHOLDER_FALSE})\\2`, 'g'),
-                    (match, attribute, quote, placeholder) => placeholder === Component.PLACEHOLDER_TRUE ? attribute : ''
-                )
-                // Replace rest of true or false expressions with empty string.
-                .replace(new RegExp(`${Component.PLACEHOLDER_TRUE}|${Component.PLACEHOLDER_FALSE}`, 'g'), '');
-        };
+                        // Add non falsy results.
+                        if (typeof result !== 'undefined' && result !== null && result !== false &&  result !== true) {
+                            // If result is a component, add it as a child.
+                            out.push(result instanceof Component ? addChild(result) : result);
+                        }
+                        return out;
+                    }, []).join('');
+                });
+            };
+        }
 
         const Current = this;
         // Create subclass for this component.
@@ -569,8 +623,6 @@ export default class Component extends View {
 }
 
 Component.PLACEHOLDER_EXPRESSION = (idx) => `__RASTI_EXPRESSION_{${idx}}__`;
-Component.PLACEHOLDER_TRUE = '__RASTI_TRUE__';
-Component.PLACEHOLDER_FALSE = '__RASTI_FALSE__';
 Component.PLACEHOLDER_NEW_LINE = '__RASTI_NEW_LINE__';
 Component.DATA_ATTRIBUTE_UID = 'data-rasti-uid';
 Component.RENDER_TYPE_HYDRATE = 'hydrate';
