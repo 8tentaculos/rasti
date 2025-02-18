@@ -46,7 +46,7 @@ export default class Emitter {
     on(type, listener) {
         // Validate listener.
         if (typeof listener !== 'function') {
-            throw TypeError('Listener must be a function');
+            throw new TypeError('Listener must be a function');
         }
         // Create listeners object if it doesn't exist.
         if (!this.listeners) this.listeners = {};

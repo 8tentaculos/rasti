@@ -12,37 +12,6 @@ const componentOptions = {
     onRender : true
 };
 
-/*
- * Helper function. Extract attributes from an HTML tag.
- * @param text {string} HTML text.
- * @return {object} Object with keys/values representing attributes.
- */
-const extractAttributes = text => {
-    const attributes = {};
-    const re = /([\w|data-]+)(?:=["']?((?:.(?!["']?\s+(?:\S+)=|\s*\/?[>"']))+.)["']?)?/g;
-
-    let result;
-    while ((result = re.exec(text)) !== null) {
-        attributes[result[1]] = typeof result[2] === 'undefined' ? true : result[2];
-    }
-
-    return attributes;
-};
-
-/*
- * Helper function. If first arg is a placeholder for an expression, return the expression.
- * Otherwise, return the placeholder itself.
- * @param placeholder {string} Placeholder string.
- * @param expressions {array} Array of expressions.
- */
-const getExpression = (placeholder, expressions) => {
-    const match = placeholder &&
-        placeholder.match &&
-        placeholder.match(new RegExp(Component.PLACEHOLDER_EXPRESSION('(\\d+)')));
-
-    return match && match[1] ? expressions[match[1]] : placeholder;
-};
-
 /**
  * Components are a special kind of `View` that is designed to be easily composable, 
  * making it simple to add child views and build complex user interfaces.  
@@ -445,61 +414,107 @@ export default class Component extends View {
             strings = ['', ''];
         }
 
-        let tag, attributes, events, template;
+        const saveNl = str => str.replace(/\n/g, Component.PLACEHOLDER_NEW_LINE);
+        const revertNl = str => str.replace(new RegExp(Component.PLACEHOLDER_NEW_LINE, 'g'), '\n');
+        const removeNl = str => str.replace(new RegExp(Component.PLACEHOLDER_NEW_LINE, 'g'), '');
 
         const ph = Component.PLACEHOLDER_EXPRESSION('(\\d+)');
 
-        const parts = [];
-        // Replace functions and objects interpolations with a placeholder.
-        strings.forEach((string, i) => {
-            // Add string part.
-            parts.push(string);
-            // Add expression placeholder for later or expression eval.
-            if (expressions[i]) {
-                parts.push(
-                    typeof expressions[i] === 'function' || typeof expressions[i] === 'object' ?
-                        Component.PLACEHOLDER_EXPRESSION(i) :
-                        expressions[i]
-                );
+        /*
+         * Parse match data.
+         * @param match {array}
+         * @return {object}
+         * @property {string} tag The tag.
+         * @property {string} inner The inner html.
+         * @property {string} close The closing tag.
+         * @property {object} attributes Object containing attributes.
+         * @property {string} raw The whole match.
+         */
+        const parseMatch = match => {
+            if (!match) return match;
+
+            const [
+                all,
+                nonVoid,
+                openTag,
+                openIdx,
+                nonVoidAttrs,
+                inner,
+                closeTag,
+                closeIdx,
+                ,
+                selfEnclosedTag,
+                selfEnclosedIdx,
+                selfEnclosedAttrs
+            ] = match;
+
+            const data = { raw : all, attributes : {} };
+
+            let attributes;
+
+            if (nonVoid) {
+                data.tag = typeof openIdx !== 'undefined' ? expressions[openIdx] : removeNl(openTag);
+                data.inner = revertNl(inner);
+                data.close = typeof closeIdx !== 'undefined' ? expressions[closeIdx] : removeNl(closeTag);
+                attributes = removeNl(nonVoidAttrs);
+            } else {
+                data.tag = typeof selfEnclosedIdx !== 'undefined' ? expressions[selfEnclosedIdx] : removeNl(selfEnclosedTag);
+                attributes = removeNl(selfEnclosedAttrs);
             }
-        });
 
+            const attributesRegExp = /([\w|data-]+)(?:=["']?((?:.(?!["']?\s+(?:\S+)=|\s*\/?[>"']))+.)["']?)?/g;
+
+            let attributeMatch;
+            while ((attributeMatch = attributesRegExp.exec(attributes)) !== null) {
+                const value = typeof attributeMatch[2] === 'undefined' ? true : attributeMatch[2];
+                const valueMatch = value && value.match && value.match(new RegExp(ph));
+                data.attributes[attributeMatch[1]] = valueMatch ? expressions[valueMatch[1]] : value;
+            }
+
+            return data;
+        };
+
+        /*
+         * Replace component tags with expressions.
+         * `<${Component} />` or `<${Component}></${Component}>` will be replaced 
+         * by a function that mounts the component.
+         * Returns the template with component tags replaced by expressions placeholders 
+         * modifies the expressions array adding the mount functions.
+         * @param main {string} The main template.
+         * @return {string} The template with components tags replaced by expressions
+         * placeholders.
+         */
         const expandComponents = main => {
+            // Match component tags.
             return main.replace(
-                new RegExp(`(<${ph}(.*?)>(.*)</${ph}>)|(<${ph}(.*?) />)`,'g'),
-                (all, nonVoid, open, attrs, inner, close, selfEnclosed, tag, selfEnclosedAttrs) => {
-                    let cmp, options, renderChildren;
+                new RegExp(`(<(${ph})(.*?)>(.*)</(${ph})>)|(<(${ph})(.*?) />)`,'g'),
+                function() {
+                    const { tag, attributes, inner, close, raw } = parseMatch(arguments);
+                    // No component found.
+                    if (!(tag.prototype instanceof Component)) return raw;
 
-                    if (nonVoid) {
-                        if (!(expressions[open].prototype instanceof Component)) return all;
-                        if (expressions[open] !== expressions[close]) return all;
-
-                        cmp = open;
-                        options = attrs;
-
+                    let renderChildren;
+                    // Non void component.
+                    if (close) {
+                        // Close component tag must match open component tag.
+                        if (tag !== close) return raw;
+                        // Recursively expand inner components.
                         const expanded = expandComponents(inner);
+                        // Create renderChildren function.
                         renderChildren = function() {
                             return expanded.replace(new RegExp(ph, 'g'), (match, idx) => {
                                 return getResult(expressions[idx], this, this);
                             });
                         };
-                    } else {
-                        if (!(expressions[tag].prototype instanceof Component)) return all;
-
-                        cmp = tag;
-                        options = selfEnclosedAttrs;
                     }
-
-                    cmp = expressions[cmp];
-                    // Parse attributes into an object.
-                    options = extractAttributes(options.replace(new RegExp(Component.PLACEHOLDER_NEW_LINE, 'g'), ''));
                     // Create mount function.
                     const mount = function() {
-                        options = Object.keys(options).reduce((out, key) => {
-                            out[key] = getResult(getExpression(options[key], expressions), this, this);
+                        const options = Object.keys(attributes).reduce((out, key) => {
+                            out[key] = getResult(attributes[key], this, this);
                             return out;
                         }, {});
-                        return cmp.mount(Object.assign({ renderChildren }, options));
+                        // Mount component.
+                        return tag.mount(Object.assign({ renderChildren }, options));
                     };
                     // Add mount function to expression.
                     expressions.push(mount);
@@ -509,46 +524,37 @@ export default class Component extends View {
             );
         };
 
+        let tag, attributes, events, template;
+
         // Create output string for main template. Add placeholders for new lines.
-        const main = expandComponents(parts.join('').trim().replace(/\n/g, Component.PLACEHOLDER_NEW_LINE));
+        const main = expandComponents(
+            saveNl(
+                strings.reduce((out, string, i) => {
+                    // Add string part.
+                    out.push(string);
+                    // Add expression placeholder for later or expression eval.
+                    if (expressions[i]) {
+                        out.push(
+                            typeof expressions[i] === 'function' || typeof expressions[i] === 'object' ?
+                                Component.PLACEHOLDER_EXPRESSION(i) :
+                                expressions[i]
+                        );
+                    }
+                    return out;
+                }, []).join('').trim()
+            )
+        );
 
-        let inner = main;
-        let isNonVoid = false;
-
-        const result = main.match(
+        let match = main.match(
             new RegExp(`(^<([a-z]+[1-6]?|${ph})(.*?)>(.*)</(\\2|${ph})>$)|(^<([a-z]+[1-6]?|${ph})(.*?)/>$)`)
         );
 
-        if (result) {
-            const [
-                ,
-                nonVoid,
-                nonVoidTag,
-                nonVoidTagIdx,
-                nonVoidAttrs,
-                nonVoidInner,
-                ,,,
-                selfEnclosedTag,
-                selfEnclosedTagIdx,
-                selfEnclosedAttrs
-            ] = result;
-
-            let tagExpression = nonVoid ? nonVoidTag : selfEnclosedTag;
-            let tagIdx = nonVoid ? nonVoidTagIdx : selfEnclosedTagIdx;
-            if (typeof tagIdx !== 'undefined') tagExpression = expressions[tagIdx];
-            else tagExpression = tagExpression.replace(new RegExp(Component.PLACEHOLDER_NEW_LINE, 'g'), '');
+        if (match) {
+            const { tag : tagExpression, attributes : attributesAndEvents, inner, close } = parseMatch(match);
             // Get tag, attributes.
             tag = function() {
                 return getResult(tagExpression, this, this);
             };
-
-            isNonVoid = !!nonVoid;
-            // Get inner html. Restore new lines.
-            inner = nonVoid && nonVoidInner.replace(new RegExp(Component.PLACEHOLDER_NEW_LINE, 'g'), '\n');
-            // Parse attributes from html string into an object. Remove new lines.
-            const attributesAndEvents = extractAttributes(
-                (nonVoid ? nonVoidAttrs : selfEnclosedAttrs).replace(new RegExp(Component.PLACEHOLDER_NEW_LINE, 'g'), '')
-            );
             // Events to be delegated.
             const onlyEvents = {};
             const onlyAttributes = Object.keys(attributesAndEvents).reduce((out, key) => {
@@ -564,18 +570,17 @@ export default class Component extends View {
                 out[key] = attributesAndEvents[key];
                 return out;
             }, {});
-
+            // Get attributes.
             attributes = function() {
                 return Object.keys(onlyAttributes).reduce((out, key) => {
-                    out[key] = getResult(getExpression(onlyAttributes[key], expressions), this, this);
+                    out[key] = getResult(onlyAttributes[key], this, this);
                     return out;
                 }, { [Component.DATA_ATTRIBUTE_UID] : this.uid });
             };
-
+            // Get events.
             events = function() {
                 return Object.keys(onlyEvents).reduce((out, key) => {
-                    const expression = getExpression(onlyEvents[key], expressions);
-                    const typeListeners = getResult(expression, this, this);
+                    const typeListeners = getResult(onlyEvents[key], this, this);
 
                     Object.keys(typeListeners).forEach(selector => {
                         out[`${key}${selector === '&' ? '' : ` ${selector}`}`] = typeListeners[selector];
@@ -584,27 +589,39 @@ export default class Component extends View {
                     return out;
                 }, {});
             };
-        }
+            // If there is a closing tag, get template.
+            if (close) {
+                template = function(addChild) {
+                    // Replace expressions.
+                    return (inner || '').replace(new RegExp(ph, 'g'), (match, idx) => {
+                        // Eval expression. Pass view as argument.
+                        const result = getResult(expressions[idx], this, this);
+                        // Treat all expressions as arrays.
+                        const results = result instanceof Array ? result : [result];
+                        // Replace expression with the result of the evaluation.
+                        return results.reduce((out, result) => {
+                            // Add non falsy results.
+                            if (typeof result !== 'undefined' && result !== null && result !== false &&  result !== true) {
+                                // If result is a component, add it as a child.
+                                out.push(result instanceof Component ? addChild(result) : result);
+                            }
+                            return out;
+                        }, []).join('');
+                    });
+                };
+            }
+        } else {
+            match = main.match(new RegExp(`^${ph}$`));
 
-        if (inner || isNonVoid) {
-            template = function(addChild) {
-                // Replace expressions.
-                return (inner || '').replace(new RegExp(ph, 'g'), (match, idx) => {
-                    // Eval expression. Pass view as argument.
-                    const result = getResult(expressions[idx], this, this);
-                    // Treat all expressions as arrays.
-                    const results = result instanceof Array ? result : [result];
-                    // Replace expression with the result of the evaluation.
-                    return results.reduce((out, result) => {
-                        // Add non falsy results.
-                        if (typeof result !== 'undefined' && result !== null && result !== false &&  result !== true) {
-                            // If result is a component, add it as a child.
-                            out.push(result instanceof Component ? addChild(result) : result);
-                        }
-                        return out;
-                    }, []).join('');
-                });
-            };
+            if (match) {
+                // If there is only one expression and no tag, is a container.
+                template = function(addChild) {
+                    // Replace expressions.
+                    return addChild(getResult(expressions[match[1]], this, this)).toString();
+                };
+            } else {
+                throw new SyntaxError('Invalid component');
+            }
         }
 
         const Current = this;
