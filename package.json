@@ -1,82 +1,71 @@
 {
-  "name": "rasti",
-  "version": "2.1.0-alpha.1",
-  "description": "Modern MVC for building user interfaces",
-  "main": "lib/index.js",
-  "jsnext:main": "es/index.js",
-  "files": [
-    "lib",
-    "es",
-    "src",
-    "dist"
-  ],
-  "scripts": {
-    "clean": "rimraf lib dist es",
-    "build": "npm run build:commonjs && npm run build:es && npm run build:umd && npm run build:umd:min",
-    "prepare": "npm run clean && npm run test && npm run build",
-    "posttest": "npm run lint",
-    "lint": "eslint src test",
-    "test": "cross-env BABEL_ENV=commonjs mocha --require @babel/register --require jsdom-global/register --reporter nyan test/*.js",
-    "build:commonjs": "cross-env BABEL_ENV=commonjs babel src --out-dir lib",
-    "build:es": "cross-env BABEL_ENV=es babel src --out-dir es",
-    "build:umd": "cross-env BABEL_ENV=commonjs NODE_ENV=development webpack",
-    "build:umd:min": "cross-env BABEL_ENV=commonjs NODE_ENV=production webpack",
-    "docs:api": "jsdoc2md --module-index-format none --helper jsdoc2md/helper.js --partial jsdoc2md/header.hbs --partial jsdoc2md/sig-link.hbs --partial jsdoc2md/sig-link-html.hbs --partial jsdoc2md/sig-link-parent.hbs --partial jsdoc2md/link.hbs --files src/**/*.js > docs/api.md"
-  },
-  "repository": "github:8tentaculos/rasti",
-  "homepage": "https://rasti.js.org",
-  "bugs": "https://github.com/8tentaculos/rasti/issues",
-  "keywords": [
-    "mvc",
-    "model",
-    "view",
-    "component",
-    "emitter",
-    "ui",
-    "user interface",
-    "backbone"
-  ],
-  "author": "Alberto Masuelli <alberto.masuelli@gmail.com> (https://github.com/8tentaculos)",
-  "license": "MIT",
-  "devDependencies": {
-    "@babel/cli": "^7.24.1",
-    "@babel/core": "^7.24.3",
-    "@babel/eslint-parser": "^7.24.1",
-    "@babel/plugin-transform-arrow-functions": "^7.24.1",
-    "@babel/plugin-transform-block-scoped-functions": "^7.24.1",
-    "@babel/plugin-transform-block-scoping": "^7.24.1",
-    "@babel/plugin-transform-classes": "^7.24.1",
-    "@babel/plugin-transform-computed-properties": "^7.24.1",
-    "@babel/plugin-transform-destructuring": "^7.24.1",
-    "@babel/plugin-transform-for-of": "^7.24.1",
-    "@babel/plugin-transform-function-name": "^7.24.1",
-    "@babel/plugin-transform-literals": "^7.24.1",
-    "@babel/plugin-transform-member-expression-literals": "^7.24.1",
-    "@babel/plugin-transform-modules-commonjs": "^7.24.1",
-    "@babel/plugin-transform-object-super": "^7.24.1",
-    "@babel/plugin-transform-parameters": "^7.24.1",
-    "@babel/plugin-transform-property-literals": "^7.24.1",
-    "@babel/plugin-transform-shorthand-properties": "^7.24.1",
-    "@babel/plugin-transform-spread": "^7.24.1",
-    "@babel/plugin-transform-sticky-regex": "^7.24.1",
-    "@babel/plugin-transform-template-literals": "^7.24.1",
-    "@babel/plugin-transform-unicode-regex": "^7.24.1",
-    "@babel/register": "^7.23.7",
-    "babel-loader": "^9.1.3",
-    "chai": "^4.4.1",
-    "cross-env": "^7.0.3",
-    "eslint": "^8.57.0",
-    "jsdoc-to-markdown": "^8.0.1",
-    "jsdom": "^24.0.0",
-    "jsdom-global": "3.0.2",
-    "mocha": "^10.4.0",
-    "rimraf": "^5.0.5",
-    "webpack": "^5.91.0",
-    "webpack-cli": "^5.1.4"
-  },
-  "directories": {
-    "example": "example",
-    "test": "test",
-    "doc": "docs"
-  }
+    "name": "rasti",
+    "version": "2.1.0-alpha.1",
+    "description": "Modern MVC for building user interfaces",
+    "type": "module",
+    "main": "lib/index.cjs",
+    "module": "es/index.js",
+    "browser": "dist/rasti.min.js",
+    "exports": {
+        ".": {
+            "import": "./es/index.js",
+            "require": "./lib/index.cjs",
+            "default": "./es/index.js"
+        },
+        "./*": {
+            "import": "./es/*",
+            "require": "./lib/*"
+        }
+    },
+    "files": [
+        "dist",
+        "es",
+        "lib",
+        "src"
+    ],
+    "scripts": {
+        "clean": "rimraf lib dist es",
+        "build": "rollup -c",
+        "prepare": "npm run clean && npm run test && npm run build",
+        "posttest": "npm run lint",
+        "lint": "eslint src test",
+        "test": "mocha --require jsdom-global/register --reporter nyan test/*.js",
+        "docs:api": "jsdoc2md --module-index-format none --helper jsdoc2md/helper.cjs --partial jsdoc2md/header.hbs --partial jsdoc2md/sig-link.hbs --partial jsdoc2md/sig-link-html.hbs --partial jsdoc2md/sig-link-parent.hbs --partial jsdoc2md/link.hbs --files 'src/**/*.js' > docs/api.md"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/8tentaculos/rasti.git"
+    },
+    "homepage": "https://rasti.js.org",
+    "bugs": {
+        "url": "https://github.com/8tentaculos/rasti/issues"
+    },
+    "keywords": [
+        "mvc",
+        "model",
+        "view",
+        "component",
+        "emitter",
+        "ui",
+        "user interface",
+        "backbone"
+    ],
+    "author": "Alberto Masuelli <alberto.masuelli@gmail.com> (https://github.com/8tentaculos)",
+    "license": "MIT",
+    "devDependencies": {
+        "@rollup/plugin-terser": "^0.4.4",
+        "chai": "^4.4.1",
+        "eslint": "^8.57.0",
+        "jsdoc-to-markdown": "^8.0.1",
+        "jsdom": "^24.0.0",
+        "jsdom-global": "3.0.2",
+        "mocha": "^10.4.0",
+        "rimraf": "^5.0.5",
+        "rollup": "^4.34.1"
+    },
+    "directories": {
+        "example": "example",
+        "test": "test",
+        "doc": "docs"
+    }
 }

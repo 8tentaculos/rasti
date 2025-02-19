@@ -1,9 +1,9 @@
 import { expect } from 'chai';
-import * as Rasti from '../src/index';
-import Emitter from '../src/Emitter';
-import Model from '../src/Model';
-import View from '../src/View';
-import Component from '../src/Component';
+import * as Rasti from '../src/index.js';
+import Emitter from '../src/Emitter.js';
+import Model from '../src/Model.js';
+import View from '../src/View.js';
+import Component from '../src/Component.js';
 
 describe('Rasti', () => {
 
