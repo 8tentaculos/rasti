@@ -235,6 +235,13 @@ describe('Rasti', () => {
             m.test = false;
             expect(m.previous.test).to.be.true;
         });
+
+        it('must habe toJSON method', () => {
+            const m = new Model({ test : true });
+            expect(m.toJSON()).to.be.deep.equal({ test : true });
+            expect(JSON.stringify(m)).to.be.equal('{"test":true}');
+            expect(m.attributes).to.not.be.equal(m.toJSON());
+        });
     });
 
     describe('View', () => {

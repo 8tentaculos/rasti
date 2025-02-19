@@ -167,6 +167,6 @@ export default class Model extends Emitter {
      * @return {object} Object representation of the model to be used for JSON serialization.
      */
     toJSON() {
-        return this.attributes;
+        return Object.assign({}, this.attributes);
     }
 }
