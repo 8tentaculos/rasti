@@ -499,10 +499,14 @@ export default class Component extends View {
                         // Close component tag must match open component tag.
                         if (tag !== close) return raw;
                         // Recursively expand inner components.
-                        const expanded = expandComponents(inner);
+                        const expanded = expandComponents(saveNl(inner));
                         // Create renderChildren function.
                         renderChildren = function() {
-                            return expanded.replace(new RegExp(ph, 'g'), (match, idx) => {
+                            const match = removeNl(expanded).match(new RegExp(`^${ph}$`));
+
+                            if (match) return getResult(expressions[match[1]], this, this);
+
+                            return revertNl(expanded).replace(new RegExp(ph, 'g'), (match, idx) => {
                                 return getResult(expressions[idx], this, this);
                             });
                         };
@@ -525,14 +529,13 @@ export default class Component extends View {
         };
 
         let tag, attributes, events, template;
-
         // Create output string for main template. Add placeholders for new lines.
         const main = expandComponents(
             saveNl(
                 strings.reduce((out, string, i) => {
                     // Add string part.
                     out.push(string);
-                    // Add expression placeholder for later or expression eval.
+                    // Add expression placeholders or expression results.
                     if (expressions[i]) {
                         out.push(
                             typeof expressions[i] === 'function' || typeof expressions[i] === 'object' ?
@@ -550,6 +553,7 @@ export default class Component extends View {
         );
 
         if (match) {
+            // It's a component with tag.
             const { tag : tagExpression, attributes : attributesAndEvents, inner, close } = parseMatch(match);
             // Get tag, attributes.
             tag = function() {
@@ -611,7 +615,8 @@ export default class Component extends View {
                 };
             }
         } else {
-            match = main.match(new RegExp(`^${ph}$`));
+            // It's a container.
+            match = removeNl(main).match(new RegExp(`^${ph}$`));
 
             if (match) {
                 // If there is only one expression and no tag, is a container.

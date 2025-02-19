@@ -786,20 +786,56 @@ describe('Rasti', () => {
             expect(c.el).to.be.equal(c.children[0].el);
         });
 
-        it('must create container with children', () => {
+        it('must create container with children using tag', () => {
             const Button = Component.create`<button>${({ options }) => options.renderChildren()}</button>`;
             const OkButton = Component.create`<${Button} color="primary">ok</${Button}>`;
-    
+
             expect(OkButton).to.exist;
-    
+
             const c = OkButton.mount({}, document.body);
-    
+
             expect(document.querySelector('button').innerHTML).to.be.equal('ok');
             expect(c.el).to.be.equal(c.children[0].el);
             expect(c.children[0].options.color).to.be.equal('primary');
             c.render();
             expect(document.querySelector('button').innerHTML).to.be.equal('ok');
             expect(c.el).to.be.equal(c.children[0].el);
+        });
+
+        it('must create container with children using tag and key', () => {
+            const Button = Component.create`<button>${({ options }) => options.renderChildren()}</button>`;
+            const OkButton = Component.create`
+                <${Button} color="primary" key="ok">ok</${Button}>
+            `;
+
+            expect(OkButton).to.exist;
+
+            const c = OkButton.mount({}, document.body);
+
+            const child = c.children[0];
+
+            expect(c.el).to.be.equal(c.children[0].el);
+            c.render();
+            expect(c.el).to.be.equal(c.children[0].el);
+            expect(child.el).to.be.equal(c.children[0].el);
+        });
+
+        it('must create container with children component using tag and key', () => {
+            const Button = Component.create`<button>${({ options }) => options.renderChildren()}</button>`;
+            const Icon = Component.create`<span class="icon"></span>`;
+            const IconButton = Component.create`<${Button} color="primary" key="ok"><${Icon} /></${Button}>`;
+
+            expect(IconButton).to.exist;
+
+            const c = IconButton.mount({}, document.body);
+
+            const child = c.children[0];
+
+            expect(c.el).to.be.equal(c.children[0].el);
+            c.render();
+            expect(c.el).to.be.equal(c.children[0].el);
+            expect(child.el).to.be.equal(c.children[0].el);
+            expect(child.children[0].el).to.be.equal(c.children[0].children[0].el);
         });
     });
 });
