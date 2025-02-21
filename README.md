@@ -80,19 +80,32 @@ setInterval(() => model.seconds++, 1000);
 // Create Button component.
 const Button = Component.create`
     <button
-        onClick="${{ '&' : function() { this.options.onClick() } }}"
+        onClick=${{ '&' : function() { this.options.handleClick() } }}
     >
-        ${({ options }) => options.label}
+        ${({ options }) => options.renderChildren()}
     </button>
 `;
 // Create Counter component.
 const Counter = Component.create`
     <div>
-        ${({ model }) => Button.mount({ label : '-', onClick : () => model.count-- })}
-        <span>${({ model }) => model.count}</span>
-        ${({ model }) => Button.mount({ label : '+', onClick : () => model.count++ })}
+        <${Button} handleClick=${self => () => self.down()}>
+            -
+        </${Button}>
+        <span>
+            ${({ model }) => model.count}
+        </span>
+        <${Button} handleClick=${self => () => self.up()}>
+            +
+        </${Button}>
     </div>
-`;
+`.extend({
+    up() {
+        this.model.count++;
+    },
+    down() {
+        this.model.count--;
+    }
+});
 // Create model to store count.
 const model = new Model({ count: 0 });
 // Mount counter on body.
@@ -100,6 +113,52 @@ Counter.mount({ model }, document.body);
 ```
 
 [Try it on CodePen](https://codepen.io/8tentaculos/pen/ZEZarEQ?editors=0010)
+
+### Rendering iterables
+
+```javascript
+// Routes data.
+const routes = [
+    { label : 'Home', href : '#' },
+    { label : 'Faq', href : '#faq' },
+    { label : 'Contact', href : '#contact' },
+];
+// Create Button component.
+const Link = Component.create`
+    <a href="${({ options }) => options.href}">
+        ${({ options }) => options.label}
+    </a>
+`;
+// Create Navigation component.
+const Navigation = Component.create`
+    <nav>
+        ${({ options }) => options.routes.map(
+            ({ label, href }) => Link.mount({ label, href })
+        )}
+    </nav>
+`;
+// Create Page component.
+const Page = Component.create`
+    <main>
+        <${Navigation} routes=${({ options }) => options.routes} />
+        <section>
+            <h1>
+                ${({ state, options }) => options.routes.find(
+                    ({ href }) => href === (state.location || '#')
+                ).label}
+            </h1>
+        </section>
+    </main>
+`;
+// Local state to store location.
+const model = new Model({ location : document.location.hash });
+// Listen to location changes and update state.
+window.addEventListener('popstate', () => model.location = document.location.hash);
+// Mount counter on body.
+Page.mount({ routes, model }, document.body);
+```
+
+[Try it on CodePen](https://codepen.io/8tentaculos/pen/dyBMNbq?editors=0010)
 
 ## Why Choose **Rasti**?  
 
