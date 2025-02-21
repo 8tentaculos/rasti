@@ -53,6 +53,8 @@ export default class Emitter {
         if (!this.listeners[type]) this.listeners[type] = [];
         // Add listener.
         this.listeners[type].push(listener);
+        // Return a function to remove the listener.
+        return () => this.off(type, listener);
     }
 
     /**
@@ -74,7 +76,7 @@ export default class Emitter {
             };
         }
         // Add listener.
-        this.on(type, listener);
+        return this.on(type, listener);
     }
 
     /**
@@ -102,6 +104,8 @@ export default class Emitter {
             this.listeners[type] = this.listeners[type].filter(fn => fn !== listener);
             if (!this.listeners[type].length) delete this.listeners[type];
         }
+        // Remove listeners object if it's empty.
+        if (!Object.keys(this.listeners).length) delete this.listeners;
     }
 
     /**
