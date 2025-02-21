@@ -70,6 +70,8 @@ export default class View extends Emitter {
         // Store child views,
         // so they can be destroyed.
         this.children = [];
+        // Mutable array to store handlers to be called on destroy.
+        this.destroyQueue = [];
         // Extend "this" with options, mapping viewOptions keys.
         Object.keys(options).forEach(key => {
             if (viewOptions[key]) this[key] = options[key];
@@ -117,6 +119,9 @@ export default class View extends Emitter {
         this.undelegateEvents();
         // Unbind `this` events.
         this.off();
+        // Call destroy queue.
+        this.destroyQueue.forEach(fn => fn());
+        this.destroyQueue = [];
         // Call onDestroy lifecycle method
         this.onDestroy.apply(this, arguments);
         // Return `this` for chaining.
@@ -146,8 +151,8 @@ export default class View extends Emitter {
      * Call destroy method on children views.
      */
     destroyChildren() {
-        while (this.children.length)
-            this.children.shift().destroy();
+        this.children.forEach(child => child.destroy());
+        this.children = [];
     }
 
     /**
@@ -290,7 +295,10 @@ export default class View extends Emitter {
      * If you add any child views, you must call `this.destroyChildren`.
      * The default implementation sets the innerHTML of `this.el` with the result
      * of calling `this.template`, passing `this.model` as an argument.
-     * <br><br> &#9888; **Security Notice:** The default implementation utilizes `innerHTML` on the root elementfor rendering, which may introduce Cross - Site Scripting (XSS) risks. Ensure that any user-generated content is properly sanitized before inserting it into the DOM. For best practices on secure data handling, refer to the [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
+     * <br><br> &#9888; **Security Notice:** The default implementation utilizes `innerHTML` on the root element
+     * for rendering, which may introduce Cross - Site Scripting (XSS) risks. Ensure that any user-generated 
+     * content is properly sanitized before inserting it into the DOM. For best practices on secure data handling, 
+     * refer to the [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
      * @return {Rasti.View} Return `this` for chaining.
      */
     render() {
