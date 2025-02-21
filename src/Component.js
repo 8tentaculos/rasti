@@ -314,6 +314,8 @@ export default class Component extends View {
                     this.el = nextEl;
                 } else if (recycledChildren[0]) {
                     this.addChild(recycledChildren[0]);
+                } else {
+                    throw new Error('Container component must have a child component');
                 }
             } else {
                 this.el.innerHTML = inner;
