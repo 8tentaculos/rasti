@@ -98,6 +98,29 @@ describe('Rasti', () => {
 
             expect(count).to.be.equal(1);
         });
+
+        it('must return a function to remove listener', () => {
+            const e = new Emitter();
+            let count = 0;
+
+            const remove = e.on('myEvent', () => { count++; });
+
+            // Emit event 2 times.
+            e.emit('myEvent');
+            e.emit('myEvent');
+
+            expect(count).to.be.equal(2);
+
+            // Remove listener.
+            remove();
+
+            // Emit event 2 times.
+            e.emit('myEvent');
+            e.emit('myEvent');
+
+            expect(count).to.be.equal(2);
+            expect(e.listeners).to.not.exist;
+        });
     });
 
     describe('Model', () => {
@@ -298,17 +321,38 @@ describe('Rasti', () => {
             expect(v.el).to.be.equal(el);
         });
 
+        it('must be destroyed and removed from dom', () => {
+            const v = new View({
+                attributes : { id : 'test-node' },
+                events : { 'click' : () => {} },
+            });
+
+            v.on('event', () => {});
+
+            document.body.appendChild(v.render().el);
+            expect(document.getElementById('test-node')).to.exist;
+
+            expect(v.listeners).to.be.an('object');
+            expect(v.listeners['event']).to.be.an('array');
+            expect(v.delegatedEventListeners).to.be.an('array');
+            expect(v.delegateEvents).to.have.lengthOf(1);
+
+            v.destroy().removeElement();
+            expect(document.getElementById('test-node')).to.not.exist;
+
+            expect(v.listeners).to.not.exist;
+            expect(v.delegatedEventListeners).to.have.lengthOf(0);
+        });
+
         it('must call onDestroy', (done) => {
             const v = new View({ onDestroy : done });
             v.destroy();
         });
 
-        it('must be destroyed and removed from dom', () => {
-            const v = new View({ attributes : { id : 'test-node' } });
-            document.body.appendChild(v.render().el);
-            expect(document.getElementById('test-node')).to.exist;
-            v.destroy().removeElement();
-            expect(document.getElementById('test-node')).to.not.exist;
+        it('must call destroy queue', (done) => {
+            const v = new View();
+            v.destroyQueue.push(done);
+            v.destroy();
         });
 
         it('must addChild', () => {
@@ -577,6 +621,23 @@ describe('Rasti', () => {
             expect(
                 Component.create`<div id="test-node">${() => false}</div>`.mount().toString()
             ).to.be.equal(`<div ${Component.DATA_ATTRIBUTE_UID}="uid2" id="test-node"></div>`);
+        });
+
+        it('must be destroyed and stop listening', () => {
+            const c = Component.create`
+                <div id="test-node">${({ model }) => model.count}${({ state }) => state.count}</div>
+            `.mount({ model : new Model({ count : 0 }), state : new Model({ count : 0 }) }, document.body);
+
+            expect(document.getElementById('test-node').innerHTML).to.be.equal('00');
+
+            c.model.count = 1;
+            c.state.count = 1;
+            expect(document.getElementById('test-node').innerHTML).to.be.equal('11');
+
+            c.destroy();
+            c.model.count = 2;
+            c.state.count = 2;
+            expect(document.getElementById('test-node').innerHTML).to.be.equal('11');
         });
 
         it('must re render and destroy children', () => {
