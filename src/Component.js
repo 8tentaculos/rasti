@@ -48,12 +48,9 @@ export default class Component extends View {
         });
         // Store options by default.
         this.options = options;
-        // Bind onChange to this to be used as a listener.
-        // Store bound version, so it can be removed in the onDestroy method.
-        this.onChange = this.onChange.bind(this);
         // Listen to model changes and call onChange.
-        if (this.model && this.model.on) this.model.on('change', this.onChange);
-        if (this.state && this.state.on) this.state.on('change', this.onChange);
+        if (this.model && this.model.on) this.destroyQueue.push(this.model.on('change', this.onChange.bind(this)));
+        if (this.state && this.state.on) this.destroyQueue.push(this.state.on('change', this.onChange.bind(this)));
         // Call lifecycle method.
         this.onCreate.apply(this, arguments);
     }
@@ -168,9 +165,6 @@ export default class Component extends View {
      */
     destroy() {
         super.destroy.apply(this, arguments);
-        // Stop listening to `change`.
-        if (this.model && this.model.off) this.model.off('change', this.onChange);
-        if (this.state && this.state.off) this.state.off('change', this.onChange);
         // Set destroyed flag to prevent a last render after destroyed.
         this.destroyed = true;
         // Return `this` for chaining.
