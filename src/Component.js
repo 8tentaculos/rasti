@@ -414,10 +414,6 @@ export default class Component extends View {
             strings = ['', ''];
         }
 
-        const saveNl = str => str.replace(/\n/g, Component.PLACEHOLDER_NEW_LINE);
-        const revertNl = str => str.replace(new RegExp(Component.PLACEHOLDER_NEW_LINE, 'g'), '\n');
-        const removeNl = str => str.replace(new RegExp(Component.PLACEHOLDER_NEW_LINE, 'g'), '');
-
         const ph = Component.PLACEHOLDER_EXPRESSION('(\\d+)');
 
         /*
@@ -435,14 +431,12 @@ export default class Component extends View {
 
             const [
                 all,
-                nonVoid,
                 openTag,
                 openIdx,
                 nonVoidAttrs,
                 inner,
                 closeTag,
                 closeIdx,
-                ,
                 selfEnclosedTag,
                 selfEnclosedIdx,
                 selfEnclosedAttrs
@@ -452,14 +446,14 @@ export default class Component extends View {
 
             let attributes;
 
-            if (nonVoid) {
-                data.tag = typeof openIdx !== 'undefined' ? expressions[openIdx] : removeNl(openTag);
-                data.inner = revertNl(inner);
-                data.close = typeof closeIdx !== 'undefined' ? expressions[closeIdx] : removeNl(closeTag);
-                attributes = removeNl(nonVoidAttrs);
+            if (openTag) {
+                data.tag = typeof openIdx !== 'undefined' ? expressions[openIdx] : openTag;
+                data.inner = inner;
+                data.close = typeof closeIdx !== 'undefined' ? expressions[closeIdx] : closeTag;
+                attributes = nonVoidAttrs;
             } else {
-                data.tag = typeof selfEnclosedIdx !== 'undefined' ? expressions[selfEnclosedIdx] : removeNl(selfEnclosedTag);
-                attributes = removeNl(selfEnclosedAttrs);
+                data.tag = typeof selfEnclosedIdx !== 'undefined' ? expressions[selfEnclosedIdx] : selfEnclosedTag;
+                attributes = selfEnclosedAttrs;
             }
 
             const attributesRegExp = /([\w|data-]+)(?:=["']?((?:.(?!["']?\s+(?:\S+)=|\s*\/?[>"']))+.)["']?)?/g;
@@ -487,7 +481,7 @@ export default class Component extends View {
         const expandComponents = main => {
             // Match component tags.
             return main.replace(
-                new RegExp(`(<(${ph})(.*?)>(.*)</(${ph})>)|(<(${ph})(.*?) />)`,'g'),
+                new RegExp(`<(${ph})([^>]*)>([\\s\\S]*?)</(${ph})>|<(${ph})([^>]*)/>`,'g'),
                 function() {
                     const { tag, attributes, inner, close, raw } = parseMatch(arguments);
                     // No component found.
@@ -499,14 +493,14 @@ export default class Component extends View {
                         // Close component tag must match open component tag.
                         if (tag !== close) return raw;
                         // Recursively expand inner components.
-                        const expanded = expandComponents(saveNl(inner));
+                        const expanded = expandComponents(inner);
                         // Create renderChildren function.
                         renderChildren = function() {
-                            const match = removeNl(expanded).match(new RegExp(`^${ph}$`));
+                            const match = expanded.match(new RegExp(`^\\s*${ph}\\s*$`));
 
                             if (match) return getResult(expressions[match[1]], this, this);
 
-                            return revertNl(expanded).replace(new RegExp(ph, 'g'), (match, idx) => {
+                            return expanded.replace(new RegExp(ph, 'g'), (match, idx) => {
                                 return getResult(expressions[idx], this, this);
                             });
                         };
@@ -531,25 +525,23 @@ export default class Component extends View {
         let tag, attributes, events, template;
         // Create output string for main template. Add placeholders for new lines.
         const main = expandComponents(
-            saveNl(
-                strings.reduce((out, string, i) => {
-                    // Add string part.
-                    out.push(string);
-                    // Add expression placeholders or expression results.
-                    if (expressions[i]) {
-                        out.push(
-                            typeof expressions[i] === 'function' || typeof expressions[i] === 'object' ?
-                                Component.PLACEHOLDER_EXPRESSION(i) :
-                                expressions[i]
-                        );
-                    }
-                    return out;
-                }, []).join('').trim()
-            )
+            strings.reduce((out, string, i) => {
+                // Add string part.
+                out.push(string);
+                // Add expression placeholders or expression results.
+                if (expressions[i]) {
+                    out.push(
+                        typeof expressions[i] === 'function' || typeof expressions[i] === 'object' ?
+                            Component.PLACEHOLDER_EXPRESSION(i) :
+                            expressions[i]
+                    );
+                }
+                return out;
+            }, []).join('')
         );
 
         let match = main.match(
-            new RegExp(`(^<([a-z]+[1-6]?|${ph})(.*?)>(.*)</(\\2|${ph})>$)|(^<([a-z]+[1-6]?|${ph})(.*?)/>$)`)
+            new RegExp(`^\\s*<([a-z]+[1-6]?|${ph})([^>]*)>([\\s\\S]*?)</(\\1|${ph})>\\s*$|^\\s*<([a-z]+[1-6]?|${ph})([^>]*)/>\\s*$`)
         );
 
         if (match) {
@@ -616,7 +608,7 @@ export default class Component extends View {
             }
         } else {
             // It's a container.
-            match = removeNl(main).match(new RegExp(`^${ph}$`));
+            match = main.match(new RegExp(`^\\s*${ph}\\s*$`));
 
             if (match) {
                 // If there is only one expression and no tag, is a container.
@@ -645,7 +637,6 @@ export default class Component extends View {
 }
 
 Component.PLACEHOLDER_EXPRESSION = (idx) => `__RASTI_EXPRESSION_{${idx}}__`;
-Component.PLACEHOLDER_NEW_LINE = '__RASTI_NEW_LINE__';
 Component.DATA_ATTRIBUTE_UID = 'data-rasti-uid';
 Component.RENDER_TYPE_HYDRATE = 'hydrate';
 Component.RENDER_TYPE_RECYCLE = 'recycle';
