@@ -12,6 +12,14 @@ const componentOptions = {
     onRender : true
 };
 
+/*
+ * HTML tags that are self closing.
+ */
+const selfClosingTags = {
+    area : true, base : true, br : true, col : true, embed : true, hr : true, 
+    img : true, input : true, link : true, meta : true, source : true, track : true, wbr : true
+};
+
 /**
  * Components are a special kind of `View` that is designed to be easily composable, 
  * making it simple to add child views and build complex user interfaces.  
@@ -48,20 +56,42 @@ export default class Component extends View {
         });
         // Store options by default.
         this.options = options;
-        // Listen to model changes and call onChange.
-        if (this.model && this.model.on) this.destroyQueue.push(this.model.on('change', this.onChange.bind(this)));
-        if (this.state && this.state.on) this.destroyQueue.push(this.state.on('change', this.onChange.bind(this)));
         // Call lifecycle method.
         this.onCreate.apply(this, arguments);
     }
 
+    /**
+     * Listen to `change` event on a model or emitter object and call `onChange` lifecycle method.
+     * The listener will be removed when the component is destroyed.
+     * By default the component will be subscribed to `this.model` and `this.state`.
+     * @param {Rasti.Model} model A model or emitter object to listen to changes.
+     * @return {Rasti.Component} The component instance.
+     */
+    subscribe(model) {
+        // Check if model has `on` method.
+        if (!model.on) return;
+        // Store bound onChange method.
+        const onChange = this.onChange.bind(this);
+        // Listen to model changes and store unbind function.
+        const off = model.on('change', onChange);
+        // Add unbind function to destroy queue.
+        // So the component stops listening to model changes when destroyed.
+        this.destroyQueue.push(
+            // Rasti `on` method returns an unbind function.
+            // But other libraries may return the object itself.
+            typeof off === 'function' ? off : () => model.off('change', onChange)
+        );
+
+        return this;
+    }
+
     /*
-    * Tell if component is a container.
-    * In which case, it will not have an element by itself.
-    * It will render a single expression which is expected to return a single component as child.
-    * `this.el` will be a reference to that child component's element.
-    * @return {boolean}
-    */
+     * Tell if component is a container.
+     * In which case, it will not have an element by itself.
+     * It will render a single expression which is expected to return a single component as child.
+     * `this.el` will be a reference to that child component's element.
+     * @return {boolean}
+     */
     isContainer() {
         return !!(!this.tag && this.template);
     }
@@ -73,6 +103,8 @@ export default class Component extends View {
     ensureElement() {
         // If el is provided, delegate events.
         if (this.el) {
+            // If "this.el" is a function, call it to get the element.
+            this.el = getResult(this.el, this, this);
             this.delegateEvents();
         }
     }
@@ -95,26 +127,26 @@ export default class Component extends View {
         const remove = {};
         const html = [];
 
-        if (this.attributes) {
-            const attributes = getResult(this.attributes, this, this);
+        const attributes = { [Component.DATA_ATTRIBUTE_UID] : this.uid };
 
-            Object.keys(attributes).forEach(key => {
-                // Evaluate attribute value.
-                let value = attributes[key];
-                // Transform bool attribute values
-                if (value === false) {
-                    remove[key] = true;
-                } else if (value === true) {
-                    add[key] = '';
-                    html.push(key);
-                } else {
-                    if (value === null || typeof value === 'undefined') value = '';
+        if (this.attributes) Object.assign(attributes, getResult(this.attributes, this, this));
 
-                    add[key] = value;
-                    html.push(`${key}="${value}"`);
-                }
-            });
-        }
+        Object.keys(attributes).forEach(key => {
+            // Evaluate attribute value.
+            let value = attributes[key];
+            // Transform bool attribute values
+            if (value === false) {
+                remove[key] = true;
+            } else if (value === true) {
+                add[key] = '';
+                html.push(key);
+            } else {
+                if (value === null || typeof value === 'undefined') value = '';
+
+                add[key] = value;
+                html.push(`${key}="${value}"`);
+            }
+        });
 
         return { add, remove, html : html.join(' ') };
     }
@@ -126,6 +158,11 @@ export default class Component extends View {
      * @return {Rasti.Component} The component instance.
      */
     hydrate(parent) {
+        // Listen to model changes and call onChange.
+        if (this.model) this.subscribe(this.model);
+        // Listen to state changes and call onChange.
+        if (this.state) this.subscribe(this.state);
+
         if (!this.isContainer()) {
             this.el = this.findElement(parent);
             this.delegateEvents();
@@ -220,19 +257,16 @@ export default class Component extends View {
     toString() {
         // Normally there won't be any children, but if there are, destroy them.
         this.destroyChildren();
-        // Replace expressions of inner template.
-        const inner = this.template && this.template.call(this, component => {
-            // Add child component.
-            return this.addChild(component);
-        });
-        // If component is a container, return inner which will be an expression thats return a single component.
-        if (this.isContainer()) return inner;
+        // Container.
+        if (this.isContainer()) return this.template.call(this, this.addChild.bind(this));
         // Get tag name.
         const tag = getResult(this.tag, this, this) || 'div';
         // Get attributes.
         const attributes = this.getAttributes().html;
+        // Replace expressions of inner template.
+        const inner = this.template ? this.template.call(this, this.addChild.bind(this)) : '';
         // Generate outer template.
-        return this.template ?
+        return this.template || !selfClosingTags[tag] ?
             `<${tag} ${attributes}>${inner}</${tag}>` :
             `<${tag} ${attributes} />`;
     }
@@ -245,10 +279,12 @@ export default class Component extends View {
         if (this.destroyed) return this;
 
         if (!this.isContainer()) {
-            // If `this.el` is not present, create a new `this.tag` element.
+            // If `this.el` is not present, render the view as a string and hydrate it.
             if (!this.el) {
-                this.el = this.createElement(getResult(this.tag, this, this));
-                this.delegateEvents();
+                const fragment = this.createElement('template');
+                fragment.innerHTML = this;
+                this.hydrate(fragment.content);
+                return this;
             }
             // Set `this.el` attributes.
             const attributes = this.getAttributes();
@@ -346,14 +382,14 @@ export default class Component extends View {
     static extend(object) {
         const Current = this;
 
-        class Extended extends Current {}
+        class Component extends Current {}
 
         Object.assign(
-            Extended.prototype,
+            Component.prototype,
             typeof object === 'function' ? object(Current.prototype) : object
         );
 
-        return Extended;
+        return Component;
     }
 
     /**
@@ -365,7 +401,7 @@ export default class Component extends View {
      * @static
      * @param {object} options The view options.
      * @param {node} el Dom element to append the view element.
-     * @param {boolean} hydrate If true, the view will use existing html.
+     * @param {boolean} hydrate If true, the view will hydrate existing DOM.
      * @return {Rasti.Component}
      */
     static mount(options, el, hydrate) {
@@ -374,15 +410,13 @@ export default class Component extends View {
         // If `el` is passed, mount component.
         if (el) {
             if (hydrate) {
+                // Hydrate existing DOM.
                 view.toString();
+                view.hydrate(el);
             } else {
-                const fragment = this.prototype.createElement('template');
-                // Add html text into element inner html.
-                fragment.innerHTML = view;
-                // Add to dom.
-                el.appendChild(fragment.content.children[0]);
+                // Append element to the DOM.
+                el.appendChild(view.render().el);
             }
-            view.hydrate(el);
         }
         // Return view instance.
         return view;
@@ -393,15 +427,34 @@ export default class Component extends View {
      * and returns a new `Component` class.
      * - The template outer tag and attributes will be used to create the view's root element.
      * - Boolean attributes should be passed in the form of `attribute="${() => true}"`.
-     * - Event handlers should be passed, at the root element, in the form of `onEventName=${{'selector' : listener }}`. Where `selector` is a css selector. The event will be delegated to the view's root element.
+     * - Event handlers should be passed, at the root element, in the form of `onEventName=${{'selector' : listener }}`. Where `selector` is a CSS selector. The event will be delegated to the view's root element.
      * - The template inner HTML will be used as the view's template.
-     * - Template interpolations that are functions will be evaluated on the render process. Receiving the view instance as argument. And being bound to it.
-     * - If the function returns `null`, `undefined`, `false` or empty string, the interpolation won't render any content.
+     * - Template interpolations that are functions will be evaluated during the render process, receiving the view instance as an argument and being bound to it.
+     * - If the function returns `null`, `undefined`, `false`, or an empty string, the interpolation won't render any content.
      * - If the function returns a component instance, it will be added as a child component.
      * - If the function returns an array, each item will be evaluated as above.
+     * - If the tagged template contains only one expression that mounts a component, or the tags are references to a component, the component will be considered a <b>container</b>. It will render a single component as a child. `this.el` will be a reference to that child component's element.
      * @static
-     * @param {string} HTML template for the component. Or a function that mounts a sub component.
-     * @return {Rasti.Component}
+     * @param {string|function} strings - HTML template for the component or a function that mounts a sub component.
+     * @param {...*} expressions - The expressions to be interpolated within the template.
+     * @return {Rasti.Component} The newly created component class.
+     * @example
+     * import { Component } from 'rasti';
+     * // Create a button component.
+     * const Button = Component.create`
+     *     <button class="${({ options }) => options.className}">
+     *         ${self => self.renderChildren()}
+     *     </button>
+     * `;
+     * // Create a container using the button component
+     * const ButtonOk = Component.create`
+     *     <${Button} className="ok">Ok</${Button}>
+     * `;
+     * // Create a button component using a function
+     * const ButtonCancel = Component.create(() => Button.mount({
+     *     className: 'cancel',
+     *     renderChildren: () => 'Cancel'
+     * }));
      */
     static create(strings, ...expressions) {
         // Containers can be created using create as a functions instead of a tagged template.
@@ -433,9 +486,9 @@ export default class Component extends View {
                 inner,
                 closeTag,
                 closeIdx,
-                selfEnclosedTag,
-                selfEnclosedIdx,
-                selfEnclosedAttrs
+                selfClosingTag,
+                selfClosingIdx,
+                selfClosingAttrs
             ] = match;
 
             const data = { raw : all, attributes : {} };
@@ -448,8 +501,8 @@ export default class Component extends View {
                 data.close = typeof closeIdx !== 'undefined' ? expressions[closeIdx] : closeTag;
                 attributes = nonVoidAttrs;
             } else {
-                data.tag = typeof selfEnclosedIdx !== 'undefined' ? expressions[selfEnclosedIdx] : selfEnclosedTag;
-                attributes = selfEnclosedAttrs;
+                data.tag = typeof selfClosingIdx !== 'undefined' ? expressions[selfClosingIdx] : selfClosingTag;
+                attributes = selfClosingAttrs;
             }
 
             const attributesRegExp = /([\w|data-]+)(?:=["']?((?:.(?!["']?\s+(?:\S+)=|\s*\/?[>"']))+.)["']?)?/g;
@@ -566,8 +619,9 @@ export default class Component extends View {
             attributes = function() {
                 return Object.keys(onlyAttributes).reduce((out, key) => {
                     out[key] = getResult(onlyAttributes[key], this, this);
+
                     return out;
-                }, { [Component.DATA_ATTRIBUTE_UID] : this.uid });
+                }, {});
             };
             // Get events.
             events = function() {
