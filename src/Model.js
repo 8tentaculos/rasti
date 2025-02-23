@@ -163,7 +163,7 @@ export default class Model extends Emitter {
 
     /**
      * Return object representation of the model to be used for JSON serialization.
-     * By default returns `this.attributes`.
+     * By default returns a copy of `this.attributes`.
      * @return {object} Object representation of the model to be used for JSON serialization.
      */
     toJSON() {

@@ -39,6 +39,7 @@ setInterval(() => model.seconds++, 1000);
 
 * [Component](#module_component) ⇐ <code>Rasti.View</code>
     * _instance_
+        * [.subscribe(model)](#module_component__subscribe) ⇒ <code>Rasti.Component</code>
         * [.onCreate(options)](#module_component__oncreate)
         * [.onChange(model, changed)](#module_component__onchange)
         * [.onRender(type)](#module_component__onrender)
@@ -46,7 +47,20 @@ setInterval(() => model.seconds++, 1000);
     * _static_
         * [.extend(object)](#module_component_extend)
         * [.mount(options, el, hydrate)](#module_component_mount) ⇒ <code>Rasti.Component</code>
-        * [.create(HTML)](#module_component_create) ⇒ <code>Rasti.Component</code>
+        * [.create(strings, ...expressions)](#module_component_create) ⇒ <code>Rasti.Component</code>
+
+<a name="module_component__subscribe" id="module_component__subscribe"></a>
+### component.subscribe(model) ⇒ <code>Rasti.Component</code>
+Listen to `change` event on a model or emitter object and call `onChange` lifecycle method.
+The listener will be removed when the component is destroyed.
+By default the component will be subscribed to `this.model` and `this.state`.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+**Returns**: <code>Rasti.Component</code> - The component instance.  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| model | <code>Rasti.Model</code> | A model or emitter object to listen to changes. |
 
 <a name="module_component__oncreate" id="module_component__oncreate"></a>
 ### component.onCreate(options)
@@ -118,27 +132,49 @@ And returns the view instance.
 | --- | --- | --- |
 | options | <code>object</code> | The view options. |
 | el | <code>node</code> | Dom element to append the view element. |
-| hydrate | <code>boolean</code> | If true, the view will use existing html. |
+| hydrate | <code>boolean</code> | If true, the view will hydrate existing DOM. |
 
 <a name="module_component_create" id="module_component_create"></a>
-### Component.create(HTML) ⇒ <code>Rasti.Component</code>
+### Component.create(strings, ...expressions) ⇒ <code>Rasti.Component</code>
 Takes a tagged template containing an HTML string, 
 and returns a new `Component` class.
 - The template outer tag and attributes will be used to create the view's root element.
 - Boolean attributes should be passed in the form of `attribute="${() => true}"`.
-- Event handlers should be passed, at the root element, in the form of `onEventName=${{'selector' : listener }}`. Where `selector` is a css selector. The event will be delegated to the view's root element.
+- Event handlers should be passed, at the root element, in the form of `onEventName=${{'selector' : listener }}`. Where `selector` is a CSS selector. The event will be delegated to the view's root element.
 - The template inner HTML will be used as the view's template.
-- Template interpolations that are functions will be evaluated on the render process. Receiving the view instance as argument. And being bound to it.
-- If the function returns `null`, `undefined`, `false` or empty string, the interpolation won't render any content.
+- Template interpolations that are functions will be evaluated during the render process, receiving the view instance as an argument and being bound to it.
+- If the function returns `null`, `undefined`, `false`, or an empty string, the interpolation won't render any content.
 - If the function returns a component instance, it will be added as a child component.
 - If the function returns an array, each item will be evaluated as above.
+- If the tagged template contains only one expression that mounts a component, or the tags are references to a component, the component will be considered a <b>container</b>. It will render a single component as a child. `this.el` will be a reference to that child component's element.
 
 **Kind**: static method of [<code>Component</code>](#module_component)  
+**Returns**: <code>Rasti.Component</code> - The newly created component class.  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| HTML | <code>string</code> | template for the component. Or a function that mounts a sub component. |
+| strings | <code>string</code> \| <code>function</code> | HTML template for the component or a function that mounts a sub component. |
+| ...expressions | <code>\*</code> | The expressions to be interpolated within the template. |
 
+**Example**  
+```js
+import { Component } from 'rasti';
+// Create a button component.
+const Button = Component.create`
+    <button class="${({ options }) => options.className}">
+        ${self => self.renderChildren()}
+    </button>
+`;
+// Create a container using the button component
+const ButtonOk = Component.create`
+    <${Button} className="ok">Ok</${Button}>
+`;
+// Create a button component using a function
+const ButtonCancel = Component.create(() => Button.mount({
+    className: 'cancel',
+    renderChildren: () => 'Cancel'
+}));
+```
 <a name="module_emitter" id="module_emitter"></a>
 ## Emitter
 `Emitter` is a class that provides an easy way to implement the observer pattern 
@@ -366,7 +402,7 @@ The `change:attribute` event listener will receive the model instance, the new a
 <a name="module_model__tojson" id="module_model__tojson"></a>
 ### model.toJSON() ⇒ <code>object</code>
 Return object representation of the model to be used for JSON serialization.
-By default returns `this.attributes`.
+By default returns a copy of `this.attributes`.
 
 **Kind**: instance method of [<code>Model</code>](#module_model)  
 **Returns**: <code>object</code> - Object representation of the model to be used for JSON serialization.  
@@ -587,7 +623,10 @@ and to return `this` for chaining.
 If you add any child views, you must call `this.destroyChildren`.
 The default implementation sets the innerHTML of `this.el` with the result
 of calling `this.template`, passing `this.model` as an argument.
-<br><br> &#9888; **Security Notice:** The default implementation utilizes `innerHTML` on the root elementfor rendering, which may introduce Cross - Site Scripting (XSS) risks. Ensure that any user-generated content is properly sanitized before inserting it into the DOM. For best practices on secure data handling, refer to the [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
+<br><br> &#9888; **Security Notice:** The default implementation utilizes `innerHTML` on the root element
+for rendering, which may introduce Cross - Site Scripting (XSS) risks. Ensure that any user-generated 
+content is properly sanitized before inserting it into the DOM. For best practices on secure data handling, 
+refer to the [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
 **Returns**: <code>Rasti.View</code> - Return `this` for chaining.  

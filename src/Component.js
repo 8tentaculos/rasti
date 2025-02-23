@@ -478,18 +478,8 @@ export default class Component extends View {
         const parseMatch = match => {
             if (!match) return match;
 
-            const [
-                all,
-                openTag,
-                openIdx,
-                nonVoidAttrs,
-                inner,
-                closeTag,
-                closeIdx,
-                selfClosingTag,
-                selfClosingIdx,
-                selfClosingAttrs
-            ] = match;
+            const [all, openTag, openIdx, nonVoidAttrs, inner, closeTag, closeIdx,
+                selfClosingTag, selfClosingIdx, selfClosingAttrs] = match;
 
             const data = { raw : all, attributes : {} };
 
