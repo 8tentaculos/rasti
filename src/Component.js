@@ -476,35 +476,85 @@ export default class Component extends View {
          * @property {string} raw The whole match.
          */
         const parseMatch = match => {
-            if (!match) return match;
-
             const [all, openTag, openIdx, nonVoidAttrs, inner, closeTag, closeIdx,
                 selfClosingTag, selfClosingIdx, selfClosingAttrs] = match;
 
-            const data = { raw : all, attributes : {} };
-
-            let attributes;
-
+            const data = { raw : all, attributes : [] };
+            
+            let attributesStr;
+            
             if (openTag) {
                 data.tag = typeof openIdx !== 'undefined' ? expressions[openIdx] : openTag;
                 data.inner = inner;
                 data.close = typeof closeIdx !== 'undefined' ? expressions[closeIdx] : closeTag;
-                attributes = nonVoidAttrs;
+                attributesStr = nonVoidAttrs;
             } else {
                 data.tag = typeof selfClosingIdx !== 'undefined' ? expressions[selfClosingIdx] : selfClosingTag;
-                attributes = selfClosingAttrs;
+                attributesStr = selfClosingAttrs;
             }
 
-            const attributesRegExp = /([\w|data-]+)(?:=["']?((?:.(?!["']?\s+(?:\S+)=|\s*\/?[>"']))+.)["']?)?/g;
+            const attributesRegExp = new RegExp(`(${ph}|(?:data-)?\\w+)(?:=["']?(?:${ph}|((?:.(?!["']?\\s+(?:\\S+)=|\\s*/?[>"']))+.))["']?)?`, 'g');
 
             let attributeMatch;
-            while ((attributeMatch = attributesRegExp.exec(attributes)) !== null) {
-                const value = typeof attributeMatch[2] === 'undefined' ? true : attributeMatch[2];
-                const valueMatch = value && value.match && value.match(new RegExp(ph));
-                data.attributes[attributeMatch[1]] = valueMatch ? expressions[valueMatch[1]] : value;
+            while ((attributeMatch = attributesRegExp.exec(attributesStr)) !== null) {
+                const [, attribute, attributeIdx, valueIdx, value] = attributeMatch;
+
+                const attr = typeof attributeIdx !== 'undefined' ? expressions[attributeIdx] : attribute;
+                const val = typeof valueIdx !== 'undefined' ? expressions[valueIdx] : value;
+
+                if (typeof val !== 'undefined') {
+                    data.attributes.push([attr, val]);
+                } else {
+                    data.attributes.push([attr]);
+                }
             }
 
             return data;
+        };
+
+        /*
+         * Expand attributes.
+         * @param attributes {array} Array of attributes as key, value pairs.
+         * @param ctx {object} Context to evaluate expressions.
+         * @return {object}
+         * @property {object} all All attributes.
+         * @property {object} events Event listeners.
+         * @property {object} attributes Attributes.
+         */
+        const expandAttributes = (attributes, ctx) => {
+            const out = attributes.reduce((out, pair) => {
+                const attribute = getResult(pair[0], ctx, ctx);
+                // Attribute without value. 
+                if (pair.length === 1) {
+                    if (typeof attribute === 'object') {
+                        // Expand objects as attributes.
+                        out.all = Object.assign(out.all, attribute);
+                    } else if (typeof attribute === 'string') {
+                        // Treat as boolean.
+                        out.all[attribute] = true;
+                    }
+                } else {
+                    // Attribute with value.
+                    const value = getResult(pair[1], ctx, ctx);
+                    out.all[attribute] = value;
+                }
+
+                return out;
+            }, { all : {}, events : {}, attributes : {} });
+
+            Object.keys(out.all).forEach(key => {
+                // Check if key is an event listener.
+                const match = key.match(/on(([A-Z]{1}[a-z]+)+)/);
+                if (match && match[1]) {
+                    // Add event listener.
+                    out.events[match[1].toLowerCase()] = out.all[key];
+                } else {
+                    // Add attribute.
+                    out.attributes[key] = out.all[key];
+                }
+            });
+
+            return out;
         };
 
         /*
@@ -546,10 +596,7 @@ export default class Component extends View {
                     }
                     // Create mount function.
                     const mount = function() {
-                        const options = Object.keys(attributes).reduce((out, key) => {
-                            out[key] = getResult(attributes[key], this, this);
-                            return out;
-                        }, {});
+                        const options = expandAttributes(attributes, this).all;
                         // Mount component.
                         return tag.mount(Object.assign({ renderChildren }, options));
                     };
@@ -590,31 +637,14 @@ export default class Component extends View {
             tag = function() {
                 return getResult(tagExpression, this, this);
             };
-            // Events to be delegated.
-            const onlyEvents = {};
-            const onlyAttributes = Object.keys(attributesAndEvents).reduce((out, key) => {
-                // Is Event?
-                const matchKey = key.match(/on(([A-Z]{1}[a-z]+)+)/);
-                // Is event handler. Add to eventTypes object.
-                if (matchKey && matchKey[1]) {
-                    const eventType = matchKey[1].toLowerCase();
-                    onlyEvents[eventType] = attributesAndEvents[key];
-                    return out;
-                }
-                // Is attribute. Add to attributes object.
-                out[key] = attributesAndEvents[key];
-                return out;
-            }, {});
             // Get attributes.
             attributes = function() {
-                return Object.keys(onlyAttributes).reduce((out, key) => {
-                    out[key] = getResult(onlyAttributes[key], this, this);
-
-                    return out;
-                }, {});
+                return expandAttributes(attributesAndEvents, this).attributes;
             };
             // Get events.
             events = function() {
+                const onlyEvents = expandAttributes(attributesAndEvents, this).events;
+
                 return Object.keys(onlyEvents).reduce((out, key) => {
                     const typeListeners = getResult(onlyEvents[key], this, this);
 
