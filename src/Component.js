@@ -493,10 +493,10 @@ export default class Component extends View {
                 attributesStr = selfClosingAttrs;
             }
 
-            const attributesRegExp = new RegExp(`(${ph}|(?:data-)?\\w+)(?:=["']?(?:${ph}|((?:.(?!["']?\\s+(?:\\S+)=|\\s*/?[>"']))+.))["']?)?`, 'g');
+            const regExp = new RegExp(`(${ph}|(?:data-)?\\w+)(?:=["']?(?:${ph}|((?:.(?!["']?\\s+(?:\\S+)=|\\s*/?[>"']))+.))["']?)?`, 'g');
 
             let attributeMatch;
-            while ((attributeMatch = attributesRegExp.exec(attributesStr)) !== null) {
+            while ((attributeMatch = regExp.exec(attributesStr)) !== null) {
                 const [, attribute, attributeIdx, valueIdx, value] = attributeMatch;
 
                 const attr = typeof attributeIdx !== 'undefined' ? expressions[attributeIdx] : attribute;
@@ -521,9 +521,9 @@ export default class Component extends View {
          * @property {object} events Event listeners.
          * @property {object} attributes Attributes.
          */
-        const expandAttributes = (attributes, ctx) => {
+        const expandAttributes = (attributes, getResult) => {
             const out = attributes.reduce((out, pair) => {
-                const attribute = getResult(pair[0], ctx, ctx);
+                const attribute = getResult(pair[0]);
                 // Attribute without value. 
                 if (pair.length === 1) {
                     if (typeof attribute === 'object') {
@@ -535,7 +535,7 @@ export default class Component extends View {
                     }
                 } else {
                     // Attribute with value.
-                    const value = getResult(pair[1], ctx, ctx);
+                    const value = getResult(pair[1]);
                     out.all[attribute] = value;
                 }
 
@@ -585,20 +585,29 @@ export default class Component extends View {
                         const expanded = expandComponents(inner);
                         // Create renderChildren function.
                         renderChildren = function() {
-                            const match = expanded.match(new RegExp(`^\\s*${ph}\\s*$`));
+                            const regExp = new RegExp(`${ph}`, 'g');
+                            const out = [];
+                            let lastIndex = 0;
+                            let match;
+                            // Generate one dimensional array with strings and expressions, 
+                            // so all the components are added as children by the parent component.
+                            while ((match = regExp.exec(expanded)) !== null) {
+                                const before = expanded.slice(lastIndex, match.index);
+                                out.push(before, getResult(expressions[match[1]], this, this));
+                                lastIndex = match.index + match[0].length;
+                            }
+                            out.push(expanded.slice(lastIndex));
 
-                            if (match) return getResult(expressions[match[1]], this, this);
-
-                            return expanded.replace(new RegExp(ph, 'g'), (match, idx) => {
-                                return getResult(expressions[idx], this, this);
-                            });
+                            return out;
                         };
                     }
                     // Create mount function.
                     const mount = function() {
-                        const options = expandAttributes(attributes, this).all;
+                        const options = expandAttributes(attributes, value => getResult(value, this, this)).all;
+                        // Add renderChildren function to options.
+                        if (renderChildren) options.renderChildren = renderChildren.bind(this);
                         // Mount component.
-                        return tag.mount(Object.assign({ renderChildren }, options));
+                        return tag.mount(options);
                     };
                     // Add mount function to expression.
                     expressions.push(mount);
@@ -639,11 +648,11 @@ export default class Component extends View {
             };
             // Get attributes.
             attributes = function() {
-                return expandAttributes(attributesAndEvents, this).attributes;
+                return expandAttributes(attributesAndEvents, value => getResult(value, this, this)).attributes;
             };
             // Get events.
             events = function() {
-                const onlyEvents = expandAttributes(attributesAndEvents, this).events;
+                const onlyEvents = expandAttributes(attributesAndEvents, value => getResult(value, this, this)).events;
 
                 return Object.keys(onlyEvents).reduce((out, key) => {
                     const typeListeners = getResult(onlyEvents[key], this, this);
