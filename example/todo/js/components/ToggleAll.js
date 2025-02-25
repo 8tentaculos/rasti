@@ -1,4 +1,4 @@
-import { Component } from 'https://esm.run/rasti';
+import { Component } from 'rasti';
 
 const ToggleAll = Component.create`
     <span
@@ -13,7 +13,7 @@ const ToggleAll = Component.create`
             class="toggle-all" 
             id="toggle-all" 
             type="checkbox"
-            checked="${({ model }) => !!model.todos.length && !model.remaining.length}"
+            ${({ model }) => !!model.todos.length && !model.remaining.length ? 'checked' : ''}
          />
         <label for="toggle-all">Mark all as complete</label>
     </span>

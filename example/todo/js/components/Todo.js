@@ -1,5 +1,5 @@
-import { Model } from 'https://esm.run/rasti';
-import { Component } from 'https://esm.run/rasti';
+import { Model } from 'rasti';
+import { Component } from 'rasti';
 
 import { ENTER_KEY, ESC_KEY } from '../constants.js';
 
@@ -20,8 +20,8 @@ const Todo = Component.create`
         onFocusOut=${{ '.edit' : function () { this.close() } }}
         class="${({ state }) => state.editing && 'editing'}"
     >
-        <div class="view${({ model }) => model.completed ? ' completed' : ''}">
-            <input class="toggle" type="checkbox" checked="${({ model }) => model.completed}">
+        <div class="${({ model }) => ['view', model.completed ? 'completed' : ''].join(' ')}">
+            <input class="toggle" type="checkbox" ${({ model }) => model.completed ? 'checked' : ''}>
             <label>${({ model }) => model.title}</label>
             <button class="destroy"></button>
         </div>
@@ -30,7 +30,7 @@ const Todo = Component.create`
 `.extend({
     preinitialize() {
         // Internal component state.
-        this.state = new Model({ editing: false });
+        this.state = new Model({ editing : false });
     },
     onRender() {
         // Focus if editing.

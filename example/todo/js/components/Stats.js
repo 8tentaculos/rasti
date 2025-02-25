@@ -1,4 +1,4 @@
-import { Component } from 'https://esm.run/rasti';
+import { Component } from 'rasti';
 
 const Stats = Component.create`
     <footer
@@ -11,20 +11,16 @@ const Stats = Component.create`
         }}
     >
         <span class="todo-count">
-            <strong>${({ model }) => model.remaining.length}</strong> ${({ model }) => model.remaining.length === 1 ? 'item' : 'items'} left
+            <strong>${({ model }) => model.remaining.length}</strong> 
+            ${({ model }) => model.remaining.length === 1 ? 'item' : 'items'} left
         </span>
-        <ul class="filters ${({ model }) => model.filter}">
-            <li>
-                <a class="all">All</a>
-            </li>
-            <li>
-                <a class="remaining">Remaining</a>
-            </li>
-            <li>
-                <a class="completed">Completed</a>
-            </li>
+        <ul class="${({ model }) => ['filters', model.filter].join(' ')}">
+            <li><a class="all">All</a></li>
+            <li><a class="remaining">Remaining</a></li>
+            <li><a class="completed">Completed</a></li>
         </ul>
-        ${({ model }) => model.completed.length ? '<button class="clear-completed">Clear completed</button>' : ''}
+        ${({ model }) => model.completed.length ?
+            '<button class="clear-completed">Clear completed</button>' : null}
     </footer>
 `;
 
