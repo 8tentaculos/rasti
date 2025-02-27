@@ -29,10 +29,10 @@ const viewOptions = {
  * @module
  * @extends Rasti.Emitter
  * @param {object} options Object containing options. The following keys will be merged to `this`: el, tag, attributes, events, model, template, onDestroy.
- * @property {node} el Every view has a root element, `this.el`. If not present it will be created. If a function is passed, it will be called to get the element. It will be bound to the view instance and receive the view instance as argument.
- * @property {string} tag If `this.el` is not present, an element will be created using `this.tag`. Default is `div`. If a function is passed, it will be called to get the tag name. It will be bound to the view instance and receive the view instance as argument.
- * @property {object} attributes If `this.el` is not present, an element will be created using `this.attributes`. If a function is passed, it will be called to get the attributes. It will be bound to the view instance and receive the view instance as argument.
- * @property {object} events Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to root element. If a function is passed, it will be called to get the events. It will be bound to the view instance and receive the view instance as argument.
+ * @property {node} el Every view has a root element, `this.el`. If not present it will be created. If a function is passed, it will be called to get the element. It will be bound to the view instance.
+ * @property {string} tag If `this.el` is not present, an element will be created using `this.tag`. Default is `div`. If a function is passed, it will be called to get the tag name. It will be bound to the view instance.
+ * @property {object} attributes If `this.el` is not present, an element will be created using `this.attributes`. If a function is passed, it will be called to get the attributes. It will be bound to the view instance.
+ * @property {object} events Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to root element. If a function is passed, it will be called to get the events. It will be bound to the view instance.
  * @property {object} model A `Rasti.Model` or any object containing data and business logic.
  * @property {function} template A function that receives data and returns a markup string (e.g., HTML).
  * @example

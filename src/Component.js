@@ -227,8 +227,8 @@ const selfClosingTags = {
  * @extends Rasti.View
  * @param {object} options Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onRender, onCreate, onChange.
  * @property {string} key A unique key to identify the component. Used to recycle child components.
- * @property {object} model A `Rasti.Model` or any emitter object containing data and business logic.
- * @property {object} state A `Rasti.Model` or any emitter object containing data and business logic, to be used as internal state.
+ * @property {object} model A `Rasti.Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method.
+ * @property {object} state A `Rasti.Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method.
  * @example
  * import { Component, Model } from 'rasti';
  * // Create Timer component.
