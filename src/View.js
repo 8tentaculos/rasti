@@ -165,13 +165,13 @@ export default class View extends Emitter {
         // Element is already present.
         if (this.el) {
             // If "this.el" is a function, call it to get the element.
-            this.el = getResult(this.el, this, this);
+            this.el = getResult(this.el, this);
         } else {
             // If "this.el" is not present,
             // create a new element according "this.tag"
             // and "this.attributes".
-            const tag = getResult(this.tag, this, this);
-            const attrs = getResult(this.attributes, this, this);
+            const tag = getResult(this.tag, this);
+            const attrs = getResult(this.attributes, this);
             this.el = this.createElement(tag, attrs);
         }
         // Delegate events on element.
@@ -228,7 +228,7 @@ export default class View extends Emitter {
      * };
      */
     delegateEvents(events) {
-        if (!events) events = getResult(this.events, this, this);
+        if (!events) events = getResult(this.events, this);
         if (!events) return this;
 
         if (this.delegatedEventListeners.length) this.undelegateEvents();

@@ -54,7 +54,7 @@ export default class Model extends Emitter {
         // Call preinitialize.
         this.preinitialize.apply(this, arguments);
         // Get defaults. If `this.defaults` is a function, call it.
-        const defaults = getResult(this.defaults, this, this) || {};
+        const defaults = getResult(this.defaults, this) || {};
         // Set attributes object with defaults and passed attributes.
         this.attributes = Object.assign({}, defaults, attrs);
         // Object to store previous attributes when a change occurs.

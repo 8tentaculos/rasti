@@ -44,6 +44,7 @@ setInterval(() => model.seconds++, 1000);
         * [.onChange(model, changed)](#module_component__onchange)
         * [.onRender(type)](#module_component__onrender)
         * [.onDestroy(options)](#module_component__ondestroy)
+        * [.partial(strings, ...expressions)](#module_component__partial) ⇒ <code>array</code>
     * _static_
         * [.extend(object)](#module_component_extend)
         * [.mount(options, el, hydrate)](#module_component_mount) ⇒ <code>Rasti.Component</code>
@@ -107,6 +108,20 @@ Lifecycle method. Called when the view is destroyed.
 | Param | Type | Description |
 | --- | --- | --- |
 | options | <code>object</code> | Options object or any arguments passed to `destroy` method. |
+
+<a name="module_component__partial" id="module_component__partial"></a>
+### component.partial(strings, ...expressions) ⇒ <code>array</code>
+Tagged template helper method.
+Used to create a partial template.
+It will return a one dimensional array with strings and expressions.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+**Returns**: <code>array</code> - Array containing strings and expressions.  
+
+| Param | Type |
+| --- | --- |
+| strings | <code>\*</code> | 
+| ...expressions | <code>any</code> | 
 
 <a name="module_component_extend" id="module_component_extend"></a>
 ### Component.extend(object)

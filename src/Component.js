@@ -2,6 +2,15 @@ import View from './View.js';
 import getResult from './utils/getResult.js';
 
 /*
+ * Same as getResult, but pass context as argument to the expression.
+ * Used to evaluate expressions in the context of a component.
+ * @param {any} expression The expression to be evaluated.
+ * @param {any} context The context to call the expression with.
+ * @return {any} The result of the evaluated expression.
+ */
+const renderExpression = (expression, context) => getResult(expression, context, context);
+
+/*
  * Generate string with placeholders for functions and objects.
  * @param strings {array} Array of strings.
  * @param expressions {array} Array of expressions.
@@ -49,15 +58,15 @@ const splitPlaceholders = (main, expressions) => {
 /*
  * Expand attributes.
  * @param attributes {array} Array of attributes as key, value pairs.
- * @param ctx {object} Context to evaluate expressions.
+ * @param renderExpression {function} Function to render expressions.
  * @return {object}
  * @property {object} all All attributes.
  * @property {object} events Event listeners.
  * @property {object} attributes Attributes.
  */
-const expandAttributes = (attributes, getResult) => {
+const expandAttributes = (attributes, renderExpression) => {
     const out = attributes.reduce((out, pair) => {
-        const attribute = getResult(pair[0]);
+        const attribute = renderExpression(pair[0]);
         // Attribute without value. 
         if (pair.length === 1) {
             if (typeof attribute === 'object') {
@@ -69,7 +78,7 @@ const expandAttributes = (attributes, getResult) => {
             }
         } else {
             // Attribute with value.
-            const value = getResult(pair[1]);
+            const value = renderExpression(pair[1]);
             out.all[attribute] = value;
         }
 
@@ -120,12 +129,12 @@ const expandComponents = (main, expressions) => {
                 const list = splitPlaceholders(expandComponents(inner, expressions), expressions);
                 // Create renderChildren function.
                 renderChildren = function() {
-                    return list.map(item => getResult(item, this, this));
+                    return list.map(item => renderExpression(item, this));
                 };
             }
             // Create mount function.
             const mount = function() {
-                const options = expandAttributes(attributes, value => getResult(value, this, this)).all;
+                const options = expandAttributes(attributes, value => renderExpression(value, this)).all;
                 // Add renderChildren function to options.
                 if (renderChildren) options.renderChildren = renderChildren.bind(this);
                 // Mount component.
@@ -292,7 +301,7 @@ export default class Component extends View {
         // If el is provided, delegate events.
         if (this.el) {
             // If "this.el" is a function, call it to get the element.
-            this.el = getResult(this.el, this, this);
+            this.el = getResult(this.el, this);
             this.delegateEvents();
         }
     }
@@ -317,7 +326,7 @@ export default class Component extends View {
 
         const attributes = { [Component.DATA_ATTRIBUTE_UID] : this.uid };
 
-        if (this.attributes) Object.assign(attributes, getResult(this.attributes, this, this));
+        if (this.attributes) Object.assign(attributes, getResult(this.attributes, this));
 
         Object.keys(attributes).forEach(key => {
             // Evaluate attribute value.
@@ -442,17 +451,17 @@ export default class Component extends View {
                 addPlaceholders(strings, expressions), expressions
             ), expressions
         ).map(item => {
-            return getResult(item, this, this);
+            return renderExpression(item, this);
         });
     }
 
     getRecyclePlaceholder() {
         if (this.isContainer()) return this.children[0].getRecyclePlaceholder();
         
-        const tag = getResult(this.tag, this, this) || 'div';
+        const tag = getResult(this.tag, this) || 'div';
         const attributes = `${Component.DATA_ATTRIBUTE_UID}="${this.uid}"`;
 
-        return this.template ?
+        return this.template || !selfClosingTags[tag] ?
             `<${tag} ${attributes}></${tag}>` :
             `<${tag} ${attributes} />`;
     }
@@ -466,7 +475,7 @@ export default class Component extends View {
         // Container.
         if (this.isContainer()) return this.template.call(this, this.addChild.bind(this));
         // Get tag name.
-        const tag = getResult(this.tag, this, this) || 'div';
+        const tag = getResult(this.tag, this) || 'div';
         // Get attributes.
         const attributes = this.getAttributes().html;
         // Replace expressions of inner template.
@@ -683,18 +692,18 @@ export default class Component extends View {
             const { tag : tagExpression, attributes : attributesAndEvents, inner, close } = parseMatch(match, expressions);
             // Get tag, attributes.
             tag = function() {
-                return getResult(tagExpression, this, this);
+                return renderExpression(tagExpression, this);
             };
             // Get attributes.
             attributes = function() {
-                return expandAttributes(attributesAndEvents, value => getResult(value, this, this)).attributes;
+                return expandAttributes(attributesAndEvents, value => renderExpression(value, this)).attributes;
             };
             // Get events.
             events = function() {
-                const onlyEvents = expandAttributes(attributesAndEvents, value => getResult(value, this, this)).events;
+                const onlyEvents = expandAttributes(attributesAndEvents, value => renderExpression(value, this)).events;
 
                 return Object.keys(onlyEvents).reduce((out, key) => {
-                    const typeListeners = getResult(onlyEvents[key], this, this);
+                    const typeListeners = renderExpression(onlyEvents[key], this);
 
                     Object.keys(typeListeners).forEach(selector => {
                         out[`${key}${selector === '&' ? '' : ` ${selector}`}`] = typeListeners[selector];
@@ -707,7 +716,7 @@ export default class Component extends View {
             if (close) {
                 const list = inner ? splitPlaceholders(inner, expressions) : [];
                 template = function(addChild) {
-                    return list.map(item => getResult(item, this, this)).flat().map(item => {
+                    return list.map(item => renderExpression(item, this)).flat().map(item => {
                         if (typeof item !== 'undefined' && item !== null && item !== false &&  item !== true) {
                             return item instanceof Component ? addChild(item) : item;
                         }
@@ -723,7 +732,7 @@ export default class Component extends View {
                 // If there is only one expression and no tag, is a container.
                 template = function(addChild) {
                     // Replace expressions.
-                    return addChild(getResult(expressions[match[1]], this, this)).toString();
+                    return addChild(renderExpression(expressions[match[1]], this)).toString();
                 };
             } else {
                 throw new SyntaxError('Invalid component');
