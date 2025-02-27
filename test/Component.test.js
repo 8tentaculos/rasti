@@ -216,15 +216,19 @@ describe('Component', () => {
 
     it('must re render and destroy children', () => {
         const Button = Component.create`<button>click me</button>`;
-        const Main = Component.create`<div id="test-node">${() => Button.mount()}</div>`;
+        const Main = Component.create`<div id="test-node">${({ model }) => Button.mount({ model })}</div>`;
 
         const c = Main.mount({ model : new Model({ count : 0 }) }, document.body);
 
         const child = c.children[0];
+        expect(document.querySelector('button')).to.be.equal(c.children[0].el);
+        expect(document.getElementById('test-node').innerHTML).to.be.equal('<button data-rasti-uid="uid2">click me</button>');
 
         c.model.count = 1;
 
         expect(c.children[0]).not.to.be.equal(child);
+        expect(document.querySelector('button')).to.be.equal(c.children[0].el);
+        expect(document.getElementById('test-node').innerHTML).to.be.equal('<button data-rasti-uid="uid3">click me</button>');
     });
 
     it('must re render and recycle children with key', () => {
