@@ -470,5 +470,16 @@ describe('Component', () => {
         expect(child.el).to.be.equal(c.children[0].el);
         expect(child.children[0].el).to.be.equal(c.children[0].children[0].el);
     });
+
+    it('must render partial', () => {
+        const Button = Component.create`<button>click me</button>`;
+
+        const c = Component.create`
+            <div id="test-node">${({ partial }) => partial`<div>${Button.mount()}</div>`}</div>
+        `.mount({}, document.body);
+
+        expect(document.getElementById('test-node').innerHTML).to.be.equal('<div><button data-rasti-uid="uid2">click me</button></div>');
+        expect(c.children[0].el).to.be.equal(document.querySelector('button'));
+    });  
 });
 

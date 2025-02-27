@@ -2,6 +2,194 @@ import View from './View.js';
 import getResult from './utils/getResult.js';
 
 /*
+ * Generate string with placeholders for functions and objects.
+ * @param strings {array} Array of strings.
+ * @param expressions {array} Array of expressions.
+ * @return {string} String with placeholders.
+ */
+const addPlaceholders = (strings, expressions) => 
+    strings.reduce((out, string, i) => {
+        // Add string part.
+        out.push(string);
+        // Add expression placeholders or expression results.
+        if (expressions[i]) {
+            out.push(
+                typeof expressions[i] === 'function' || typeof expressions[i] === 'object' ?
+                    Component.PLACEHOLDER_EXPRESSION(i) :
+                    expressions[i]
+            );
+        }
+        return out;
+    }, []).join('');
+
+/*
+ * Generate one dimensional array with strings and expressions.
+ * @param main {string} The main template containing placeholders.
+ * @param expressions {array} Array of expressions to replace placeholders.
+ * @return {array} Array containing strings and expressions.
+ */
+const splitPlaceholders = (main, expressions) => {
+    const PH = Component.PLACEHOLDER_EXPRESSION('(\\d+)');
+    const regExp = new RegExp(`${PH}`, 'g');
+    const out = [];
+    let lastIndex = 0;
+    let match;
+    // Generate one dimensional array with strings and expressions, 
+    // so all the components are added as children by the parent component.
+    while ((match = regExp.exec(main)) !== null) {
+        const before = main.slice(lastIndex, match.index);
+        out.push(before, expressions[match[1]]);
+        lastIndex = match.index + match[0].length;
+    }
+    out.push(main.slice(lastIndex));
+
+    return out;
+};
+
+/*
+ * Expand attributes.
+ * @param attributes {array} Array of attributes as key, value pairs.
+ * @param ctx {object} Context to evaluate expressions.
+ * @return {object}
+ * @property {object} all All attributes.
+ * @property {object} events Event listeners.
+ * @property {object} attributes Attributes.
+ */
+const expandAttributes = (attributes, getResult) => {
+    const out = attributes.reduce((out, pair) => {
+        const attribute = getResult(pair[0]);
+        // Attribute without value. 
+        if (pair.length === 1) {
+            if (typeof attribute === 'object') {
+                // Expand objects as attributes.
+                out.all = Object.assign(out.all, attribute);
+            } else if (typeof attribute === 'string') {
+                // Treat as boolean.
+                out.all[attribute] = true;
+            }
+        } else {
+            // Attribute with value.
+            const value = getResult(pair[1]);
+            out.all[attribute] = value;
+        }
+
+        return out;
+    }, { all : {}, events : {}, attributes : {} });
+
+    Object.keys(out.all).forEach(key => {
+        // Check if key is an event listener.
+        const match = key.match(/on(([A-Z]{1}[a-z]+)+)/);
+        if (match && match[1]) {
+            // Add event listener.
+            out.events[match[1].toLowerCase()] = out.all[key];
+        } else {
+            // Add attribute.
+            out.attributes[key] = out.all[key];
+        }
+    });
+
+    return out;
+};
+
+/*
+ * Replace component tags with expressions.
+ * `<${Component} />` or `<${Component}></${Component}>` will be replaced 
+ * by a function that mounts the component.
+ * Returns the template with component tags replaced by expressions placeholders 
+ * modifies the expressions array adding the mount functions.
+ * @param main {string} The main template.
+ * @return {string} The template with components tags replaced by expressions
+ * placeholders.
+ */
+const expandComponents = (main, expressions) => {
+    const PH = Component.PLACEHOLDER_EXPRESSION('(\\d+)');
+    // Match component tags.
+    return main.replace(
+        new RegExp(`<(${PH})([^>]*)>([\\s\\S]*?)</(${PH})>|<(${PH})([^>]*)/>`,'g'),
+        function() {
+            const { tag, attributes, inner, close, raw } = parseMatch(arguments, expressions);
+            // No component found.
+            if (!(tag.prototype instanceof Component)) return raw;
+
+            let renderChildren;
+            // Non void component.
+            if (close) {
+                // Close component tag must match open component tag.
+                if (tag !== close) return raw;
+                // Recursively expand inner components.
+                const list = splitPlaceholders(expandComponents(inner, expressions), expressions);
+                // Create renderChildren function.
+                renderChildren = function() {
+                    return list.map(item => getResult(item, this, this));
+                };
+            }
+            // Create mount function.
+            const mount = function() {
+                const options = expandAttributes(attributes, value => getResult(value, this, this)).all;
+                // Add renderChildren function to options.
+                if (renderChildren) options.renderChildren = renderChildren.bind(this);
+                // Mount component.
+                return tag.mount(options);
+            };
+            // Add mount function to expression.
+            expressions.push(mount);
+            // Replace whole string with expression placeholder.
+            return Component.PLACEHOLDER_EXPRESSION(expressions.length - 1);
+        }
+    );
+};
+
+/*
+ * Parse match data to get tag, attributes, inner html and close tag.
+ * @param match {array}
+ * @return {object}
+ * @property {string} tag The tag.
+ * @property {string} inner The inner html.
+ * @property {string} close The closing tag.
+ * @property {array} attributes Array of attributes as key, value pairs.
+ * @property {string} raw The whole match.
+ */
+const parseMatch = (match, expressions) => {
+    const PH = Component.PLACEHOLDER_EXPRESSION('(\\d+)');
+
+    const [all, openTag, openIdx, nonVoidAttrs, inner, closeTag, closeIdx,
+        selfClosingTag, selfClosingIdx, selfClosingAttrs] = match;
+
+    const data = { raw : all, attributes : [] };
+
+    let attributesStr;
+    if (openTag) {
+        // Non void element.
+        data.tag = typeof openIdx !== 'undefined' ? expressions[openIdx] : openTag;
+        data.inner = inner;
+        data.close = typeof closeIdx !== 'undefined' ? expressions[closeIdx] : closeTag;
+        attributesStr = nonVoidAttrs;
+    } else {
+        // Self closing element.
+        data.tag = typeof selfClosingIdx !== 'undefined' ? expressions[selfClosingIdx] : selfClosingTag;
+        attributesStr = selfClosingAttrs;
+    }
+    // Parse attributes.
+    const regExp = new RegExp(`(${PH}|(?:data-)?\\w+)(?:=["']?(?:${PH}|((?:.(?!["']?\\s+(?:\\S+)=|\\s*/?[>"']))+.))["']?)?`, 'g');
+
+    let attributeMatch;
+    while ((attributeMatch = regExp.exec(attributesStr)) !== null) {
+        const [, attribute, attributeIdx, valueIdx, value] = attributeMatch;
+
+        const attr = typeof attributeIdx !== 'undefined' ? expressions[attributeIdx] : attribute;
+        const val = typeof valueIdx !== 'undefined' ? expressions[valueIdx] : value;
+
+        if (typeof val !== 'undefined') {
+            data.attributes.push([attr, val]);
+        } else {
+            data.attributes.push([attr]);
+        }
+    }
+
+    return data;
+};
+
+/*
  * These option keys will be extended on the component instance.
  */
 const componentOptions = {
@@ -240,6 +428,24 @@ export default class Component extends View {
      */
     onDestroy() {}
 
+    /**
+     * Tagged template helper method.
+     * Used to create a partial template.
+     * It will return a one dimensional array with strings and expressions.
+     * @param {*} strings 
+     * @param  {...any} expressions
+     * @return {array} Array containing strings and expressions.
+     */
+    partial(strings, ...expressions) {
+        return splitPlaceholders(
+            expandComponents(
+                addPlaceholders(strings, expressions), expressions
+            ), expressions
+        ).map(item => {
+            return getResult(item, this, this);
+        });
+    }
+
     getRecyclePlaceholder() {
         if (this.isContainer()) return this.children[0].getRecyclePlaceholder();
         
@@ -457,191 +663,24 @@ export default class Component extends View {
      * }));
      */
     static create(strings, ...expressions) {
+        const PH = Component.PLACEHOLDER_EXPRESSION('(\\d+)');
         // Containers can be created using create as a functions instead of a tagged template.
         if (typeof strings === 'function') {
             expressions = [strings];
             strings = ['', ''];
         }
 
-        const ph = Component.PLACEHOLDER_EXPRESSION('(\\d+)');
-
-        /*
-         * Parse match data.
-         * @param match {array}
-         * @return {object}
-         * @property {string} tag The tag.
-         * @property {string} inner The inner html.
-         * @property {string} close The closing tag.
-         * @property {object} attributes Object containing attributes.
-         * @property {string} raw The whole match.
-         */
-        const parseMatch = match => {
-            const [all, openTag, openIdx, nonVoidAttrs, inner, closeTag, closeIdx,
-                selfClosingTag, selfClosingIdx, selfClosingAttrs] = match;
-
-            const data = { raw : all, attributes : [] };
-            
-            let attributesStr;
-            
-            if (openTag) {
-                data.tag = typeof openIdx !== 'undefined' ? expressions[openIdx] : openTag;
-                data.inner = inner;
-                data.close = typeof closeIdx !== 'undefined' ? expressions[closeIdx] : closeTag;
-                attributesStr = nonVoidAttrs;
-            } else {
-                data.tag = typeof selfClosingIdx !== 'undefined' ? expressions[selfClosingIdx] : selfClosingTag;
-                attributesStr = selfClosingAttrs;
-            }
-
-            const regExp = new RegExp(`(${ph}|(?:data-)?\\w+)(?:=["']?(?:${ph}|((?:.(?!["']?\\s+(?:\\S+)=|\\s*/?[>"']))+.))["']?)?`, 'g');
-
-            let attributeMatch;
-            while ((attributeMatch = regExp.exec(attributesStr)) !== null) {
-                const [, attribute, attributeIdx, valueIdx, value] = attributeMatch;
-
-                const attr = typeof attributeIdx !== 'undefined' ? expressions[attributeIdx] : attribute;
-                const val = typeof valueIdx !== 'undefined' ? expressions[valueIdx] : value;
-
-                if (typeof val !== 'undefined') {
-                    data.attributes.push([attr, val]);
-                } else {
-                    data.attributes.push([attr]);
-                }
-            }
-
-            return data;
-        };
-
-        /*
-         * Expand attributes.
-         * @param attributes {array} Array of attributes as key, value pairs.
-         * @param ctx {object} Context to evaluate expressions.
-         * @return {object}
-         * @property {object} all All attributes.
-         * @property {object} events Event listeners.
-         * @property {object} attributes Attributes.
-         */
-        const expandAttributes = (attributes, getResult) => {
-            const out = attributes.reduce((out, pair) => {
-                const attribute = getResult(pair[0]);
-                // Attribute without value. 
-                if (pair.length === 1) {
-                    if (typeof attribute === 'object') {
-                        // Expand objects as attributes.
-                        out.all = Object.assign(out.all, attribute);
-                    } else if (typeof attribute === 'string') {
-                        // Treat as boolean.
-                        out.all[attribute] = true;
-                    }
-                } else {
-                    // Attribute with value.
-                    const value = getResult(pair[1]);
-                    out.all[attribute] = value;
-                }
-
-                return out;
-            }, { all : {}, events : {}, attributes : {} });
-
-            Object.keys(out.all).forEach(key => {
-                // Check if key is an event listener.
-                const match = key.match(/on(([A-Z]{1}[a-z]+)+)/);
-                if (match && match[1]) {
-                    // Add event listener.
-                    out.events[match[1].toLowerCase()] = out.all[key];
-                } else {
-                    // Add attribute.
-                    out.attributes[key] = out.all[key];
-                }
-            });
-
-            return out;
-        };
-
-        /*
-         * Replace component tags with expressions.
-         * `<${Component} />` or `<${Component}></${Component}>` will be replaced 
-         * by a function that mounts the component.
-         * Returns the template with component tags replaced by expressions placeholders 
-         * modifies the expressions array adding the mount functions.
-         * @param main {string} The main template.
-         * @return {string} The template with components tags replaced by expressions
-         * placeholders.
-         */
-        const expandComponents = main => {
-            // Match component tags.
-            return main.replace(
-                new RegExp(`<(${ph})([^>]*)>([\\s\\S]*?)</(${ph})>|<(${ph})([^>]*)/>`,'g'),
-                function() {
-                    const { tag, attributes, inner, close, raw } = parseMatch(arguments);
-                    // No component found.
-                    if (!(tag.prototype instanceof Component)) return raw;
-
-                    let renderChildren;
-                    // Non void component.
-                    if (close) {
-                        // Close component tag must match open component tag.
-                        if (tag !== close) return raw;
-                        // Recursively expand inner components.
-                        const expanded = expandComponents(inner);
-                        // Create renderChildren function.
-                        renderChildren = function() {
-                            const regExp = new RegExp(`${ph}`, 'g');
-                            const out = [];
-                            let lastIndex = 0;
-                            let match;
-                            // Generate one dimensional array with strings and expressions, 
-                            // so all the components are added as children by the parent component.
-                            while ((match = regExp.exec(expanded)) !== null) {
-                                const before = expanded.slice(lastIndex, match.index);
-                                out.push(before, getResult(expressions[match[1]], this, this));
-                                lastIndex = match.index + match[0].length;
-                            }
-                            out.push(expanded.slice(lastIndex));
-
-                            return out;
-                        };
-                    }
-                    // Create mount function.
-                    const mount = function() {
-                        const options = expandAttributes(attributes, value => getResult(value, this, this)).all;
-                        // Add renderChildren function to options.
-                        if (renderChildren) options.renderChildren = renderChildren.bind(this);
-                        // Mount component.
-                        return tag.mount(options);
-                    };
-                    // Add mount function to expression.
-                    expressions.push(mount);
-                    // Replace whole string with expression placeholder.
-                    return Component.PLACEHOLDER_EXPRESSION(expressions.length - 1);
-                }
-            );
-        };
-
         let tag, attributes, events, template;
         // Create output string for main template. Add placeholders for new lines.
-        const main = expandComponents(
-            strings.reduce((out, string, i) => {
-                // Add string part.
-                out.push(string);
-                // Add expression placeholders or expression results.
-                if (expressions[i]) {
-                    out.push(
-                        typeof expressions[i] === 'function' || typeof expressions[i] === 'object' ?
-                            Component.PLACEHOLDER_EXPRESSION(i) :
-                            expressions[i]
-                    );
-                }
-                return out;
-            }, []).join('')
-        );
+        const main = expandComponents(addPlaceholders(strings, expressions), expressions);
 
         let match = main.match(
-            new RegExp(`^\\s*<([a-z]+[1-6]?|${ph})([^>]*)>([\\s\\S]*?)</(\\1|${ph})>\\s*$|^\\s*<([a-z]+[1-6]?|${ph})([^>]*)/>\\s*$`)
+            new RegExp(`^\\s*<([a-z]+[1-6]?|${PH})([^>]*)>([\\s\\S]*?)</(\\1|${PH})>\\s*$|^\\s*<([a-z]+[1-6]?|${PH})([^>]*)/>\\s*$`)
         );
 
         if (match) {
             // It's a component with tag.
-            const { tag : tagExpression, attributes : attributesAndEvents, inner, close } = parseMatch(match);
+            const { tag : tagExpression, attributes : attributesAndEvents, inner, close } = parseMatch(match, expressions);
             // Get tag, attributes.
             tag = function() {
                 return getResult(tagExpression, this, this);
@@ -666,28 +705,19 @@ export default class Component extends View {
             };
             // If there is a closing tag, get template.
             if (close) {
+                const list = inner ? splitPlaceholders(inner, expressions) : [];
                 template = function(addChild) {
-                    // Replace expressions.
-                    return (inner || '').replace(new RegExp(ph, 'g'), (match, idx) => {
-                        // Eval expression. Pass view as argument.
-                        const result = getResult(expressions[idx], this, this);
-                        // Treat all expressions as arrays.
-                        const results = result instanceof Array ? result : [result];
-                        // Replace expression with the result of the evaluation.
-                        return results.reduce((out, result) => {
-                            // Add non falsy results.
-                            if (typeof result !== 'undefined' && result !== null && result !== false &&  result !== true) {
-                                // If result is a component, add it as a child.
-                                out.push(result instanceof Component ? addChild(result) : result);
-                            }
-                            return out;
-                        }, []).join('');
-                    });
+                    return list.map(item => getResult(item, this, this)).flat().map(item => {
+                        if (typeof item !== 'undefined' && item !== null && item !== false &&  item !== true) {
+                            return item instanceof Component ? addChild(item) : item;
+                        }
+                        return '';
+                    }).join('');
                 };
             }
         } else {
             // It's a container.
-            match = main.match(new RegExp(`^\\s*${ph}\\s*$`));
+            match = main.match(new RegExp(`^\\s*${PH}\\s*$`));
 
             if (match) {
                 // If there is only one expression and no tag, is a container.
