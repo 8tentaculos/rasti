@@ -125,6 +125,7 @@ describe('Component', () => {
                 ${() => 'required'}
                 disabled="${({ model }) => model.disabled}"
                 data-custom="my-data"
+                aria-label="my-label"
                 ${() => ({ minlength : 5, placeholder : 'my placeholder' })}
             />
         `.mount({ model : new Model({ disabled : false }) }, document.body);
@@ -138,6 +139,7 @@ describe('Component', () => {
         expect(el.hasAttribute('required')).to.be.true;
         expect(el.getAttribute('minlength')).to.be.equal('5');
         expect(el.getAttribute('placeholder')).to.be.equal('my placeholder');
+        expect(el.getAttribute('aria-label')).to.be.equal('my-label');
 
         c.render();
 
@@ -148,6 +150,7 @@ describe('Component', () => {
         expect(el.hasAttribute('required')).to.be.true;
         expect(el.getAttribute('minlength')).to.be.equal('5');
         expect(el.getAttribute('placeholder')).to.be.equal('my placeholder');
+        expect(el.getAttribute('aria-label')).to.be.equal('my-label');
     });
 
     it('must re render and change attributes', () => {

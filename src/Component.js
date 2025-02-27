@@ -179,7 +179,7 @@ const parseMatch = (match, expressions) => {
         attributesStr = selfClosingAttrs;
     }
     // Parse attributes.
-    const regExp = new RegExp(`(${PH}|(?:data-)?\\w+)(?:=["']?(?:${PH}|((?:.(?!["']?\\s+(?:\\S+)=|\\s*/?[>"']))+.))["']?)?`, 'g');
+    const regExp = new RegExp(`(${PH}|[\\w-]+)(?:=["']?(?:${PH}|((?:.(?!["']?\\s+(?:\\S+)=|\\s*/?[>"']))+.))["']?)?`, 'g');
 
     let attributeMatch;
     while ((attributeMatch = regExp.exec(attributesStr)) !== null) {
