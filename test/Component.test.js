@@ -190,9 +190,17 @@ describe('Component', () => {
     });
 
     it('must be destroyed and stop listening', () => {
+        // Mock a model that returns the model instance from `on` method.
+        class CustomModel extends Model {
+            on(...args) {
+                super.on(...args);
+                return this;
+            }
+        }
+
         const c = Component.create`
             <div id="test-node">${({ model }) => model.count}${({ state }) => state.count}</div>
-        `.mount({ model : new Model({ count : 0 }), state : new Model({ count : 0 }) }, document.body);
+        `.mount({ model : new Model({ count : 0 }), state : new CustomModel({ count : 0 }) }, document.body);
 
         expect(document.getElementById('test-node').innerHTML).to.be.equal('00');
 
