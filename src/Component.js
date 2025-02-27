@@ -406,17 +406,17 @@ export default class Component extends View {
     }
 
     /**
-     * Lifecycle method. Called when the view is created at the end of the constructor.
+     * Lifecycle method. Called when the view is created, at the end of the `constructor`.
      * @param options {object} The view options.
      */
     onCreate() {}
 
     /**
      * Lifecycle method. Called when model emits `change` event.
-     * By default calls render method.
-     * This method should be extended with custom logic.
+     * By default calls `render` method.
+     * This method can be extended with custom logic.
      * Maybe comparing new attributes with previous ones and calling
-     * render when needed. Or doing some dom transformation.
+     * render when needed.
      * @param model {Rasti.Model} The model that emitted the event.
      * @param changed {object} Object containing keys and values that has changed.
      * @param [...args] {any} Any extra arguments passed to set method.
@@ -440,10 +440,32 @@ export default class Component extends View {
     /**
      * Tagged template helper method.
      * Used to create a partial template.
-     * It will return a one dimensional array with strings and expressions.
-     * @param {*} strings 
-     * @param  {...any} expressions
-     * @return {array} Array containing strings and expressions.
+     * It will return a one-dimensional array with strings and expressions.
+     * @param {TemplateStringsArray} strings - Template strings.
+     * @param  {...any} expressions - Template expressions.
+     * @return {Array} Array containing strings and expressions.
+     * @example
+     * import { Component } from 'rasti';
+     * // Create a Title component.
+     * const Title = Component.create`
+     *     <h1>${self => self.renderChildren()}</h1>
+     * `;
+     * // Create Main component.
+     * const Main = Component.create`
+     *     <main>
+     *         ${self => self.renderHeader()}
+     *     </main>
+     * `.extend({
+     *     // Render header method.
+     *     // Use `partial` to render an HTML template adding children components.
+     *     renderHeader() {
+     *         return this.partial`
+     *             <header>
+     *                 <${Title}>${self => self.model.title}</${Title}>
+     *             </header>
+     *         `;
+     *     }
+     * });
      */
     partial(strings, ...expressions) {
         return splitPlaceholders(

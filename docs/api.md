@@ -44,7 +44,7 @@ setInterval(() => model.seconds++, 1000);
         * [.onChange(model, changed)](#module_component__onchange)
         * [.onRender(type)](#module_component__onrender)
         * [.onDestroy(options)](#module_component__ondestroy)
-        * [.partial(strings, ...expressions)](#module_component__partial) ⇒ <code>array</code>
+        * [.partial(strings, ...expressions)](#module_component__partial) ⇒ <code>Array</code>
     * _static_
         * [.extend(object)](#module_component_extend)
         * [.mount(options, el, hydrate)](#module_component_mount) ⇒ <code>Rasti.Component</code>
@@ -65,7 +65,7 @@ By default the component will be subscribed to `this.model` and `this.state`.
 
 <a name="module_component__oncreate" id="module_component__oncreate"></a>
 ### component.onCreate(options)
-Lifecycle method. Called when the view is created at the end of the constructor.
+Lifecycle method. Called when the view is created, at the end of the `constructor`.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 
@@ -76,10 +76,10 @@ Lifecycle method. Called when the view is created at the end of the constructor.
 <a name="module_component__onchange" id="module_component__onchange"></a>
 ### component.onChange(model, changed)
 Lifecycle method. Called when model emits `change` event.
-By default calls render method.
-This method should be extended with custom logic.
+By default calls `render` method.
+This method can be extended with custom logic.
 Maybe comparing new attributes with previous ones and calling
-render when needed. Or doing some dom transformation.
+render when needed.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 
@@ -110,19 +110,43 @@ Lifecycle method. Called when the view is destroyed.
 | options | <code>object</code> | Options object or any arguments passed to `destroy` method. |
 
 <a name="module_component__partial" id="module_component__partial"></a>
-### component.partial(strings, ...expressions) ⇒ <code>array</code>
+### component.partial(strings, ...expressions) ⇒ <code>Array</code>
 Tagged template helper method.
 Used to create a partial template.
-It will return a one dimensional array with strings and expressions.
+It will return a one-dimensional array with strings and expressions.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
-**Returns**: <code>array</code> - Array containing strings and expressions.  
+**Returns**: <code>Array</code> - Array containing strings and expressions.  
 
-| Param | Type |
-| --- | --- |
-| strings | <code>\*</code> | 
-| ...expressions | <code>any</code> | 
+| Param | Type | Description |
+| --- | --- | --- |
+| strings | <code>TemplateStringsArray</code> | Template strings. |
+| ...expressions | <code>any</code> | Template expressions. |
 
+**Example**  
+```js
+import { Component } from 'rasti';
+// Create a Title component.
+const Title = Component.create`
+    <h1>${self => self.renderChildren()}</h1>
+`;
+// Create Main component.
+const Main = Component.create`
+    <main>
+        ${self => self.renderHeader()}
+    </main>
+`.extend({
+    // Render header method.
+    // Use `partial` to render an HTML template adding children components.
+    renderHeader() {
+        return this.partial`
+            <header>
+                <${Title}>${self => self.model.title}</${Title}>
+            </header>
+        `;
+    }
+});
+```
 <a name="module_component_extend" id="module_component_extend"></a>
 ### Component.extend(object)
 Helper method used to extend a `Component`, creating a subclass.
