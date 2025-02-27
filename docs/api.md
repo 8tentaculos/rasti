@@ -17,8 +17,8 @@ Components are defined with the `create` static method, which takes a tagged tem
 | Name | Type | Description |
 | --- | --- | --- |
 | key | <code>string</code> | A unique key to identify the component. Used to recycle child components. |
-| model | <code>object</code> | A `Rasti.Model` or any emitter object containing data and business logic. |
-| state | <code>object</code> | A `Rasti.Model` or any emitter object containing data and business logic, to be used as internal state. |
+| model | <code>object</code> | A `Rasti.Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method. |
+| state | <code>object</code> | A `Rasti.Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method. |
 
 **Example**  
 ```js
@@ -319,7 +319,7 @@ and `change:attribute` events.
 
 | Name | Type | Description |
 | --- | --- | --- |
-| defaults | <code>object</code> | Object containing default attributes for the model. It will extend `this.attributes`. |
+| defaults | <code>object</code> | Object containing default attributes for the model. It will extend `this.attributes`. If a function is passed, it will be called to get the defaults. It will be bound to the model instance. |
 | previous | <code>object</code> | Object containing previous attributes when a change occurs. |
 
 **Example**  
@@ -445,10 +445,10 @@ If `this.el` is not present, an element will be created using `this.tag` (defaul
 
 | Name | Type | Description |
 | --- | --- | --- |
-| el | <code>node</code> | Every view has a root element, `this.el`. If not present it will be created. If a function is passed, it will be called to get the element. It will be bound to the view instance and receive the view instance as argument. |
-| tag | <code>string</code> | If `this.el` is not present, an element will be created using `this.tag`. Default is `div`. If a function is passed, it will be called to get the tag name. It will be bound to the view instance and receive the view instance as argument. |
-| attributes | <code>object</code> | If `this.el` is not present, an element will be created using `this.attributes`. If a function is passed, it will be called to get the attributes. It will be bound to the view instance and receive the view instance as argument. |
-| events | <code>object</code> | Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to root element. If a function is passed, it will be called to get the events. It will be bound to the view instance and receive the view instance as argument. |
+| el | <code>node</code> | Every view has a root element, `this.el`. If not present it will be created. If a function is passed, it will be called to get the element. It will be bound to the view instance. |
+| tag | <code>string</code> | If `this.el` is not present, an element will be created using `this.tag`. Default is `div`. If a function is passed, it will be called to get the tag name. It will be bound to the view instance. |
+| attributes | <code>object</code> | If `this.el` is not present, an element will be created using `this.attributes`. If a function is passed, it will be called to get the attributes. It will be bound to the view instance. |
+| events | <code>object</code> | Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to root element. If a function is passed, it will be called to get the events. It will be bound to the view instance. |
 | model | <code>object</code> | A `Rasti.Model` or any object containing data and business logic. |
 | template | <code>function</code> | A function that receives data and returns a markup string (e.g., HTML). |
 
