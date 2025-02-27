@@ -474,12 +474,20 @@ describe('Component', () => {
     it('must render partial', () => {
         const Button = Component.create`<button>click me</button>`;
 
-        const c = Component.create`
-            <div id="test-node">${({ partial }) => partial`<div>${Button.mount()}</div>`}</div>
+        const c1 = Component.create`
+            <div id="test-node-1">${(self) => self.partial`<div>${({ options }) => options && Button.mount()}</div>`}</div>
         `.mount({}, document.body);
 
-        expect(document.getElementById('test-node').innerHTML).to.be.equal('<div><button data-rasti-uid="uid2">click me</button></div>');
-        expect(c.children[0].el).to.be.equal(document.querySelector('button'));
+        expect(document.getElementById('test-node-1').innerHTML).to.be.equal('<div><button data-rasti-uid="uid2">click me</button></div>');
+        expect(c1.children[0].el).to.be.equal(document.querySelector('button'));
+
+        const c2 = Component.create`
+            <div id="test-node-2">${({ partial, options }) => partial`<div><${Button} /><span>${options && Button.mount()}</span></div>`}</div>
+        `.mount({}, document.body);
+
+        expect(c2.children.length).to.be.equal(2);
+        expect(c2.children[0].el).to.be.equal(document.querySelector('#test-node-2 button'));
+        expect(c2.children[1].el).to.be.equal(document.querySelector('#test-node-2 span button'));
     });  
 });
 
