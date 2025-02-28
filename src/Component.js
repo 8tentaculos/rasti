@@ -129,7 +129,7 @@ const expandComponents = (main, expressions) => {
                 const list = splitPlaceholders(expandComponents(inner, expressions), expressions);
                 // Create renderChildren function.
                 renderChildren = function() {
-                    return list.map(item => renderExpression(item, this));
+                    return list.map(item => renderExpression(item, this)).flat();
                 };
             }
             // Create mount function.
@@ -474,7 +474,7 @@ export default class Component extends View {
             ), expressions
         ).map(item => {
             return renderExpression(item, this);
-        });
+        }).flat();
     }
 
     getRecyclePlaceholder() {
