@@ -11,7 +11,7 @@ import getResult from './utils/getResult.js';
 const renderExpression = (expression, context) => getResult(expression, context, context);
 
 /*
- * Generate string with placeholders for functions and objects.
+ * Generate string with placeholders for interpolated expressions.
  * @param strings {array} Array of strings.
  * @param expressions {array} Array of expressions.
  * @return {string} String with placeholders.
@@ -20,13 +20,9 @@ const addPlaceholders = (strings, expressions) =>
     strings.reduce((out, string, i) => {
         // Add string part.
         out.push(string);
-        // Add expression placeholders or expression results.
-        if (expressions[i]) {
-            out.push(
-                typeof expressions[i] === 'function' || typeof expressions[i] === 'object' ?
-                    Component.PLACEHOLDER_EXPRESSION(i) :
-                    expressions[i]
-            );
+        // Add expression placeholders.
+        if (typeof expressions[i] !== 'undefined') {
+            out.push(Component.PLACEHOLDER_EXPRESSION(i));
         }
         return out;
     }, []).join('');
