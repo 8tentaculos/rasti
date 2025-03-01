@@ -55,10 +55,11 @@ import { Model, Component } from 'https://esm.run/rasti';
 const { Model, Component } = Rasti;
 ```
 
-### A simple `Component`
+### Create a `Component`
 
 ```javascript
 // Create Timer component.
+// Renders seconds from model.
 const Timer = Component.create`
     <div>
         Seconds: <span>${({ model }) => model.seconds}</span>
@@ -67,6 +68,7 @@ const Timer = Component.create`
 // Create model to store seconds.
 const model = new Model({ seconds: 0 });
 // Mount timer on body.
+// Pass model as options.
 Timer.mount({ model }, document.body);
 // Increment `model.seconds` every second.
 setInterval(() => model.seconds++, 1000);
@@ -78,6 +80,8 @@ setInterval(() => model.seconds++, 1000);
 
 ```javascript
 // Create Button component.
+// Calls `options.handleClick` when clicked.
+// Renders children passed to it.
 const Button = Component.create`
     <button
         onClick=${{ '&' : function() { this.options.handleClick() } }}
@@ -86,29 +90,23 @@ const Button = Component.create`
     </button>
 `;
 // Create Counter component.
+// Adds two Buttons to increment and decrement count.
+// Displays current count.
 const Counter = Component.create`
     <div>
-        <${Button} handleClick=${self => () => self.down()}>
-            -
+        <div>Counter: ${() => model.count}</div>
+        <${Button} handleClick=${({ model }) => () => model.count++}>
+            Increment
         </${Button}>
-        <span>
-            ${({ model }) => model.count}
-        </span>
-        <${Button} handleClick=${self => () => self.up()}>
-            +
+        <${Button} handleClick=${({ model }) => () => model.count--}>
+            Decrement
         </${Button}>
     </div>
-`.extend({
-    up() {
-        this.model.count++;
-    },
-    down() {
-        this.model.count--;
-    }
-});
+`;
 // Create model to store count.
 const model = new Model({ count: 0 });
 // Mount counter on body.
+// Pass model as options.
 Counter.mount({ model }, document.body);
 ```
 
@@ -117,19 +115,20 @@ Counter.mount({ model }, document.body);
 ### Rendering iterables
 
 ```javascript
-// Routes data.
+// Routes data to be used in Navigation.
 const routes = [
     { label : 'Home', href : '#' },
     { label : 'Faq', href : '#faq' },
     { label : 'Contact', href : '#contact' },
 ];
-// Create Button component.
+// Create Link component to be used in Navigation.
 const Link = Component.create`
     <a href="${({ options }) => options.href}">
         ${({ options }) => options.label}
     </a>
 `;
 // Create Navigation component.
+// Iterates over routes and mounts Link components.
 const Navigation = Component.create`
     <nav>
         ${({ options }) => options.routes.map(
@@ -138,6 +137,7 @@ const Navigation = Component.create`
     </nav>
 `;
 // Create Page component.
+// Adds Navigation and displays current route label as title.
 const Page = Component.create`
     <main>
         <${Navigation} routes=${({ options }) => options.routes} />
@@ -155,6 +155,7 @@ const model = new Model({ location : document.location.hash });
 // Listen to location changes and update state.
 window.addEventListener('popstate', () => model.location = document.location.hash);
 // Mount counter on body.
+// Pass routes and model as options.
 Page.mount({ routes, model }, document.body);
 ```
 
@@ -162,17 +163,21 @@ Page.mount({ routes, model }, document.body);
 
 ## Why Choose **Rasti**?  
 
-- **Small Projects**: Perfect for lightweight apps, free from unnecessary overhead or tooling.  
-- **Efficient Rendering**: Ideal for rendering large dynamic tables or datasets without requiring virtual scrolling.  
-- **Legacy Maintenance**: Modernize your **Backbone.js** views gradually, allowing for incremental updates without the need for a complete rewrite.
+### Why Choose Rasti?  
+
+- **Lightweight Applications**: Designed for streamlined apps, free from unnecessary overhead or tooling.  
+- **High-Performance Rendering**: Optimized for scenarios where speed matters, delivering fast updates and efficient rendering—ideal for large dynamic tables or datasets without needing virtual scrolling.  
+- **Seamless Legacy Integration**: Modernize your **Backbone.js** views progressively, enabling incremental improvements without a full rewrite.  
+
 
 ## Example
 
 The rasti [GitHub repository](https://github.com/8tentaculos/rasti) includes, in the [example folder](https://github.com/8tentaculos/rasti/tree/master/example/todo), an example [TODO application](https://rasti.js.org/example/todo/index.html) that can be used as starter project.
 
-## API
+## API Documentation
 
-Complete [API documentation](/docs/api.md).
+For detailed information on how to use **Rasti**, refer to the [API documentation](/docs/api.md).
+
 
 ## Powered by **Rasti**
 
