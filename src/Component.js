@@ -179,11 +179,11 @@ const parseMatch = (match, expressions) => {
         attributesStr = selfClosingAttrs;
     }
     // Parse attributes.
-    const regExp = new RegExp(`(${PH}|[\\w-]+)(?:=["']?(?:${PH}|((?:.(?!["']?\\s+(?:\\S+)=|\\s*/?[>"']))+.))["']?)?`, 'g');
+    const regExp = new RegExp(`(${PH}|[\\w-]+)(?:=(["']?)(?:${PH}|((?:.?(?!["']?\\s+(?:\\S+)=|\\s*/?[>"']))+.))\\3)?`, 'g');
 
     let attributeMatch;
     while ((attributeMatch = regExp.exec(attributesStr)) !== null) {
-        const [, attribute, attributeIdx, valueIdx, value] = attributeMatch;
+        const [, attribute, attributeIdx,, valueIdx, value] = attributeMatch;
 
         const attr = typeof attributeIdx !== 'undefined' ? expressions[attributeIdx] : attribute;
         const val = typeof valueIdx !== 'undefined' ? expressions[valueIdx] : value;
@@ -776,7 +776,7 @@ export default class Component extends View {
     }
 }
 
-Component.PLACEHOLDER_EXPRESSION = (idx) => `__RASTI_EXPRESSION_{${idx}}__`;
+Component.PLACEHOLDER_EXPRESSION = (idx) => `__RASTI_{${idx}}__`;
 Component.DATA_ATTRIBUTE_UID = 'data-rasti-uid';
 Component.RENDER_TYPE_HYDRATE = 'hydrate';
 Component.RENDER_TYPE_RECYCLE = 'recycle';
