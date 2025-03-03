@@ -195,6 +195,14 @@ const parseMatch = (match, expressions) => {
 };
 
 /*
+ * HTML tags that are self closing.
+ */
+const selfClosingTags = {
+    area : true, base : true, br : true, col : true, embed : true, hr : true, 
+    img : true, input : true, link : true, meta : true, source : true, track : true, wbr : true
+};
+
+/*
  * These option keys will be extended on the component instance.
  */
 const componentOptions = {
@@ -203,14 +211,6 @@ const componentOptions = {
     onCreate : true,
     onChange : true,
     onRender : true
-};
-
-/*
- * HTML tags that are self closing.
- */
-const selfClosingTags = {
-    area : true, base : true, br : true, col : true, embed : true, hr : true, 
-    img : true, input : true, link : true, meta : true, source : true, track : true, wbr : true
 };
 
 /**
