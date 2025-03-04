@@ -19,13 +19,20 @@
 
 ## Key Features  
 
-- 🌟 **Declarative Components**: Build dynamic UI components using intuitive template literals.  
-- 🎯 **Event Delegation**: Simplify event handling with built-in delegation.  
-- 🔗 **Model-View Binding**: Keep your UI and data in sync with ease.  
-- 🌐 **Server-Side Rendering**: Render as plain text for server-side use or static builds.  
-- ⚡ **Lightweight and Fast**: Minimal overhead with efficient rendering.  
-- 🕰️ **Legacy Compatibility**: Seamlessly integrates into existing **Backbone.js** projects.
-- 📐 **Standards-Based**: Built on modern web standards, no tooling required. 
+- **Declarative Components** 🌟  
+    Build dynamic UI components using intuitive template literals.  
+- **Event Delegation** 🎯  
+    Simplify event handling with built-in delegation.  
+- **Model-View Binding** 🔗  
+    Keep your UI and data in sync with ease.  
+- **Server-Side Rendering** 🌐  
+    Render as plain text for server-side use or static builds.  
+- **Lightweight and Fast** ⚡  
+    Minimal overhead with efficient rendering.  
+- **Legacy Compatibility** 🕰️  
+    Seamlessly integrates into existing **Backbone.js** projects.  
+- **Standards-Based** 📐  
+    Built on modern web standards, no tooling required.  
 
 ## Getting Started
 
@@ -58,19 +65,20 @@ const { Model, Component } = Rasti;
 ### Create a `Component`
 
 ```javascript
-// Create Timer component.
-// Renders seconds from model.
+// Define a Timer component that displays the number of seconds from the model.
 const Timer = Component.create`
     <div>
         Seconds: <span>${({ model }) => model.seconds}</span>
     </div>
 `;
-// Create model to store seconds.
+
+// Create a model to store the seconds.
 const model = new Model({ seconds: 0 });
-// Mount timer on body.
-// Pass model as options.
+
+// Mount the Timer component to the body and pass the model as an option.
 Timer.mount({ model }, document.body);
-// Increment `model.seconds` every second.
+
+// Increment the `seconds` property of the model every second.
 setInterval(() => model.seconds++, 1000);
 ```
 
@@ -79,56 +87,21 @@ setInterval(() => model.seconds++, 1000);
 ### Adding sub components
 
 ```javascript
-// Create Button component.
-// Calls `options.handleClick` when clicked.
-// Renders children passed to it.
-const Button = Component.create`
-    <button
-        onClick=${{ '&' : function() { this.options.handleClick() } }}
-    >
-        ${({ options }) => options.renderChildren()}
-    </button>
-`;
-// Create Counter component.
-// Adds two Buttons to increment and decrement count.
-// Displays current count.
-const Counter = Component.create`
-    <div>
-        <div>Counter: ${() => model.count}</div>
-        <${Button} handleClick=${({ model }) => () => model.count++}>
-            Increment
-        </${Button}>
-        <${Button} handleClick=${({ model }) => () => model.count--}>
-            Decrement
-        </${Button}>
-    </div>
-`;
-// Create model to store count.
-const model = new Model({ count: 0 });
-// Mount counter on body.
-// Pass model as options.
-Counter.mount({ model }, document.body);
-```
-
-[Try it on CodePen](https://codepen.io/8tentaculos/pen/ZEZarEQ?editors=0010)
-
-### Rendering iterables
-
-```javascript
-// Routes data to be used in Navigation.
+// Define the routes for the navigation menu.
 const routes = [
-    { label : 'Home', href : '#' },
-    { label : 'Faq', href : '#faq' },
-    { label : 'Contact', href : '#contact' },
+    { label: 'Home', href: '#' },
+    { label: 'Faq', href: '#faq' },
+    { label: 'Contact', href: '#contact' },
 ];
-// Create Link component to be used in Navigation.
+
+// Create a Link component for navigation items.
 const Link = Component.create`
     <a href="${({ options }) => options.href}">
         ${({ options }) => options.label}
     </a>
 `;
-// Create Navigation component.
-// Iterates over routes and mounts Link components.
+
+// Create a Navigation component that renders Link components for each route.
 const Navigation = Component.create`
     <nav>
         ${({ options }) => options.routes.map(
@@ -136,8 +109,8 @@ const Navigation = Component.create`
         )}
     </nav>
 `;
-// Create Page component.
-// Adds Navigation and displays current route label as title.
+
+// Create a Page component that includes the Navigation and displays the current route's label as the title.
 const Page = Component.create`
     <main>
         <${Navigation} routes=${({ options }) => options.routes} />
@@ -150,12 +123,14 @@ const Page = Component.create`
         </section>
     </main>
 `;
-// Local state to store location.
-const model = new Model({ location : document.location.hash });
-// Listen to location changes and update state.
+
+// Initialize a model to store the current location.
+const model = new Model({ location: document.location.hash });
+
+// Update the model's location state when the browser's history changes.
 window.addEventListener('popstate', () => model.location = document.location.hash);
-// Mount counter on body.
-// Pass routes and model as options.
+
+// Mount the Page component to the body, passing the routes and model as options.
 Page.mount({ routes, model }, document.body);
 ```
 

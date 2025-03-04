@@ -41,7 +41,8 @@ export default class Emitter {
      * @param {string} type Type of the event (e.g. `change`).
      * @param {function} listener Callback function to be called when the event is emitted.
      * @example
-     * this.model.on('change', this.render.bind(this)); // Re render when model changes.
+     * // Re render when model changes.
+     * this.model.on('change', this.render.bind(this));
      */
     on(type, listener) {
         // Validate listener.
@@ -62,6 +63,7 @@ export default class Emitter {
      * @param {string} type Type of the event (e.g. `change`).
      * @param {function} listener Callback function to be called when the event is emitted.
      * @example
+     * // Log a message once when model changes.
      * this.model.once('change', () => console.log('This will happen once'));
      */
     once(type, listener) {
@@ -84,7 +86,8 @@ export default class Emitter {
      * @param {string} [type] Type of the event (e.g. `change`). If is not provided, it removes all listeners.
      * @param {function} [listener] Callback function to be called when the event is emitted. If listener is not provided, it removes all listeners for specified type.
      * @example
-     * this.model.off('change'); // Stop listening to changes.
+     * // Stop listening to changes.
+     * this.model.off('change');
      */
     off(type, listener) {
         // No listeners.
@@ -113,7 +116,8 @@ export default class Emitter {
      * @param {string} type Type of the event (e.g. `change`).
      * @param {any} [...args] Arguments to be passed to listener.
      * @example
-     * this.emit('invalid'); // Emit validation error event.
+     * // Emit validation error event.
+     * this.emit('invalid');
      */
     emit(type, ...args) {
         // No listeners.

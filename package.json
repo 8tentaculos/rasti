@@ -30,7 +30,7 @@
         "posttest": "npm run lint",
         "lint": "eslint src test",
         "test": "mocha --require jsdom-global/register --reporter nyan test/*.js",
-        "docs:api": "jsdoc2md --module-index-format none --helper jsdoc2md/helper.cjs --partial jsdoc2md/header.hbs --partial jsdoc2md/sig-link.hbs --partial jsdoc2md/sig-link-html.hbs --partial jsdoc2md/sig-link-parent.hbs --partial jsdoc2md/link.hbs --files 'src/**/*.js' > docs/api.md"
+        "docs:api": "jsdoc2md --property-list-format list --helper jsdoc2md/helper.cjs --partial jsdoc2md/header.hbs --partial jsdoc2md/sig-link.hbs --partial jsdoc2md/sig-link-html.hbs --partial jsdoc2md/sig-link-parent.hbs --partial jsdoc2md/link.hbs --files 'src/**/*.js' > docs/api.md"
     },
     "repository": {
         "type": "git",

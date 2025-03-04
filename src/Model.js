@@ -10,13 +10,13 @@ import getResult from './utils/getResult.js';
  * that contain all the necessary functions for manipulating their specific data.  
  * Models should be easily passed throughout your app and used anywhere the corresponding data is needed.  
  * Rasti models store their attributes in `this.attributes`, which is extended from `this.defaults` and the 
- * constructor `attrs` parameter. For every attribute, a getter is generated to retrieve the model property 
+ * constructor `attributes` parameter. For every attribute, a getter is generated to retrieve the model property 
  * from `this.attributes`, and a setter is created to set the model property in `this.attributes` and emit `change` 
  * and `change:attribute` events.
  * @module
  * @extends Rasti.Emitter
- * @param {object} attrs Object containing model attributes to extend `this.attributes`. Getters and setters are generated for `this.attributtes`, in order to emit `change` events.
- * @property {object} defaults Object containing default attributes for the model. It will extend `this.attributes`. If a function is passed, it will be called to get the defaults. It will be bound to the model instance.
+ * @param {object} attributes Object containing model attributes to extend `this.attributes`. Getters and setters are generated for `this.attributes`, in order to emit `change` events.
+ * @property {object|function} defaults Object containing default attributes for the model. It will extend `this.attributes`. If a function is passed, it will be called to get the defaults. It will be bound to the model instance.
  * @property {object} previous Object containing previous attributes when a change occurs.
  * @example
  * import { Model } from 'rasti';
@@ -49,14 +49,14 @@ import getResult from './utils/getResult.js';
  * product.setDiscount(10); // Output: "New Price: 900"
  */
 export default class Model extends Emitter {
-    constructor(attrs = {}) {
+    constructor(attributes = {}) {
         super();
         // Call preinitialize.
         this.preinitialize.apply(this, arguments);
         // Get defaults. If `this.defaults` is a function, call it.
         const defaults = getResult(this.defaults, this) || {};
         // Set attributes object with defaults and passed attributes.
-        this.attributes = Object.assign({}, defaults, attrs);
+        this.attributes = Object.assign({}, defaults, attributes);
         // Object to store previous attributes when a change occurs.
         this.previous = {};
         // Generate getters/setters for every attribute.
@@ -65,7 +65,7 @@ export default class Model extends Emitter {
 
     /**
      * If you define a preinitialize method, it will be invoked when the Model is first created, before any instantiation logic is run for the Model.
-     * @param {object} attrs Object containing model attributes to extend `this.attributes`.
+     * @param {object} attributes Object containing model attributes to extend `this.attributes`.
      */
     preinitialize() {}
 
