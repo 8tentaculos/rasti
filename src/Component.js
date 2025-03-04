@@ -218,14 +218,14 @@ const componentOptions = {
  * making it simple to add child views and build complex user interfaces.  
  * Unlike views, which are render-agnostic, components have a specific set of rendering 
  * guidelines that allow for a more declarative development style.  
- * Components are defined with the {@link #module_component_create create} static method, which takes a tagged template string or a function that returns another component.
+ * Components are defined with the {@link #module_component_create Component.create} static method, which takes a tagged template string or a function that returns another component.
  * @module
  * @extends Rasti.View
  * @param {object} options Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onRender, onCreate, onChange.
  * @property {string} key A unique key to identify the component. Used to recycle child components.
  * @property {object} model A `Rasti.Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method.
  * @property {object} state A `Rasti.Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method.
- * @see {@link #module_component_create create}
+ * @see {@link #module_component_create Component.create}
  * @example
  * import { Component, Model } from 'rasti';
  * // Create Timer component.
@@ -666,14 +666,16 @@ export default class Component extends View {
      * - Template interpolations that are functions will be evaluated during the render process, receiving the view instance as an argument and being bound to it. If the function returns `null`, `undefined`, `false`, or an empty string, the interpolation won't render any content.
      *     ```javascript
      *     const Button = Component.create`
-     *         <button class="${({ options }) => options.className}">${({ options }) => options.renderChildren()}</button>
+     *         <button class="${({ options }) => options.className}">
+     *             ${({ options }) => options.renderChildren()}
+     *         </button>
      *     `;
      *     ```
-     * - Event handlers should be passed, at the root element as camelized attributes, in the format `onEventName=${{'selector' : listener }}`. They will be transformed to event objects and delegated to the root element. See {@link #module_view__delegateevents delegateEvents}. 
+     * - Event handlers should be passed, at the root element as camelized attributes, in the format `onEventName=${{'selector' : listener }}`. They will be transformed to event objects and delegated to the root element. See {@link #module_view__delegateevents View.delegateEvents}. 
      * - Boolean attributes should be passed in the form of `attribute="${() => true}"`. `false` attributes won't be rendered. `true` attributes will be rendered without a value.
      *     ```javascript
      *     const Input = Component.create`
-     *         <input type="text" disabled="${({ options }) => options.disabled}" />
+     *         <input type="text" disabled=${({ options }) => options.disabled} />
      *     `;
      *     ```
      * - If the interpolated function returns a component instance, it will be added as a child component.

@@ -29,12 +29,12 @@ const viewOptions = {
  * @module
  * @extends Emitter
  * @param {object} options Object containing options. The following keys will be merged into the view instance: `el`, `tag`, `attributes`, `events`, `model`, `template`, `onDestroy`.
- * @property {node|function} el Every view has a root DOM element stored at `this.el`. If not present, it will be created. If `this.el` is a function, it will be called to get the element at `this.ensureElement`, bound to the view instance. See {@link module_view__ensureelement ensureElement}.
- * @property {string|function} tag If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. Default is `div`. If it is a function, it will be called to get the tag, bound to the view instance. See {@link module_view__ensureelement ensureElement}.
- * @property {object|function} attributes If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. If it is a function, it will be called to get the attributes object, bound to the view instance. See {@link module_view__ensureelement ensureElement}.
- * @property {object|function} events Object in the format `{'event selector' : 'listener'}`. It will be used to bind delegated event listeners to the root element. If it is a function, it will be called to get the events object, bound to the view instance. See {@link module_view_delegateevents delegateEvents}.
+ * @property {node|function} el Every view has a root DOM element stored at `this.el`. If not present, it will be created. If `this.el` is a function, it will be called to get the element at `this.ensureElement`, bound to the view instance. See {@link module_view__ensureelement View.ensureElement}.
+ * @property {string|function} tag If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. Default is `div`. If it is a function, it will be called to get the tag, bound to the view instance. See {@link module_view__ensureelement View.ensureElement}.
+ * @property {object|function} attributes If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. If it is a function, it will be called to get the attributes object, bound to the view instance. See {@link module_view__ensureelement View.ensureElement}.
+ * @property {object|function} events Object in the format `{'event selector' : 'listener'}`. It will be used to bind delegated event listeners to the root element. If it is a function, it will be called to get the events object, bound to the view instance. See {@link module_view_delegateevents View.delegateEvents}.
  * @property {object} model A model or any object containing data and business logic.
- * @property {function} template A function that returns a string with the view's inner HTML. See {@link module_view__render render}. 
+ * @property {function} template A function that returns a string with the view's inner HTML. See {@link module_view__render View.render}. 
  * @example
  * import { View } from 'rasti';
  * 
