@@ -211,8 +211,7 @@ And returns the view instance.
 
 <a name="module_component_create" id="module_component_create"></a>
 ### Component.create(strings, ...expressions) ⇒ <code>Rasti.Component</code>
-Takes a tagged template containing an HTML string, 
-and returns a new `Component` class.
+Takes a tagged template string or a function that returns another component, and returns a new `Component` class.
 - The template outer tag and attributes will be used to create the view's root element.
 - The template inner HTML will be used as the view's template.
     ```javascript
