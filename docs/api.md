@@ -4,7 +4,7 @@
 <dt><a href="#module_component">Component</a> ⇐ <code>Rasti.View</code></dt>
 <dd><p>Components are a special kind of <code>View</code> that is designed to be easily composable, 
 making it simple to add child views and build complex user interfaces.<br>Unlike views, which are render-agnostic, components have a specific set of rendering 
-guidelines that allow for a more declarative development style.<br>Components are defined with the <a href="#module_component_create">create</a> static method, which takes a tagged template string or a function that returns another component.</p>
+guidelines that allow for a more declarative development style.<br>Components are defined with the <a href="#module_component_create">Component.create</a> static method, which takes a tagged template string or a function that returns another component.</p>
 </dd>
 <dt><a href="#module_emitter">Emitter</a></dt>
 <dd><p><code>Emitter</code> is a class that provides an easy way to implement the observer pattern 
@@ -41,10 +41,10 @@ Components are a special kind of `View` that is designed to be easily composable
 making it simple to add child views and build complex user interfaces.  
 Unlike views, which are render-agnostic, components have a specific set of rendering 
 guidelines that allow for a more declarative development style.  
-Components are defined with the [create](#module_component_create) static method, which takes a tagged template string or a function that returns another component.
+Components are defined with the [Component.create](#module_component_create) static method, which takes a tagged template string or a function that returns another component.
 
 **Extends**: <code>Rasti.View</code>  
-**See**: [create](#module_component_create)  
+**See**: [Component.create](#module_component_create)  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -220,14 +220,16 @@ Takes a tagged template string or a function that returns another component, and
 - Template interpolations that are functions will be evaluated during the render process, receiving the view instance as an argument and being bound to it. If the function returns `null`, `undefined`, `false`, or an empty string, the interpolation won't render any content.
     ```javascript
     const Button = Component.create`
-        <button class="${({ options }) => options.className}">${({ options }) => options.renderChildren()}</button>
+        <button class="${({ options }) => options.className}">
+            ${({ options }) => options.renderChildren()}
+        </button>
     `;
     ```
-- Event handlers should be passed, at the root element as camelized attributes, in the format `onEventName=${{'selector' : listener }}`. They will be transformed to event objects and delegated to the root element. See [delegateEvents](#module_view__delegateevents). 
+- Event handlers should be passed, at the root element as camelized attributes, in the format `onEventName=${{'selector' : listener }}`. They will be transformed to event objects and delegated to the root element. See [View.delegateEvents](#module_view__delegateevents). 
 - Boolean attributes should be passed in the form of `attribute="${() => true}"`. `false` attributes won't be rendered. `true` attributes will be rendered without a value.
     ```javascript
     const Input = Component.create`
-        <input type="text" disabled="${({ options }) => options.disabled}" />
+        <input type="text" disabled=${({ options }) => options.disabled} />
     `;
     ```
 - If the interpolated function returns a component instance, it will be added as a child component.
@@ -559,12 +561,12 @@ If `this.el` is not present, an element will be created using `this.tag` (defaul
 
 **Properties**
 
-- el <code>node</code> \| <code>function</code> - Every view has a root DOM element stored at `this.el`. If not present, it will be created. If `this.el` is a function, it will be called to get the element at `this.ensureElement`, bound to the view instance. See [ensureElement](module_view__ensureelement).  
-- tag <code>string</code> \| <code>function</code> - If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. Default is `div`. If it is a function, it will be called to get the tag, bound to the view instance. See [ensureElement](module_view__ensureelement).  
-- attributes <code>object</code> \| <code>function</code> - If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. If it is a function, it will be called to get the attributes object, bound to the view instance. See [ensureElement](module_view__ensureelement).  
-- events <code>object</code> \| <code>function</code> - Object in the format `{'event selector' : 'listener'}`. It will be used to bind delegated event listeners to the root element. If it is a function, it will be called to get the events object, bound to the view instance. See [delegateEvents](module_view_delegateevents).  
+- el <code>node</code> \| <code>function</code> - Every view has a root DOM element stored at `this.el`. If not present, it will be created. If `this.el` is a function, it will be called to get the element at `this.ensureElement`, bound to the view instance. See [View.ensureElement](module_view__ensureelement).  
+- tag <code>string</code> \| <code>function</code> - If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. Default is `div`. If it is a function, it will be called to get the tag, bound to the view instance. See [View.ensureElement](module_view__ensureelement).  
+- attributes <code>object</code> \| <code>function</code> - If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. If it is a function, it will be called to get the attributes object, bound to the view instance. See [View.ensureElement](module_view__ensureelement).  
+- events <code>object</code> \| <code>function</code> - Object in the format `{'event selector' : 'listener'}`. It will be used to bind delegated event listeners to the root element. If it is a function, it will be called to get the events object, bound to the view instance. See [View.delegateEvents](module_view_delegateevents).  
 - model <code>object</code> - A model or any object containing data and business logic.  
-- template <code>function</code> - A function that returns a string with the view's inner HTML. See [render](module_view__render).  
+- template <code>function</code> - A function that returns a string with the view's inner HTML. See [View.render](module_view__render).  
 
 **Example**  
 ```js
