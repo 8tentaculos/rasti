@@ -1,5 +1,6 @@
 import View from './View.js';
 import getResult from './utils/getResult.js';
+import deepFlat  from './utils/deepFlat.js';
 
 /*
  * Same as getResult, but pass context as argument to the expression.
@@ -125,7 +126,7 @@ const expandComponents = (main, expressions) => {
                 const list = splitPlaceholders(expandComponents(inner, expressions), expressions);
                 // Create renderChildren function.
                 renderChildren = function() {
-                    return list.map(item => renderExpression(item, this)).flat();
+                    return deepFlat(list.map(item => renderExpression(item, this)));
                 };
             }
             // Create mount function.
@@ -465,13 +466,13 @@ export default class Component extends View {
      * });
      */
     partial(strings, ...expressions) {
-        return splitPlaceholders(
+        return deepFlat(splitPlaceholders(
             expandComponents(
                 addPlaceholders(strings, expressions), expressions
             ), expressions
         ).map(item => {
             return renderExpression(item, this);
-        }).flat();
+        }));
     }
 
     getRecyclePlaceholder() {
@@ -793,7 +794,7 @@ export default class Component extends View {
             if (close) {
                 const list = inner ? splitPlaceholders(inner, expressions) : [];
                 template = function(addChild) {
-                    return list.map(item => renderExpression(item, this)).flat().map(item => {
+                    return deepFlat(list.map(item => renderExpression(item, this))).map(item => {
                         if (typeof item !== 'undefined' && item !== null && item !== false &&  item !== true) {
                             return item instanceof Component ? addChild(item) : item;
                         }
