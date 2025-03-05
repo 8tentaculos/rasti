@@ -1,7 +1,7 @@
 import { Model } from 'rasti';
 import { Component } from 'rasti';
 
-import escapeHTML from '../escapeHTML.js';
+import escapeHTML from '../utils/escapeHTML.js';
 import { ENTER_KEY, ESC_KEY } from '../constants.js';
 
 const getClassName = ({ model, state }) => [

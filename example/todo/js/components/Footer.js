@@ -5,7 +5,7 @@ const getFilterClassName = (filter, current) => [
     filter === current ? 'selected' : ''
 ].join(' ');
 
-const Stats = Component.create`
+const Footer = Component.create`
     <footer
         class="footer"
         onClick=${{
@@ -29,4 +29,4 @@ const Stats = Component.create`
     </footer>
 `;
 
-export default Stats;
+export default Footer;

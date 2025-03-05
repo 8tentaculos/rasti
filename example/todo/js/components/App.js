@@ -1,38 +1,24 @@
 import { Component } from 'rasti';
 
+import Header from './Header.js';
 import ToggleAll from './ToggleAll.js';
-import List from './List.js';
-import Stats from './Stats.js';
-
-import escapeHTML from '../escapeHTML.js';
-import { ENTER_KEY } from '../constants.js';
+import Todo from './Todo.js';
+import Footer from './Footer.js';
 
 // Todo app.
 const App = Component.create`
-    <main 
-        class="todoapp" 
-        onKeyUp=${{ '.new-todo' : 'onKeyUp' }}
-    >
-        <header class="header">
-            <h1>todos</h1>
-            <input class="new-todo" placeholder="What needs to be done?" autofocus />
-        </header>
+    <main class="todoapp">
+        <${Header} model=${({ model }) => model} key="header" />
         <section class="main">
-            <${ToggleAll} model=${({ model }) => model} />
-            <${List} model=${({ model }) => model} />
+            <${ToggleAll} model=${({ model }) => model} key="toggle-all" />
+            <ul class="todo-list">
+                ${(self) => self.model.filtered.map(todo => self.partial`
+                    <${Todo} ${{ model : todo, handleRemove : () => self.model.removeTodo(todo) }} />
+                `)}
+            </ul>
         </section>
-        <${Stats} model=${({ model }) => model} />
+        <${Footer} model=${({ model }) => model} key="footer" />
     </main>
-`.extend({
-    onChange() {},
-    onKeyUp(event) {
-        // If ENTER key is pressed. Add todo.
-        if (event.which === ENTER_KEY && event.target.value) {
-            this.model.addTodo({ title : escapeHTML(event.target.value) });
-            // Clear input.
-            event.target.value = '';
-        }
-    }
-});
+`;
 
 export default App;
