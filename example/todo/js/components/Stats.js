@@ -1,5 +1,10 @@
 import { Component } from 'rasti';
 
+const getFilterClassName = (filter, current) => [
+    filter,
+    filter === current ? 'selected' : ''
+].join(' ');
+
 const Stats = Component.create`
     <footer
         class="footer"
@@ -14,10 +19,10 @@ const Stats = Component.create`
             <strong>${({ model }) => model.remaining.length}</strong> 
             ${({ model }) => model.remaining.length === 1 ? 'item' : 'items'} left
         </span>
-        <ul class="${({ model }) => ['filters', model.filter].join(' ')}">
-            <li><a class="all">All</a></li>
-            <li><a class="remaining">Remaining</a></li>
-            <li><a class="completed">Completed</a></li>
+        <ul class="filters">
+            <li><a class="${({ model }) => getFilterClassName('all', model.filter)}">All</a></li>
+            <li><a class="${({ model }) => getFilterClassName('remaining', model.filter)}">Remaining</a></li>
+            <li><a class="${({ model }) => getFilterClassName('completed', model.filter)}">Completed</a></li>
         </ul>
         ${({ model }) => model.completed.length ?
             '<button class="clear-completed">Clear completed</button>' : null}

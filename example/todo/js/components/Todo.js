@@ -1,7 +1,13 @@
 import { Model } from 'rasti';
 import { Component } from 'rasti';
 
+import escapeHTML from '../escapeHTML.js';
 import { ENTER_KEY, ESC_KEY } from '../constants.js';
+
+const getClassName = ({ model, state }) => [
+    model.completed ? 'completed' : '',
+    state.editing ? 'editing' : ''
+].join(' ');
 
 // Single todo.
 const Todo = Component.create`
@@ -18,9 +24,9 @@ const Todo = Component.create`
             }
         }}
         onFocusOut=${{ '.edit' : function () { this.close() } }}
-        class="${({ state }) => state.editing && 'editing'}"
+        class="${getClassName}"
     >
-        <div class="${({ model }) => ['view', model.completed ? 'completed' : ''].join(' ')}">
+        <div class="view">
             <input class="toggle" type="checkbox" ${({ model }) => model.completed ? 'checked' : ''}>
             <label>${({ model }) => model.title}</label>
             <button class="destroy"></button>
@@ -39,7 +45,7 @@ const Todo = Component.create`
     // Close the 'editing' mode. Save or discard changes.
     close(save) {
         if (save) {
-            const value = this.$('.edit').value;
+            const value = escapeHTML(this.$('.edit').value);
             // Set model.
             if (value) {
                 this.model.title = value;

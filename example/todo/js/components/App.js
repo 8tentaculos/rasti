@@ -4,6 +4,7 @@ import ToggleAll from './ToggleAll.js';
 import List from './List.js';
 import Stats from './Stats.js';
 
+import escapeHTML from '../escapeHTML.js';
 import { ENTER_KEY } from '../constants.js';
 
 // Todo app.
@@ -27,7 +28,7 @@ const App = Component.create`
     onKeyUp(event) {
         // If ENTER key is pressed. Add todo.
         if (event.which === ENTER_KEY && event.target.value) {
-            this.model.addTodo({ title : event.target.value });
+            this.model.addTodo({ title : escapeHTML(event.target.value) });
             // Clear input.
             event.target.value = '';
         }
