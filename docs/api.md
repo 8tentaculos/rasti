@@ -225,7 +225,7 @@ Takes a tagged template string or a function that returns another component, and
         </button>
     `;
     ```
-- Event handlers should be passed, at the root element as camelized attributes, in the format `onEventName=${{'selector' : listener }}`. They will be transformed to event objects and delegated to the root element. See [View.delegateEvents](#module_view__delegateevents). 
+- Event handlers should be passed, at the root element as camelized attributes, in the format `onEventName=${{'selector' : listener }}`. They will be transformed to an event object and delegated to the root element. See [View.delegateEvents](#module_view__delegateevents). 
 - Boolean attributes should be passed in the form of `attribute="${() => true}"`. `false` attributes won't be rendered. `true` attributes will be rendered without a value.
     ```javascript
     const Input = Component.create`
