@@ -9,10 +9,18 @@ const Footer = Component.create`
     <footer
         class="footer"
         onClick=${{
-            'a.all' : function() { this.model.filter = 'all' },
-            'a.remaining' : function() { this.model.filter = 'remaining' },
-            'a.completed' : function() { this.model.filter = 'completed' },
-            'button.clear-completed': function() { this.model.removeCompleted() },
+            'a.all' : function() {
+                this.model.filter = 'all';
+            },
+            'a.remaining' : function() {
+                this.model.filter = 'remaining';
+            },
+            'a.completed' : function() {
+                this.model.filter = 'completed';
+            },
+            'button.clear-completed' : function() {
+                this.model.removeCompleted();
+            },
         }}
     >
         <span class="todo-count">
@@ -24,8 +32,8 @@ const Footer = Component.create`
             <li><a class="${({ model }) => getFilterClassName('remaining', model.filter)}">Remaining</a></li>
             <li><a class="${({ model }) => getFilterClassName('completed', model.filter)}">Completed</a></li>
         </ul>
-        ${({ model }) => model.completed.length ?
-            '<button class="clear-completed">Clear completed</button>' : null}
+        ${self => self.model.completed.length ?
+            self.partial`<button class="clear-completed">Clear completed</button>` : null}
     </footer>
 `;
 

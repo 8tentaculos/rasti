@@ -3,13 +3,26 @@ import getResult from './utils/getResult.js';
 import deepFlat  from './utils/deepFlat.js';
 
 /*
+ * Wrapper class for HTML strings marked as safe.
+ */
+class SafeHTML {
+    constructor(value) {
+        this.value = value;
+    }
+
+    toString() {
+        return this.value;
+    }
+}
+
+/*
  * Same as getResult, but pass context as argument to the expression.
  * Used to evaluate expressions in the context of a component.
  * @param {any} expression The expression to be evaluated.
  * @param {any} context The context to call the expression with.
  * @return {any} The result of the evaluated expression.
  */
-const renderExpression = (expression, context) => getResult(expression, context, context);
+const getExpressionResult = (expression, context) => getResult(expression, context, context);
 
 /*
  * Generate string with placeholders for interpolated expressions.
@@ -44,10 +57,10 @@ const splitPlaceholders = (main, expressions) => {
     // so all the components are added as children by the parent component.
     while ((match = regExp.exec(main)) !== null) {
         const before = main.slice(lastIndex, match.index);
-        out.push(before, expressions[match[1]]);
+        out.push(new SafeHTML(before), expressions[match[1]]);
         lastIndex = match.index + match[0].length;
     }
-    out.push(main.slice(lastIndex));
+    out.push(new SafeHTML(main.slice(lastIndex)));
 
     return out;
 };
@@ -55,15 +68,15 @@ const splitPlaceholders = (main, expressions) => {
 /*
  * Expand attributes.
  * @param attributes {array} Array of attributes as key, value pairs.
- * @param renderExpression {function} Function to render expressions.
+ * @param getExpressionResult {function} Function to render expressions.
  * @return {object}
  * @property {object} all All attributes.
  * @property {object} events Event listeners.
  * @property {object} attributes Attributes.
  */
-const expandAttributes = (attributes, renderExpression) => {
+const expandAttributes = (attributes, getExpressionResult) => {
     const out = attributes.reduce((out, pair) => {
-        const attribute = renderExpression(pair[0]);
+        const attribute = getExpressionResult(pair[0]);
         // Attribute without value. 
         if (pair.length === 1) {
             if (typeof attribute === 'object') {
@@ -75,7 +88,7 @@ const expandAttributes = (attributes, renderExpression) => {
             }
         } else {
             // Attribute with value.
-            const value = renderExpression(pair[1]);
+            const value = getExpressionResult(pair[1]);
             out.all[attribute] = value;
         }
 
@@ -126,12 +139,12 @@ const expandComponents = (main, expressions) => {
                 const list = splitPlaceholders(expandComponents(inner, expressions), expressions);
                 // Create renderChildren function.
                 renderChildren = function() {
-                    return deepFlat(list.map(item => renderExpression(item, this)));
+                    return deepFlat(list.map(item => getExpressionResult(item, this)));
                 };
             }
             // Create mount function.
             const mount = function() {
-                const options = expandAttributes(attributes, value => renderExpression(value, this)).all;
+                const options = expandAttributes(attributes, value => getExpressionResult(value, this)).all;
                 // Add renderChildren function to options.
                 if (renderChildren) options.renderChildren = renderChildren.bind(this);
                 // Mount component.
@@ -325,9 +338,11 @@ export default class Component extends View {
         const attributes = { [Component.DATA_ATTRIBUTE_UID] : this.uid };
 
         if (this.attributes) Object.assign(attributes, getResult(this.attributes, this));
+        // Store previous attributes.
+        const previousAttributes = this.previousAttributes || {};
+        this.previousAttributes = attributes;
 
         Object.keys(attributes).forEach(key => {
-            // Evaluate attribute value.
             let value = attributes[key];
             // Transform bool attribute values
             if (value === false) {
@@ -339,7 +354,13 @@ export default class Component extends View {
                 if (value === null || typeof value === 'undefined') value = '';
 
                 add[key] = value;
-                html.push(`${key}="${value}"`);
+                html.push(`${View.sanitize(key)}="${View.sanitize(value)}"`);
+            }
+        });
+        // Remove attributes that were in previousAttributes but not in current attributes.
+        Object.keys(previousAttributes).forEach(key => {
+            if (!(key in attributes)) {
+                remove[key] = true;
             }
         });
 
@@ -466,13 +487,11 @@ export default class Component extends View {
      * });
      */
     partial(strings, ...expressions) {
-        return deepFlat(splitPlaceholders(
-            expandComponents(
-                addPlaceholders(strings, expressions), expressions
-            ), expressions
-        ).map(item => {
-            return renderExpression(item, this);
-        }));
+        return deepFlat(
+            splitPlaceholders(
+                expandComponents(addPlaceholders(strings, expressions), expressions), expressions
+            ).map(item => getExpressionResult(item, this))
+        );
     }
 
     getRecyclePlaceholder() {
@@ -632,7 +651,6 @@ export default class Component extends View {
      * It instantiate the Component view using options, 
      * appends its element into the DOM (if `el` is provided).
      * And returns the view instance.
-     * <br><br> &#9888; **Security Notice:** `Component` utilizes `innerHTML` on a document fragment for rendering, which may introduce Cross - Site Scripting (XSS) risks. Ensure that any user-generated content is properly sanitized before inserting it into the DOM. For best practices on secure data handling, refer to the [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
      * @static
      * @param {object} options The view options.
      * @param {node} el Dom element to append the view element.
@@ -714,7 +732,7 @@ export default class Component extends View {
      *     // Create a navigation component. Add buttons as children. Iterate over items.
      *     const Navigation = Component.create`
      *         <nav>
-     *             ${(self) => self.options.items.map(
+     *             ${self => self.options.items.map(
      *                 item => self.partial`<${Button}>${item.label}</${Button}>`
      *             )}
      *         </nav>
@@ -770,18 +788,18 @@ export default class Component extends View {
             const { tag : tagExpression, attributes : attributesAndEvents, inner, close } = parseMatch(match, expressions);
             // Get tag, attributes.
             tag = function() {
-                return renderExpression(tagExpression, this);
+                return View.sanitize(getExpressionResult(tagExpression, this));
             };
             // Get attributes.
             attributes = function() {
-                return expandAttributes(attributesAndEvents, value => renderExpression(value, this)).attributes;
+                return expandAttributes(attributesAndEvents, value => getExpressionResult(value, this)).attributes;
             };
             // Get events.
             events = function() {
-                const onlyEvents = expandAttributes(attributesAndEvents, value => renderExpression(value, this)).events;
+                const onlyEvents = expandAttributes(attributesAndEvents, value => getExpressionResult(value, this)).events;
 
                 return Object.keys(onlyEvents).reduce((out, key) => {
-                    const typeListeners = renderExpression(onlyEvents[key], this);
+                    const typeListeners = getExpressionResult(onlyEvents[key], this);
 
                     Object.keys(typeListeners).forEach(selector => {
                         out[`${key}${selector === '&' ? '' : ` ${selector}`}`] = typeListeners[selector];
@@ -794,9 +812,11 @@ export default class Component extends View {
             if (close) {
                 const list = inner ? splitPlaceholders(inner, expressions) : [];
                 template = function(addChild) {
-                    return deepFlat(list.map(item => renderExpression(item, this))).map(item => {
+                    return deepFlat(list.map(item => getExpressionResult(item, this))).map(item => {
                         if (typeof item !== 'undefined' && item !== null && item !== false &&  item !== true) {
-                            return item instanceof Component ? addChild(item) : item;
+                            if (item instanceof SafeHTML) return item;
+                            if (item instanceof Component) return addChild(item);
+                            return View.sanitize(`${item}`);
                         }
                         return '';
                     }).join('');
@@ -810,7 +830,7 @@ export default class Component extends View {
                 // If there is only one expression and no tag, is a container.
                 template = function(addChild) {
                     // Replace expressions.
-                    return addChild(renderExpression(expressions[match[1]], this)).toString();
+                    return addChild(getExpressionResult(expressions[match[1]], this)).toString();
                 };
             } else {
                 throw new SyntaxError('Invalid component');

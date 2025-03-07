@@ -490,7 +490,7 @@ describe('Component', () => {
         const Button = Component.create`<button>click me</button>`;
 
         const c1 = Component.create`
-            <div id="test-node-1">${(self) => self.partial`<div>${({ options }) => options && Button.mount()}</div>`}</div>
+            <div id="test-node-1">${self => self.partial`<div>${({ options }) => options && Button.mount()}</div>`}</div>
         `.mount({}, document.body);
 
         expect(document.getElementById('test-node-1').innerHTML).to.be.equal('<div><button data-rasti-uid="uid2">click me</button></div>');

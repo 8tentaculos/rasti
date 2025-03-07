@@ -4,8 +4,8 @@ const ToggleAll = Component.create`
     <span
         onClick=${{
             // Click on toggle all.
-            '.toggle-all' : function(event) {
-                this.model.toggleAll(event.target.checked);
+            '.toggle-all' : function(ev) {
+                this.model.toggleAll(ev.target.checked);
             }
         }}
     >

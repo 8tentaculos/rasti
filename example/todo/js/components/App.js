@@ -12,7 +12,7 @@ const App = Component.create`
         <section class="main">
             <${ToggleAll} model=${({ model }) => model} key="toggle-all" />
             <ul class="todo-list">
-                ${(self) => self.model.filtered.map(todo => self.partial`
+                ${self => self.model.filtered.map(todo => self.partial`
                     <${Todo} ${{ model : todo, handleRemove : () => self.model.removeTodo(todo) }} />
                 `)}
             </ul>

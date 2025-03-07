@@ -183,15 +183,15 @@ export default class View extends Emitter {
      * Called from the constructor if `this.el` is undefined, to ensure
      * the view has a root element.
      * @param {string} tag Tag for the element. Default to `div`
-     * @param {object} attrs Attributes for the element.
+     * @param {object} attributes Attributes for the element.
      * @return {node} The created element.
      */
-    createElement(tag = 'div', attrs = {}) {
+    createElement(tag = 'div', attributes = {}) {
         // Create DOM element.
         let el = document.createElement(tag);
         // Add element attributes.
-        Object.keys(attrs)
-            .forEach(key => el.setAttribute(key, attrs[key]));
+        Object.keys(attributes)
+            .forEach(key => el.setAttribute(key, attributes[key]));
 
         return el;
     }
@@ -312,14 +312,35 @@ export default class View extends Emitter {
      * of calling `this.template`, passing `this.model` as an argument.
      * <br><br> &#9888; **Security Notice:** The default implementation utilizes `innerHTML` on the root element
      * for rendering, which may introduce Cross-Site Scripting (XSS) risks. Ensure that any user-generated 
-     * content is properly sanitized before inserting it into the DOM. For best practices on secure data handling, 
-     * refer to the [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
+     * content is properly sanitized before inserting it into the DOM. You can use the @link{#module_view_sanitize View.sanitize} 
+     * static method to escape HTML entities in a string.  
+     * For best practices on secure data handling, refer to the 
+     * [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
      * @return {Rasti.View} Returns `this` for chaining.
      */
     render() {
         if (this.template) this.el.innerHTML = this.template(this.model);
         // Return `this` for chaining.
         return this;
+    }
+
+    /**
+     * Escape HTML entities in a string.
+     * Use method to sanitize user-generated content before inserting it into the DOM.
+     * Override this method to provide a custom escape function.
+     * This method is used by `Component` to escape template interpolations.
+     * @static
+     * @param {string} str String to escape.
+     * @return {string} Escaped string.
+     */
+    static sanitize(value) {
+        return `${value}`.replace(/[&<>"']/g, match => ({
+            '&' : '&amp;',
+            '<' : '&lt;',
+            '>' : '&gt;',
+            '"' : '&quot;',
+            '\'' : '&#039;'
+        }[match]));
     }
 }
 

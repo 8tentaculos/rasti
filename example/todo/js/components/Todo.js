@@ -1,7 +1,6 @@
 import { Model } from 'rasti';
 import { Component } from 'rasti';
 
-import escapeHTML from '../utils/escapeHTML.js';
 import { ENTER_KEY, ESC_KEY } from '../constants.js';
 
 const getClassName = ({ model, state }) => [
@@ -13,17 +12,40 @@ const getClassName = ({ model, state }) => [
 const Todo = Component.create`
     <li
         onClick=${{
-            '.toggle' : function() { this.model.toggle() },
-            '.destroy' : function() { this.options.handleRemove() },
+            '.toggle' : function() {
+                this.model.toggle()
+            },
+            '.destroy' : function() {
+                this.options.handleRemove()
+            },
         }}
-        onDblClick=${{ 'label' : function() { this.state.editing = true } }}
-        onKeyUp=${{ 
-            '.edit' : function(event) { 
-                if (event.which === ENTER_KEY) this.close(true);
-                else if (event.which === ESC_KEY) this.close();
+        onDblClick=${{
+            'label' : function() {
+                this.state.editing = true;
             }
         }}
-        onFocusOut=${{ '.edit' : function () { this.close() } }}
+        onKeyUp=${{ 
+            '.edit' : function(ev) {
+                // Save or cancel editing.
+                if (ev.which === ENTER_KEY || ev.which === ESC_KEY) {
+                    // Save edited todo.
+                    if (ev.which === ENTER_KEY) {
+                        const value = this.$('.edit').value;
+                        // Set model.
+                        if (value) {
+                            this.model.title = value;
+                        }
+                    }
+                    // Close editing.
+                    this.state.editing = false;
+                }
+            }
+        }}
+        onFocusOut=${{
+            '.edit' : function () {
+                this.state.editing = false;
+            }
+        }}
         class="${getClassName}"
     >
         <div class="view">
@@ -41,18 +63,6 @@ const Todo = Component.create`
     onRender() {
         // Focus if editing.
         if (this.state.editing) this.$('.edit').focus();
-    },
-    // Close the 'editing' mode. Save or discard changes.
-    close(save) {
-        if (save) {
-            const value = escapeHTML(this.$('.edit').value);
-            // Set model.
-            if (value) {
-                this.model.title = value;
-            }
-        }
-        // Unset 'editing'.
-        this.state.editing = false;
     }
 });
 

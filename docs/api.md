@@ -199,7 +199,6 @@ Mount the component into the dom.
 It instantiate the Component view using options, 
 appends its element into the DOM (if `el` is provided).
 And returns the view instance.
-<br><br> &#9888; **Security Notice:** `Component` utilizes `innerHTML` on a document fragment for rendering, which may introduce Cross - Site Scripting (XSS) risks. Ensure that any user-generated content is properly sanitized before inserting it into the DOM. For best practices on secure data handling, refer to the [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
 
 **Kind**: static method of [<code>Component</code>](#module_component)  
 
@@ -267,7 +266,7 @@ Takes a tagged template string or a function that returns another component, and
     // Create a navigation component. Add buttons as children. Iterate over items.
     const Navigation = Component.create`
         <nav>
-            ${(self) => self.options.items.map(
+            ${self => self.options.items.map(
                 item => self.partial`<${Button}>${item.label}</${Button}>`
             )}
         </nav>
@@ -592,19 +591,22 @@ document.body.appendChild(new Timer().render().el);
 ```
 
 * [View](#module_view) ⇐ <code>Emitter</code>
-    * [.preinitialize(attrs)](#module_view__preinitialize)
-    * [.$(selector)](#module_view__$) ⇒ <code>node</code>
-    * [.$$(selector)](#module_view__$$) ⇒ <code>Array.&lt;node&gt;</code>
-    * [.destroy(options)](#module_view__destroy) ⇒ <code>Rasti.View</code>
-    * [.onDestroy(options)](#module_view__ondestroy)
-    * [.addChild(child)](#module_view__addchild) ⇒ <code>Rasti.View</code>
-    * [.destroyChildren()](#module_view__destroychildren)
-    * [.ensureElement()](#module_view__ensureelement)
-    * [.createElement(tag, attrs)](#module_view__createelement) ⇒ <code>node</code>
-    * [.removeElement()](#module_view__removeelement) ⇒ <code>Rasti.View</code>
-    * [.delegateEvents([events])](#module_view__delegateevents) ⇒ <code>Rasti.View</code>
-    * [.undelegateEvents()](#module_view__undelegateevents) ⇒ <code>Rasti.View</code>
-    * [.render()](#module_view__render) ⇒ <code>Rasti.View</code>
+    * _instance_
+        * [.preinitialize(attrs)](#module_view__preinitialize)
+        * [.$(selector)](#module_view__$) ⇒ <code>node</code>
+        * [.$$(selector)](#module_view__$$) ⇒ <code>Array.&lt;node&gt;</code>
+        * [.destroy(options)](#module_view__destroy) ⇒ <code>Rasti.View</code>
+        * [.onDestroy(options)](#module_view__ondestroy)
+        * [.addChild(child)](#module_view__addchild) ⇒ <code>Rasti.View</code>
+        * [.destroyChildren()](#module_view__destroychildren)
+        * [.ensureElement()](#module_view__ensureelement)
+        * [.createElement(tag, attributes)](#module_view__createelement) ⇒ <code>node</code>
+        * [.removeElement()](#module_view__removeelement) ⇒ <code>Rasti.View</code>
+        * [.delegateEvents([events])](#module_view__delegateevents) ⇒ <code>Rasti.View</code>
+        * [.undelegateEvents()](#module_view__undelegateevents) ⇒ <code>Rasti.View</code>
+        * [.render()](#module_view__render) ⇒ <code>Rasti.View</code>
+    * _static_
+        * [.sanitize(str)](#module_view_sanitize) ⇒ <code>string</code>
 
 <a name="module_view__preinitialize" id="module_view__preinitialize"></a>
 ### view.preinitialize(attrs)
@@ -689,7 +691,7 @@ postpone element creation.
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
 <a name="module_view__createelement" id="module_view__createelement"></a>
-### view.createElement(tag, attrs) ⇒ <code>node</code>
+### view.createElement(tag, attributes) ⇒ <code>node</code>
 Create an element.
 Called from the constructor if `this.el` is undefined, to ensure
 the view has a root element.
@@ -700,7 +702,7 @@ the view has a root element.
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
 | tag | <code>string</code> | <code>&quot;div&quot;</code> | Tag for the element. Default to `div` |
-| attrs | <code>object</code> |  | Attributes for the element. |
+| attributes | <code>object</code> |  | Attributes for the element. |
 
 <a name="module_view__removeelement" id="module_view__removeelement"></a>
 ### view.removeElement() ⇒ <code>Rasti.View</code>
@@ -770,8 +772,24 @@ The default implementation sets the innerHTML of `this.el` with the result
 of calling `this.template`, passing `this.model` as an argument.
 <br><br> &#9888; **Security Notice:** The default implementation utilizes `innerHTML` on the root element
 for rendering, which may introduce Cross-Site Scripting (XSS) risks. Ensure that any user-generated 
-content is properly sanitized before inserting it into the DOM. For best practices on secure data handling, 
-refer to the [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
+content is properly sanitized before inserting it into the DOM. You can use the @link{#module_view_sanitize View.sanitize} 
+static method to escape HTML entities in a string.  
+For best practices on secure data handling, refer to the 
+[OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
 **Returns**: <code>Rasti.View</code> - Returns `this` for chaining.  
+<a name="module_view_sanitize" id="module_view_sanitize"></a>
+### View.sanitize(str) ⇒ <code>string</code>
+Escape HTML entities in a string.
+Use method to sanitize user-generated content before inserting it into the DOM.
+Override this method to provide a custom escape function.
+This method is used by `Component` to escape template interpolations.
+
+**Kind**: static method of [<code>View</code>](#module_view)  
+**Returns**: <code>string</code> - Escaped string.  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| str | <code>string</code> | String to escape. |
+
