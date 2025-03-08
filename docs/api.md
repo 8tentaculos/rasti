@@ -82,6 +82,7 @@ setInterval(() => model.seconds++, 1000);
         * [.onDestroy(options)](#module_component__ondestroy)
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ <code>Array</code>
     * _static_
+        * [.markAsSafeHTML(value)](#module_component_markassafehtml) ⇒ <code>Rasti.SafeHTML</code>
         * [.extend(object)](#module_component_extend)
         * [.mount(options, el, hydrate)](#module_component_mount) ⇒ <code>Rasti.Component</code>
         * [.create(strings, ...expressions)](#module_component_create) ⇒ <code>Rasti.Component</code>
@@ -148,8 +149,9 @@ Lifecycle method. Called when the view is destroyed.
 <a name="module_component__partial" id="module_component__partial"></a>
 ### component.partial(strings, ...expressions) ⇒ <code>Array</code>
 Tagged template helper method.
-Used to create a partial template.
-It will return a one-dimensional array with strings and expressions.
+Used to create a partial template.  
+It will return a one-dimensional array with strings and expressions.  
+Components will be added as children by the parent component. Template strings will be marked as safe HTML to be rendered.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 **Returns**: <code>Array</code> - Array containing strings and expressions.  
@@ -183,6 +185,21 @@ const Main = Component.create`
     }
 });
 ```
+<a name="module_component_markassafehtml" id="module_component_markassafehtml"></a>
+### Component.markAsSafeHTML(value) ⇒ <code>Rasti.SafeHTML</code>
+Mark a string as safe HTML to be rendered.
+Normally you don't need to use this method, as Rasti will automatically mark strings 
+as safe HTML when the component is @link{#module_component_create created} and when 
+using the @link{#module_component__partial Component.partial} method.
+Be sure that the string is safe to be rendered, as it will be inserted into the DOM without any sanitization.
+
+**Kind**: static method of [<code>Component</code>](#module_component)  
+**Returns**: <code>Rasti.SafeHTML</code> - A safe HTML object.  
+
+| Param | Type |
+| --- | --- |
+| value | <code>string</code> | 
+
 <a name="module_component_extend" id="module_component_extend"></a>
 ### Component.extend(object)
 Helper method used to extend a `Component`, creating a subclass.

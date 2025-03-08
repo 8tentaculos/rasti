@@ -57,10 +57,10 @@ const splitPlaceholders = (main, expressions) => {
     // so all the components are added as children by the parent component.
     while ((match = regExp.exec(main)) !== null) {
         const before = main.slice(lastIndex, match.index);
-        out.push(new SafeHTML(before), expressions[match[1]]);
+        out.push(Component.markAsSafeHTML(before), expressions[match[1]]);
         lastIndex = match.index + match[0].length;
     }
-    out.push(new SafeHTML(main.slice(lastIndex)));
+    out.push(Component.markAsSafeHTML(main.slice(lastIndex)));
 
     return out;
 };
@@ -354,7 +354,7 @@ export default class Component extends View {
                 if (value === null || typeof value === 'undefined') value = '';
 
                 add[key] = value;
-                html.push(`${View.sanitize(key)}="${View.sanitize(value)}"`);
+                html.push(`${Component.sanitize(key)}="${Component.sanitize(value)}"`);
             }
         });
         // Remove attributes that were in previousAttributes but not in current attributes.
@@ -458,8 +458,9 @@ export default class Component extends View {
 
     /**
      * Tagged template helper method.
-     * Used to create a partial template.
-     * It will return a one-dimensional array with strings and expressions.
+     * Used to create a partial template.  
+     * It will return a one-dimensional array with strings and expressions.  
+     * Components will be added as children by the parent component. Template strings will be marked as safe HTML to be rendered.
      * @param {TemplateStringsArray} strings - Template strings.
      * @param  {...any} expressions - Template expressions.
      * @return {Array} Array containing strings and expressions.
@@ -629,6 +630,20 @@ export default class Component extends View {
     }
 
     /**
+     * Mark a string as safe HTML to be rendered.
+     * Normally you don't need to use this method, as Rasti will automatically mark strings 
+     * as safe HTML when the component is @link{#module_component_create created} and when 
+     * using the @link{#module_component__partial Component.partial} method.
+     * Be sure that the string is safe to be rendered, as it will be inserted into the DOM without any sanitization.
+     * @static
+     * @param {string} value 
+     * @return {Rasti.SafeHTML} A safe HTML object.
+     */
+    static markAsSafeHTML(value) {
+        return new SafeHTML(value);
+    }
+
+    /**
      * Helper method used to extend a `Component`, creating a subclass.
      * @static
      * @param {object} object Object containing methods to be added to the new `Component` subclass. Also can be a function that receives the parent prototype and returns an object.
@@ -788,7 +803,7 @@ export default class Component extends View {
             const { tag : tagExpression, attributes : attributesAndEvents, inner, close } = parseMatch(match, expressions);
             // Get tag, attributes.
             tag = function() {
-                return View.sanitize(getExpressionResult(tagExpression, this));
+                return Component.sanitize(getExpressionResult(tagExpression, this));
             };
             // Get attributes.
             attributes = function() {
@@ -816,7 +831,7 @@ export default class Component extends View {
                         if (typeof item !== 'undefined' && item !== null && item !== false &&  item !== true) {
                             if (item instanceof SafeHTML) return item;
                             if (item instanceof Component) return addChild(item);
-                            return View.sanitize(`${item}`);
+                            return Component.sanitize(`${item}`);
                         }
                         return '';
                     }).join('');
