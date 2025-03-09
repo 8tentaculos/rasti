@@ -831,7 +831,7 @@ export default class Component extends View {
                         if (typeof item !== 'undefined' && item !== null && item !== false &&  item !== true) {
                             if (item instanceof SafeHTML) return item;
                             if (item instanceof Component) return addChild(item);
-                            return Component.sanitize(`${item}`);
+                            return Component.sanitize(item);
                         }
                         return '';
                     }).join('');
