@@ -21,6 +21,6 @@ const Header = Component.create`
         <h1>todos</h1>
         <input class="new-todo" placeholder="What needs to be done?" autofocus />
     </header>
-`;
+`.extend({ onChange() {} });
 
 export default Header;
