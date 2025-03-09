@@ -53,6 +53,7 @@ const Todo = Component.create`
             <label>${({ model }) => model.title}</label>
             <button class="destroy"></button>
         </div>
+
         <input class="edit" value="${({ model }) => model.title}">
     </li>
 `.extend({

@@ -9,15 +9,20 @@ import Footer from './Footer.js';
 const App = Component.create`
     <main class="todoapp">
         <${Header} model=${({ model }) => model} key="header" />
-        <section class="main">
-            <${ToggleAll} model=${({ model }) => model} key="toggle-all" />
-            <ul class="todo-list">
-                ${self => self.model.filtered.map(todo => self.partial`
-                    <${Todo} ${{ model : todo, handleRemove : () => self.model.removeTodo(todo) }} />
-                `)}
-            </ul>
-        </section>
-        <${Footer} model=${({ model }) => model} key="footer" />
+
+        ${self => !!self.model.todos.length && self.partial`
+            <section class="main">
+                <${ToggleAll} model=${self.model} key="toggle-all" />
+
+                <ul class="todo-list">
+                    ${self.model.filtered.map(todo => self.partial`
+                        <${Todo} ${{ model : todo, handleRemove : () => self.model.removeTodo(todo) }} />
+                    `)}
+                </ul>
+            </section>
+
+            <${Footer} model=${self.model} key="footer" />
+        `}
     </main>
 `;
 
