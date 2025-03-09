@@ -694,89 +694,89 @@ export default class Component extends View {
      * Takes a tagged template string or a function that returns another component, and returns a new `Component` class.
      * - The template outer tag and attributes will be used to create the view's root element.
      * - The template inner HTML will be used as the view's template.
-     *     ```javascript
-     *     const Button = Component.create`<button class="button">Click me</button>`;
-     *     ```
+     *   ```javascript
+     *   const Button = Component.create`<button class="button">Click me</button>`;
+     *   ```
      * - Template interpolations that are functions will be evaluated during the render process, receiving the view instance as an argument and being bound to it. If the function returns `null`, `undefined`, `false`, or an empty string, the interpolation won't render any content.
-     *     ```javascript
-     *     const Button = Component.create`
-     *         <button class="${({ options }) => options.className}">
-     *             ${({ options }) => options.renderChildren()}
-     *         </button>
-     *     `;
-     *     ```
+     *   ```javascript
+     *   const Button = Component.create`
+     *       <button class="${({ options }) => options.className}">
+     *           ${({ options }) => options.renderChildren()}
+     *       </button>
+     *   `;
+     *   ```
      * - Event handlers should be passed, at the root element as camelized attributes, in the format `onEventName=${{'selector' : listener }}`. They will be transformed to an event object and delegated to the root element. See {@link #module_view__delegateevents View.delegateEvents}. 
-     * - Boolean attributes should be passed in the form of `attribute="${() => true}"`. `false` attributes won't be rendered. `true` attributes will be rendered without a value.
-     *     ```javascript
-     *     const Input = Component.create`
-     *         <input type="text" disabled=${({ options }) => options.disabled} />
-     *     `;
-     *     ```
+     * - Boolean attributes should be passed in the format `attribute="${() => true}"`. `false` attributes won't be rendered. `true` attributes will be rendered without a value.
+     *   ```javascript
+     *   const Input = Component.create`
+     *       <input type="text" disabled=${({ options }) => options.disabled} />
+     *   `;
+     *   ```
      * - If the interpolated function returns a component instance, it will be added as a child component.
      * - If the interpolated function returns an array, each item will be evaluated as above.
-     *     ```javascript
-     *     // Create a button component.
-     *     const Button = Component.create`
-     *         <button class="button">
-     *             ${({ options }) => options.renderChildren()}
-     *        </button>
-     *    `;
-     *     // Create a navigation component. Add buttons as children. Iterate over items.
-     *     const Navigation = Component.create`
-     *         <nav>
-     *             ${({ options }) => options.items.map(
-     *                 item => Button.mount({ renderChildren: () => item.label })
-     *             )}
-     *        </nav>
-     *     `;
-     *     // Create a header component. Add navigation as a child.
-     *     const Header = Component.create`
-     *         <header>
-     *             ${({ options }) => Navigation.mount({ items : options.items})}
-     *         </header>
-     *     `;
-     *     ```
+     *   ```javascript
+     *   // Create a button component.
+     *   const Button = Component.create`
+     *       <button class="button">
+     *           ${({ options }) => options.renderChildren()}
+     *       </button>
+     *   `;
+     *   // Create a navigation component. Add buttons as children. Iterate over items.
+     *   const Navigation = Component.create`
+     *       <nav>
+     *           ${({ options }) => options.items.map(
+     *               item => Button.mount({ renderChildren: () => item.label })
+     *           )}
+     *       </nav>
+     *   `;
+     *   // Create a header component. Add navigation as a child.
+     *   const Header = Component.create`
+     *       <header>
+     *           ${({ options }) => Navigation.mount({ items : options.items})}
+     *       </header>
+     *   `;
+     *   ```
      * - Child components can be added using a component tag.
-     *    ```javascript
-     *     // Create a button component.
-     *     const Button = Component.create`
-     *         <button class="button">
-     *             ${({ options }) => options.renderChildren()}
-     *         </button>
-     *     `;
-     *     // Create a navigation component. Add buttons as children. Iterate over items.
-     *     const Navigation = Component.create`
-     *         <nav>
-     *             ${self => self.options.items.map(
-     *                 item => self.partial`<${Button}>${item.label}</${Button}>`
-     *             )}
-     *         </nav>
-     *     `;
-     *     // Create a header component. Add navigation as a child.
-     *     const Header = Component.create`
-     *         <header>
-     *             <${Navigation} items="${({ options }) => options.items}" />
-     *         </header>
-     *     `;
-     *     ```
+     *   ```javascript
+     *   // Create a button component.
+     *   const Button = Component.create`
+     *       <button class="button">
+     *            ${({ options }) => options.renderChildren()}
+     *       </button>
+     *   `;
+     *   // Create a navigation component. Add buttons as children. Iterate over items.
+     *   const Navigation = Component.create`
+     *       <nav>
+     *           ${self => self.options.items.map(
+     *               item => self.partial`<${Button}>${item.label}</${Button}>`
+     *           )}
+     *       </nav>
+     *   `;
+     *   // Create a header component. Add navigation as a child.
+     *   const Header = Component.create`
+     *       <header>
+     *           <${Navigation} items="${({ options }) => options.items}" />
+     *       </header>
+     *   `;
+     *   ```
      * - If the tagged template contains only one expression that mounts a component, or the tags are references to a component, the component will be considered a <b>container</b>. It will render a single component as a child. `this.el` will be a reference to that child component's element.
-     *     ```javascript
-     *     // Create a button component.
-     *     const Button = Component.create`
-     *         <button class="${({ options }) => options.className}">
-     *             ${self => self.renderChildren()}
-     *         </button>
-     *     `;
-     *     // Create a container using the button component
-     *     const ButtonOk = Component.create`
-     *         <${Button} className="ok">Ok</${Button}>
-     *     `;
-     *     // Create a button component using a function
-     *     const ButtonCancel = Component.create(() => Button.mount({
-     *         className: 'cancel',
-     *         renderChildren: () => 'Cancel'
-     *     }));
-     *     ```
+     *   ```javascript
+     *   // Create a button component.
+     *   const Button = Component.create`
+     *       <button class="${({ options }) => options.className}">
+     *           ${self => self.renderChildren()}
+     *       </button>
+     *   `;
+     *   // Create a container using the button component
+     *   const ButtonOk = Component.create`
+     *       <${Button} className="ok">Ok</${Button}>
+     *   `;
+     *   // Create a button component using a function
+     *   const ButtonCancel = Component.create(() => Button.mount({
+     *       className: 'cancel',
+     *       renderChildren: () => 'Cancel'
+     *   }));
+     *   ```
      * @static
      * @param {string|function} strings - HTML template for the component or a function that mounts a sub component.
      * @param {...*} expressions - The expressions to be interpolated within the template.

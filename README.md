@@ -20,19 +20,19 @@
 ## Key Features  
 
 - **Declarative Components** 🌟  
-    Build dynamic UI components using intuitive template literals.  
+  Build dynamic UI components using intuitive template literals.  
 - **Event Delegation** 🎯  
-    Simplify event handling with built-in delegation.  
+  Simplify event handling with built-in delegation.  
 - **Model-View Binding** 🔗  
-    Keep your UI and data in sync with ease.  
+  Keep your UI and data in sync with ease.  
 - **Server-Side Rendering** 🌐  
-    Render as plain text for server-side use or static builds.  
+  Render as plain text for server-side use or static builds.  
 - **Lightweight and Fast** ⚡  
-    Minimal overhead with efficient rendering.  
+  Minimal overhead with efficient rendering.  
 - **Legacy Compatibility** 🕰️  
-    Seamlessly integrates into existing **Backbone.js** projects.  
+  Seamlessly integrates into existing **Backbone.js** projects.  
 - **Standards-Based** 📐  
-    Built on modern web standards, no tooling required.  
+  Built on modern web standards, no tooling required.  
 
 ## Getting Started
 
@@ -97,7 +97,7 @@ const routes = [
 // Create a Link component for navigation items.
 const Link = Component.create`
     <a href="${({ options }) => options.href}">
-        ${({ options }) => options.label}
+        ${({ options }) => options.renderChildren()}
     </a>
 `;
 
@@ -105,19 +105,19 @@ const Link = Component.create`
 const Navigation = Component.create`
     <nav>
         ${self => self.options.routes.map(
-            ({ label, href }) => self.partial`<${Link} ${{ label, href }} />`
+            ({ label, href }) => self.partial`<${Link} href="${href}">${label}</${Link}>`
         )}
     </nav>
 `;
 
-// Create a Page component that includes the Navigation and displays the current route's label as the title.
-const Page = Component.create`
+// Create a Main component that includes the Navigation and displays the current route's label as the title.
+const Main = Component.create`
     <main>
         <${Navigation} routes=${({ options }) => options.routes} />
         <section>
             <h1>
-                ${({ state, options }) => options.routes.find(
-                    ({ href }) => href === (state.location || '#')
+                ${({ model, options }) => options.routes.find(
+                    ({ href }) => href === (model.location || '#')
                 ).label}
             </h1>
         </section>
@@ -130,8 +130,8 @@ const model = new Model({ location: document.location.hash });
 // Update the model's location state when the browser's history changes.
 window.addEventListener('popstate', () => model.location = document.location.hash);
 
-// Mount the Page component to the body, passing the routes and model as options.
-Page.mount({ routes, model }, document.body);
+// Mount the Main component to the body, passing the routes and model as options.
+Main.mount({ routes, model }, document.body);
 ```
 
 [Try it on CodePen](https://codepen.io/8tentaculos/pen/dyBMNbq?editors=0010)

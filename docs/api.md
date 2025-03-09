@@ -1,39 +1,46 @@
 ## Modules
 
-<dl>
-<dt><a href="#module_component">Component</a> ⇐ <code>Rasti.View</code></dt>
-<dd><p>Components are a special kind of <code>View</code> that is designed to be easily composable, 
-making it simple to add child views and build complex user interfaces.<br>Unlike views, which are render-agnostic, components have a specific set of rendering 
-guidelines that allow for a more declarative development style.<br>Components are defined with the <a href="#module_component_create">Component.create</a> static method, which takes a tagged template string or a function that returns another component.</p>
-</dd>
-<dt><a href="#module_emitter">Emitter</a></dt>
-<dd><p><code>Emitter</code> is a class that provides an easy way to implement the observer pattern 
-in your applications.<br>It can be extended to create new classes that have the ability to emit and bind custom named events.<br>Emitter is used by <code>Model</code> and <code>View</code> classes, which inherit from it to implement 
-event-driven functionality.</p>
-</dd>
-<dt><a href="#module_model">Model</a> ⇐ <code>Rasti.Emitter</code></dt>
-<dd><ul>
-<li>Orchestrates data and business logic.</li>
-<li>Emits events when data changes.</li>
-</ul>
-<p>A <code>Model</code> manages an internal table of data attributes and triggers change events when any of its data is modified.<br>Models may handle syncing data with a persistence layer. To design your models, create atomic, reusable objects 
-that contain all the necessary functions for manipulating their specific data.<br>Models should be easily passed throughout your app and used anywhere the corresponding data is needed.<br>Rasti models store their attributes in <code>this.attributes</code>, which is extended from <code>this.defaults</code> and the 
-constructor <code>attributes</code> parameter. For every attribute, a getter is generated to retrieve the model property 
-from <code>this.attributes</code>, and a setter is created to set the model property in <code>this.attributes</code> and emit <code>change</code> 
-and <code>change:attribute</code> events.</p>
-</dd>
-<dt><a href="#module_view">View</a> ⇐ <code>Emitter</code></dt>
-<dd><ul>
-<li>Listens for changes and renders the UI.</li>
-<li>Handles user input and interactivity.</li>
-<li>Sends captured input to the model.</li>
-</ul>
-<p>A <code>View</code> is an atomic unit of the user interface that can render data from a specific model or multiple models.
-However, views can also be independent and have no associated data.<br>Models must be unaware of views. Views, on the other hand, may render model data and listen to the change events 
-emitted by the models to re-render themselves based on changes.<br>Each <code>View</code> has a root element, <code>this.el</code>, which is used for event delegation.<br>All element lookups are scoped to this element, and any rendering or DOM manipulations should be done inside it. 
-If <code>this.el</code> is not present, an element will be created using <code>this.tag</code> (defaulting to <code>div</code>) and <code>this.attributes</code>.</p>
-</dd>
-</dl>
+* [Component](#module_component) ⇐ <code>Rasti.View</code>
+    * _instance_
+        * [.subscribe(model)](#module_component__subscribe) ⇒ <code>Rasti.Component</code>
+        * [.onCreate(options)](#module_component__oncreate)
+        * [.onChange(model, changed)](#module_component__onchange)
+        * [.onRender(type)](#module_component__onrender)
+        * [.onDestroy(options)](#module_component__ondestroy)
+        * [.partial(strings, ...expressions)](#module_component__partial) ⇒ <code>Array</code>
+    * _static_
+        * [.markAsSafeHTML(value)](#module_component_markassafehtml) ⇒ <code>Rasti.SafeHTML</code>
+        * [.extend(object)](#module_component_extend)
+        * [.mount(options, el, hydrate)](#module_component_mount) ⇒ <code>Rasti.Component</code>
+        * [.create(strings, ...expressions)](#module_component_create) ⇒ <code>Rasti.Component</code>
+* [Emitter](#module_emitter)
+    * [.on(type, listener)](#module_emitter__on)
+    * [.once(type, listener)](#module_emitter__once)
+    * [.off([type], [listener])](#module_emitter__off)
+    * [.emit(type)](#module_emitter__emit)
+* [Model](#module_model) ⇐ <code>Rasti.Emitter</code>
+    * [.preinitialize(attributes)](#module_model__preinitialize)
+    * [.defineAttribute(key)](#module_model__defineattribute)
+    * [.get(key)](#module_model__get) ⇒ <code>any</code>
+    * [.set(key, [value])](#module_model__set) ⇒ <code>this</code>
+    * [.toJSON()](#module_model__tojson) ⇒ <code>object</code>
+* [View](#module_view) ⇐ <code>Emitter</code>
+    * _instance_
+        * [.preinitialize(attrs)](#module_view__preinitialize)
+        * [.$(selector)](#module_view__$) ⇒ <code>node</code>
+        * [.$$(selector)](#module_view__$$) ⇒ <code>Array.&lt;node&gt;</code>
+        * [.destroy(options)](#module_view__destroy) ⇒ <code>Rasti.View</code>
+        * [.onDestroy(options)](#module_view__ondestroy)
+        * [.addChild(child)](#module_view__addchild) ⇒ <code>Rasti.View</code>
+        * [.destroyChildren()](#module_view__destroychildren)
+        * [.ensureElement()](#module_view__ensureelement)
+        * [.createElement(tag, attributes)](#module_view__createelement) ⇒ <code>node</code>
+        * [.removeElement()](#module_view__removeelement) ⇒ <code>Rasti.View</code>
+        * [.delegateEvents([events])](#module_view__delegateevents) ⇒ <code>Rasti.View</code>
+        * [.undelegateEvents()](#module_view__undelegateevents) ⇒ <code>Rasti.View</code>
+        * [.render()](#module_view__render) ⇒ <code>Rasti.View</code>
+    * _static_
+        * [.sanitize(str)](#module_view_sanitize) ⇒ <code>string</code>
 
 <a name="module_component" id="module_component"></a>
 ## Component ⇐ <code>Rasti.View</code>
@@ -52,9 +59,11 @@ Components are defined with the [Component.create](#module_component_create) sta
 
 **Properties**
 
-- key <code>string</code> - A unique key to identify the component. Used to recycle child components.  
-- model <code>object</code> - A `Rasti.Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method.  
-- state <code>object</code> - A `Rasti.Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method.  
+| Name | Type | Description |
+| --- | --- | --- |
+| key | <code>string</code> | A unique key to identify the component. Used to recycle child components. |
+| model | <code>object</code> | A `Rasti.Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method. |
+| state | <code>object</code> | A `Rasti.Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method. |
 
 **Example**  
 ```js
@@ -230,89 +239,89 @@ And returns the view instance.
 Takes a tagged template string or a function that returns another component, and returns a new `Component` class.
 - The template outer tag and attributes will be used to create the view's root element.
 - The template inner HTML will be used as the view's template.
-    ```javascript
-    const Button = Component.create`<button class="button">Click me</button>`;
-    ```
+  ```javascript
+  const Button = Component.create`<button class="button">Click me</button>`;
+  ```
 - Template interpolations that are functions will be evaluated during the render process, receiving the view instance as an argument and being bound to it. If the function returns `null`, `undefined`, `false`, or an empty string, the interpolation won't render any content.
-    ```javascript
-    const Button = Component.create`
-        <button class="${({ options }) => options.className}">
-            ${({ options }) => options.renderChildren()}
-        </button>
-    `;
-    ```
+  ```javascript
+  const Button = Component.create`
+      <button class="${({ options }) => options.className}">
+          ${({ options }) => options.renderChildren()}
+      </button>
+  `;
+  ```
 - Event handlers should be passed, at the root element as camelized attributes, in the format `onEventName=${{'selector' : listener }}`. They will be transformed to an event object and delegated to the root element. See [View.delegateEvents](#module_view__delegateevents). 
-- Boolean attributes should be passed in the form of `attribute="${() => true}"`. `false` attributes won't be rendered. `true` attributes will be rendered without a value.
-    ```javascript
-    const Input = Component.create`
-        <input type="text" disabled=${({ options }) => options.disabled} />
-    `;
-    ```
+- Boolean attributes should be passed in the format `attribute="${() => true}"`. `false` attributes won't be rendered. `true` attributes will be rendered without a value.
+  ```javascript
+  const Input = Component.create`
+      <input type="text" disabled=${({ options }) => options.disabled} />
+  `;
+  ```
 - If the interpolated function returns a component instance, it will be added as a child component.
 - If the interpolated function returns an array, each item will be evaluated as above.
-    ```javascript
-    // Create a button component.
-    const Button = Component.create`
-        <button class="button">
-            ${({ options }) => options.renderChildren()}
-       </button>
-   `;
-    // Create a navigation component. Add buttons as children. Iterate over items.
-    const Navigation = Component.create`
-        <nav>
-            ${({ options }) => options.items.map(
-                item => Button.mount({ renderChildren: () => item.label })
-            )}
-       </nav>
-    `;
-    // Create a header component. Add navigation as a child.
-    const Header = Component.create`
-        <header>
-            ${({ options }) => Navigation.mount({ items : options.items})}
-        </header>
-    `;
-    ```
+  ```javascript
+  // Create a button component.
+  const Button = Component.create`
+      <button class="button">
+          ${({ options }) => options.renderChildren()}
+      </button>
+  `;
+  // Create a navigation component. Add buttons as children. Iterate over items.
+  const Navigation = Component.create`
+      <nav>
+          ${({ options }) => options.items.map(
+              item => Button.mount({ renderChildren: () => item.label })
+          )}
+      </nav>
+  `;
+  // Create a header component. Add navigation as a child.
+  const Header = Component.create`
+      <header>
+          ${({ options }) => Navigation.mount({ items : options.items})}
+      </header>
+  `;
+  ```
 - Child components can be added using a component tag.
-   ```javascript
-    // Create a button component.
-    const Button = Component.create`
-        <button class="button">
-            ${({ options }) => options.renderChildren()}
-        </button>
-    `;
-    // Create a navigation component. Add buttons as children. Iterate over items.
-    const Navigation = Component.create`
-        <nav>
-            ${self => self.options.items.map(
-                item => self.partial`<${Button}>${item.label}</${Button}>`
-            )}
-        </nav>
-    `;
-    // Create a header component. Add navigation as a child.
-    const Header = Component.create`
-        <header>
-            <${Navigation} items="${({ options }) => options.items}" />
-        </header>
-    `;
-    ```
+  ```javascript
+  // Create a button component.
+  const Button = Component.create`
+      <button class="button">
+           ${({ options }) => options.renderChildren()}
+      </button>
+  `;
+  // Create a navigation component. Add buttons as children. Iterate over items.
+  const Navigation = Component.create`
+      <nav>
+          ${self => self.options.items.map(
+              item => self.partial`<${Button}>${item.label}</${Button}>`
+          )}
+      </nav>
+  `;
+  // Create a header component. Add navigation as a child.
+  const Header = Component.create`
+      <header>
+          <${Navigation} items="${({ options }) => options.items}" />
+      </header>
+  `;
+  ```
 - If the tagged template contains only one expression that mounts a component, or the tags are references to a component, the component will be considered a <b>container</b>. It will render a single component as a child. `this.el` will be a reference to that child component's element.
-    ```javascript
-    // Create a button component.
-    const Button = Component.create`
-        <button class="${({ options }) => options.className}">
-            ${self => self.renderChildren()}
-        </button>
-    `;
-    // Create a container using the button component
-    const ButtonOk = Component.create`
-        <${Button} className="ok">Ok</${Button}>
-    `;
-    // Create a button component using a function
-    const ButtonCancel = Component.create(() => Button.mount({
-        className: 'cancel',
-        renderChildren: () => 'Cancel'
-    }));
-    ```
+  ```javascript
+  // Create a button component.
+  const Button = Component.create`
+      <button class="${({ options }) => options.className}">
+          ${self => self.renderChildren()}
+      </button>
+  `;
+  // Create a container using the button component
+  const ButtonOk = Component.create`
+      <${Button} className="ok">Ok</${Button}>
+  `;
+  // Create a button component using a function
+  const ButtonCancel = Component.create(() => Button.mount({
+      className: 'cancel',
+      renderChildren: () => 'Cancel'
+  }));
+  ```
 
 **Kind**: static method of [<code>Component</code>](#module_component)  
 **Returns**: <code>Rasti.Component</code> - The newly created component class.  
@@ -453,8 +462,10 @@ and `change:attribute` events.
 
 **Properties**
 
-- defaults <code>object</code> \| <code>function</code> - Object containing default attributes for the model. It will extend `this.attributes`. If a function is passed, it will be called to get the defaults. It will be bound to the model instance.  
-- previous <code>object</code> - Object containing previous attributes when a change occurs.  
+| Name | Type | Description |
+| --- | --- | --- |
+| defaults | <code>object</code> \| <code>function</code> | Object containing default attributes for the model. It will extend `this.attributes`. If a function is passed, it will be called to get the defaults. It will be bound to the model instance. |
+| previous | <code>object</code> | Object containing previous attributes when a change occurs. |
 
 **Example**  
 ```js
@@ -577,12 +588,14 @@ If `this.el` is not present, an element will be created using `this.tag` (defaul
 
 **Properties**
 
-- el <code>node</code> \| <code>function</code> - Every view has a root DOM element stored at `this.el`. If not present, it will be created. If `this.el` is a function, it will be called to get the element at `this.ensureElement`, bound to the view instance. See [View.ensureElement](module_view__ensureelement).  
-- tag <code>string</code> \| <code>function</code> - If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. Default is `div`. If it is a function, it will be called to get the tag, bound to the view instance. See [View.ensureElement](module_view__ensureelement).  
-- attributes <code>object</code> \| <code>function</code> - If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. If it is a function, it will be called to get the attributes object, bound to the view instance. See [View.ensureElement](module_view__ensureelement).  
-- events <code>object</code> \| <code>function</code> - Object in the format `{'event selector' : 'listener'}`. It will be used to bind delegated event listeners to the root element. If it is a function, it will be called to get the events object, bound to the view instance. See [View.delegateEvents](module_view_delegateevents).  
-- model <code>object</code> - A model or any object containing data and business logic.  
-- template <code>function</code> - A function that returns a string with the view's inner HTML. See [View.render](module_view__render).  
+| Name | Type | Description |
+| --- | --- | --- |
+| el | <code>node</code> \| <code>function</code> | Every view has a root DOM element stored at `this.el`. If not present, it will be created. If `this.el` is a function, it will be called to get the element at `this.ensureElement`, bound to the view instance. See [View.ensureElement](module_view__ensureelement). |
+| tag | <code>string</code> \| <code>function</code> | If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. Default is `div`. If it is a function, it will be called to get the tag, bound to the view instance. See [View.ensureElement](module_view__ensureelement). |
+| attributes | <code>object</code> \| <code>function</code> | If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. If it is a function, it will be called to get the attributes object, bound to the view instance. See [View.ensureElement](module_view__ensureelement). |
+| events | <code>object</code> \| <code>function</code> | Object in the format `{'event selector' : 'listener'}`. It will be used to bind delegated event listeners to the root element. If it is a function, it will be called to get the events object, bound to the view instance. See [View.delegateEvents](module_view_delegateevents). |
+| model | <code>object</code> | A model or any object containing data and business logic. |
+| template | <code>function</code> | A function that returns a string with the view's inner HTML. See [View.render](module_view__render). |
 
 **Example**  
 ```js
@@ -799,9 +812,9 @@ For best practices on secure data handling, refer to the
 <a name="module_view_sanitize" id="module_view_sanitize"></a>
 ### View.sanitize(str) ⇒ <code>string</code>
 Escape HTML entities in a string.
-Use method to sanitize user-generated content before inserting it into the DOM.
+Use this method to sanitize user-generated content before inserting it into the DOM.
 Override this method to provide a custom escape function.
-This method is used by `Component` to escape template interpolations.
+This method is inherited by [Component](#module_component) and used to escape template interpolations.
 
 **Kind**: static method of [<code>View</code>](#module_view)  
 **Returns**: <code>string</code> - Escaped string.  

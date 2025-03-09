@@ -326,9 +326,9 @@ export default class View extends Emitter {
 
     /**
      * Escape HTML entities in a string.
-     * Use method to sanitize user-generated content before inserting it into the DOM.
+     * Use this method to sanitize user-generated content before inserting it into the DOM.
      * Override this method to provide a custom escape function.
-     * This method is used by `Component` to escape template interpolations.
+     * This method is inherited by {@link #module_component Component} and used to escape template interpolations.
      * @static
      * @param {string} str String to escape.
      * @return {string} Escaped string.
