@@ -437,17 +437,29 @@ describe('Component', () => {
     it('must create container with children using tag', () => {
         const Button = Component.create`<button>${({ options }) => options.renderChildren()}</button>`;
         const OkButton = Component.create`<${Button} color="primary">ok</${Button}>`;
+        const CancelButton = Component.create`<${Button} color="secondary">${({ options }) => options.cancel && 'cancel'}</${Button}>`;
 
         expect(OkButton).to.exist;
 
-        const c = OkButton.mount({}, document.body);
+        const c1 = OkButton.mount({}, document.body);
+        const c2 = CancelButton.mount({ cancel : true }, document.body);
 
-        expect(document.querySelector('button').innerHTML).to.be.equal('ok');
-        expect(c.el).to.be.equal(c.children[0].el);
-        expect(c.children[0].options.color).to.be.equal('primary');
-        c.render();
-        expect(document.querySelector('button').innerHTML).to.be.equal('ok');
-        expect(c.el).to.be.equal(c.children[0].el);
+        expect(document.querySelectorAll('button')[0].innerHTML).to.be.equal('ok');
+        expect(c1.el).to.be.equal(c1.children[0].el);
+        expect(c1.children[0].options.color).to.be.equal('primary');
+
+        expect(document.querySelectorAll('button')[1].innerHTML).to.be.equal('cancel');
+        expect(c2.el).to.be.equal(c2.children[0].el);
+        expect(c2.children[0].options.color).to.be.equal('secondary');
+
+        c1.render();
+        c2.render();
+
+        expect(document.querySelectorAll('button')[0].innerHTML).to.be.equal('ok');
+        expect(c1.el).to.be.equal(c1.children[0].el);
+
+        expect(document.querySelectorAll('button')[1].innerHTML).to.be.equal('cancel');
+        expect(c2.el).to.be.equal(c2.children[0].el);
     });
 
     it('must create container with children using tag and key', () => {
@@ -503,6 +515,24 @@ describe('Component', () => {
         expect(c2.children.length).to.be.equal(2);
         expect(c2.children[0].el).to.be.equal(document.querySelector('#test-node-2 button'));
         expect(c2.children[1].el).to.be.equal(document.querySelector('#test-node-2 span button'));
-    });  
+        
+        const c3 = Component.create`
+            <div id="test-node-3">${({ partial }) => partial`<div><${Button} /><span>${({ partial, options }) => options.ok && partial`<${Button} />`}</span></div>`}</div>
+        `.mount({ ok : true }, document.body);
+
+        expect(c3.children.length).to.be.equal(2);
+        expect(c3.children[0].el).to.be.equal(document.querySelector('#test-node-3 button'));
+        expect(c3.children[1].el).to.be.equal(document.querySelector('#test-node-3 span button'));
+
+        const ButtonWithChildren = Component.create`<button>${({ options }) => options.renderChildren()}</button>`;
+
+        const c4 = Component.create`
+            <div id="test-node-4">${({ partial }) => partial`<div><${ButtonWithChildren}>${({ options }) => options.ok && 'ok'}</${ButtonWithChildren}>`}</div>
+        `.mount({ ok : true }, document.body);
+
+        expect(c4.children.length).to.be.equal(1);
+        expect(c4.children[0].el).to.be.equal(document.querySelector('#test-node-4 div button'));
+        expect(document.querySelector('#test-node-4 div button').innerHTML).to.be.equal('ok');
+    });
 });
 
