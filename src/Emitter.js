@@ -41,17 +41,21 @@ export default class Emitter {
      * @param {string} type Type of the event (e.g. `change`).
      * @param {function} listener Callback function to be called when the event is emitted.
      * @example
-     * this.model.on('change', this.render.bind(this)); // Re render when model changes.
+     * // Re render when model changes.
+     * this.model.on('change', this.render.bind(this));
      */
     on(type, listener) {
+        // Validate listener.
         if (typeof listener !== 'function') {
-            throw TypeError('Listener must be a function');
+            throw new TypeError('Listener must be a function');
         }
-
+        // Create listeners object if it doesn't exist.
         if (!this.listeners) this.listeners = {};
         if (!this.listeners[type]) this.listeners[type] = [];
-
+        // Add listener.
         this.listeners[type].push(listener);
+        // Return a function to remove the listener.
+        return () => this.off(type, listener);
     }
 
     /**
@@ -59,19 +63,22 @@ export default class Emitter {
      * @param {string} type Type of the event (e.g. `change`).
      * @param {function} listener Callback function to be called when the event is emitted.
      * @example
+     * // Log a message once when model changes.
      * this.model.once('change', () => console.log('This will happen once'));
      */
     once(type, listener) {
+        // If listener is a function, wrap it to remove it after it is called.
         if (typeof listener === 'function') {
-            let self = this;
-            let _listener = listener;
+            const self = this;
+            const originalListener = listener;
 
             listener = function(...args) {
-                _listener(...args);
+                originalListener(...args);
                 self.off(type, listener);
             };
         }
-        this.on(type, listener);
+        // Add listener.
+        return this.on(type, listener);
     }
 
     /**
@@ -79,29 +86,29 @@ export default class Emitter {
      * @param {string} [type] Type of the event (e.g. `change`). If is not provided, it removes all listeners.
      * @param {function} [listener] Callback function to be called when the event is emitted. If listener is not provided, it removes all listeners for specified type.
      * @example
-     * this.model.off('change'); // Stop listening to changes.
+     * // Stop listening to changes.
+     * this.model.off('change');
      */
     off(type, listener) {
+        // No listeners.
+        if (!this.listeners) return;
+        // No type provided, remove all listeners.
         if (!type) {
-            this.listeners = {};
-        } else {
-            if (!listener) {
-                delete this.listeners[type];
-            } else {
-                let listeners = this.listeners[type];
-                if (listeners) {
-                    let copy = listeners.slice();
-
-                    copy.forEach(function (fn, idx) {
-                        if (fn === listener) listeners.splice(idx, 1);
-                    });
-
-                    if (!listeners.length) {
-                        delete this.listeners[type];
-                    }
-                }
-            }
+            delete this.listeners;
+            return;
         }
+        // No listeners for specified type.
+        if (!this.listeners[type]) return;
+        // No listener provided, remove all listeners for specified type.
+        if (!listener) {
+            delete this.listeners[type];
+        } else {
+            // Remove specific listener.
+            this.listeners[type] = this.listeners[type].filter(fn => fn !== listener);
+            if (!this.listeners[type].length) delete this.listeners[type];
+        }
+        // Remove listeners object if it's empty.
+        if (!Object.keys(this.listeners).length) delete this.listeners;
     }
 
     /**
@@ -109,17 +116,18 @@ export default class Emitter {
      * @param {string} type Type of the event (e.g. `change`).
      * @param {any} [...args] Arguments to be passed to listener.
      * @example
-     * this.emit('invalid'); // Emit validation error event.
+     * // Emit validation error event.
+     * this.emit('invalid');
      */
     emit(type, ...args) {
-        let listeners = this.listeners && this.listeners[type];
-
-        if (!listeners || !listeners.length) return;
-
-        let copy = listeners.slice();
-
-        copy.forEach(function(fn) {
-            fn(...args);
-        });
+        // No listeners.
+        if (!this.listeners || !this.listeners[type]) return;
+        // Call listeners. Use `slice` to make a copy and prevent errors when 
+        // removing listeners inside a listener.
+        this.listeners[type]
+            .slice()
+            .forEach(function(fn) {
+                fn(...args);
+            });
     }
 }

@@ -1,6 +1,9 @@
 import Emitter from './Emitter.js';
+import getResult from './utils/getResult.js';
 
-// These option keys will be extended on the view instance.
+/*
+ * These option keys will be extended on the view instance.
+ */
 const viewOptions = {
     el : true,
     tag : true,
@@ -12,7 +15,7 @@ const viewOptions = {
 };
 
 /**
- * - Listens for changes and renders UI.
+ * - Listens for changes and renders the UI.
  * - Handles user input and interactivity.
  * - Sends captured input to the model.
  *
@@ -22,16 +25,16 @@ const viewOptions = {
  * emitted by the models to re-render themselves based on changes.  
  * Each `View` has a root element, `this.el`, which is used for event delegation.  
  * All element lookups are scoped to this element, and any rendering or DOM manipulations should be done inside it. 
- * If `this.el` is not present, an element will be created using `this.tag` (defaulting to div) and `this.attributes`.
+ * If `this.el` is not present, an element will be created using `this.tag` (defaulting to `div`) and `this.attributes`.
  * @module
- * @extends Rasti.Emitter
- * @param {object} options Object containing options. The following keys will be merged to `this`: el, tag, attributes, events, model, template, onDestroy.
- * @property {node} el Every view has a root element, `this.el`. If not present it will be created.
- * @property {string} tag If `this.el` is not present, an element will be created using `this.tag`. Default is `div`.
- * @property {object} attributes If `this.el` is not present, an element will be created using `this.attributes`.
- * @property {object} events Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to the root element.
- * @property {object} model A `Rasti.Model` or any object containing data and business logic.
- * @property {function} template A function that receives data and returns a markup string (e.g., HTML).
+ * @extends Emitter
+ * @param {object} options Object containing options. The following keys will be merged into the view instance: `el`, `tag`, `attributes`, `events`, `model`, `template`, `onDestroy`.
+ * @property {node|function} el Every view has a root DOM element stored at `this.el`. If not present, it will be created. If `this.el` is a function, it will be called to get the element at `this.ensureElement`, bound to the view instance. See {@link module_view__ensureelement View.ensureElement}.
+ * @property {string|function} tag If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. Default is `div`. If it is a function, it will be called to get the tag, bound to the view instance. See {@link module_view__ensureelement View.ensureElement}.
+ * @property {object|function} attributes If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. If it is a function, it will be called to get the attributes object, bound to the view instance. See {@link module_view__ensureelement View.ensureElement}.
+ * @property {object|function} events Object in the format `{'event selector' : 'listener'}`. It will be used to bind delegated event listeners to the root element. If it is a function, it will be called to get the events object, bound to the view instance. See {@link module_view_delegateevents View.delegateEvents}.
+ * @property {object} model A model or any object containing data and business logic.
+ * @property {function} template A function that returns a string with the view's inner HTML. See {@link module_view__render View.render}. 
  * @example
  * import { View } from 'rasti';
  * 
@@ -67,6 +70,8 @@ export default class View extends Emitter {
         // Store child views,
         // so they can be destroyed.
         this.children = [];
+        // Mutable array to store handlers to be called on destroy.
+        this.destroyQueue = [];
         // Extend "this" with options, mapping viewOptions keys.
         Object.keys(options).forEach(key => {
             if (viewOptions[key]) this[key] = options[key];
@@ -104,6 +109,7 @@ export default class View extends Emitter {
     /**
      * Destroy the view.
      * Destroy children views if any, undelegate events, stop listening to events, call `onDestroy` lifecycle method.
+     * @param {object} options Options object or any arguments passed to `destroy` method will be passed to `onDestroy` method.
      * @return {Rasti.View} Return `this` for chaining.
      */
     destroy() {
@@ -113,6 +119,9 @@ export default class View extends Emitter {
         this.undelegateEvents();
         // Unbind `this` events.
         this.off();
+        // Call destroy queue.
+        this.destroyQueue.forEach(fn => fn());
+        this.destroyQueue = [];
         // Call onDestroy lifecycle method
         this.onDestroy.apply(this, arguments);
         // Return `this` for chaining.
@@ -142,8 +151,8 @@ export default class View extends Emitter {
      * Call destroy method on children views.
      */
     destroyChildren() {
-        while (this.children.length)
-            this.children.shift().destroy();
+        this.children.forEach(child => child.destroy());
+        this.children = [];
     }
 
     /**
@@ -153,10 +162,18 @@ export default class View extends Emitter {
      * postpone element creation.
      */ 
     ensureElement() {
-        // If "this.el" is not present,
-        // create a new element according to "this.tag"
-        // and "this.attributes".
-        if (!this.el) this.el = this.createElement(this.tag, this.attributes);
+        // Element is already present.
+        if (this.el) {
+            // If "this.el" is a function, call it to get the element.
+            this.el = getResult(this.el, this);
+        } else {
+            // If "this.el" is not present,
+            // create a new element according "this.tag"
+            // and "this.attributes".
+            const tag = getResult(this.tag, this);
+            const attrs = getResult(this.attributes, this);
+            this.el = this.createElement(tag, attrs);
+        }
         // Delegate events on element.
         this.delegateEvents();
     }
@@ -166,15 +183,15 @@ export default class View extends Emitter {
      * Called from the constructor if `this.el` is undefined, to ensure
      * the view has a root element.
      * @param {string} tag Tag for the element. Default to `div`
-     * @param {object} attrs Attributes for the element.
+     * @param {object} attributes Attributes for the element.
      * @return {node} The created element.
      */
-    createElement(tag = 'div', attrs = {}) {
+    createElement(tag = 'div', attributes = {}) {
         // Create DOM element.
         let el = document.createElement(tag);
         // Add element attributes.
-        Object.keys(attrs)
-            .forEach(key => el.setAttribute(key, attrs[key]));
+        Object.keys(attributes)
+            .forEach(key => el.setAttribute(key, attributes[key]));
 
         return el;
     }
@@ -190,22 +207,43 @@ export default class View extends Emitter {
     }
 
     /**
-     * Provide declarative listeners for DOM events within a view. If an events hash is not passed directly, uses `this.events` as the source.  
-     * Events are written in the format `{'event selector' : 'listener'}`. The listener may be either the name of a method on the view, or a direct function body.
-     * Omitting the selector causes the event to be bound to the view's root element (`this.el`).  
-     * By default, `delegateEvents` is called within the View's constructor, 
-     * so if you have a simple events hash, all of your DOM events will always already be connected, and you will never have to call this function yourself.   
-     * All attached listeners are bound to the view automatically, so when the listeners are invoked, `this` continues to refer to the view object.  
-     * When `delegateEvents` is run again, perhaps with a different events hash, all listeners are removed and delegated afresh.
+     * Provide declarative listeners for DOM events within a view. If an events object is not provided, 
+     * it defaults to using `this.events`. If `this.events` is a function, it will be called to get the events object.
+     * 
+     * The events object should follow the format `{'event selector': 'listener'}`:
+     * - `event`: The type of event (e.g., 'click').
+     * - `selector`: A CSS selector to match the event target. If omitted, the event is bound to the root element.
+     * - `listener`: A function or a string representing a method name on the view. The method will be called with `this` bound to the view instance.
+     * 
+     * By default, `delegateEvents` is called within the View's constructor. If you have a simple events object, 
+     * all of your DOM events will be connected automatically, and you will not need to call this function manually.
+     * 
+     * All attached listeners are bound to the view, ensuring that `this` refers to the view object when the listeners are invoked.
+     * When `delegateEvents` is called again, possibly with a different events object, all previous listeners are removed and delegated afresh.
+     * 
+     * The listeners will be invoked with the event and the view as arguments.
+     * 
      * @param {object} [events] Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to the root element.
-     * @return {Rasti.View} Return `this` for chaining.
+     * @return {Rasti.View} Returns `this` for chaining.
      * @example
-     * MyView.prototype.events = {
-     *      'click button.ok' : 'onClickOkButton',
-     *      'click button.cancel' : function() {}
+     * // Using a function.
+     * class Modal extends View {
+     *     events() {
+     *         return {
+     *             'click button.ok': 'onClickOkButton',
+     *             'click button.cancel': function() {}
+     *         };
+     *     }
+     * }
+     * 
+     * // Using an object.
+     * Modal.prototype.events = {
+     *     'click button.ok' : 'onClickOkButton',
+     *     'click button.cancel' : function() {}
      * };
      */
-    delegateEvents(events = this.events) {
+    delegateEvents(events) {
+        if (!events) events = getResult(this.events, this);
         if (!events) return this;
 
         if (this.delegatedEventListeners.length) this.undelegateEvents();
@@ -249,7 +287,9 @@ export default class View extends Emitter {
     }
 
     /**
-     * Removes all of the view's delegated events. Useful if you want to disable or remove a view from the DOM temporarily. Called automatically when the view is destroyed.
+     * Removes all of the view's delegated events. 
+     * Useful if you want to disable or remove a view from the DOM temporarily. 
+     * Called automatically when the view is destroyed and when `delegateEvents` is called again.
      * @return {Rasti.View} Return `this` for chaining.
      */
     undelegateEvents() {
@@ -263,19 +303,44 @@ export default class View extends Emitter {
     }
 
     /**
-     * Render the view.
+     * Renders the view.
      * This method should be overridden with custom logic.
-     * The default implementation sets innerHTML of `this.el` with `this.template`.
-     * Conventions are to only manipulate the DOM in the scope of `this.el`, 
+     * The only convention is to manipulate the DOM within the scope of `this.el`,
      * and to return `this` for chaining.
-     * If you added any child view, you must call `this.destroyChildren`.
-     * <br><br> &#9888; **Security Notice:** The default implementation utilizes `innerHTML` on the root elementfor rendering, which may introduce Cross - Site Scripting (XSS) risks. Ensure that any user-generated content is properly sanitized before inserting it into the DOM. For best practices on secure data handling, refer to the [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
-     * @return {Rasti.View} Return `this` for chaining.
+     * If you add any child views, you should call `this.destroyChildren` before re-rendering.
+     * The default implementation sets the innerHTML of `this.el` with the result
+     * of calling `this.template`, passing `this.model` as an argument.
+     * <br><br> &#9888; **Security Notice:** The default implementation utilizes `innerHTML` on the root element
+     * for rendering, which may introduce Cross-Site Scripting (XSS) risks. Ensure that any user-generated 
+     * content is properly sanitized before inserting it into the DOM. You can use the @link{#module_view_sanitize View.sanitize} 
+     * static method to escape HTML entities in a string.  
+     * For best practices on secure data handling, refer to the 
+     * [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
+     * @return {Rasti.View} Returns `this` for chaining.
      */
     render() {
         if (this.template) this.el.innerHTML = this.template(this.model);
         // Return `this` for chaining.
         return this;
+    }
+
+    /**
+     * Escape HTML entities in a string.
+     * Use this method to sanitize user-generated content before inserting it into the DOM.
+     * Override this method to provide a custom escape function.
+     * This method is inherited by {@link #module_component Component} and used to escape template interpolations.
+     * @static
+     * @param {string} str String to escape.
+     * @return {string} Escaped string.
+     */
+    static sanitize(value) {
+        return `${value}`.replace(/[&<>"']/g, match => ({
+            '&' : '&amp;',
+            '<' : '&lt;',
+            '>' : '&gt;',
+            '"' : '&quot;',
+            '\'' : '&#039;'
+        }[match]));
     }
 }
 

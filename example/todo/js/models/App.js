@@ -1,4 +1,4 @@
-import { Model } from 'https://esm.run/rasti';
+import { Model } from 'rasti';
 
 import TodoModel from './Todo.js';
 

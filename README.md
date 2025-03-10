@@ -19,13 +19,20 @@
 
 ## Key Features  
 
-- 🌟 **Declarative Components**: Build dynamic UI components using intuitive template literals.  
-- 🎯 **Event Delegation**: Simplify event handling with built-in delegation.  
-- 🔗 **Model-View Binding**: Keep your UI and data in sync with ease.  
-- 🌐 **Server-Side Rendering**: Render as plain text for server-side use or static builds.  
-- ⚡ **Lightweight and Fast**: Minimal overhead with efficient rendering.  
-- 🕰️ **Legacy Compatibility**: Seamlessly integrates into existing **Backbone.js** projects.
-- 📐 **Standards-Based**: Built on modern web standards, no tooling required. 
+- **Declarative Components** 🌟  
+  Build dynamic UI components using intuitive template literals.  
+- **Event Delegation** 🎯  
+  Simplify event handling with built-in delegation.  
+- **Model-View Binding** 🔗  
+  Keep your UI and data in sync with ease.  
+- **Server-Side Rendering** 🌐  
+  Render as plain text for server-side use or static builds.  
+- **Lightweight and Fast** ⚡  
+  Minimal overhead with efficient rendering.  
+- **Legacy Compatibility** 🕰️  
+  Seamlessly integrates into existing **Backbone.js** projects.  
+- **Standards-Based** 📐  
+  Built on modern web standards, no tooling required.  
 
 ## Getting Started
 
@@ -55,20 +62,23 @@ import { Model, Component } from 'https://esm.run/rasti';
 const { Model, Component } = Rasti;
 ```
 
-### A simple `Component`
+### Create a `Component`
 
 ```javascript
-// Create Timer component.
+// Define a Timer component that displays the number of seconds from the model.
 const Timer = Component.create`
     <div>
         Seconds: <span>${({ model }) => model.seconds}</span>
     </div>
 `;
-// Create model to store seconds.
+
+// Create a model to store the seconds.
 const model = new Model({ seconds: 0 });
-// Mount timer on body.
+
+// Mount the Timer component to the body and pass the model as an option.
 Timer.mount({ model }, document.body);
-// Increment `model.seconds` every second.
+
+// Increment the `seconds` property of the model every second.
 setInterval(() => model.seconds++, 1000);
 ```
 
@@ -77,43 +87,72 @@ setInterval(() => model.seconds++, 1000);
 ### Adding sub components
 
 ```javascript
-// Create Button component.
-const Button = Component.create`
-    <button
-        onClick="${{ '&' : function() { this.options.onClick() } }}"
-    >
-        ${({ options }) => options.label}
-    </button>
+// Define the routes for the navigation menu.
+const routes = [
+    { label: 'Home', href: '#' },
+    { label: 'Faq', href: '#faq' },
+    { label: 'Contact', href: '#contact' },
+];
+
+// Create a Link component for navigation items.
+const Link = Component.create`
+    <a href="${({ options }) => options.href}">
+        ${({ options }) => options.renderChildren()}
+    </a>
 `;
-// Create Counter component.
-const Counter = Component.create`
-    <div>
-        ${({ model }) => Button.mount({ label : '-', onClick : () => model.count-- })}
-        <span>${({ model }) => model.count}</span>
-        ${({ model }) => Button.mount({ label : '+', onClick : () => model.count++ })}
-    </div>
+
+// Create a Navigation component that renders Link components for each route.
+const Navigation = Component.create`
+    <nav>
+        ${({ options, partial }) => options.routes.map(
+            ({ label, href }) => partial`<${Link} href="${href}">${label}</${Link}>`
+        )}
+    </nav>
 `;
-// Create model to store count.
-const model = new Model({ count: 0 });
-// Mount counter on body.
-Counter.mount({ model }, document.body);
+
+// Create a Main component that includes the Navigation and displays the current route's label as the title.
+const Main = Component.create`
+    <main>
+        <${Navigation} routes=${({ options }) => options.routes} />
+        <section>
+            <h1>
+                ${({ model, options }) => options.routes.find(
+                    ({ href }) => href === (model.location || '#')
+                ).label}
+            </h1>
+        </section>
+    </main>
+`;
+
+// Initialize a model to store the current location.
+const model = new Model({ location: document.location.hash });
+
+// Update the model's location state when the browser's history changes.
+window.addEventListener('popstate', () => model.location = document.location.hash);
+
+// Mount the Main component to the body, passing the routes and model as options.
+Main.mount({ routes, model }, document.body);
 ```
 
-[Try it on CodePen](https://codepen.io/8tentaculos/pen/ZEZarEQ?editors=0010)
+[Try it on CodePen](https://codepen.io/8tentaculos/pen/dyBMNbq?editors=0010)
 
 ## Why Choose **Rasti**?  
 
-- **Small Projects**: Perfect for lightweight apps, free from unnecessary overhead or tooling.  
-- **Efficient Rendering**: Ideal for rendering large dynamic tables or datasets without requiring virtual scrolling.  
-- **Legacy Maintenance**: Modernize your **Backbone.js** views gradually, allowing for incremental updates without the need for a complete rewrite.
+### Why Choose Rasti?  
+
+- **Lightweight Applications**: Designed for streamlined apps, free from unnecessary overhead or tooling.  
+- **High-Performance Rendering**: Optimized for scenarios where speed matters, delivering fast updates and efficient rendering—ideal for large dynamic tables or datasets without needing virtual scrolling.  
+- **Seamless Legacy Integration**: Modernize your **Backbone.js** views progressively, enabling incremental improvements without a full rewrite.  
+
 
 ## Example
 
 The rasti [GitHub repository](https://github.com/8tentaculos/rasti) includes, in the [example folder](https://github.com/8tentaculos/rasti/tree/master/example/todo), an example [TODO application](https://rasti.js.org/example/todo/index.html) that can be used as starter project.
 
-## API
+## API Documentation
 
-Complete [API documentation](/docs/api.md).
+For detailed information on how to use **Rasti**, refer to the [API documentation](/docs/api.md).
+
 
 ## Powered by **Rasti**
 

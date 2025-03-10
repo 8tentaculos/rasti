@@ -1,4 +1,4 @@
-import { Model } from 'https://esm.run/rasti';
+import { Model } from 'rasti';
 
 // Todo model.
 class Todo extends Model {
