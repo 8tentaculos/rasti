@@ -10,18 +10,18 @@ const App = Component.create`
     <main class="todoapp">
         <${Header} model=${({ model }) => model} key="header" />
 
-        ${self => !!self.model.todos.length && self.partial`
+        ${({ model, partial }) => !!model.todos.length && partial`
             <section class="main">
-                <${ToggleAll} model=${self.model} key="toggle-all" />
+                <${ToggleAll} model=${model} key="toggle-all" />
 
                 <ul class="todo-list">
-                    ${self.model.filtered.map(todo => self.partial`
-                        <${Todo} ${{ model : todo, handleRemove : () => self.model.removeTodo(todo) }} />
+                    ${model.filtered.map(todo => partial`
+                        <${Todo} ${{ model : todo, handleRemove : () => model.removeTodo(todo) }} />
                     `)}
                 </ul>
             </section>
 
-            <${Footer} model=${self.model} key="footer" />
+            <${Footer} model=${model} key="footer" />
         `}
     </main>
 `;

@@ -32,8 +32,8 @@ const Footer = Component.create`
             <li><a class="${({ model }) => getFilterClassName('remaining', model.filter)}">Remaining</a></li>
             <li><a class="${({ model }) => getFilterClassName('completed', model.filter)}">Completed</a></li>
         </ul>
-        ${self => self.model.completed.length ?
-            self.partial`<button class="clear-completed">Clear completed</button>` : null}
+        ${({ model, partial }) => model.completed.length ?
+            partial`<button class="clear-completed">Clear completed</button>` : null}
     </footer>
 `;
 

@@ -104,8 +104,8 @@ const Link = Component.create`
 // Create a Navigation component that renders Link components for each route.
 const Navigation = Component.create`
     <nav>
-        ${self => self.options.routes.map(
-            ({ label, href }) => self.partial`<${Link} href="${href}">${label}</${Link}>`
+        ${({ options, partial }) => options.routes.map(
+            ({ label, href }) => partial`<${Link} href="${href}">${label}</${Link}>`
         )}
     </nav>
 `;

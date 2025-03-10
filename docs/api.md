@@ -160,7 +160,9 @@ Lifecycle method. Called when the view is destroyed.
 Tagged template helper method.
 Used to create a partial template.  
 It will return a one-dimensional array with strings and expressions.  
-Components will be added as children by the parent component. Template strings will be marked as safe HTML to be rendered.
+Components will be added as children by the parent component. Template strings literals 
+will be marked as safe HTML to be rendered.
+This method is bound to the component instance by default.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 **Returns**: <code>Array</code> - Array containing strings and expressions.  
@@ -188,7 +190,7 @@ const Main = Component.create`
     renderHeader() {
         return this.partial`
             <header>
-                <${Title}>${self => self.model.title}</${Title}>
+                <${Title}>${({ model }) => model.title}</${Title}>
             </header>
         `;
     }
