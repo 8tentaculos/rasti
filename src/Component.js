@@ -636,8 +636,8 @@ export default class Component extends View {
     /**
      * Mark a string as safe HTML to be rendered.
      * Normally you don't need to use this method, as Rasti will automatically mark strings 
-     * as safe HTML when the component is @link{#module_component_create created} and when 
-     * using the @link{#module_component__partial Component.partial} method.
+     * as safe HTML when the component is {@link #module_component_create created} and when 
+     * using the {@link #module_component__partial Component.partial} method.
      * Be sure that the string is safe to be rendered, as it will be inserted into the DOM without any sanitization.
      * @static
      * @param {string} value 

@@ -200,8 +200,8 @@ const Main = Component.create`
 ### Component.markAsSafeHTML(value) ⇒ <code>Rasti.SafeHTML</code>
 Mark a string as safe HTML to be rendered.
 Normally you don't need to use this method, as Rasti will automatically mark strings 
-as safe HTML when the component is @link{#module_component_create created} and when 
-using the @link{#module_component__partial Component.partial} method.
+as safe HTML when the component is [created](#module_component_create) and when 
+using the [Component.partial](#module_component__partial) method.
 Be sure that the string is safe to be rendered, as it will be inserted into the DOM without any sanitization.
 
 **Kind**: static method of [<code>Component</code>](#module_component)  
@@ -795,17 +795,16 @@ Called automatically when the view is destroyed and when `delegateEvents` is cal
 **Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
 <a name="module_view__render" id="module_view__render" class="anchor"></a>
 ### view.render() ⇒ <code>Rasti.View</code>
-Renders the view.
+Renders the view.  
 This method should be overridden with custom logic.
 The only convention is to manipulate the DOM within the scope of `this.el`,
-and to return `this` for chaining.
-If you add any child views, you should call `this.destroyChildren` before re-rendering.
-The default implementation sets the innerHTML of `this.el` with the result
-of calling `this.template`, passing `this.model` as an argument.
-<br><br> &#9888; **Security Notice:** The default implementation utilizes `innerHTML` on the root element
-for rendering, which may introduce Cross-Site Scripting (XSS) risks. Ensure that any user-generated 
-content is properly sanitized before inserting it into the DOM. You can use the @link{#module_view_sanitize View.sanitize} 
-static method to escape HTML entities in a string.  
+and to return `this` for chaining.  
+If you add any child views, you should call `this.destroyChildren` before re-rendering.  
+The default implementation updates `this.el`'s innerHTML with the result
+of calling `this.template`, passing `this.model` as the argument.
+<br><br> &#9888; **Security Notice:** The default implementation utilizes `innerHTML`, which may introduce Cross-Site Scripting (XSS) risks.  
+Ensure that any user-generated content is properly sanitized before inserting it into the DOM. 
+You can use the [View.sanitize](#module_view_sanitize) static method to escape HTML entities in a string.  
 For best practices on secure data handling, refer to the 
 [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
 

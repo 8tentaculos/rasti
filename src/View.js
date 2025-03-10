@@ -303,17 +303,16 @@ export default class View extends Emitter {
     }
 
     /**
-     * Renders the view.
+     * Renders the view.  
      * This method should be overridden with custom logic.
      * The only convention is to manipulate the DOM within the scope of `this.el`,
-     * and to return `this` for chaining.
-     * If you add any child views, you should call `this.destroyChildren` before re-rendering.
-     * The default implementation sets the innerHTML of `this.el` with the result
-     * of calling `this.template`, passing `this.model` as an argument.
-     * <br><br> &#9888; **Security Notice:** The default implementation utilizes `innerHTML` on the root element
-     * for rendering, which may introduce Cross-Site Scripting (XSS) risks. Ensure that any user-generated 
-     * content is properly sanitized before inserting it into the DOM. You can use the @link{#module_view_sanitize View.sanitize} 
-     * static method to escape HTML entities in a string.  
+     * and to return `this` for chaining.  
+     * If you add any child views, you should call `this.destroyChildren` before re-rendering.  
+     * The default implementation updates `this.el`'s innerHTML with the result
+     * of calling `this.template`, passing `this.model` as the argument.
+     * <br><br> &#9888; **Security Notice:** The default implementation utilizes `innerHTML`, which may introduce Cross-Site Scripting (XSS) risks.  
+     * Ensure that any user-generated content is properly sanitized before inserting it into the DOM. 
+     * You can use the {@link #module_view_sanitize View.sanitize} static method to escape HTML entities in a string.  
      * For best practices on secure data handling, refer to the 
      * [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
      * @return {Rasti.View} Returns `this` for chaining.
