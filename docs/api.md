@@ -198,10 +198,10 @@ const Main = Component.create`
 ```
 <a name="module_component_markassafehtml" id="module_component_markassafehtml" class="anchor"></a>
 ### Component.markAsSafeHTML(value) ⇒ <code>Rasti.SafeHTML</code>
-Mark a string as safe HTML to be rendered.
-Normally you don't need to use this method, as Rasti will automatically mark strings 
+Mark a string as safe HTML to be rendered.  
+Normally you don't need to use this method, as Rasti will automatically mark string literals 
 as safe HTML when the component is [created](#module_component_create) and when 
-using the [Component.partial](#module_component__partial) method.
+using the [Component.partial](#module_component__partial) method.  
 Be sure that the string is safe to be rendered, as it will be inserted into the DOM without any sanitization.
 
 **Kind**: static method of [<code>Component</code>](#module_component)  
@@ -294,8 +294,8 @@ Takes a tagged template string or a function that returns another component, and
   // Create a navigation component. Add buttons as children. Iterate over items.
   const Navigation = Component.create`
       <nav>
-          ${self => self.options.items.map(
-              item => self.partial`<${Button}>${item.label}</${Button}>`
+          ${({ options, partial }) => options.items.map(
+              item => partial`<${Button}>${item.label}</${Button}>`
           )}
       </nav>
   `;
@@ -314,11 +314,11 @@ Takes a tagged template string or a function that returns another component, and
           ${self => self.renderChildren()}
       </button>
   `;
-  // Create a container using the button component
+  // Create a container that renders a Button component.
   const ButtonOk = Component.create`
       <${Button} className="ok">Ok</${Button}>
   `;
-  // Create a button component using a function
+  // Create a container that renders a Button component, using a function.
   const ButtonCancel = Component.create(() => Button.mount({
       className: 'cancel',
       renderChildren: () => 'Cancel'

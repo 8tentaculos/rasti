@@ -634,10 +634,10 @@ export default class Component extends View {
     }
 
     /**
-     * Mark a string as safe HTML to be rendered.
-     * Normally you don't need to use this method, as Rasti will automatically mark strings 
+     * Mark a string as safe HTML to be rendered.  
+     * Normally you don't need to use this method, as Rasti will automatically mark string literals 
      * as safe HTML when the component is {@link #module_component_create created} and when 
-     * using the {@link #module_component__partial Component.partial} method.
+     * using the {@link #module_component__partial Component.partial} method.  
      * Be sure that the string is safe to be rendered, as it will be inserted into the DOM without any sanitization.
      * @static
      * @param {string} value 
@@ -751,8 +751,8 @@ export default class Component extends View {
      *   // Create a navigation component. Add buttons as children. Iterate over items.
      *   const Navigation = Component.create`
      *       <nav>
-     *           ${self => self.options.items.map(
-     *               item => self.partial`<${Button}>${item.label}</${Button}>`
+     *           ${({ options, partial }) => options.items.map(
+     *               item => partial`<${Button}>${item.label}</${Button}>`
      *           )}
      *       </nav>
      *   `;
@@ -771,11 +771,11 @@ export default class Component extends View {
      *           ${self => self.renderChildren()}
      *       </button>
      *   `;
-     *   // Create a container using the button component
+     *   // Create a container that renders a Button component.
      *   const ButtonOk = Component.create`
      *       <${Button} className="ok">Ok</${Button}>
      *   `;
-     *   // Create a button component using a function
+     *   // Create a container that renders a Button component, using a function.
      *   const ButtonCancel = Component.create(() => Button.mount({
      *       className: 'cancel',
      *       renderChildren: () => 'Cancel'
