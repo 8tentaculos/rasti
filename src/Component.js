@@ -264,6 +264,8 @@ export default class Component extends View {
         });
         // Store options by default.
         this.options = options;
+        // Bind `partial` method to `this`.
+        this.partial = this.partial.bind(this);
         // Call lifecycle method.
         this.onCreate.apply(this, arguments);
     }
@@ -460,7 +462,9 @@ export default class Component extends View {
      * Tagged template helper method.
      * Used to create a partial template.  
      * It will return a one-dimensional array with strings and expressions.  
-     * Components will be added as children by the parent component. Template strings will be marked as safe HTML to be rendered.
+     * Components will be added as children by the parent component. Template strings literals 
+     * will be marked as safe HTML to be rendered.
+     * This method is bound to the component instance by default.
      * @param {TemplateStringsArray} strings - Template strings.
      * @param  {...any} expressions - Template expressions.
      * @return {Array} Array containing strings and expressions.
@@ -481,7 +485,7 @@ export default class Component extends View {
      *     renderHeader() {
      *         return this.partial`
      *             <header>
-     *                 <${Title}>${self => self.model.title}</${Title}>
+     *                 <${Title}>${({ model }) => model.title}</${Title}>
      *             </header>
      *         `;
      *     }
