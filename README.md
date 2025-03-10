@@ -36,7 +36,7 @@
 
 ## Getting Started
 
-### Using npm
+### Installing via npm
 
 ```bash
 $ npm install rasti
@@ -52,7 +52,7 @@ import { Model, Component } from 'rasti';
 import { Model, Component } from 'https://esm.run/rasti';
 ```
 
-### Using `<script>` tag
+### Using a `<script>` tag
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/rasti/dist/rasti.min.js"></script>
@@ -138,16 +138,18 @@ Main.mount({ routes, model }, document.body);
 
 ## Why Choose **Rasti**?  
 
-### Why Choose Rasti?  
+**Rasti** is built for developers who want a simple yet powerful way to create UI components without the complexity of heavy frameworks. Whether you're prototyping, building a high-performance dashboard, or modernizing a **Backbone.js** app, **Rasti** lets you:  
 
-- **Lightweight Applications**: Designed for streamlined apps, free from unnecessary overhead or tooling.  
-- **High-Performance Rendering**: Optimized for scenarios where speed matters, delivering fast updates and efficient rendering—ideal for large dynamic tables or datasets without needing virtual scrolling.  
-- **Seamless Legacy Integration**: Modernize your **Backbone.js** views progressively, enabling incremental improvements without a full rewrite.  
-
+- **Skip the Setup**  
+  No installations, no build tools—just load it and start coding.  
+- **Lightweight and Efficient**  
+  Minimal footprint with optimized performance, ensuring smooth updates.  
+- **Upgrade Legacy Code Without a Rewrite**  
+  Incrementally enhance **Backbone.js** views while keeping existing functionality.  
 
 ## Example
 
-The rasti [GitHub repository](https://github.com/8tentaculos/rasti) includes, in the [example folder](https://github.com/8tentaculos/rasti/tree/master/example/todo), an example [TODO application](https://rasti.js.org/example/todo/index.html) that can be used as starter project.
+You can find a sample **TODO application** in the [example folder](https://github.com/8tentaculos/rasti/tree/master/example/todo) of the **Rasti** [GitHub repository](https://github.com/8tentaculos/rasti). This example serves as a great starting point for your own projects. Try it live [here](https://rasti.js.org/example/todo/index.html).
 
 ## API Documentation
 
