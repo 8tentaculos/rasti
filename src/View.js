@@ -63,7 +63,7 @@ export default class View extends Emitter {
         this.preinitialize.apply(this, arguments);
         // Generate unique id.
         // Useful to generate element ids.
-        this.uid = `uid${++View.uid}`;
+        this.uid = `rasti-${++View.uid}`;
         // Store delegated event listeners,
         // so they can be unbound later.
         this.delegatedEventListeners = [];
