@@ -381,13 +381,13 @@ export default class Component extends View {
         // Listen to state changes and call onChange.
         if (this.state) this.subscribe(this.state);
 
-        if (!this.isContainer()) {
+        if (this.isContainer()) {
+            this.children[0].hydrate(parent);
+            this.el = this.children[0].el;
+        } else {
             this.el = this.findElement(parent);
             this.delegateEvents();
             this.children.forEach(child => child.hydrate(this.el));
-        } else {
-            this.children[0].hydrate(parent);
-            this.el = this.children[0].el;
         }
         // Call `onRender` lifecycle method.
         this.onRender.call(this, Component.RENDER_TYPE_HYDRATE);
@@ -403,11 +403,14 @@ export default class Component extends View {
      */
     recycle(parent) {
         // If component is a container, call recycle on its child.
-        if (this.isContainer()) return this.children[0].recycle(parent);
-        // Find placeholder element to be replaced. It has same data attribute as this component.
-        const toBeReplaced = this.findElement(parent);
-        // Replace it with this.el.
-        toBeReplaced.replaceWith(this.el);
+        if (this.isContainer()) {
+            this.children[0].recycle(parent);
+        } else {
+            // Find placeholder element to be replaced. It has same data attribute as this component.
+            const toBeReplaced = this.findElement(parent);
+            // Replace it with this.el.
+            toBeReplaced.replaceWith(this.el);
+        }
         // Call `onRender` lifecycle method.
         this.onRender.call(this, Component.RENDER_TYPE_RECYCLE);
         // Return `this` for chaining.
@@ -536,16 +539,15 @@ export default class Component extends View {
     render() {
         // Prevent a last re render if view is already destroyed.
         if (this.destroyed) return this;
-
+        // If `this.el` is not present, render the view as a string and hydrate it.
+        if (!this.el) {
+            const fragment = this.createElement('template');
+            fragment.innerHTML = this;
+            this.hydrate(fragment.content);
+            return this;
+        }
+        // Update attributes.
         if (!this.isContainer()) {
-            // If `this.el` is not present, render the view as a string and hydrate it.
-            if (!this.el) {
-                const fragment = this.createElement('template');
-                fragment.innerHTML = this;
-                this.hydrate(fragment.content);
-                return this;
-            }
-            // Set `this.el` attributes.
             const attributes = this.getAttributes();
             // Remove attributes.
             Object.keys(attributes.remove).forEach(key => {
@@ -556,7 +558,7 @@ export default class Component extends View {
                 this.el.setAttribute(key, attributes.add[key]);
             });
         }
-        // Check for `template` to see if view has innerHTML.
+        // Check for `template` to see if view has innerHTML or a child component.
         if (this.template) {
             // Store active element.
             const activeElement = document.activeElement;
@@ -597,8 +599,8 @@ export default class Component extends View {
                     this.addChild(nextChildren[0]).hydrate(fragment.content);
                     // Get next child element.
                     const nextEl = fragment.content.children[0];
-                    // If `this.el` is present, replace it with nextEl.
-                    if (this.el) this.el.replaceWith(nextEl);
+                    // Replace `this.el` with nextEl.
+                    this.el.replaceWith(nextEl);
                     // Set `this.el` to nextEl.
                     this.el = nextEl;
                 } else if (recycledChildren[0]) {
