@@ -21,19 +21,19 @@ describe('Component', () => {
 
     it('must be created with a self enclosed tag', () => {
         const c = Component.create`<input id="test-node" type="text" />`.mount({}, document.body);
-        expect(c.toString()).to.be.equal(`<input ${Component.DATA_ATTRIBUTE_UID}="uid1" id="test-node" type="text" />`);
+        expect(c.toString()).to.be.equal(`<input ${Component.DATA_ATTRIBUTE_UID}="rasti-1" id="test-node" type="text" />`);
         expect(document.getElementById('test-node')).to.exist;
     });
 
     it('must be created with a function tag', () => {
         const c = Component.create`<${() => 'div'} id="test-node"><span></span></${() => 'div'}>`.mount({}, document.body);
-        expect(c.toString()).to.be.equal(`<div ${Component.DATA_ATTRIBUTE_UID}="uid1" id="test-node"><span></span></div>`);
+        expect(c.toString()).to.be.equal(`<div ${Component.DATA_ATTRIBUTE_UID}="rasti-1" id="test-node"><span></span></div>`);
         expect(document.getElementById('test-node')).to.exist;
     });
 
     it('must be created with a function tag with self enclosed tag', () => {
         const c = Component.create`<${() => 'input'} id="test-node" type="text" />`.mount({}, document.body);
-        expect(c.toString()).to.be.equal(`<input ${Component.DATA_ATTRIBUTE_UID}="uid1" id="test-node" type="text" />`);
+        expect(c.toString()).to.be.equal(`<input ${Component.DATA_ATTRIBUTE_UID}="rasti-1" id="test-node" type="text" />`);
         expect(document.getElementById('test-node')).to.exist;
     });
 
@@ -172,21 +172,21 @@ describe('Component', () => {
     it('must render true and false attributes', () => {
         expect(
             Component.create`<input id="test-node" disabled="${() => false}" />`.mount().toString()
-        ).to.be.equal(`<input ${Component.DATA_ATTRIBUTE_UID}="uid1" id="test-node" />`);
+        ).to.be.equal(`<input ${Component.DATA_ATTRIBUTE_UID}="rasti-1" id="test-node" />`);
 
         expect(
             Component.create`<input id="test-node" disabled="${() => true}" />`.mount().toString()
-        ).to.be.equal(`<input ${Component.DATA_ATTRIBUTE_UID}="uid2" id="test-node" disabled />`);
+        ).to.be.equal(`<input ${Component.DATA_ATTRIBUTE_UID}="rasti-2" id="test-node" disabled />`);
     });
 
     it('must remove true and false placeholders', () => {
         expect(
             Component.create`<div id="test-node">${() => true}</div>`.mount().toString()
-        ).to.be.equal(`<div ${Component.DATA_ATTRIBUTE_UID}="uid1" id="test-node"></div>`);
+        ).to.be.equal(`<div ${Component.DATA_ATTRIBUTE_UID}="rasti-1" id="test-node"></div>`);
 
         expect(
             Component.create`<div id="test-node">${() => false}</div>`.mount().toString()
-        ).to.be.equal(`<div ${Component.DATA_ATTRIBUTE_UID}="uid2" id="test-node"></div>`);
+        ).to.be.equal(`<div ${Component.DATA_ATTRIBUTE_UID}="rasti-2" id="test-node"></div>`);
     });
 
     it('must be destroyed and stop listening', () => {
@@ -222,13 +222,13 @@ describe('Component', () => {
 
         const child = c.children[0];
         expect(document.querySelector('button')).to.be.equal(c.children[0].el);
-        expect(document.getElementById('test-node').innerHTML).to.be.equal('<button data-rasti-uid="uid2">click me</button>');
+        expect(document.getElementById('test-node').innerHTML).to.be.equal('<button data-rasti-uid="rasti-2">click me</button>');
 
         c.model.count = 1;
 
         expect(c.children[0]).not.to.be.equal(child);
         expect(document.querySelector('button')).to.be.equal(c.children[0].el);
-        expect(document.getElementById('test-node').innerHTML).to.be.equal('<button data-rasti-uid="uid3">click me</button>');
+        expect(document.getElementById('test-node').innerHTML).to.be.equal('<button data-rasti-uid="rasti-3">click me</button>');
     });
 
     it('must re render and recycle children with key', () => {
@@ -246,7 +246,7 @@ describe('Component', () => {
     });
 
     it('must hydrate existing dom', () => {
-        document.body.innerHTML = `<div ${Component.DATA_ATTRIBUTE_UID}="uid1"><button ${Component.DATA_ATTRIBUTE_UID}="uid2">click me</button></div>`;
+        document.body.innerHTML = `<div ${Component.DATA_ATTRIBUTE_UID}="rasti-1"><button ${Component.DATA_ATTRIBUTE_UID}="rasti-2">click me</button></div>`;
 
         const Button = Component.create`<button>click me</button>`;
         const Main = Component.create`<div>${() => Button.mount()}</div>`;
@@ -505,7 +505,7 @@ describe('Component', () => {
             <div id="test-node-1">${self => self.partial`<div>${({ options }) => options && Button.mount()}</div>`}</div>
         `.mount({}, document.body);
 
-        expect(document.getElementById('test-node-1').innerHTML).to.be.equal('<div><button data-rasti-uid="uid2">click me</button></div>');
+        expect(document.getElementById('test-node-1').innerHTML).to.be.equal('<div><button data-rasti-uid="rasti-2">click me</button></div>');
         expect(c1.children[0].el).to.be.equal(document.querySelector('button'));
 
         const c2 = Component.create`
