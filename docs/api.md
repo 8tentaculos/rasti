@@ -627,6 +627,7 @@ If `this.el` is not present, an element will be created using `this.tag` (defaul
 | events | <code>object</code> \| <code>function</code> | Object in the format `{'event selector' : 'listener'}`. It will be used to bind delegated event listeners to the root element. If it is a function, it will be called to get the events object, bound to the view instance. See [View.delegateEvents](module_view_delegateevents). |
 | model | <code>object</code> | A model or any object containing data and business logic. |
 | template | <code>function</code> | A function that returns a string with the view's inner HTML. See [View.render](module_view__render). |
+| uid | <code>number</code> | Unique identifier for the view instance. This can be used to generate unique IDs for elements within the view. It is automatically generated and should not be set manually. |
 
 **Example**  
 ```js

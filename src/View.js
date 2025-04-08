@@ -27,6 +27,7 @@ const viewOptions = ['el', 'tag', 'attributes', 'events', 'model', 'template', '
  * @property {object|function} events Object in the format `{'event selector' : 'listener'}`. It will be used to bind delegated event listeners to the root element. If it is a function, it will be called to get the events object, bound to the view instance. See {@link module_view_delegateevents View.delegateEvents}.
  * @property {object} model A model or any object containing data and business logic.
  * @property {function} template A function that returns a string with the view's inner HTML. See {@link module_view__render View.render}. 
+ * @property {number} uid Unique identifier for the view instance. This can be used to generate unique IDs for elements within the view. It is automatically generated and should not be set manually.
  * @example
  * import { View } from 'rasti';
  * 
@@ -335,7 +336,15 @@ export default class View extends Emitter {
     }
 }
 
-/*
- * Unique Id
+/**
+ * Counter for generating unique IDs for view instances.  
+ * This is primarily used to assign unique identifiers to each view instance (`this.uid`), which can be helpful for tasks like 
+ * generating element IDs.  
+ * {@link #module_component Component}s use `this.uid` to generate data attributes for their elements, to be looked up on hydration.  
+ * For server-side rendering, this counter should be reset to `0` on every request to ensure that the generated 
+ * unique IDs match those on the client, enabling seamless hydration of components.  
+ * @static
+ * @type {number}
+ * @default 0
  */
 View.uid = 0;
