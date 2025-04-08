@@ -4,15 +4,7 @@ import getResult from './utils/getResult.js';
 /*
  * These option keys will be extended on the view instance.
  */
-const viewOptions = {
-    el : true,
-    tag : true,
-    attributes : true,
-    events : true,
-    model : true,
-    template : true,
-    onDestroy : true
-};
+const viewOptions = ['el', 'tag', 'attributes', 'events', 'model', 'template', 'onDestroy'];
 
 /**
  * - Listens for changes and renders the UI.
@@ -35,6 +27,7 @@ const viewOptions = {
  * @property {object|function} events Object in the format `{'event selector' : 'listener'}`. It will be used to bind delegated event listeners to the root element. If it is a function, it will be called to get the events object, bound to the view instance. See {@link module_view_delegateevents View.delegateEvents}.
  * @property {object} model A model or any object containing data and business logic.
  * @property {function} template A function that returns a string with the view's inner HTML. See {@link module_view__render View.render}. 
+ * @property {number} uid Unique identifier for the view instance. This can be used to generate unique IDs for elements within the view. It is automatically generated and should not be set manually.
  * @example
  * import { View } from 'rasti';
  * 
@@ -63,7 +56,7 @@ export default class View extends Emitter {
         this.preinitialize.apply(this, arguments);
         // Generate unique id.
         // Useful to generate element ids.
-        this.uid = `uid${++View.uid}`;
+        this.uid = `rasti-${++View.uid}`;
         // Store delegated event listeners,
         // so they can be unbound later.
         this.delegatedEventListeners = [];
@@ -72,9 +65,9 @@ export default class View extends Emitter {
         this.children = [];
         // Mutable array to store handlers to be called on destroy.
         this.destroyQueue = [];
-        // Extend "this" with options, mapping viewOptions keys.
-        Object.keys(options).forEach(key => {
-            if (viewOptions[key]) this[key] = options[key];
+        // Extend "this" with options.
+        viewOptions.forEach(key => {
+            if (key in options) this[key] = options[key];
         });
         // Ensure that the view has a root element at `this.el`.
         this.ensureElement();
@@ -343,7 +336,15 @@ export default class View extends Emitter {
     }
 }
 
-/*
- * Unique Id
+/**
+ * Counter for generating unique IDs for view instances.  
+ * This is primarily used to assign unique identifiers to each view instance (`this.uid`), which can be helpful for tasks like 
+ * generating element IDs.  
+ * {@link #module_component Component}s use `this.uid` to generate data attributes for their elements, to be looked up on hydration.  
+ * For server-side rendering, this counter should be reset to `0` on every request to ensure that the generated 
+ * unique IDs match those on the client, enabling seamless hydration of components.  
+ * @static
+ * @type {number}
+ * @default 0
  */
 View.uid = 0;

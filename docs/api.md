@@ -3,11 +3,13 @@
 * [Component](#module_component) ⇐ <code>Rasti.View</code>
     * _instance_
         * [.subscribe(model)](#module_component__subscribe) ⇒ <code>Rasti.Component</code>
+        * [.destroy(options)](#module_component__destroy) ⇒ <code>Rasti.View</code>
         * [.onCreate(options)](#module_component__oncreate)
         * [.onChange(model, changed)](#module_component__onchange)
         * [.onRender(type)](#module_component__onrender)
         * [.onDestroy(options)](#module_component__ondestroy)
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ <code>Array</code>
+        * [.render()](#module_component__render) ⇒ <code>Rasti.Component</code>
     * _static_
         * [.markAsSafeHTML(value)](#module_component_markassafehtml) ⇒ <code>Rasti.SafeHTML</code>
         * [.extend(object)](#module_component_extend)
@@ -85,11 +87,13 @@ setInterval(() => model.seconds++, 1000);
 * [Component](#module_component) ⇐ <code>Rasti.View</code>
     * _instance_
         * [.subscribe(model)](#module_component__subscribe) ⇒ <code>Rasti.Component</code>
+        * [.destroy(options)](#module_component__destroy) ⇒ <code>Rasti.View</code>
         * [.onCreate(options)](#module_component__oncreate)
         * [.onChange(model, changed)](#module_component__onchange)
         * [.onRender(type)](#module_component__onrender)
         * [.onDestroy(options)](#module_component__ondestroy)
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ <code>Array</code>
+        * [.render()](#module_component__render) ⇒ <code>Rasti.Component</code>
     * _static_
         * [.markAsSafeHTML(value)](#module_component_markassafehtml) ⇒ <code>Rasti.SafeHTML</code>
         * [.extend(object)](#module_component_extend)
@@ -108,6 +112,18 @@ By default the component will be subscribed to `this.model` and `this.state`.
 | Param | Type | Description |
 | --- | --- | --- |
 | model | <code>Rasti.Model</code> | A model or emitter object to listen to changes. |
+
+<a name="module_component__destroy" id="module_component__destroy" class="anchor"></a>
+### component.destroy(options) ⇒ <code>Rasti.View</code>
+Destroy the `Component`.
+Destroy children components if any, undelegate events, stop listening to events, call `onDestroy` lifecycle method.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+**Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| options | <code>object</code> | Options object or any arguments passed to `destroy` method will be passed to `onDestroy` method. |
 
 <a name="module_component__oncreate" id="module_component__oncreate" class="anchor"></a>
 ### component.onCreate(options)
@@ -137,13 +153,16 @@ render when needed.
 
 <a name="module_component__onrender" id="module_component__onrender" class="anchor"></a>
 ### component.onRender(type)
-Lifecycle method. Called when the view is rendered.
+Lifecycle method. Called after the component is rendered.
+- When the component is rendered for the first time, this method is called with `Component.RENDER_TYPE_HYDRATE` as the argument.
+- When the component is updated or re-rendered, this method is called with `Component.RENDER_TYPE_RENDER` as the argument.
+- When the component is recycled (reused with the same key), this method is called with `Component.RENDER_TYPE_RECYCLE` as the argument.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| type | <code>string</code> | The render type. Can be `render`, `hydrate` or `recycle`. |
+| type | <code>string</code> | The render type. Possible values are: `Component.RENDER_TYPE_HYDRATE`, `Component.RENDER_TYPE_RENDER` and `Component.RENDER_TYPE_RECYCLE`. |
 
 <a name="module_component__ondestroy" id="module_component__ondestroy" class="anchor"></a>
 ### component.onDestroy(options)
@@ -196,6 +215,16 @@ const Main = Component.create`
     }
 });
 ```
+<a name="module_component__render" id="module_component__render" class="anchor"></a>
+### component.render() ⇒ <code>Rasti.Component</code>
+Render the `Component`.  
+- If `this.el` is not present, the `Component` will be rendered as a string inside a `DocumentFragment` and hydrated, making `this.el` available. The `onRender` lifecycle method will be called with `Component.RENDER_TYPE_HYDRATE` as an argument.  
+- If `this.el` is present, the method will update the attributes and inner HTML of the element, or recreate its child component in the case of a container. The `onRender` lifecycle method will be called with `Component.RENDER_TYPE_RENDER` as an argument.  
+- When rendering child components, if the new children have the same key as the previous ones, they will be recycled. A recycled `Component` will call the `onRender` lifecycle method with `Component.RENDER_TYPE_RECYCLE` as an argument.  
+- If the active element is inside the component, it will retain focus after the render.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+**Returns**: <code>Rasti.Component</code> - The component instance.  
 <a name="module_component_markassafehtml" id="module_component_markassafehtml" class="anchor"></a>
 ### Component.markAsSafeHTML(value) ⇒ <code>Rasti.SafeHTML</code>
 Mark a string as safe HTML to be rendered.  
@@ -598,6 +627,7 @@ If `this.el` is not present, an element will be created using `this.tag` (defaul
 | events | <code>object</code> \| <code>function</code> | Object in the format `{'event selector' : 'listener'}`. It will be used to bind delegated event listeners to the root element. If it is a function, it will be called to get the events object, bound to the view instance. See [View.delegateEvents](module_view_delegateevents). |
 | model | <code>object</code> | A model or any object containing data and business logic. |
 | template | <code>function</code> | A function that returns a string with the view's inner HTML. See [View.render](module_view__render). |
+| uid | <code>number</code> | Unique identifier for the view instance. This can be used to generate unique IDs for elements within the view. It is automatically generated and should not be set manually. |
 
 **Example**  
 ```js

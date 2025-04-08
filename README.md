@@ -138,14 +138,14 @@ Main.mount({ routes, model }, document.body);
 
 ## Why Choose **Rasti**?  
 
-**Rasti** is built for developers who want a simple yet powerful way to create UI components without the complexity of heavy frameworks. Whether you're prototyping, building a high-performance dashboard, or modernizing a **Backbone.js** app, **Rasti** lets you:  
+**Rasti** is built for developers who want a simple yet powerful way to create UI components without the complexity of heavy frameworks. Whether you're building a high-performance dashboard, or embedding a lightweight widget, **Rasti** lets you:  
 
 - **Skip the Setup**  
   No installations, no build tools—just load it and start coding.  
 - **Lightweight and Efficient**  
   Minimal footprint with optimized performance, ensuring smooth updates.  
-- **Upgrade Legacy Code Without a Rewrite**  
-  Incrementally enhance **Backbone.js** views while keeping existing functionality.  
+- **Just the Right Abstraction**  
+  Keeps you close to the DOM with no over-engineering. Fully hackable—if you're curious about how something works, just check the source code.  
 
 ## Example
 

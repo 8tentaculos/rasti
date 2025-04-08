@@ -2,8 +2,12 @@ import View from './View.js';
 import getResult from './utils/getResult.js';
 import deepFlat  from './utils/deepFlat.js';
 
-/*
+/**
  * Wrapper class for HTML strings marked as safe.
+ * @class SafeHTML
+ * @param {string} value The HTML string to be marked as safe.
+ * @property {string} value The HTML string.
+ * @private
  */
 class SafeHTML {
     constructor(value) {
@@ -15,20 +19,22 @@ class SafeHTML {
     }
 }
 
-/*
+/**
  * Same as getResult, but pass context as argument to the expression.
  * Used to evaluate expressions in the context of a component.
  * @param {any} expression The expression to be evaluated.
  * @param {any} context The context to call the expression with.
  * @return {any} The result of the evaluated expression.
+ * @private
  */
 const getExpressionResult = (expression, context) => getResult(expression, context, context);
 
-/*
+/**
  * Generate string with placeholders for interpolated expressions.
  * @param strings {array} Array of strings.
  * @param expressions {array} Array of expressions.
  * @return {string} String with placeholders.
+ * @private
  */
 const addPlaceholders = (strings, expressions) => 
     strings.reduce((out, string, i) => {
@@ -41,11 +47,12 @@ const addPlaceholders = (strings, expressions) =>
         return out;
     }, []).join('');
 
-/*
+/**
  * Generate one dimensional array with strings and expressions.
  * @param main {string} The main template containing placeholders.
  * @param expressions {array} Array of expressions to replace placeholders.
  * @return {array} Array containing strings and expressions.
+ * @private
  */
 const splitPlaceholders = (main, expressions) => {
     const PH = Component.PLACEHOLDER_EXPRESSION('(\\d+)');
@@ -65,7 +72,7 @@ const splitPlaceholders = (main, expressions) => {
     return out;
 };
 
-/*
+/**
  * Expand attributes.
  * @param attributes {array} Array of attributes as key, value pairs.
  * @param getExpressionResult {function} Function to render expressions.
@@ -73,6 +80,7 @@ const splitPlaceholders = (main, expressions) => {
  * @property {object} all All attributes.
  * @property {object} events Event listeners.
  * @property {object} attributes Attributes.
+ * @private
  */
 const expandAttributes = (attributes, getExpressionResult) => {
     const out = attributes.reduce((out, pair) => {
@@ -110,7 +118,7 @@ const expandAttributes = (attributes, getExpressionResult) => {
     return out;
 };
 
-/*
+/**
  * Replace component tags with expressions.
  * `<${Component} />` or `<${Component}></${Component}>` will be replaced 
  * by a function that mounts the component.
@@ -119,6 +127,7 @@ const expandAttributes = (attributes, getExpressionResult) => {
  * @param main {string} The main template.
  * @return {string} The template with components tags replaced by expressions
  * placeholders.
+ * @private
  */
 const expandComponents = (main, expressions) => {
     const PH = Component.PLACEHOLDER_EXPRESSION('(\\d+)');
@@ -158,7 +167,7 @@ const expandComponents = (main, expressions) => {
     );
 };
 
-/*
+/**
  * Parse match data to get tag, attributes, inner html and close tag.
  * @param match {array}
  * @return {object}
@@ -167,6 +176,7 @@ const expandComponents = (main, expressions) => {
  * @property {string} close The closing tag.
  * @property {array} attributes Array of attributes as key, value pairs.
  * @property {string} raw The whole match.
+ * @private
  */
 const parseMatch = (match, expressions) => {
     const PH = Component.PLACEHOLDER_EXPRESSION('(\\d+)');
@@ -219,13 +229,7 @@ const selfClosingTags = {
 /*
  * These option keys will be extended on the component instance.
  */
-const componentOptions = {
-    key : true,
-    state : true,
-    onCreate : true,
-    onChange : true,
-    onRender : true
-};
+const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onRender'];
 
 /**
  * Components are a special kind of `View` that is designed to be easily composable, 
@@ -258,9 +262,9 @@ const componentOptions = {
 export default class Component extends View {
     constructor(options = {}) {
         super(...arguments);
-        // Extend "this" with options, mapping componentOptions keys.
-        Object.keys(options).forEach(key => {
-            if (componentOptions[key]) this[key] = options[key];
+        // Extend "this" with options.
+        componentOptions.forEach(key => {
+            if (key in options) this[key] = options[key];
         });
         // Store options by default.
         this.options = options;
@@ -295,20 +299,22 @@ export default class Component extends View {
         return this;
     }
 
-    /*
-     * Tell if component is a container.
+    /**
+     * Tell if `Component` is a container.
      * In which case, it will not have an element by itself.
      * It will render a single expression which is expected to return a single component as child.
      * `this.el` will be a reference to that child component's element.
      * @return {boolean}
+     * @private
      */
     isContainer() {
         return !!(!this.tag && this.template);
     }
 
-    /*
-     * Override. We don't want to ensure an element on instantiation.
+    /**
+     * Override super method. We don't want to ensure an element on instantiation.
      * We will provide it later.
+     * @private
      */
     ensureElement() {
         // If el is provided, delegate events.
@@ -319,18 +325,25 @@ export default class Component extends View {
         }
     }
 
-    /*
-     * Find view's element on parent node, using its data attribute.
-     * @param parent {node} The parent node.
-     * @return {node} The component's element.
+    /**
+     * Locate the root element of the `Component` within a specified parent node.
+     * This is achieved by searching for the element using the unique data attribute assigned to the `Component`.
+     * @param {Node} parent - The parent node to search within.
+     * @return {Node} The root element of the component, or `null` if not found.
+     * @private
      */
     findElement(parent) {
         return (parent || document).querySelector(`[${Component.DATA_ATTRIBUTE_UID}="${this.uid}"]`);
     }
 
-    /*
-     * Eval attributes expressions.
-     * @return {object} Object containing add, remove and html properties.
+    /**
+     * Retrieve the attributes to be applied to the element.
+     * This includes attributes to be added, removed, and their HTML representation.
+     * @return {object} An object containing the following properties:
+     * @property {object} add - Attributes to be added to the element, with their values.
+     * @property {object} remove - Attributes to be removed from the element.
+     * @property {string} html - A string representation of the attributes for use in HTML.
+     * @private
      */
     getAttributes() {
         const add = {};
@@ -369,11 +382,13 @@ export default class Component extends View {
         return { add, remove, html : html.join(' ') };
     }
 
-    /*
+    /**
      * Used internally on the render process.
-     * Attach the view to the dom element.
+     * Attach the `Component` to the dom element providing `this.el`, delegate events, 
+     * subscribe to model changes and call `onRender` lifecycle method with `Component.RENDER_TYPE_HYDRATE` as argument.
      * @param parent {node} The parent node.
      * @return {Rasti.Component} The component instance.
+     * @private
      */
     hydrate(parent) {
         // Listen to model changes and call onChange.
@@ -381,13 +396,13 @@ export default class Component extends View {
         // Listen to state changes and call onChange.
         if (this.state) this.subscribe(this.state);
 
-        if (!this.isContainer()) {
+        if (this.isContainer()) {
+            this.children[0].hydrate(parent);
+            this.el = this.children[0].el;
+        } else {
             this.el = this.findElement(parent);
             this.delegateEvents();
             this.children.forEach(child => child.hydrate(this.el));
-        } else {
-            this.children[0].hydrate(parent);
-            this.el = this.children[0].el;
         }
         // Call `onRender` lifecycle method.
         this.onRender.call(this, Component.RENDER_TYPE_HYDRATE);
@@ -395,30 +410,38 @@ export default class Component extends View {
         return this;
     }
 
-    /*
-     * Used internally in the render process.
-     * Reuse a view that has `key` when its parent is rendered.
+    /**
+     * Used internally on the render process.
+     * Reuse a `Component` that has `key` when its parent is rendered.
+     * Call `onRender` lifecycle method with `Component.RENDER_TYPE_RECYCLE` as argument.
      * @param parent {node} The parent node.
      * @return {Rasti.Component} The component instance.
+     * @private
      */
     recycle(parent) {
         // If component is a container, call recycle on its child.
-        if (this.isContainer()) return this.children[0].recycle(parent);
-        // Find placeholder element to be replaced. It has same data attribute as this component.
-        const toBeReplaced = this.findElement(parent);
-        // Replace it with this.el.
-        toBeReplaced.replaceWith(this.el);
+        if (this.isContainer()) {
+            this.children[0].recycle(parent);
+        } else {
+            // Find placeholder element to be replaced. It has same data attribute as this component.
+            const toBeReplaced = this.findElement(parent);
+            // Replace it with this.el.
+            toBeReplaced.replaceWith(this.el);
+        }
         // Call `onRender` lifecycle method.
         this.onRender.call(this, Component.RENDER_TYPE_RECYCLE);
         // Return `this` for chaining.
         return this;
     }
 
-    /*
-     * Override. Add some custom logic to super `destroy` method.
+    /**
+     * Destroy the `Component`.
+     * Destroy children components if any, undelegate events, stop listening to events, call `onDestroy` lifecycle method.
      * @param {object} options Options object or any arguments passed to `destroy` method will be passed to `onDestroy` method.
+     * @return {Rasti.View} Return `this` for chaining.
      */
     destroy() {
+        // Call super destroy method.
         super.destroy.apply(this, arguments);
         // Set destroyed flag to prevent a last render after destroyed.
         this.destroyed = true;
@@ -447,8 +470,11 @@ export default class Component extends View {
     }
 
     /**
-     * Lifecycle method. Called when the view is rendered.
-     * @param type {string} The render type. Can be `render`, `hydrate` or `recycle`.
+     * Lifecycle method. Called after the component is rendered.
+     * - When the component is rendered for the first time, this method is called with `Component.RENDER_TYPE_HYDRATE` as the argument.
+     * - When the component is updated or re-rendered, this method is called with `Component.RENDER_TYPE_RENDER` as the argument.
+     * - When the component is recycled (reused with the same key), this method is called with `Component.RENDER_TYPE_RECYCLE` as the argument.
+     * @param {string} type - The render type. Possible values are: `Component.RENDER_TYPE_HYDRATE`, `Component.RENDER_TYPE_RENDER` and `Component.RENDER_TYPE_RECYCLE`.
      */
     onRender() {}
 
@@ -530,22 +556,26 @@ export default class Component extends View {
             `<${tag} ${attributes} />`;
     }
 
-    /*
-     * View render method.
+    /**
+     * Render the `Component`.  
+     * - If `this.el` is not present, the `Component` will be rendered as a string inside a `DocumentFragment` and hydrated, making `this.el` available. The `onRender` lifecycle method will be called with `Component.RENDER_TYPE_HYDRATE` as an argument.  
+     * - If `this.el` is present, the method will update the attributes and inner HTML of the element, or recreate its child component in the case of a container. The `onRender` lifecycle method will be called with `Component.RENDER_TYPE_RENDER` as an argument.  
+     * - When rendering child components, if the new children have the same key as the previous ones, they will be recycled. A recycled `Component` will call the `onRender` lifecycle method with `Component.RENDER_TYPE_RECYCLE` as an argument.  
+     * - If the active element is inside the component, it will retain focus after the render.  
+     * @return {Rasti.Component} The component instance.
      */
     render() {
         // Prevent a last re render if view is already destroyed.
         if (this.destroyed) return this;
-
+        // If `this.el` is not present, render the view as a string and hydrate it.
+        if (!this.el) {
+            const fragment = this.createElement('template');
+            fragment.innerHTML = this;
+            this.hydrate(fragment.content);
+            return this;
+        }
+        // Update attributes.
         if (!this.isContainer()) {
-            // If `this.el` is not present, render the view as a string and hydrate it.
-            if (!this.el) {
-                const fragment = this.createElement('template');
-                fragment.innerHTML = this;
-                this.hydrate(fragment.content);
-                return this;
-            }
-            // Set `this.el` attributes.
             const attributes = this.getAttributes();
             // Remove attributes.
             Object.keys(attributes.remove).forEach(key => {
@@ -556,7 +586,7 @@ export default class Component extends View {
                 this.el.setAttribute(key, attributes.add[key]);
             });
         }
-        // Check for `template` to see if view has innerHTML.
+        // Check for `template` to see if view has innerHTML or a child component.
         if (this.template) {
             // Store active element.
             const activeElement = document.activeElement;
@@ -597,8 +627,8 @@ export default class Component extends View {
                     this.addChild(nextChildren[0]).hydrate(fragment.content);
                     // Get next child element.
                     const nextEl = fragment.content.children[0];
-                    // If `this.el` is present, replace it with nextEl.
-                    if (this.el) this.el.replaceWith(nextEl);
+                    // Replace `this.el` with nextEl.
+                    this.el.replaceWith(nextEl);
                     // Set `this.el` to nextEl.
                     this.el = nextEl;
                 } else if (recycledChildren[0]) {
