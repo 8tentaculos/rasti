@@ -3,7 +3,6 @@ import Model from '../src/Model.js';
 import View from '../src/View.js';
 import Component from '../src/Component.js';
 
-
 describe('Component', () => {
     beforeEach(() => {
         document.body.innerHTML = '';
@@ -12,6 +11,14 @@ describe('Component', () => {
 
     it('must exists', () => {
         expect(Component).to.exist;
+    });
+
+    it('must call onCreate', (done) => {
+        Component.create`<div></div>`.extend({
+            onCreate() {
+                done();
+            }
+        }).mount();
     });
 
     it('must mount on dom', () => {
@@ -496,6 +503,71 @@ describe('Component', () => {
         expect(c.el).to.be.equal(c.children[0].el);
         expect(child.el).to.be.equal(c.children[0].el);
         expect(child.children[0].el).to.be.equal(c.children[0].children[0].el);
+    });
+
+    it('must call onRender with type hydrate', () => {
+        let calls = 0;
+        const onRender = function(type) {
+            if (type === Component.RENDER_TYPE_HYDRATE) calls++;
+        };
+
+        const Child = Component.create`<div></div>`.extend({ onRender });
+        const ChildContainer = Component.create`${() => Child.mount()}`.extend({ onRender });
+        const Main = Component.create`<div>${() => ChildContainer.mount()}</div>`.extend({ onRender });
+
+        expect(calls).to.be.equal(0);
+
+        Main.mount({}, document.body);
+
+        expect(calls).to.be.equal(3);
+    });
+
+    it('must call onRender with type render', () => {
+        let calls = {};
+        const onRender = function(type) {
+            calls[type] = (calls[type] || 0) + 1;
+        };
+
+        const Child = Component.create`<div></div>`.extend({ onRender });
+        const ChildContainer = Component.create`${() => Child.mount()}`.extend({ onRender });
+        const Main = Component.create`<div>${() => ChildContainer.mount()}</div>`.extend({ onRender });
+
+        expect(calls).to.be.empty;
+
+        const main = Main.mount({}, document.body);
+
+        expect(calls[Component.RENDER_TYPE_HYDRATE]).to.be.equal(3);
+
+        calls = {};
+
+        main.render();
+
+        expect(calls[Component.RENDER_TYPE_RENDER]).to.be.equal(1);
+        expect(calls[Component.RENDER_TYPE_HYDRATE]).to.be.equal(2);
+    });
+
+    it('must call onRender with type recycle', () => {
+        let calls = {};
+        const onRender = function(type) {
+            calls[type] = (calls[type] || 0) + 1;
+        };
+
+        const Child = Component.create`<div></div>`.extend({ onRender });
+        const ChildContainer = Component.create`${() => Child.mount()}`.extend({ onRender, key : 'child' });
+        const Main = Component.create`<div>${() => ChildContainer.mount()}</div>`.extend({ onRender });
+
+        expect(calls).to.be.empty;
+
+        const main = Main.mount({}, document.body);
+
+        expect(calls[Component.RENDER_TYPE_HYDRATE]).to.be.equal(3);
+
+        calls = {};
+
+        main.render();
+
+        expect(calls[Component.RENDER_TYPE_RENDER]).to.be.equal(1);
+        expect(calls[Component.RENDER_TYPE_RECYCLE]).to.be.equal(2);
     });
 
     it('must render partial', () => {
