@@ -4,15 +4,7 @@ import getResult from './utils/getResult.js';
 /*
  * These option keys will be extended on the view instance.
  */
-const viewOptions = {
-    el : true,
-    tag : true,
-    attributes : true,
-    events : true,
-    model : true,
-    template : true,
-    onDestroy : true
-};
+const viewOptions = ['el', 'tag', 'attributes', 'events', 'model', 'template', 'onDestroy'];
 
 /**
  * - Listens for changes and renders the UI.
@@ -72,9 +64,9 @@ export default class View extends Emitter {
         this.children = [];
         // Mutable array to store handlers to be called on destroy.
         this.destroyQueue = [];
-        // Extend "this" with options, mapping viewOptions keys.
-        Object.keys(options).forEach(key => {
-            if (viewOptions[key]) this[key] = options[key];
+        // Extend "this" with options.
+        viewOptions.forEach(key => {
+            if (key in options) this[key] = options[key];
         });
         // Ensure that the view has a root element at `this.el`.
         this.ensureElement();

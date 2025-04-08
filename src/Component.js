@@ -229,13 +229,7 @@ const selfClosingTags = {
 /*
  * These option keys will be extended on the component instance.
  */
-const componentOptions = {
-    key : true,
-    state : true,
-    onCreate : true,
-    onChange : true,
-    onRender : true
-};
+const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onRender'];
 
 /**
  * Components are a special kind of `View` that is designed to be easily composable, 
@@ -268,9 +262,9 @@ const componentOptions = {
 export default class Component extends View {
     constructor(options = {}) {
         super(...arguments);
-        // Extend "this" with options, mapping componentOptions keys.
-        Object.keys(options).forEach(key => {
-            if (componentOptions[key]) this[key] = options[key];
+        // Extend "this" with options.
+        componentOptions.forEach(key => {
+            if (key in options) this[key] = options[key];
         });
         // Store options by default.
         this.options = options;
