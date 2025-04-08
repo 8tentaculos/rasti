@@ -138,7 +138,7 @@ Main.mount({ routes, model }, document.body);
 
 ## Why Choose **Rasti**?  
 
-**Rasti** is built for developers who want a simple yet powerful way to create UI components without the complexity of heavy frameworks. Whether you're prototyping, building a high-performance dashboard, or embedding a lightweight widget, **Rasti** lets you:  
+**Rasti** is built for developers who want a simple yet powerful way to create UI components without the complexity of heavy frameworks. Whether you're building a high-performance dashboard, or embedding a lightweight widget, **Rasti** lets you:  
 
 - **Skip the Setup**  
   No installations, no build tools—just load it and start coding.  
