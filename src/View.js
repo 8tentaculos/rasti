@@ -214,8 +214,14 @@ export default class View extends Emitter {
      * All attached listeners are bound to the view, ensuring that `this` refers to the view object when the listeners are invoked.
      * When `delegateEvents` is called again, possibly with a different events object, all previous listeners are removed and delegated afresh.
      * 
-     * The listeners will be invoked with the event and the view as arguments.
-     * 
+     * Listener arguments:
+     * - `event`:   The native DOM event object.
+     * - `view`:    The current view instance (`this`).
+     * - `matched`: The element that satisfies the selector. If no selector is provided, it will be the view's root element (`this.el`).
+     *
+     * If more than one ancestor between `event.target` and the view's root element matches the selector, the listener will be
+     * invoked **once for each matched element** (from inner to outer).
+     *
      * @param {object} [events] Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to the root element.
      * @return {Rasti.View} Returns `this` for chaining.
      * @example
@@ -268,7 +274,22 @@ export default class View extends Emitter {
             const typeListener = (event) => {
                 // Iterate and run every individual listener if the selector matches.
                 eventTypes[type].forEach(({ selector, listener }) => {
-                    if (!selector || event.target.closest(selector)) listener(event, this);
+                    // No selector provided: invoke listener once with root element.
+                    if (!selector) {
+                        listener(event, this, this.el);
+                        return;
+                    }
+
+                    let node = event.target;
+
+                    // Traverse ancestors until reaching the view root (`this.el`).
+                    while (node && node !== this.el) {
+                        if (node.matches && node.matches(selector)) {
+                            listener(event, this, node);
+                        }
+
+                        node = node.parentElement;
+                    }
                 });
             };
 

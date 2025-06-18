@@ -170,6 +170,64 @@ describe('View', () => {
         );
     });
 
+    it('must call handler for each ascendant match', (done) => {
+        class MyView extends View {}
+
+        MyView.prototype.template = () => `
+            <section class="target">
+                <div class="target"><button id="btn"></button></div>
+            </section>
+        `;
+
+        const matches = [];
+
+        MyView.prototype.events = {
+            'click .target' : (e, view, el) => {
+                matches.push(el);
+                if (matches.length === 2) {
+                    const v = view;
+                    expect(matches[0]).to.equal(v.$('div.target'));
+                    expect(matches[1]).to.equal(v.$('section.target'));
+                    done();
+                }
+            }
+        };
+
+        const v = new MyView();
+        document.body.appendChild(v.render().el);
+        v.$('#btn').dispatchEvent(new MouseEvent('click', { bubbles : true }));
+    });
+
+    it('must not match elements outside the view', (done) => {
+        class MyView extends View {}
+
+        MyView.prototype.template = () => `
+            <div class="target"><button id="btn-out"></button></div>
+        `;
+
+        const matches = [];
+
+        MyView.prototype.events = {
+            'click .target' : (e, view, el) => {
+                matches.push(el);
+                setTimeout(() => {
+                    expect(matches).to.have.lengthOf(1);
+                    expect(matches[0]).to.equal(view.$('div.target'));
+                    done();
+                }, 0);
+            }
+        };
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'target';
+
+        const v = new MyView();
+        wrapper.appendChild(v.render().el);
+        document.body.appendChild(wrapper);
+
+        v.$('#btn-out').dispatchEvent(new MouseEvent('click', { bubbles : true }));
+    });
+
     it('must return this from chainable methods', () => {
         const v = new View();
 
