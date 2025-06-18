@@ -16,7 +16,7 @@ import getResult from './utils/getResult.js';
  * @module
  * @extends Rasti.Emitter
  * @param {object} attributes Object containing model attributes to extend `this.attributes`. Getters and setters are generated for `this.attributes`, in order to emit `change` events.
- * @property {object|function} defaults Object containing default attributes for the model. It will extend `this.attributes`. If a function is passed, it will be called to get the defaults. It will be bound to the model instance.
+ * @property {object|Function} defaults Object containing default attributes for the model. It will extend `this.attributes`. If a function is passed, it will be called to get the defaults. It will be bound to the model instance.
  * @property {object} previous Object containing previous attributes when a change occurs.
  * @example
  * import { Model } from 'rasti';
@@ -105,7 +105,7 @@ export default class Model extends Emitter {
      * The `change:attribute` event listener will receive the model instance, the new attribute value, and the rest of the arguments passed to `set` method.
      * @param {string} key Attribute key or object containing keys/values.
      * @param [value] Attribute value.
-     * @return {this} This model.
+     * @return {Model} This model.
      * @emits change
      * @emits change:attribute
      */

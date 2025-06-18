@@ -21,12 +21,12 @@ const viewOptions = ['el', 'tag', 'attributes', 'events', 'model', 'template', '
  * @module
  * @extends Emitter
  * @param {object} options Object containing options. The following keys will be merged into the view instance: `el`, `tag`, `attributes`, `events`, `model`, `template`, `onDestroy`.
- * @property {node|function} el Every view has a root DOM element stored at `this.el`. If not present, it will be created. If `this.el` is a function, it will be called to get the element at `this.ensureElement`, bound to the view instance. See {@link module_view__ensureelement View.ensureElement}.
- * @property {string|function} tag If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. Default is `div`. If it is a function, it will be called to get the tag, bound to the view instance. See {@link module_view__ensureelement View.ensureElement}.
- * @property {object|function} attributes If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. If it is a function, it will be called to get the attributes object, bound to the view instance. See {@link module_view__ensureelement View.ensureElement}.
- * @property {object|function} events Object in the format `{'event selector' : 'listener'}`. It will be used to bind delegated event listeners to the root element. If it is a function, it will be called to get the events object, bound to the view instance. See {@link module_view_delegateevents View.delegateEvents}.
+ * @property {node|Function} el Every view has a root DOM element stored at `this.el`. If not present, it will be created. If `this.el` is a function, it will be called to get the element at `this.ensureElement`, bound to the view instance. See {@link module_view__ensureelement View.ensureElement}.
+ * @property {string|Function} tag If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. Default is `div`. If it is a function, it will be called to get the tag, bound to the view instance. See {@link module_view__ensureelement View.ensureElement}.
+ * @property {object|Function} attributes If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. If it is a function, it will be called to get the attributes object, bound to the view instance. See {@link module_view__ensureelement View.ensureElement}.
+ * @property {object|Function} events Object in the format `{'event selector' : 'listener'}`. It will be used to bind delegated event listeners to the root element. If it is a function, it will be called to get the events object, bound to the view instance. See {@link module_view_delegateevents View.delegateEvents}.
  * @property {object} model A model or any object containing data and business logic.
- * @property {function} template A function that returns a string with the view's inner HTML. See {@link module_view__render View.render}. 
+ * @property {Function} template A function that returns a string with the view's inner HTML. See {@link module_view__render View.render}. 
  * @property {number} uid Unique identifier for the view instance. This can be used to generate unique IDs for elements within the view. It is automatically generated and should not be set manually.
  * @example
  * import { View } from 'rasti';
@@ -75,7 +75,7 @@ export default class View extends Emitter {
 
     /**
      * If you define a preinitialize method, it will be invoked when the view is first created, before any instantiation logic is run.
-     * @param {object} attrs Object containing model attributes to extend `this.attributes`.
+     * @param {object} options The view options.
      */
     preinitialize() {}
 
@@ -214,7 +214,7 @@ export default class View extends Emitter {
      * All attached listeners are bound to the view, ensuring that `this` refers to the view object when the listeners are invoked.
      * When `delegateEvents` is called again, possibly with a different events object, all previous listeners are removed and delegated afresh.
      * 
-     * Listener arguments:
+     * Listener signature: `(event, view, matched)`
      * - `event`:   The native DOM event object.
      * - `view`:    The current view instance (`this`).
      * - `matched`: The element that satisfies the selector. If no selector is provided, it will be the view's root element (`this.el`).
@@ -343,7 +343,7 @@ export default class View extends Emitter {
      * Override this method to provide a custom escape function.
      * This method is inherited by {@link #module_component Component} and used to escape template interpolations.
      * @static
-     * @param {string} str String to escape.
+     * @param {string} value String to escape.
      * @return {string} Escaped string.
      */
     static sanitize(value) {

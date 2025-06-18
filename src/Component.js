@@ -31,8 +31,8 @@ const getExpressionResult = (expression, context) => getResult(expression, conte
 
 /**
  * Generate string with placeholders for interpolated expressions.
- * @param strings {array} Array of strings.
- * @param expressions {array} Array of expressions.
+ * @param {Array<string>} strings Array of strings.
+ * @param {Array<any>} expressions Array of expressions.
  * @return {string} String with placeholders.
  * @private
  */
@@ -50,7 +50,7 @@ const addPlaceholders = (strings, expressions) =>
 /**
  * Generate one dimensional array with strings and expressions.
  * @param main {string} The main template containing placeholders.
- * @param expressions {array} Array of expressions to replace placeholders.
+ * @param {Array<any>} expressions Array of expressions to replace placeholders.
  * @return {array} Array containing strings and expressions.
  * @private
  */
@@ -74,8 +74,8 @@ const splitPlaceholders = (main, expressions) => {
 
 /**
  * Expand attributes.
- * @param attributes {array} Array of attributes as key, value pairs.
- * @param getExpressionResult {function} Function to render expressions.
+ * @param {Array<Array<any>>} attributes Array of attributes as key, value pairs.
+ * @param {Function} getExpressionResult Function to render expressions.
  * @return {object}
  * @property {object} all All attributes.
  * @property {object} events Event listeners.
@@ -125,6 +125,7 @@ const expandAttributes = (attributes, getExpressionResult) => {
  * Returns the template with component tags replaced by expressions placeholders 
  * modifies the expressions array adding the mount functions.
  * @param main {string} The main template.
+ * @param {Array<any>} expressions Array of expressions.
  * @return {string} The template with components tags replaced by expressions
  * placeholders.
  * @private
@@ -170,6 +171,7 @@ const expandComponents = (main, expressions) => {
 /**
  * Parse match data to get tag, attributes, inner html and close tag.
  * @param match {array}
+ * @param {Array<any>} expressions Array of expressions.
  * @return {object}
  * @property {string} tag The tag.
  * @property {string} inner The inner html.
@@ -240,9 +242,9 @@ const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onRender'];
  * @module
  * @extends Rasti.View
  * @param {object} options Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onRender, onCreate, onChange.
- * @property {string} key A unique key to identify the component. Used to recycle child components.
- * @property {object} model A `Rasti.Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method.
- * @property {object} state A `Rasti.Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method.
+ * @property {string} [key] A unique key to identify the component. Used to recycle child components.
+ * @property {Rasti.Model} [model] A `Rasti.Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method.
+ * @property {Rasti.Model} [state] A `Rasti.Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method.
  * @see {@link #module_component_create Component.create}
  * @example
  * import { Component, Model } from 'rasti';
@@ -279,7 +281,7 @@ export default class Component extends View {
      * The listener will be removed when the component is destroyed.
      * By default the component will be subscribed to `this.model` and `this.state`.
      * @param {Rasti.Model} model A model or emitter object to listen to changes.
-     * @return {Rasti.Component} The component instance.
+     * @return {Component} The component instance.
      */
     subscribe(model) {
         // Check if model has `on` method.
@@ -387,7 +389,7 @@ export default class Component extends View {
      * Attach the `Component` to the dom element providing `this.el`, delegate events, 
      * subscribe to model changes and call `onRender` lifecycle method with `Component.RENDER_TYPE_HYDRATE` as argument.
      * @param parent {node} The parent node.
-     * @return {Rasti.Component} The component instance.
+     * @return {Component} The component instance.
      * @private
      */
     hydrate(parent) {
@@ -415,7 +417,7 @@ export default class Component extends View {
      * Reuse a `Component` that has `key` when its parent is rendered.
      * Call `onRender` lifecycle method with `Component.RENDER_TYPE_RECYCLE` as argument.
      * @param parent {node} The parent node.
-     * @return {Rasti.Component} The component instance.
+     * @return {Component} The component instance.
      * @private
      */
     recycle(parent) {
@@ -438,7 +440,7 @@ export default class Component extends View {
      * Destroy the `Component`.
      * Destroy children components if any, undelegate events, stop listening to events, call `onDestroy` lifecycle method.
      * @param {object} options Options object or any arguments passed to `destroy` method will be passed to `onDestroy` method.
-     * @return {Rasti.View} Return `this` for chaining.
+     * @return {View} Return `this` for chaining.
      */
     destroy() {
         // Call super destroy method.
@@ -562,7 +564,7 @@ export default class Component extends View {
      * - If `this.el` is present, the method will update the attributes and inner HTML of the element, or recreate its child component in the case of a container. The `onRender` lifecycle method will be called with `Component.RENDER_TYPE_RENDER` as an argument.  
      * - When rendering child components, if the new children have the same key as the previous ones, they will be recycled. A recycled `Component` will call the `onRender` lifecycle method with `Component.RENDER_TYPE_RECYCLE` as an argument.  
      * - If the active element is inside the component, it will retain focus after the render.  
-     * @return {Rasti.Component} The component instance.
+     * @return {Component} The component instance.
      */
     render() {
         // Prevent a last re render if view is already destroyed.
@@ -671,7 +673,7 @@ export default class Component extends View {
      * Be sure that the string is safe to be rendered, as it will be inserted into the DOM without any sanitization.
      * @static
      * @param {string} value 
-     * @return {Rasti.SafeHTML} A safe HTML object.
+     * @return {SafeHTML} A safe HTML object.
      */
     static markAsSafeHTML(value) {
         return new SafeHTML(value);
@@ -680,7 +682,7 @@ export default class Component extends View {
     /**
      * Helper method used to extend a `Component`, creating a subclass.
      * @static
-     * @param {object} object Object containing methods to be added to the new `Component` subclass. Also can be a function that receives the parent prototype and returns an object.
+     * @param {object|Function} object Object containing methods to be added to the new `Component` subclass. Also can be a function that receives the parent prototype and returns an object.
      */
     static extend(object) {
         const Current = this;
@@ -701,10 +703,10 @@ export default class Component extends View {
      * appends its element into the DOM (if `el` is provided).
      * And returns the view instance.
      * @static
-     * @param {object} options The view options.
-     * @param {node} el Dom element to append the view element.
-     * @param {boolean} hydrate If true, the view will hydrate existing DOM.
-     * @return {Rasti.Component}
+     * @param {object} [options] The view options.
+     * @param {node} [el] Dom element to append the view element.
+     * @param {boolean} [hydrate] If true, the view will hydrate existing DOM.
+     * @return {Component} The component instance.
      */
     static mount(options, el, hydrate) {
         // Instantiate view.
@@ -812,9 +814,9 @@ export default class Component extends View {
      *   }));
      *   ```
      * @static
-     * @param {string|function} strings - HTML template for the component or a function that mounts a sub component.
+     * @param {string|Function} strings - HTML template for the component or a function that mounts a sub component.
      * @param {...*} expressions - The expressions to be interpolated within the template.
-     * @return {Rasti.Component} The newly created component class.
+     * @return {Component} The newly created component class.
      */
     static create(strings, ...expressions) {
         const PH = Component.PLACEHOLDER_EXPRESSION('(\\d+)');
