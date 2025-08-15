@@ -1,6 +1,7 @@
 import View from './View.js';
 import getResult from './utils/getResult.js';
 import deepFlat  from './utils/deepFlat.js';
+import parseHTML from './utils/parseHTML.js';
 
 /**
  * Wrapper class for HTML strings marked as safe.
@@ -18,6 +19,18 @@ class SafeHTML {
         return this.value;
     }
 }
+
+// /**
+//  * Parse HTML string to a DocumentFragment.
+//  * @param {string} html The HTML string to parse.
+//  * @return {DocumentFragment} The parsed DocumentFragment.
+//  * @private
+//  */
+// const parseHTML = (html) => {
+//     const fragment = document.createElement('template');
+//     fragment.innerHTML = html;
+//     return fragment.content;
+// };
 
 /**
  * Same as getResult, but pass context as argument to the expression.
@@ -135,16 +148,25 @@ const expandComponents = (main, expressions) => {
     // Match component tags.
     return main.replace(
         new RegExp(`<(${PH})([^>]*)>([\\s\\S]*?)</(${PH})>|<(${PH})([^>]*)/>`,'g'),
-        function() {
-            const { tag, attributes, inner, close, raw } = parseMatch(arguments, expressions);
+        (match, openTag, openIdx, nonVoidAttrs, inner, closeTag, closeIdx, selfClosingTag, selfClosingIdx, selfClosingAttrs) => {
+            let tag, close, attributesStr;
+
+            if (openTag) {
+                tag = typeof openIdx !== 'undefined' ? expressions[openIdx] : openTag;
+                close = typeof closeIdx !== 'undefined' ? expressions[closeIdx] : closeTag;
+                attributesStr = nonVoidAttrs;
+            } else {
+                tag = typeof selfClosingIdx !== 'undefined' ? expressions[selfClosingIdx] : selfClosingTag;
+                attributesStr = selfClosingAttrs;
+            }
             // No component found.
-            if (!(tag.prototype instanceof Component)) return raw;
+            if (!(tag.prototype instanceof Component)) return match;
 
             let renderChildren;
             // Non void component.
             if (close) {
                 // Close component tag must match open component tag.
-                if (tag !== close) return raw;
+                if (tag !== close) return match;
                 // Recursively expand inner components.
                 const list = splitPlaceholders(expandComponents(inner, expressions), expressions);
                 // Create renderChildren function.
@@ -152,6 +174,7 @@ const expandComponents = (main, expressions) => {
                     return deepFlat(list.map(item => getExpressionResult(item, this)));
                 };
             }
+            const attributes = parseAttributes(attributesStr, expressions);
             // Create mount function.
             const mount = function() {
                 const options = expandAttributes(attributes, value => getExpressionResult(value, this)).all;
@@ -169,63 +192,279 @@ const expandComponents = (main, expressions) => {
 };
 
 /**
- * Parse match data to get tag, attributes, inner html and close tag.
- * @param match {array}
- * @param {Array<any>} expressions Array of expressions.
- * @return {object}
- * @property {string} tag The tag.
- * @property {string} inner The inner html.
- * @property {string} close The closing tag.
- * @property {array} attributes Array of attributes as key, value pairs.
- * @property {string} raw The whole match.
+ * Parse all HTML elements in template and extract their attributes.
+ * @param {string} template Template string with placeholders.
+ * @param {Array} expressions Array of expressions.
+ * @param {Array} elements Array to store element references.
+ * @return {string} Template with attribute placeholders.
  * @private
  */
-const parseMatch = (match, expressions) => {
+const parseElements = (template, expressions, elements) => {
+    const PH = Component.PLACEHOLDER_EXPRESSION('(?:\\d+)');
+    // Check if template is a container (single placeholder, no tag).
+    const containerMatch = template.match(new RegExp(`^\\s*${PH}\\s*$`));
+    if (containerMatch) return template;
+    // Validate that template has a root element.
+    const rootElementMatch = template.match(new RegExp(`^\\s*<([a-z]+[1-6]?|${PH})([^>]*)>([\\s\\S]*?)</(\\1|${PH})>\\s*$|^\\s*<([a-z]+[1-6]?|${PH})([^>]*)/>\\s*$`));
+    if (!rootElementMatch) throw new SyntaxError(`Template must have a single root element or be a container component: "${template.trim()}"`);
+
+    let elementUid = 0;
+    // Match all HTML elements including placeholders and self-closed elements.
+    return template.replace(
+        // Capture opening tags with their attributes and closing syntax
+        new RegExp(`<(${PH}|[a-z]+[1-6]?)(?:\\s*)((?:"[^"]*"|'[^']*'|[^>])*)(/?>)`, 'gi'),
+        (match, tagName, attributesStr, ending) => {
+            const currentElementUid = ++elementUid;
+            // If there are no dynamic attributes, return original match.
+            if (currentElementUid > 1 && !attributesStr.match(new RegExp(PH))) {
+                return match;
+            }
+            // Parse attributes.
+            const parsedAttributes = parseAttributes(attributesStr, expressions);
+            // Store previous attributes.
+            let previousAttributes = {};
+            // Create element reference.
+            const generateElementUid = componentUid => `${componentUid}-${currentElementUid}`;
+            // Create function that returns attributes object.
+            const getAttributes = function() {
+                const expanded = expandAttributes(parsedAttributes, value => getExpressionResult(value, this));
+                // Add data attribute for element identification.
+                // First element gets the component uid, others get element uid.
+                expanded.attributes[Component.DATA_ATTRIBUTE_ELEMENT] = generateElementUid(this.uid);
+                // Store previous attributes.
+                const previous = previousAttributes;
+                previousAttributes = expanded.attributes;
+
+                const add = {};
+                const remove = {};
+                const html = [];
+
+                Object.keys(expanded.attributes).forEach(key => {
+                    let value = expanded.attributes[key];
+
+                    if (value === false) {
+                        remove[key] = true;
+                    } else if (value === true) {
+                        add[key] = '';
+                        html.push(key);
+                    } else {
+                        if (value === null || typeof value === 'undefined') value = '';
+                        add[key] = value;
+                        html.push(`${Component.sanitize(key)}="${Component.sanitize(value)}"`);
+                    }
+                });
+                // Remove attributes that were in previousAttributes but not in current attributes.
+                Object.keys(previous).forEach(key => {
+                    if (!(key in expanded.attributes)) {
+                        remove[key] = true;
+                    }
+                });
+
+                return {
+                    add,
+                    remove,
+                    html : html.join(' '),
+                    events : expanded.events
+                };
+            };
+
+            const getSelector = function() {
+                return `[${Component.DATA_ATTRIBUTE_ELEMENT}="${generateElementUid(this.uid)}"]`;
+            };
+            // Add element reference to elements array.
+            elements.push({
+                getSelector,
+                getAttributes,
+            });
+            // Add new expression to expressions array.
+            expressions.push(function() {
+                return Component.markAsSafeHTML(getAttributes.call(this).html);
+            });
+            // Replace attributes with placeholder.
+            const placeholder = Component.PLACEHOLDER_EXPRESSION(expressions.length - 1);
+            // Preserve original tag ending (> or />)
+            return `<${tagName} ${placeholder}${ending}`;
+        }
+    );
+};
+
+/**
+ * Parse all interpolations in template text content.
+ * @param {string} template Template string with placeholders.
+ * @param {Array} expressions Array of expressions.
+ * @param {Array} interpolations Array to store interpolation references.
+ * @return {string} Template with interpolation markers.
+ * @private
+ */
+const parseInterpolations = (template, expressions, interpolations) => {
     const PH = Component.PLACEHOLDER_EXPRESSION('(\\d+)');
+    let interpolationUid = 0;
+    // Match all expression placeholders.
+    return template.replace(
+        new RegExp(PH, 'g'),
+        function(match, expressionIndex, offset) {
+            // Check if this placeholder is inside an element tag (attribute).
+            // `offset` is the index of the match in the original string.
+            const beforeMatch = template.substring(0, offset);
+            const lastOpenTag = beforeMatch.lastIndexOf('<');
+            const lastCloseTag = beforeMatch.lastIndexOf('>');
+            // If we're inside an element tag, don't process as interpolation.
+            if (lastOpenTag > lastCloseTag) {
+                return match;
+            }
 
-    const [all, openTag, openIdx, nonVoidAttrs, inner, closeTag, closeIdx,
-        selfClosingTag, selfClosingIdx, selfClosingAttrs] = match;
+            const currentInterpolationUid = ++interpolationUid;
+            // Add interpolation reference to interpolations array.
+            interpolations.push({
+                getUid : function() {
+                    return `${this.uid}-${currentInterpolationUid}`;
+                },
+                expression : expressions[expressionIndex]
+            });
+            // Create a new expression that contains markers and the result of the original expression.
+            const newExpression = function() {
+                const result = getExpressionResult(expressions[expressionIndex], this);
+                const interpolationUid = `${this.uid}-${currentInterpolationUid}`;
+                const startMarker = `<!--${Component.INTERPOLATION_START(interpolationUid)}-->`;
+                const endMarker = `<!--${Component.INTERPOLATION_END(interpolationUid)}-->`;
+                return [Component.markAsSafeHTML(startMarker), result, Component.markAsSafeHTML(endMarker)];
+            };
+            // Add new expression to expressions array.
+            expressions.push(newExpression);
+            // Replace with new placeholder.
+            return Component.PLACEHOLDER_EXPRESSION(expressions.length - 1);
+        }
+    );
+};
 
-    const data = { raw : all, attributes : [] };
-
-    let attributesStr;
-    if (openTag) {
-        // Non void element.
-        data.tag = typeof openIdx !== 'undefined' ? expressions[openIdx] : openTag;
-        data.inner = inner;
-        data.close = typeof closeIdx !== 'undefined' ? expressions[closeIdx] : closeTag;
-        attributesStr = nonVoidAttrs;
-    } else {
-        // Self closing element.
-        data.tag = typeof selfClosingIdx !== 'undefined' ? expressions[selfClosingIdx] : selfClosingTag;
-        attributesStr = selfClosingAttrs;
-    }
-    // Parse attributes.
+/**
+ * Parse attributes string to extract dynamic attributes.
+ * @param {string} attributesStr Attributes string from HTML element.
+ * @param {Array} expressions Array of expressions.
+ * @return {Array} Array of attribute pairs [key, value].
+ * @private
+ */
+const parseAttributes = (attributesStr, expressions) => {
+    const PH = Component.PLACEHOLDER_EXPRESSION('(\\d+)');
+    const attributes = [];
+    // Parse attributes string with support for placeholders in both names and values.
     const regExp = new RegExp(`(${PH}|[\\w-]+)(?:=(["']?)(?:${PH}|((?:.?(?!["']?\\s+(?:\\S+)=|\\s*/?[>"']))+.))\\3)?`, 'g');
 
     let attributeMatch;
     while ((attributeMatch = regExp.exec(attributesStr)) !== null) {
         const [, attribute, attributeIdx,, valueIdx, value] = attributeMatch;
 
-        const attr = typeof attributeIdx !== 'undefined' ? expressions[attributeIdx] : attribute;
-        const val = typeof valueIdx !== 'undefined' ? expressions[valueIdx] : value;
+        const attr = typeof attributeIdx !== 'undefined' ? expressions[parseInt(attributeIdx, 10)] : attribute;
+        const val = typeof valueIdx !== 'undefined' ? expressions[parseInt(valueIdx, 10)] : value;
 
         if (typeof val !== 'undefined') {
-            data.attributes.push([attr, val]);
+            attributes.push([attr, val]);
         } else {
-            data.attributes.push([attr]);
+            attributes.push([attr]);
         }
     }
 
-    return data;
+    return attributes;
 };
 
-/*
- * HTML tags that are self closing.
+/**
+ * Synchronizes the contents of one DOM node to match another.
+ * It performs a shallow sync: tag name, attributes, properties, and child nodes.
+ * If tag names or node types differ, it replaces the node entirely.
+ * @param {Node} targetNode The node currently in the DOM to be updated.
+ * @param {Node} sourceNode The reference node to sync from (not in the DOM).
+ * @private
  */
-const selfClosingTags = {
-    area : true, base : true, br : true, col : true, embed : true, hr : true, 
-    img : true, input : true, link : true, meta : true, source : true, track : true, wbr : true
+const syncNode = (targetNode, sourceNode) => {
+    // Replace if node types are different (e.g. element vs text).
+    if (targetNode.nodeType !== sourceNode.nodeType) {
+        targetNode.replaceWith(sourceNode);
+        return;
+    }
+    // Text node: sync value.
+    if (targetNode.nodeType === Node.TEXT_NODE) {
+        if (targetNode.nodeValue !== sourceNode.nodeValue) {
+            targetNode.nodeValue = sourceNode.nodeValue;
+        }
+        return;
+    }
+    // Element node: check tag.
+    if (targetNode.tagName !== sourceNode.tagName) {
+        targetNode.replaceWith(sourceNode);
+        return;
+    }
+    // Sync attributes and DOM properties.
+    syncAttributes(targetNode, sourceNode);
+    // Sync child nodes if necessary.
+    if (!areChildNodesEqual(targetNode, sourceNode)) {
+        syncNodeContent(targetNode, sourceNode);
+    }
+};
+
+/**
+ * Synchronizes attributes and key DOM properties (value, checked, selected).
+ * Assumes tagName is already the same.
+ * @param {Element} targetEl Target DOM element to update.
+ * @param {Element} sourceEl Source DOM element to copy attributes from.
+ * @private
+ */
+const syncAttributes = (targetEl, sourceEl) => {
+    // Add, update and remove attributes.
+    const srcAttrs = sourceEl.attributes;
+    const tgtAttrs = targetEl.attributes;
+
+    for (let i = 0; i < srcAttrs.length; i++) {
+        const { name, value } = srcAttrs[i];
+        if (targetEl.getAttribute(name) !== value) targetEl.setAttribute(name, value);
+    }
+
+    for (let i = tgtAttrs.length - 1; i >= 0; i--) {
+        const { name } = tgtAttrs[i];
+        if (!sourceEl.hasAttribute(name)) targetEl.removeAttribute(name);
+    }
+    // Sync key DOM properties.
+    const props = ['value', 'checked', 'selected'];
+    for (let i = 0; i < props.length; i++) {
+        const prop = props[i];
+        if (prop in targetEl && targetEl[prop] !== sourceEl[prop]) {
+            targetEl[prop] = sourceEl[prop];
+        }
+    }
+};
+
+/**
+ * Replaces all child nodes of targetEl with those from sourceEl.
+ * Moves the nodes without cloning.
+ * @param {Element} targetEl The element whose children will be replaced.
+ * @param {Element} sourceEl The element providing new children.
+ * @private
+ */
+const syncNodeContent = (targetEl, sourceEl) => {
+    // Remove current children.
+    while (targetEl.firstChild) {
+        targetEl.removeChild(targetEl.firstChild);
+    }
+    // Move children from sourceEl (no cloning).
+    while (sourceEl.firstChild) {
+        targetEl.appendChild(sourceEl.firstChild);
+    }
+};
+
+/**
+ * Compares two elements to see if their child nodes are structurally equal.
+ * @param {Element} a First element to compare.
+ * @param {Element} b Second element to compare.
+ * @return {boolean} True if all child nodes are deeply equal.
+ * @private
+ */
+const areChildNodesEqual = (a, b) => {
+    if (a.childNodes.length !== b.childNodes.length) return false;
+    for (let i = 0; i < a.childNodes.length; i++) {
+        if (!a.childNodes[i].isEqualNode(b.childNodes[i])) {
+            return false;
+        }
+    }
+    return true;
 };
 
 /*
@@ -261,7 +500,7 @@ const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onRender'];
  * // Increment `model.seconds` every second.
  * setInterval(() => model.seconds++, 1000);
  */
-export default class Component extends View {
+class Component extends View {
     constructor(options = {}) {
         super(...arguments);
         // Extend "this" with options.
@@ -310,7 +549,7 @@ export default class Component extends View {
      * @private
      */
     isContainer() {
-        return !!(!this.tag && this.template);
+        return this.template.elements.length === 0;
     }
 
     /**
@@ -328,63 +567,6 @@ export default class Component extends View {
     }
 
     /**
-     * Locate the root element of the `Component` within a specified parent node.
-     * This is achieved by searching for the element using the unique data attribute assigned to the `Component`.
-     * @param {Node} parent - The parent node to search within.
-     * @return {Node} The root element of the component, or `null` if not found.
-     * @private
-     */
-    findElement(parent) {
-        return (parent || document).querySelector(`[${Component.DATA_ATTRIBUTE_UID}="${this.uid}"]`);
-    }
-
-    /**
-     * Retrieve the attributes to be applied to the element.
-     * This includes attributes to be added, removed, and their HTML representation.
-     * @return {object} An object containing the following properties:
-     * @property {object} add - Attributes to be added to the element, with their values.
-     * @property {object} remove - Attributes to be removed from the element.
-     * @property {string} html - A string representation of the attributes for use in HTML.
-     * @private
-     */
-    getAttributes() {
-        const add = {};
-        const remove = {};
-        const html = [];
-
-        const attributes = { [Component.DATA_ATTRIBUTE_UID] : this.uid };
-
-        if (this.attributes) Object.assign(attributes, getResult(this.attributes, this));
-        // Store previous attributes.
-        const previousAttributes = this.previousAttributes || {};
-        this.previousAttributes = attributes;
-
-        Object.keys(attributes).forEach(key => {
-            let value = attributes[key];
-            // Transform bool attribute values
-            if (value === false) {
-                remove[key] = true;
-            } else if (value === true) {
-                add[key] = '';
-                html.push(key);
-            } else {
-                if (value === null || typeof value === 'undefined') value = '';
-
-                add[key] = value;
-                html.push(`${Component.sanitize(key)}="${Component.sanitize(value)}"`);
-            }
-        });
-        // Remove attributes that were in previousAttributes but not in current attributes.
-        Object.keys(previousAttributes).forEach(key => {
-            if (!(key in attributes)) {
-                remove[key] = true;
-            }
-        });
-
-        return { add, remove, html : html.join(' ') };
-    }
-
-    /**
      * Used internally on the render process.
      * Attach the `Component` to the dom element providing `this.el`, delegate events, 
      * subscribe to model changes and call `onRender` lifecycle method with `Component.RENDER_TYPE_HYDRATE` as argument.
@@ -397,19 +579,64 @@ export default class Component extends View {
         if (this.model) this.subscribe(this.model);
         // Listen to state changes and call onChange.
         if (this.state) this.subscribe(this.state);
+        // Search for every element in template using getSelector
+        if (!this.isContainer()) {
+            this.template.elements.forEach(element => {
+                const selector = element.getSelector.call(this);
+                element.ref = parent.querySelector(selector);
+            });
+            this.el = this.template.elements[0].ref;
+            this.delegateEvents();
+        }
+        // Get references for interpolation marker comments
+        if (this.template.interpolations.length > 0) {
+            this.template.interpolations.forEach(interpolation => {
+                const uid = interpolation.getUid.call(this);
+                const startMarker = Component.INTERPOLATION_START(uid);
+                const endMarker = Component.INTERPOLATION_END(uid);
+                // Find the start and end comment nodes
+                const walker = document.createTreeWalker(
+                    parent,
+                    NodeFilter.SHOW_COMMENT,
+                    null,
+                    false
+                );
 
+                let startComment = null, endComment = null;
+                let node = walker.nextNode();
+                while (node) {
+                    if (node.textContent === startMarker) {
+                        startComment = node;
+                    } else if (node.textContent === endMarker) {
+                        endComment = node;
+                    }
+                    node = walker.nextNode();
+                }
+
+                interpolation.ref = [startComment, endComment];
+            });
+        }
+        // Call hydrate on children.
         if (this.isContainer()) {
             this.children[0].hydrate(parent);
             this.el = this.children[0].el;
         } else {
-            this.el = this.findElement(parent);
-            this.delegateEvents();
             this.children.forEach(child => child.hydrate(this.el));
         }
         // Call `onRender` lifecycle method.
         this.onRender.call(this, Component.RENDER_TYPE_HYDRATE);
         // Return `this` for chaining.
         return this;
+    }
+
+    getRecyclePlaceholder() {
+        return `<span ${Component.DATA_ATTRIBUTE_ELEMENT}="${this.uid}-1"></span>`;
+    }
+
+    getRecycleNodes() {
+        return this.isContainer() ?
+            [this.template.interpolations[0].ref[0], ...this.children[0].getRecycleNodes(), this.template.interpolations[0].ref[1]] :
+            [this.el];
     }
 
     /**
@@ -421,15 +648,10 @@ export default class Component extends View {
      * @private
      */
     recycle(parent) {
-        // If component is a container, call recycle on its child.
-        if (this.isContainer()) {
-            this.children[0].recycle(parent);
-        } else {
-            // Find placeholder element to be replaced. It has same data attribute as this component.
-            const toBeReplaced = this.findElement(parent);
-            // Replace it with this.el.
-            toBeReplaced.replaceWith(this.el);
-        }
+        // Find placeholder element to be replaced. It has same data attribute as this component.
+        const toBeReplaced = parent.querySelector(`[${Component.DATA_ATTRIBUTE_ELEMENT}="${this.uid}-1"]`);
+        // Replace it with this.el.
+        toBeReplaced.replaceWith(...this.getRecycleNodes());
         // Call `onRender` lifecycle method.
         this.onRender.call(this, Component.RENDER_TYPE_RECYCLE);
         // Return `this` for chaining.
@@ -527,15 +749,19 @@ export default class Component extends View {
         );
     }
 
-    getRecyclePlaceholder() {
-        if (this.isContainer()) return this.children[0].getRecyclePlaceholder();
-        
-        const tag = getResult(this.tag, this) || 'div';
-        const attributes = `${Component.DATA_ATTRIBUTE_UID}="${this.uid}"`;
+    renderTemplatePart(part, addChild) {
+        const result = getExpressionResult(part, this);
 
-        return this.template || !selfClosingTags[tag] ?
-            `<${tag} ${attributes}></${tag}>` :
-            `<${tag} ${attributes} />`;
+        const parse = (item) => {
+            if (typeof item !== 'undefined' && item !== null && item !== false && item !== true) {
+                if (item instanceof SafeHTML) return item;
+                if (item instanceof Component) return addChild(item);
+                return Component.sanitize(item);
+            }
+            return '';
+        };
+
+        return Array.isArray(result) ? deepFlat(result).map(parse).join('') : `${parse(result)}`;
     }
 
     /*
@@ -544,18 +770,11 @@ export default class Component extends View {
     toString() {
         // Normally there won't be any children, but if there are, destroy them.
         this.destroyChildren();
-        // Container.
-        if (this.isContainer()) return this.template.call(this, this.addChild.bind(this));
-        // Get tag name.
-        const tag = getResult(this.tag, this) || 'div';
-        // Get attributes.
-        const attributes = this.getAttributes().html;
-        // Replace expressions of inner template.
-        const inner = this.template ? this.template.call(this, this.addChild.bind(this)) : '';
-        // Generate outer template.
-        return this.template || !selfClosingTags[tag] ?
-            `<${tag} ${attributes}>${inner}</${tag}>` :
-            `<${tag} ${attributes} />`;
+        const addChild = this.addChild.bind(this);
+        // Render the template parts.
+        return this.template.parts
+            .map(part => this.renderTemplatePart(part, addChild))
+            .join('');
     }
 
     /**
@@ -571,38 +790,35 @@ export default class Component extends View {
         if (this.destroyed) return this;
         // If `this.el` is not present, render the view as a string and hydrate it.
         if (!this.el) {
-            const fragment = this.createElement('template');
-            fragment.innerHTML = this;
-            this.hydrate(fragment.content);
+            const fragment = parseHTML(this);
+            this.hydrate(fragment);
             return this;
         }
-        // Update attributes.
-        if (!this.isContainer()) {
-            const attributes = this.getAttributes();
-            // Remove attributes.
+
+        // Store active element.
+        const activeElement = this.isContainer() ? null : document.activeElement;
+
+        this.template.elements.forEach(element => {
+            const attributes = element.getAttributes.call(this);
             Object.keys(attributes.remove).forEach(key => {
                 this.el.removeAttribute(key);
             });
-            // Add attributes.
             Object.keys(attributes.add).forEach(key => {
                 this.el.setAttribute(key, attributes.add[key]);
             });
-        }
-        // Check for `template` to see if view has innerHTML or a child component.
-        if (this.template) {
-            // Store active element.
-            const activeElement = document.activeElement;
+        });
 
+        const previousChildren = this.children;
+        this.children = [];
+
+        this.template.interpolations.forEach(interpolation => {
             const nextChildren = [];
             const recycledChildren = [];
 
-            const previousChildren = this.children;
-            this.children = [];
-            // Replace expressions. Set html inside of `this.el`.
-            const inner = this.template.call(this, component => {
+            const fragment = parseHTML(this.renderTemplatePart(interpolation.expression, component => {
                 let out = component;
                 // Check if child already exists.
-                const found = component.key && previousChildren.find(
+                const found = !!component.key && previousChildren.find(
                     previousChild => previousChild.key === component.key
                 );
 
@@ -619,45 +835,46 @@ export default class Component extends View {
                 }
                 // Component html.
                 return out;
+            }));
+
+            // Replace children root elements with recycled components.
+            recycledChildren.forEach(recycledChild => {
+                this.addChild(recycledChild).recycle(fragment);
+            });
+            // Add new children. Hydrate them.
+            nextChildren.forEach(nextChild => {
+                this.addChild(nextChild).hydrate(fragment);
             });
 
-            if (this.isContainer()) {
-                if (nextChildren[0]) {
-                    const fragment = this.createElement('template');
-                    fragment.innerHTML = inner;
-                    // Add new child to dom fragment and hydrate it.
-                    this.addChild(nextChildren[0]).hydrate(fragment.content);
-                    // Get next child element.
-                    const nextEl = fragment.content.children[0];
-                    // Replace `this.el` with nextEl.
-                    this.el.replaceWith(nextEl);
-                    // Set `this.el` to nextEl.
-                    this.el = nextEl;
-                } else if (recycledChildren[0]) {
-                    this.addChild(recycledChildren[0]);
-                } else {
-                    throw new Error('Container component must have a child component');
-                }
+            const [startComment, endComment] = interpolation.ref;
+
+            const currentFirstElement = startComment.nextSibling;
+            const currentSingleChildElement = currentFirstElement.nextSibling === endComment;
+            const fragmentChildren = fragment.children;
+
+            if (currentSingleChildElement && fragmentChildren.length === 1 && !currentFirstElement.getAttribute(Component.DATA_ATTRIBUTE_ELEMENT)) {
+                // Update a single node.
+                syncNode(currentFirstElement, fragmentChildren[0]);
             } else {
-                this.el.innerHTML = inner;
-                // Add new children. Hydrate them.
-                nextChildren.forEach(nextChild => {
-                    this.addChild(nextChild).hydrate(this.el);
-                });
-                // Replace children root elements with recycled components.
-                recycledChildren.forEach(recycledChild => {
-                    this.addChild(recycledChild).recycle(this.el);
-                });
+                const range = document.createRange();
+                range.setStartAfter(startComment);
+                range.setEndBefore(endComment);
+                range.deleteContents();
+                range.insertNode(fragment);
             }
-            // Destroy unused children.
-            previousChildren.forEach(previousChild => {
-                const found = recycledChildren.indexOf(previousChild) > -1;
-                if (!found) previousChild.destroy();
-            });
-            // Restore focus.
-            if (this.el.contains(activeElement)) {
-                activeElement.focus();
-            }
+        });
+        // Destroy unused children.
+        previousChildren.forEach(previousChild => {
+            // Not found in recycled children. Destroy.
+            if (this.children.indexOf(previousChild) < 0) previousChild.destroy();
+        });
+        // If container, set el to the child element.
+        if (this.isContainer()) {
+            this.el = this.children[0].el;
+        }
+        // Restore focus.
+        if (activeElement && this.el.contains(activeElement)) {
+            activeElement.focus();
         }
         // Call onRender lifecycle method.
         this.onRender.call(this, Component.RENDER_TYPE_RENDER);
@@ -709,21 +926,22 @@ export default class Component extends View {
      * @return {Component} The component instance.
      */
     static mount(options, el, hydrate) {
-        // Instantiate view.
-        const view = new this(options);
+        // Instantiate component.
+        const component = new this(options);
         // If `el` is passed, mount component.
         if (el) {
             if (hydrate) {
+                // Generate subcomponents.
+                component.toString();
                 // Hydrate existing DOM.
-                view.toString();
-                view.hydrate(el);
+                component.hydrate(el);
             } else {
                 // Append element to the DOM.
-                el.appendChild(view.render().el);
+                el.appendChild(component.render().el);
             }
         }
-        // Return view instance.
-        return view;
+        // Return component instance.
+        return component;
     }
 
     /**
@@ -819,35 +1037,44 @@ export default class Component extends View {
      * @return {Component} The newly created component class.
      */
     static create(strings, ...expressions) {
-        const PH = Component.PLACEHOLDER_EXPRESSION('(\\d+)');
         // Containers can be created using create as a functions instead of a tagged template.
         if (typeof strings === 'function') {
             expressions = [strings];
             strings = ['', ''];
         }
 
-        let tag, attributes, events, template;
-        // Create output string for main template. Add placeholders for new lines.
-        const main = expandComponents(addPlaceholders(strings, expressions), expressions);
-
-        let match = main.match(
-            new RegExp(`^\\s*<([a-z]+[1-6]?|${PH})([^>]*)>([\\s\\S]*?)</(\\1|${PH})>\\s*$|^\\s*<([a-z]+[1-6]?|${PH})([^>]*)/>\\s*$`)
+        const elements = [], interpolations = [];
+        const parts = splitPlaceholders(
+            parseInterpolations(
+                parseElements(
+                    expandComponents(
+                        addPlaceholders(
+                            strings,
+                            expressions
+                        ).trim(),
+                        expressions
+                    ),
+                    expressions,
+                    elements
+                ),
+                expressions,
+                interpolations
+            ),
+            expressions
         );
 
-        if (match) {
-            // It's a component with tag.
-            const { tag : tagExpression, attributes : attributesAndEvents, inner, close } = parseMatch(match, expressions);
-            // Get tag, attributes.
-            tag = function() {
-                return Component.sanitize(getExpressionResult(tagExpression, this));
-            };
-            // Get attributes.
-            attributes = function() {
-                return expandAttributes(attributesAndEvents, value => getExpressionResult(value, this)).attributes;
-            };
+        const template = {
+            elements,
+            interpolations,
+            parts,
+        };
+
+        let events;
+
+        if (template.elements.length > 0) {
             // Get events.
             events = function() {
-                const onlyEvents = expandAttributes(attributesAndEvents, value => getExpressionResult(value, this)).events;
+                const onlyEvents = template.elements[0].getAttributes.call(this).events;
 
                 return Object.keys(onlyEvents).reduce((out, key) => {
                     const typeListeners = getExpressionResult(onlyEvents[key], this);
@@ -859,52 +1086,25 @@ export default class Component extends View {
                     return out;
                 }, {});
             };
-            // If there is a closing tag, get template.
-            if (close) {
-                const list = inner ? splitPlaceholders(inner, expressions) : [];
-                template = function(addChild) {
-                    return deepFlat(list.map(item => getExpressionResult(item, this))).map(item => {
-                        if (typeof item !== 'undefined' && item !== null && item !== false &&  item !== true) {
-                            if (item instanceof SafeHTML) return item;
-                            if (item instanceof Component) return addChild(item);
-                            return Component.sanitize(item);
-                        }
-                        return '';
-                    }).join('');
-                };
-            }
-        } else {
-            // It's a container.
-            match = main.match(new RegExp(`^\\s*${PH}\\s*$`));
-
-            if (match) {
-                // If there is only one expression and no tag, is a container.
-                template = function(addChild) {
-                    // Replace expressions.
-                    return addChild(getExpressionResult(expressions[match[1]], this)).toString();
-                };
-            } else {
-                throw new SyntaxError('Invalid component');
-            }
         }
-
-        const Current = this;
         // Create subclass for this component.
-        return Current.extend({
-            // Set root element tag.
-            tag,
-            // Set attributes.
-            attributes,
+        return this.extend({
             // Set events.
             events,
             // Set template.
-            template
+            template,
         });
     }
 }
 
-Component.PLACEHOLDER_EXPRESSION = (idx) => `__RASTI_{${idx}}__`;
-Component.DATA_ATTRIBUTE_UID = 'data-rasti-uid';
+Component.DATA_ATTRIBUTE_ELEMENT = 'data-rasti-el';
+
+Component.PLACEHOLDER_EXPRESSION = (idx) => `__RASTI-${idx}__`;
+Component.INTERPOLATION_START = (uid) => `rasti-start-${uid}`;
+Component.INTERPOLATION_END = (uid) => `rasti-end-${uid}`;
+
 Component.RENDER_TYPE_HYDRATE = 'hydrate';
 Component.RENDER_TYPE_RECYCLE = 'recycle';
 Component.RENDER_TYPE_RENDER = 'render';
+
+export default Component.create`<div></div>`;

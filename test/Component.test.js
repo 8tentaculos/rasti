@@ -28,19 +28,19 @@ describe('Component', () => {
 
     it('must be created with a self enclosed tag', () => {
         const c = Component.create`<input id="test-node" type="text" />`.mount({}, document.body);
-        expect(c.toString()).to.be.equal(`<input ${Component.DATA_ATTRIBUTE_UID}="rasti-1" id="test-node" type="text" />`);
+        expect(c.toString()).to.be.equal(`<input id="test-node" type="text" ${Component.DATA_ATTRIBUTE_ELEMENT}="r-1-1">`);
         expect(document.getElementById('test-node')).to.exist;
     });
 
     it('must be created with a function tag', () => {
         const c = Component.create`<${() => 'div'} id="test-node"><span></span></${() => 'div'}>`.mount({}, document.body);
-        expect(c.toString()).to.be.equal(`<div ${Component.DATA_ATTRIBUTE_UID}="rasti-1" id="test-node"><span></span></div>`);
+        expect(c.toString()).to.be.equal(`<div id="test-node" ${Component.DATA_ATTRIBUTE_ELEMENT}="r-1-1"><span></span></div>`);
         expect(document.getElementById('test-node')).to.exist;
     });
 
     it('must be created with a function tag with self enclosed tag', () => {
         const c = Component.create`<${() => 'input'} id="test-node" type="text" />`.mount({}, document.body);
-        expect(c.toString()).to.be.equal(`<input ${Component.DATA_ATTRIBUTE_UID}="rasti-1" id="test-node" type="text" />`);
+        expect(c.toString()).to.be.equal(`<input id="test-node" type="text" ${Component.DATA_ATTRIBUTE_ELEMENT}="r-1-1">`);
         expect(document.getElementById('test-node')).to.exist;
     });
 
@@ -107,7 +107,7 @@ describe('Component', () => {
         const c = Main.mount({}, document.body);
 
         expect(c.children[0].options.color).to.be.equal('primary');
-        expect(document.querySelector('button').innerHTML).to.be.equal('click me');
+        expect(document.querySelector('button').innerHTML).to.be.equal('<!--rasti-start-r-2-1-->click me<!--rasti-end-r-2-1-->');
     });
 
     it('must re render on model change', () => {
@@ -115,11 +115,11 @@ describe('Component', () => {
             model : new Model({ count : 0 }),
         }, document.body);
 
-        expect(document.getElementById('test-node').innerHTML).to.be.equal('0');
+        expect(document.getElementById('test-node').innerHTML).to.be.equal('<!--rasti-start-r-1-1-->0<!--rasti-end-r-1-1-->');
 
         c.model.count = 1;
 
-        expect(document.getElementById('test-node').innerHTML).to.be.equal('1');
+        expect(document.getElementById('test-node').innerHTML).to.be.equal('<!--rasti-start-r-1-1-->1<!--rasti-end-r-1-1-->');
     });
 
     it('must parse attributes', () => {
@@ -179,21 +179,21 @@ describe('Component', () => {
     it('must render true and false attributes', () => {
         expect(
             Component.create`<input id="test-node" disabled="${() => false}" />`.mount().toString()
-        ).to.be.equal(`<input ${Component.DATA_ATTRIBUTE_UID}="rasti-1" id="test-node" />`);
+        ).to.be.equal(`<input id="test-node" ${Component.DATA_ATTRIBUTE_ELEMENT}="r-1-1">`);
 
         expect(
             Component.create`<input id="test-node" disabled="${() => true}" />`.mount().toString()
-        ).to.be.equal(`<input ${Component.DATA_ATTRIBUTE_UID}="rasti-2" id="test-node" disabled />`);
+        ).to.be.equal(`<input id="test-node" disabled ${Component.DATA_ATTRIBUTE_ELEMENT}="r-2-1">`);
     });
 
     it('must remove true and false placeholders', () => {
         expect(
             Component.create`<div id="test-node">${() => true}</div>`.mount().toString()
-        ).to.be.equal(`<div ${Component.DATA_ATTRIBUTE_UID}="rasti-1" id="test-node"></div>`);
+        ).to.be.equal(`<div id="test-node" ${Component.DATA_ATTRIBUTE_ELEMENT}="r-1-1"><!--rasti-start-r-1-1--><!--rasti-end-r-1-1--></div>`);
 
         expect(
             Component.create`<div id="test-node">${() => false}</div>`.mount().toString()
-        ).to.be.equal(`<div ${Component.DATA_ATTRIBUTE_UID}="rasti-2" id="test-node"></div>`);
+        ).to.be.equal(`<div id="test-node" ${Component.DATA_ATTRIBUTE_ELEMENT}="r-2-1"><!--rasti-start-r-2-1--><!--rasti-end-r-2-1--></div>`);
     });
 
     it('must be destroyed and stop listening', () => {
@@ -209,16 +209,16 @@ describe('Component', () => {
             <div id="test-node">${({ model }) => model.count}${({ state }) => state.count}</div>
         `.mount({ model : new Model({ count : 0 }), state : new CustomModel({ count : 0 }) }, document.body);
 
-        expect(document.getElementById('test-node').innerHTML).to.be.equal('00');
+        expect(document.getElementById('test-node').innerHTML).to.be.equal('<!--rasti-start-r-1-1-->0<!--rasti-end-r-1-1--><!--rasti-start-r-1-2-->0<!--rasti-end-r-1-2-->');
 
         c.model.count = 1;
         c.state.count = 1;
-        expect(document.getElementById('test-node').innerHTML).to.be.equal('11');
+        expect(document.getElementById('test-node').innerHTML).to.be.equal('<!--rasti-start-r-1-1-->1<!--rasti-end-r-1-1--><!--rasti-start-r-1-2-->1<!--rasti-end-r-1-2-->');
 
         c.destroy();
         c.model.count = 2;
         c.state.count = 2;
-        expect(document.getElementById('test-node').innerHTML).to.be.equal('11');
+        expect(document.getElementById('test-node').innerHTML).to.be.equal('<!--rasti-start-r-1-1-->1<!--rasti-end-r-1-1--><!--rasti-start-r-1-2-->1<!--rasti-end-r-1-2-->');
     });
 
     it('must re render and destroy children', () => {
@@ -229,13 +229,13 @@ describe('Component', () => {
 
         const child = c.children[0];
         expect(document.querySelector('button')).to.be.equal(c.children[0].el);
-        expect(document.getElementById('test-node').innerHTML).to.be.equal('<button data-rasti-uid="rasti-2">click me</button>');
+        expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Component.INTERPOLATION_START('r-1-1')}--><button ${Component.DATA_ATTRIBUTE_ELEMENT}="r-2-1">click me</button><!--${Component.INTERPOLATION_END('r-1-1')}-->`);
 
         c.model.count = 1;
 
         expect(c.children[0]).not.to.be.equal(child);
         expect(document.querySelector('button')).to.be.equal(c.children[0].el);
-        expect(document.getElementById('test-node').innerHTML).to.be.equal('<button data-rasti-uid="rasti-3">click me</button>');
+        expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Component.INTERPOLATION_START('r-1-1')}--><button ${Component.DATA_ATTRIBUTE_ELEMENT}="r-3-1">click me</button><!--${Component.INTERPOLATION_END('r-1-1')}-->`);
     });
 
     it('must re render and recycle children with key', () => {
@@ -253,7 +253,7 @@ describe('Component', () => {
     });
 
     it('must hydrate existing dom', () => {
-        document.body.innerHTML = `<div ${Component.DATA_ATTRIBUTE_UID}="rasti-1"><button ${Component.DATA_ATTRIBUTE_UID}="rasti-2">click me</button></div>`;
+        document.body.innerHTML = `<div ${Component.DATA_ATTRIBUTE_ELEMENT}="r-1-1"><button ${Component.DATA_ATTRIBUTE_ELEMENT}="r-2-1">click me</button></div>`;
 
         const Button = Component.create`<button>click me</button>`;
         const Main = Component.create`<div>${() => Button.mount()}</div>`;
@@ -386,6 +386,7 @@ describe('Component', () => {
         c.render();
         expect(document.querySelector('button')).to.be.equal(buttonEl);
         expect(document.querySelector('span')).to.be.equal(spanEl);
+
         c.children[0].render();
         c.children[1].render();
         expect(document.querySelector('button')).to.exist;
@@ -397,7 +398,6 @@ describe('Component', () => {
     it('must mount container using render', () => {
         const Child = Component.create`<button>click me</button>`;
         const Container = Component.create`${() => Child.mount()}`;
-
 
         expect(Container).to.exist;
 
@@ -451,21 +451,21 @@ describe('Component', () => {
         const c1 = OkButton.mount({}, document.body);
         const c2 = CancelButton.mount({ cancel : true }, document.body);
 
-        expect(document.querySelectorAll('button')[0].innerHTML).to.be.equal('ok');
+        expect(document.querySelectorAll('button')[0].innerHTML).to.be.equal('<!--rasti-start-r-2-1-->ok<!--rasti-end-r-2-1-->');
         expect(c1.el).to.be.equal(c1.children[0].el);
         expect(c1.children[0].options.color).to.be.equal('primary');
 
-        expect(document.querySelectorAll('button')[1].innerHTML).to.be.equal('cancel');
+        expect(document.querySelectorAll('button')[1].innerHTML).to.be.equal('<!--rasti-start-r-4-1-->cancel<!--rasti-end-r-4-1-->');
         expect(c2.el).to.be.equal(c2.children[0].el);
         expect(c2.children[0].options.color).to.be.equal('secondary');
 
         c1.render();
         c2.render();
 
-        expect(document.querySelectorAll('button')[0].innerHTML).to.be.equal('ok');
+        expect(document.querySelectorAll('button')[0].innerHTML).to.be.equal('<!--rasti-start-r-2-1-->ok<!--rasti-end-r-2-1-->');
         expect(c1.el).to.be.equal(c1.children[0].el);
 
-        expect(document.querySelectorAll('button')[1].innerHTML).to.be.equal('cancel');
+        expect(document.querySelectorAll('button')[1].innerHTML).to.be.equal('<!--rasti-start-r-4-1-->cancel<!--rasti-end-r-4-1-->');
         expect(c2.el).to.be.equal(c2.children[0].el);
     });
 
@@ -567,7 +567,7 @@ describe('Component', () => {
         main.render();
 
         expect(calls[Component.RENDER_TYPE_RENDER]).to.be.equal(1);
-        expect(calls[Component.RENDER_TYPE_RECYCLE]).to.be.equal(2);
+        expect(calls[Component.RENDER_TYPE_RECYCLE]).to.be.equal(1);
     });
 
     it('must render partial', () => {
@@ -577,7 +577,7 @@ describe('Component', () => {
             <div id="test-node-1">${self => self.partial`<div>${({ options }) => options && Button.mount()}</div>`}</div>
         `.mount({}, document.body);
 
-        expect(document.getElementById('test-node-1').innerHTML).to.be.equal('<div><button data-rasti-uid="rasti-2">click me</button></div>');
+        expect(document.getElementById('test-node-1').innerHTML).to.be.equal(`<!--${Component.INTERPOLATION_START('r-1-1')}--><div><button ${Component.DATA_ATTRIBUTE_ELEMENT}="r-2-1">click me</button></div><!--${Component.INTERPOLATION_END('r-1-1')}-->`);
         expect(c1.children[0].el).to.be.equal(document.querySelector('button'));
 
         const c2 = Component.create`
@@ -604,7 +604,7 @@ describe('Component', () => {
 
         expect(c4.children.length).to.be.equal(1);
         expect(c4.children[0].el).to.be.equal(document.querySelector('#test-node-4 div button'));
-        expect(document.querySelector('#test-node-4 div button').innerHTML).to.be.equal('ok');
+        expect(document.querySelector('#test-node-4 div button').innerHTML).to.be.equal(`<!--${Component.INTERPOLATION_START('r-10-1')}-->ok<!--${Component.INTERPOLATION_END('r-10-1')}-->`);
     });
 });
 
