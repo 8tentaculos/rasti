@@ -54,9 +54,6 @@ export default class View extends Emitter {
         super();
         // Call preinitialize.
         this.preinitialize.apply(this, arguments);
-        // Generate unique id.
-        // Useful to generate element ids.
-        this.uid = `rasti-${++View.uid}`;
         // Store delegated event listeners,
         // so they can be unbound later.
         this.delegatedEventListeners = [];
@@ -69,6 +66,8 @@ export default class View extends Emitter {
         viewOptions.forEach(key => {
             if (key in options) this[key] = options[key];
         });
+        // Ensure that the view has a unique id at `this.uid`.
+        this.ensureUid();
         // Ensure that the view has a root element at `this.el`.
         this.ensureElement();
     }
@@ -146,6 +145,13 @@ export default class View extends Emitter {
     destroyChildren() {
         this.children.forEach(child => child.destroy());
         this.children = [];
+    }
+
+    /**
+     * Ensure that the view has a unique id at `this.uid`.
+     */
+    ensureUid() {
+        if (!this.uid) this.uid = `r-${++View.uid}`;
     }
 
     /**
