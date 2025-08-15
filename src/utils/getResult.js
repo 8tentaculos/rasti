@@ -6,6 +6,8 @@
  * @param {...any} args Arguments to pass to the expression.
  * @return {any} The result of the expression.
  */
-export default (expression, context, ...args) =>
+const getResult = (expression, context, ...args) =>
     typeof expression !== 'function' ? expression :
         expression.apply(context, args);
+
+export default getResult;
