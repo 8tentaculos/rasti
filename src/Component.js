@@ -20,18 +20,6 @@ class SafeHTML {
     }
 }
 
-// /**
-//  * Parse HTML string to a DocumentFragment.
-//  * @param {string} html The HTML string to parse.
-//  * @return {DocumentFragment} The parsed DocumentFragment.
-//  * @private
-//  */
-// const parseHTML = (html) => {
-//     const fragment = document.createElement('template');
-//     fragment.innerHTML = html;
-//     return fragment.content;
-// };
-
 /**
  * Same as getResult, but pass context as argument to the expression.
  * Used to evaluate expressions in the context of a component.
