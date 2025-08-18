@@ -174,6 +174,7 @@ const expandComponents = (main, expressions) => {
                     return deepFlat(list.map(item => getExpressionResult(item, this)));
                 };
             }
+            // Parse attributes.
             const attributes = parseAttributes(attributesStr, expressions);
             // Create mount function.
             const mount = function() {
@@ -629,10 +630,20 @@ class Component extends View {
         return this;
     }
 
+    /**
+     * Get the recycle placeholder.
+     * @return {string} The recycle placeholder.
+     * @private
+     */
     getRecyclePlaceholder() {
         return `<span ${Component.DATA_ATTRIBUTE_ELEMENT}="${this.uid}-1"></span>`;
     }
 
+    /**
+     * Get the recycle nodes.
+     * @return {Node[]} The recycle nodes.
+     * @private
+     */
     getRecycleNodes() {
         return this.isContainer() ?
             [this.template.interpolations[0].ref[0], ...this.children[0].getRecycleNodes(), this.template.interpolations[0].ref[1]] :
@@ -749,6 +760,13 @@ class Component extends View {
         );
     }
 
+    /**
+     * Render a template part.
+     * @param {any} part - The template part.
+     * @param {function} addChild - The addChild function.
+     * @return {string} The rendered template part.
+     * @private
+     */
     renderTemplatePart(part, addChild) {
         const result = getExpressionResult(part, this);
 
