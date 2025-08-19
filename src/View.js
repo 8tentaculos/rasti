@@ -287,13 +287,11 @@ export default class View extends Emitter {
                     }
 
                     let node = event.target;
-
                     // Traverse ancestors until reaching the view root (`this.el`).
                     while (node && node !== this.el) {
                         if (node.matches && node.matches(selector)) {
                             listener(event, this, node);
                         }
-
                         node = node.parentElement;
                     }
                 });
