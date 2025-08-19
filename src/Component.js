@@ -482,30 +482,23 @@ class Component extends View {
         }
         // Get references for interpolation marker comments
         if (this.template.interpolations.length > 0) {
+            const commentMap = new Map();
+            const walker = document.createTreeWalker(parent, NodeFilter.SHOW_COMMENT);
+
+            let node;
+            while ((node = walker.nextNode())) {
+                commentMap.set(node.textContent, node);
+            }
+
             this.template.interpolations.forEach(interpolation => {
                 const uid = interpolation.getUid.call(this);
                 const startMarker = Component.INTERPOLATION_START(uid);
                 const endMarker = Component.INTERPOLATION_END(uid);
-                // Find the start and end comment nodes
-                const walker = document.createTreeWalker(
-                    parent,
-                    NodeFilter.SHOW_COMMENT,
-                    null,
-                    false
-                );
 
-                let startComment = null, endComment = null;
-                let node = walker.nextNode();
-                while (node) {
-                    if (node.textContent === startMarker) {
-                        startComment = node;
-                    } else if (node.textContent === endMarker) {
-                        endComment = node;
-                    }
-                    node = walker.nextNode();
-                }
-
-                interpolation.ref = [startComment, endComment];
+                interpolation.ref = [
+                    commentMap.get(startMarker), 
+                    commentMap.get(endMarker)
+                ];
             });
         }
         // Call hydrate on children.
