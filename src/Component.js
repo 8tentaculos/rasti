@@ -2,6 +2,7 @@ import View from './View.js';
 import getResult from './utils/getResult.js';
 import deepFlat  from './utils/deepFlat.js';
 import parseHTML from './utils/parseHTML.js';
+import syncNode from './utils/syncNode.js';
 
 /**
  * Wrapper class for HTML strings marked as safe.
@@ -356,105 +357,7 @@ const parseAttributes = (attributesStr, expressions) => {
     return attributes;
 };
 
-/**
- * Synchronizes the contents of one DOM node to match another.
- * It performs a shallow sync: tag name, attributes, properties, and child nodes.
- * If tag names or node types differ, it replaces the node entirely.
- * @param {Node} targetNode The node currently in the DOM to be updated.
- * @param {Node} sourceNode The reference node to sync from (not in the DOM).
- * @private
- */
-const syncNode = (targetNode, sourceNode) => {
-    // Replace if node types are different (e.g. element vs text).
-    if (targetNode.nodeType !== sourceNode.nodeType) {
-        targetNode.replaceWith(sourceNode);
-        return;
-    }
-    // Text node: sync value.
-    if (targetNode.nodeType === Node.TEXT_NODE) {
-        if (targetNode.nodeValue !== sourceNode.nodeValue) {
-            targetNode.nodeValue = sourceNode.nodeValue;
-        }
-        return;
-    }
-    // Element node: check tag.
-    if (targetNode.tagName !== sourceNode.tagName) {
-        targetNode.replaceWith(sourceNode);
-        return;
-    }
-    // Sync attributes and DOM properties.
-    syncAttributes(targetNode, sourceNode);
-    // Sync child nodes if necessary.
-    if (!areChildNodesEqual(targetNode, sourceNode)) {
-        syncNodeContent(targetNode, sourceNode);
-    }
-};
 
-/**
- * Synchronizes attributes and key DOM properties (value, checked, selected).
- * Assumes tagName is already the same.
- * @param {Element} targetEl Target DOM element to update.
- * @param {Element} sourceEl Source DOM element to copy attributes from.
- * @private
- */
-const syncAttributes = (targetEl, sourceEl) => {
-    // Add, update and remove attributes.
-    const srcAttrs = sourceEl.attributes;
-    const tgtAttrs = targetEl.attributes;
-
-    for (let i = 0; i < srcAttrs.length; i++) {
-        const { name, value } = srcAttrs[i];
-        if (targetEl.getAttribute(name) !== value) targetEl.setAttribute(name, value);
-    }
-
-    for (let i = tgtAttrs.length - 1; i >= 0; i--) {
-        const { name } = tgtAttrs[i];
-        if (!sourceEl.hasAttribute(name)) targetEl.removeAttribute(name);
-    }
-    // Sync key DOM properties.
-    const props = ['value', 'checked', 'selected'];
-    for (let i = 0; i < props.length; i++) {
-        const prop = props[i];
-        if (prop in targetEl && targetEl[prop] !== sourceEl[prop]) {
-            targetEl[prop] = sourceEl[prop];
-        }
-    }
-};
-
-/**
- * Replaces all child nodes of targetEl with those from sourceEl.
- * Moves the nodes without cloning.
- * @param {Element} targetEl The element whose children will be replaced.
- * @param {Element} sourceEl The element providing new children.
- * @private
- */
-const syncNodeContent = (targetEl, sourceEl) => {
-    // Remove current children.
-    while (targetEl.firstChild) {
-        targetEl.removeChild(targetEl.firstChild);
-    }
-    // Move children from sourceEl (no cloning).
-    while (sourceEl.firstChild) {
-        targetEl.appendChild(sourceEl.firstChild);
-    }
-};
-
-/**
- * Compares two elements to see if their child nodes are structurally equal.
- * @param {Element} a First element to compare.
- * @param {Element} b Second element to compare.
- * @return {boolean} True if all child nodes are deeply equal.
- * @private
- */
-const areChildNodesEqual = (a, b) => {
-    if (a.childNodes.length !== b.childNodes.length) return false;
-    for (let i = 0; i < a.childNodes.length; i++) {
-        if (!a.childNodes[i].isEqualNode(b.childNodes[i])) {
-            return false;
-        }
-    }
-    return true;
-};
 
 /*
  * These option keys will be extended on the component instance.
