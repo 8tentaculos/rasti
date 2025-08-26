@@ -203,10 +203,11 @@ const parseElements = (template, expressions, elements) => {
     return template.replace(
         // Capture opening tags with their attributes and closing syntax
         new RegExp(`<(${PH}|[a-z]+[1-6]?)(?:\\s*)((?:"[^"]*"|'[^']*'|[^>])*)(/?>)`, 'gi'),
-        (match, tagName, attributesStr, ending) => {
+        (match, tag, attributesStr, ending) => {
+            const isRoot = elementUid === 0;
             const currentElementUid = ++elementUid;
             // If there are no dynamic attributes, return original match.
-            if (currentElementUid > 1 && !attributesStr.match(new RegExp(PH))) {
+            if (!isRoot && !attributesStr.match(new RegExp(PH))) {
                 return match;
             }
             // Parse attributes.
@@ -217,20 +218,24 @@ const parseElements = (template, expressions, elements) => {
             const generateElementUid = componentUid => `${componentUid}-${currentElementUid}`;
             // Create function that returns attributes object.
             const getAttributes = function() {
-                const expanded = expandAttributes(parsedAttributes, value => getExpressionResult(value, this));
+                const { attributes, events } = expandAttributes(parsedAttributes, value => getExpressionResult(value, this));
+                // Extend template attributes with `options.attributes`.
+                if (isRoot && this.attributes) {
+                    Object.assign(attributes, getResult(this.attributes, this));
+                }
                 // Add data attribute for element identification.
                 // First element gets the component uid, others get element uid.
-                expanded.attributes[Component.DATA_ATTRIBUTE_ELEMENT] = generateElementUid(this.uid);
+                attributes[Component.DATA_ATTRIBUTE_ELEMENT] = generateElementUid(this.uid);
                 // Store previous attributes.
                 const previous = previousAttributes;
-                previousAttributes = expanded.attributes;
+                previousAttributes = attributes;
 
                 const add = {};
                 const remove = {};
                 const html = [];
 
-                Object.keys(expanded.attributes).forEach(key => {
-                    let value = expanded.attributes[key];
+                Object.keys(attributes).forEach(key => {
+                    let value = attributes[key];
 
                     if (value === false) {
                         remove[key] = true;
@@ -245,7 +250,7 @@ const parseElements = (template, expressions, elements) => {
                 });
                 // Remove attributes that were in previousAttributes but not in current attributes.
                 Object.keys(previous).forEach(key => {
-                    if (!(key in expanded.attributes)) {
+                    if (!(key in attributes)) {
                         remove[key] = true;
                     }
                 });
@@ -253,8 +258,8 @@ const parseElements = (template, expressions, elements) => {
                 return {
                     add,
                     remove,
-                    html : html.join(' '),
-                    events : expanded.events
+                    events,
+                    html : html.join(' ')
                 };
             };
 
@@ -273,7 +278,7 @@ const parseElements = (template, expressions, elements) => {
             // Replace attributes with placeholder.
             const placeholder = Component.PLACEHOLDER_EXPRESSION(expressions.length - 1);
             // Preserve original tag ending (> or />)
-            return `<${tagName} ${placeholder}${ending}`;
+            return `<${tag} ${placeholder}${ending}`;
         }
     );
 };
