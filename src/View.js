@@ -116,6 +116,8 @@ export default class View extends Emitter {
         this.destroyQueue = [];
         // Call onDestroy lifecycle method
         this.onDestroy.apply(this, arguments);
+        // Set destroyed flag.
+        this.destroyed = true;
         // Return `this` for chaining.
         return this;
     }

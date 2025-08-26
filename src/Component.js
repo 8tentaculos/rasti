@@ -554,21 +554,6 @@ class Component extends View {
     }
 
     /**
-     * Destroy the `Component`.
-     * Destroy children components if any, undelegate events, stop listening to events, call `onDestroy` lifecycle method.
-     * @param {object} options Options object or any arguments passed to `destroy` method will be passed to `onDestroy` method.
-     * @return {View} Return `this` for chaining.
-     */
-    destroy() {
-        // Call super destroy method.
-        super.destroy.apply(this, arguments);
-        // Set destroyed flag to prevent a last render after destroyed.
-        this.destroyed = true;
-        // Return `this` for chaining.
-        return this;
-    }
-
-    /**
      * Lifecycle method. Called when the view is created, at the end of the `constructor`.
      * @param options {object} The view options.
      */
