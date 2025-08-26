@@ -242,7 +242,7 @@ describe('Component', () => {
         const Button = Component.create`<button>click me</button>`;
         const Main = Component.create`<div id="test-node">${() => Button.mount({ key : 'btn' })}</div>`;
 
-        const c = Main.mount({ model: new Model({ count: 0 }) }, document.body);
+        const c = Main.mount({ model : new Model({ count : 0 }) }, document.body);
 
         const child = c.children[0];
 
@@ -271,17 +271,17 @@ describe('Component', () => {
         `.mount({}, document.body);
 
         c.$('section button').dispatchEvent(
-            new MouseEvent('click', { bubbles: true })
+            new MouseEvent('click', { bubbles : true })
         );
     });
 
     it('must delegate events on root element', (done) => {
         const c = Component.create`
-            <button onClick=${{ '&': () => done() }}>click me</button>
+            <button onClick=${{ '&' : () => done() }}>click me</button>
         `.mount({}, document.body);
 
         c.el.dispatchEvent(
-            new MouseEvent('click', { bubbles: true })
+            new MouseEvent('click', { bubbles : true })
         );
     });
 
