@@ -122,10 +122,11 @@ describe('Component', () => {
         expect(document.getElementById('test-node').innerHTML).to.be.equal('<!--rasti-start-r-1-1-->1<!--rasti-end-r-1-1-->');
     });
 
-    it('must parse attributes', () => {
-        const c = Component.create`
+    it('must handle attributes', () => {
+        // Test root element attributes.
+        const RootComponent = Component.create`
             <input
-                id="test-node"
+                id="test-root"
                 class="test-class-1 test-class-2"
                 type="text"
                 readonly
@@ -137,43 +138,63 @@ describe('Component', () => {
             />
         `.mount({ model : new Model({ disabled : false }) }, document.body);
 
-        const el = document.getElementById('test-node');
+        const rootEl = document.getElementById('test-root');
+        // Verify initial root attributes.
+        expect(rootEl.className).to.be.equal('test-class-1 test-class-2');
+        expect(rootEl.hasAttribute('readonly')).to.be.true;
+        expect(rootEl.disabled).to.be.false;
+        expect(rootEl.getAttribute('data-custom')).to.be.equal('my-data');
+        expect(rootEl.hasAttribute('required')).to.be.true;
+        expect(rootEl.getAttribute('minlength')).to.be.equal('5');
+        expect(rootEl.getAttribute('placeholder')).to.be.equal('my placeholder');
+        expect(rootEl.getAttribute('aria-label')).to.be.equal('my-label');
+        // Test reactive root attribute updates.
+        RootComponent.model.disabled = true;
+        expect(rootEl.disabled).to.be.true;
+        // Test inner element attributes.
+        const InnerComponent = Component.create`
+            <div id="test-inner">
+                <span 
+                    class="${({ model }) => model.className}" 
+                    data-value="${({ model }) => model.value}"
+                    data-status="${({ model }) => model.status}"
+                    ${({ model }) => model.required && 'required'}
+                >${({ model }) => model.text}</span>
+            </div>
+        `.mount({ model : new Model({ className : 'initial-class', value : '1', status : 'active', required : false, text : 'Hello World' }) }, document.body);
 
-        expect(el.className).to.be.equal('test-class-1 test-class-2');
-        expect(el.hasAttribute('readonly')).to.be.true;
-        expect(el.disabled).to.be.false;
-        expect(el.getAttribute('data-custom')).to.be.equal('my-data');
-        expect(el.hasAttribute('required')).to.be.true;
-        expect(el.getAttribute('minlength')).to.be.equal('5');
-        expect(el.getAttribute('placeholder')).to.be.equal('my placeholder');
-        expect(el.getAttribute('aria-label')).to.be.equal('my-label');
-
-        c.render();
-
-        expect(el.className).to.be.equal('test-class-1 test-class-2');
-        expect(el.hasAttribute('readonly')).to.be.true;
-        expect(el.disabled).to.be.false;
-        expect(el.getAttribute('data-custom')).to.be.equal('my-data');
-        expect(el.hasAttribute('required')).to.be.true;
-        expect(el.getAttribute('minlength')).to.be.equal('5');
-        expect(el.getAttribute('placeholder')).to.be.equal('my placeholder');
-        expect(el.getAttribute('aria-label')).to.be.equal('my-label');
-    });
-
-    it('must re render and update attributes on the root element', () => {
-        const c = Component.create`
-            <input
-                id="test-node"
-                type="text"
-                disabled="${({ model }) => model.disabled}"
-            />
-        `.mount({ model : new Model({ disabled : false }) }, document.body);
-
-        expect(document.getElementById('test-node').disabled).to.be.false;
-
-        c.model.disabled = true;
-
-        expect(document.getElementById('test-node').disabled).to.be.true;
+        const innerDiv = document.getElementById('test-inner');
+        const innerSpan = innerDiv.querySelector('span');
+        // Verify initial inner attributes.
+        expect(innerSpan.className).to.be.equal('initial-class');
+        expect(innerSpan.getAttribute('data-value')).to.be.equal('1');
+        expect(innerSpan.getAttribute('data-status')).to.be.equal('active');
+        expect(innerSpan.hasAttribute('required')).to.be.false;
+        expect(innerSpan.textContent.trim()).to.be.equal('Hello World');
+        // Test reactive inner attribute updates.
+        InnerComponent.model.className = 'updated-class';
+        InnerComponent.model.value = '2';
+        InnerComponent.model.status = 'inactive';
+        InnerComponent.model.required = true;
+        InnerComponent.model.text = 'Updated World';
+        // Verify the same element is updated, not replaced.
+        expect(innerDiv.querySelector('span')).to.be.equal(innerSpan);
+        expect(innerSpan.className).to.be.equal('updated-class');
+        expect(innerSpan.getAttribute('data-value')).to.be.equal('2');
+        expect(innerSpan.getAttribute('data-status')).to.be.equal('inactive');
+        expect(innerSpan.hasAttribute('required')).to.be.true;
+        expect(innerSpan.textContent.trim()).to.be.equal('Updated World');
+        // Test re-render preserves attributes.
+        RootComponent.render();
+        expect(rootEl.className).to.be.equal('test-class-1 test-class-2');
+        expect(rootEl.hasAttribute('readonly')).to.be.true;
+        // Should remain true from previous update.
+        expect(rootEl.disabled).to.be.true;
+        expect(rootEl.getAttribute('data-custom')).to.be.equal('my-data');
+        expect(rootEl.hasAttribute('required')).to.be.true;
+        expect(rootEl.getAttribute('minlength')).to.be.equal('5');
+        expect(rootEl.getAttribute('placeholder')).to.be.equal('my placeholder');
+        expect(rootEl.getAttribute('aria-label')).to.be.equal('my-label');
     });
 
     it('must render true and false attributes', () => {
@@ -607,26 +628,29 @@ describe('Component', () => {
         expect(document.querySelector('#test-node-4 div button').innerHTML).to.be.equal(`<!--${Component.INTERPOLATION_START('r-10-1')}-->ok<!--${Component.INTERPOLATION_END('r-10-1')}-->`);
     });
 
-    it('must update attributes of inner element', () => {
-        const AttributeComponent = Component.create`
+    it('must sync interpolation first element using partial', () => {
+        const PartialComponent = Component.create`
             <div id="test-node">
-                <span class="${({ model }) => model.className}" data-value="${({ model }) => model.value}">content</span>
+                <div>${({ partial, model }) => partial`<span class="${model.className}" data-value="${model.value}">${model.text}</span>`}</div>
             </div>
-        `.mount({ model : new Model({ className : 'initial', value : '1' }) }, document.body);
+        `.mount({ model : new Model({ className : 'initial-class', value : '1', text : 'Hello World'}) }, document.body);
 
         const originalDiv = document.getElementById('test-node');
         const originalSpan = originalDiv.querySelector('span');
 
-        expect(originalSpan.className).to.be.equal('initial');
+        expect(originalSpan.className).to.be.equal('initial-class');
         expect(originalSpan.getAttribute('data-value')).to.be.equal('1');
-
-        AttributeComponent.model.className = 'updated';
-        AttributeComponent.model.value = '2';
-
-        // The same span element should be updated, not replaced
-        expect(originalDiv.querySelector('span')).to.be.equal(originalSpan);
-        expect(originalSpan.className).to.be.equal('updated');
-        expect(originalSpan.getAttribute('data-value')).to.be.equal('2');
+        expect(originalSpan.textContent.trim()).to.be.equal('Hello World');
+        // Update the model to trigger re-render
+        PartialComponent.model.className = 'updated-class';
+        PartialComponent.model.value = '2';
+        PartialComponent.model.text = 'Updated World';
+        // The same span element should be synced, not replaced
+        const updatedSpan = originalDiv.querySelector('span');
+        expect(updatedSpan).to.be.equal(originalSpan);
+        expect(updatedSpan.className).to.be.equal('updated-class');
+        expect(updatedSpan.getAttribute('data-value')).to.be.equal('2');
+        expect(updatedSpan.textContent.trim()).to.be.equal('Updated World');
     });
 
     it('must update text content of inner element', () => {
@@ -642,7 +666,6 @@ describe('Component', () => {
         expect(originalSpan.textContent.trim()).to.be.equal('Hello');
 
         ContentComponent.model.text = 'World';
-
         // The same span element should be updated, not replaced
         expect(originalDiv.querySelector('span')).to.be.equal(originalSpan);
         expect(originalSpan.textContent.trim()).to.be.equal('World');
@@ -652,7 +675,7 @@ describe('Component', () => {
         const ChildComponent = Component.create`<button>${({ model }) => model.text}</button>`;
         const ParentComponent = Component.create`
             <div id="test-node">
-                ${({ model }) => ChildComponent.mount({ model, key : 'child' })}
+                <div>${({ model }) => ChildComponent.mount({ model, key : 'child' })}</div>
             </div>
         `.mount({ model : new Model({ text : 'Hello' }) }, document.body);
 
@@ -660,10 +683,8 @@ describe('Component', () => {
         const originalButton = originalDiv.querySelector('button');
 
         expect(originalButton.textContent.trim()).to.be.equal('Hello');
-
         // Change the model to trigger re-render
         ParentComponent.model.text = 'World';
-
         // The same button element should be recycled and updated
         const updatedButton = originalDiv.querySelector('button');
         expect(updatedButton).to.be.equal(originalButton);
@@ -674,7 +695,7 @@ describe('Component', () => {
         const ChildComponent = Component.create`<button>${({ model }) => model.text}</button>`;
         const ParentComponent = Component.create`
             <div id="test-node">
-                ${({ model }) => ChildComponent.mount({ model })}
+                <div>${({ model }) => ChildComponent.mount({ model })}</div>
             </div>
         `.mount({ model : new Model({ text : 'Hello' }) }, document.body);
 
@@ -682,41 +703,13 @@ describe('Component', () => {
         const originalButton = originalDiv.querySelector('button');
 
         expect(originalButton.textContent.trim()).to.be.equal('Hello');
-
         // Change the model to trigger re-render
         ParentComponent.model.text = 'World';
-
         // A new button element should be created
         const newButton = originalDiv.querySelector('button');
         expect(newButton).not.to.be.equal(originalButton);
         expect(newButton.textContent.trim()).to.be.equal('World');
     });
 
-    it('must sync interpolation first element using partial', () => {
-        const PartialComponent = Component.create`
-            <div id="test-node">
-                ${({ partial, model }) => partial`<span class="${model.className}" data-value="${model.value}">${model.text}</span>`}
-            </div>
-        `.mount({ model : new Model({ className : 'initial-class', value : '1', text : 'Hello World'}) }, document.body);
-
-        const originalDiv = document.getElementById('test-node');
-        const originalSpan = originalDiv.querySelector('span');
-
-        expect(originalSpan.className).to.be.equal('initial-class');
-        expect(originalSpan.getAttribute('data-value')).to.be.equal('1');
-        expect(originalSpan.textContent.trim()).to.be.equal('Hello World');
-
-        // Update the model to trigger re-render
-        PartialComponent.model.className = 'updated-class';
-        PartialComponent.model.value = '2';
-        PartialComponent.model.text = 'Updated World';
-
-        // The same span element should be synced, not replaced
-        const updatedSpan = originalDiv.querySelector('span');
-        expect(updatedSpan).to.be.equal(originalSpan);
-        expect(updatedSpan.className).to.be.equal('updated-class');
-        expect(updatedSpan.getAttribute('data-value')).to.be.equal('2');
-        expect(updatedSpan.textContent.trim()).to.be.equal('Updated World');
-    });
 });
 
