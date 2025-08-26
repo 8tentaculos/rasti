@@ -160,7 +160,7 @@ describe('Component', () => {
         expect(el.getAttribute('aria-label')).to.be.equal('my-label');
     });
 
-    it('must re render and change attributes', () => {
+    it('must re render and update attributes on the root element', () => {
         const c = Component.create`
             <input
                 id="test-node"
@@ -605,6 +605,118 @@ describe('Component', () => {
         expect(c4.children.length).to.be.equal(1);
         expect(c4.children[0].el).to.be.equal(document.querySelector('#test-node-4 div button'));
         expect(document.querySelector('#test-node-4 div button').innerHTML).to.be.equal(`<!--${Component.INTERPOLATION_START('r-10-1')}-->ok<!--${Component.INTERPOLATION_END('r-10-1')}-->`);
+    });
+
+    it('must update attributes of inner element', () => {
+        const AttributeComponent = Component.create`
+            <div id="test-node">
+                <span class="${({ model }) => model.className}" data-value="${({ model }) => model.value}">content</span>
+            </div>
+        `.mount({ model : new Model({ className : 'initial', value : '1' }) }, document.body);
+
+        const originalDiv = document.getElementById('test-node');
+        const originalSpan = originalDiv.querySelector('span');
+
+        expect(originalSpan.className).to.be.equal('initial');
+        expect(originalSpan.getAttribute('data-value')).to.be.equal('1');
+
+        AttributeComponent.model.className = 'updated';
+        AttributeComponent.model.value = '2';
+
+        // The same span element should be updated, not replaced
+        expect(originalDiv.querySelector('span')).to.be.equal(originalSpan);
+        expect(originalSpan.className).to.be.equal('updated');
+        expect(originalSpan.getAttribute('data-value')).to.be.equal('2');
+    });
+
+    it('must update text content of inner element', () => {
+        const ContentComponent = Component.create`
+            <div id="test-node">
+                <span>${({ model }) => model.text}</span>
+            </div>
+        `.mount({ model : new Model({ text : 'Hello' }) }, document.body);
+
+        const originalDiv = document.getElementById('test-node');
+        const originalSpan = originalDiv.querySelector('span');
+
+        expect(originalSpan.textContent.trim()).to.be.equal('Hello');
+
+        ContentComponent.model.text = 'World';
+
+        // The same span element should be updated, not replaced
+        expect(originalDiv.querySelector('span')).to.be.equal(originalSpan);
+        expect(originalSpan.textContent.trim()).to.be.equal('World');
+    });
+
+    it('must recycle child component with key and keep same element', () => {
+        const ChildComponent = Component.create`<button>${({ model }) => model.text}</button>`;
+        const ParentComponent = Component.create`
+            <div id="test-node">
+                ${({ model }) => ChildComponent.mount({ model, key : 'child' })}
+            </div>
+        `.mount({ model : new Model({ text : 'Hello' }) }, document.body);
+
+        const originalDiv = document.getElementById('test-node');
+        const originalButton = originalDiv.querySelector('button');
+
+        expect(originalButton.textContent.trim()).to.be.equal('Hello');
+
+        // Change the model to trigger re-render
+        ParentComponent.model.text = 'World';
+
+        // The same button element should be recycled and updated
+        const updatedButton = originalDiv.querySelector('button');
+        expect(updatedButton).to.be.equal(originalButton);
+        expect(updatedButton.textContent.trim()).to.be.equal('World');
+    });
+
+    it('must replace child component without key and create new element', () => {
+        const ChildComponent = Component.create`<button>${({ model }) => model.text}</button>`;
+        const ParentComponent = Component.create`
+            <div id="test-node">
+                ${({ model }) => ChildComponent.mount({ model })}
+            </div>
+        `.mount({ model : new Model({ text : 'Hello' }) }, document.body);
+
+        const originalDiv = document.getElementById('test-node');
+        const originalButton = originalDiv.querySelector('button');
+
+        expect(originalButton.textContent.trim()).to.be.equal('Hello');
+
+        // Change the model to trigger re-render
+        ParentComponent.model.text = 'World';
+
+        // A new button element should be created
+        const newButton = originalDiv.querySelector('button');
+        expect(newButton).not.to.be.equal(originalButton);
+        expect(newButton.textContent.trim()).to.be.equal('World');
+    });
+
+    it('must sync interpolation first element using partial', () => {
+        const PartialComponent = Component.create`
+            <div id="test-node">
+                ${({ partial, model }) => partial`<span class="${model.className}" data-value="${model.value}">${model.text}</span>`}
+            </div>
+        `.mount({ model : new Model({ className : 'initial-class', value : '1', text : 'Hello World'}) }, document.body);
+
+        const originalDiv = document.getElementById('test-node');
+        const originalSpan = originalDiv.querySelector('span');
+
+        expect(originalSpan.className).to.be.equal('initial-class');
+        expect(originalSpan.getAttribute('data-value')).to.be.equal('1');
+        expect(originalSpan.textContent.trim()).to.be.equal('Hello World');
+
+        // Update the model to trigger re-render
+        PartialComponent.model.className = 'updated-class';
+        PartialComponent.model.value = '2';
+        PartialComponent.model.text = 'Updated World';
+
+        // The same span element should be synced, not replaced
+        const updatedSpan = originalDiv.querySelector('span');
+        expect(updatedSpan).to.be.equal(originalSpan);
+        expect(updatedSpan.className).to.be.equal('updated-class');
+        expect(updatedSpan.getAttribute('data-value')).to.be.equal('2');
+        expect(updatedSpan.textContent.trim()).to.be.equal('Updated World');
     });
 });
 
