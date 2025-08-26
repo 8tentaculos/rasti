@@ -53,15 +53,18 @@
     "author": "Alberto Masuelli <alberto.masuelli@gmail.com> (https://github.com/8tentaculos)",
     "license": "MIT",
     "devDependencies": {
+        "@eslint/js": "^9.34.0",
         "@rollup/plugin-terser": "^0.4.4",
-        "chai": "^4.4.1",
-        "eslint": "^8.57.0",
-        "jsdoc-to-markdown": "^8.0.1",
-        "jsdom": "^24.0.0",
+        "chai": "^6.0.1",
+        "eslint": "^9.34.0",
+        "glob": "^11.0.3",
+        "globals": "^16.3.0",
+        "jsdoc-to-markdown": "^9.1.2",
+        "jsdom": "^26.1.0",
         "jsdom-global": "3.0.2",
-        "mocha": "^10.4.0",
-        "rimraf": "^5.0.5",
-        "rollup": "^4.34.1"
+        "mocha": "^11.7.1",
+        "rimraf": "^6.0.1",
+        "rollup": "^4.48.1"
     },
     "directories": {
         "example": "example",

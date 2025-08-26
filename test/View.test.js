@@ -126,7 +126,7 @@ describe('View', () => {
         document.body.appendChild(v.render().el);
 
         v.$('section button').dispatchEvent(
-            new MouseEvent('click', { bubbles: true })
+            new MouseEvent('click', { bubbles : true })
         );
     });
 
@@ -148,7 +148,7 @@ describe('View', () => {
         );
 
         v.$('section button').dispatchEvent(
-            new MouseEvent('click', { bubbles: true })
+            new MouseEvent('click', { bubbles : true })
         );
     });
 
@@ -166,7 +166,7 @@ describe('View', () => {
         document.body.appendChild(v.render().el);
 
         v.$('section button').dispatchEvent(
-            new MouseEvent('click', { bubbles: true })
+            new MouseEvent('click', { bubbles : true })
         );
     });
 
