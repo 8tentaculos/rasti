@@ -693,10 +693,10 @@ class Component extends View {
         this.template.elements.forEach(element => {
             const attributes = element.getAttributes.call(this);
             Object.keys(attributes.remove).forEach(key => {
-                this.el.removeAttribute(key);
+                element.ref.removeAttribute(key);
             });
             Object.keys(attributes.add).forEach(key => {
-                this.el.setAttribute(key, attributes.add[key]);
+                element.ref.setAttribute(key, attributes.add[key]);
             });
         });
 
