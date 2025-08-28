@@ -152,25 +152,23 @@ const expandComponents = (main, expressions) => {
             // No component found.
             if (!(tag.prototype instanceof Component)) return match;
 
-            let renderChildren;
+            let innerList;
             // Non void component.
             if (close) {
                 // Close component tag must match open component tag.
                 if (tag !== close) return match;
                 // Recursively expand inner components.
-                const list = splitPlaceholders(expandComponents(inner, expressions), expressions);
-                // Create renderChildren function.
-                renderChildren = function() {
-                    return deepFlat(list.map(item => getExpressionResult(item, this)));
-                };
+                innerList = splitPlaceholders(expandComponents(inner, expressions), expressions);
             }
             // Parse attributes.
             const attributes = parseAttributes(attributesStr, expressions);
             // Create mount function.
             const mount = function() {
                 const options = expandAttributes(attributes, value => getExpressionResult(value, this)).all;
-                // Add renderChildren function to options.
-                if (renderChildren) options.renderChildren = renderChildren.bind(this);
+                // Add children to options.
+                if (innerList) {
+                    options.children = deepFlat(innerList.map(item => getExpressionResult(item, this)));
+                }
                 // Mount component.
                 return tag.mount(options);
             };
@@ -378,11 +376,11 @@ const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onRender'];
  * Components are defined with the {@link #module_component_create Component.create} static method, which takes a tagged template string or a function that returns another component.
  * @module
  * @extends Rasti.View
- * @param {object} options Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onRender, onCreate, onChange.
+ * @param {object} options Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onRender, onCreate, onChange. Any additional options not in the component or view options list will be automatically extracted as props and stored as `this.props`.
  * @property {string} [key] A unique key to identify the component. Used to recycle child components.
  * @property {Rasti.Model} [model] A `Rasti.Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method.
  * @property {Rasti.Model} [state] A `Rasti.Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method.
- * @property {object} [props] An object containing props passed from parent component. If provided, it will be converted to a `Rasti.Model` and stored as `this.props`. The component will listen to `change` events on props and call `onChange` lifecycle method. When a component with a `key` is recycled during parent re-render, new props are automatically updated and any changes trigger a re-render.
+ * @property {Rasti.Model} [props] Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Rasti.Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When a component with a `key` is recycled during parent re-render, new props are automatically updated and any changes trigger a re-render.
  * @see {@link #module_component_create Component.create}
  * @example
  * import { Component, Model } from 'rasti';
@@ -402,13 +400,23 @@ const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onRender'];
 class Component extends View {
     constructor(options = {}) {
         super(...arguments);
+        this.componentOptions = [];
         // Extend "this" with options.
         componentOptions.forEach(key => {
-            if (key in options) this[key] = options[key];
+            if (key in options) {
+                this[key] = options[key];
+                this.componentOptions.push(key);
+            }
         });
-        // Store props. If props are provided, convert to Model for reactive updates.
-        // When component is recycled, new props will be set on this.props Model.
-        if (options.props) this.props = new Model(options.props);
+        // Extract props from options that aren't component or view options.
+        const props = {};
+        Object.keys(options).forEach(key => {
+            if (!this.viewOptions.includes(key) && !this.componentOptions.includes(key)) {
+                props[key] = options[key];
+            }
+        });
+        // Store props as Model for reactive updates.
+        this.props = new Model(props);
         // Store options by default.
         this.options = options;
         // Bind `partial` method to `this`.
@@ -611,7 +619,7 @@ class Component extends View {
      * import { Component } from 'rasti';
      * // Create a Title component.
      * const Title = Component.create`
-     *     <h1>${self => self.renderChildren()}</h1>
+     *     <h1>${({ props }) => props.children}</h1>
      * `;
      * // Create Main component.
      * const Main = Component.create`
@@ -735,7 +743,7 @@ class Component extends View {
             recycledChildren.forEach(([recycledChild, discardedComponent]) => {
                 this.addChild(recycledChild).recycle(fragment);
                 // Update props.
-                if (recycledChild.props) recycledChild.props.set(discardedComponent.props.toJSON());
+                recycledChild.props.set(discardedComponent.props.toJSON());
                 // Destroy new child component. Use recycled one instead.
                 discardedComponent.destroy();
             });
@@ -852,8 +860,8 @@ class Component extends View {
      * - Template interpolations that are functions will be evaluated during the render process, receiving the view instance as an argument and being bound to it. If the function returns `null`, `undefined`, `false`, or an empty string, the interpolation won't render any content.
      *   ```javascript
      *   const Button = Component.create`
-     *       <button class="${({ options }) => options.className}">
-     *           ${({ options }) => options.renderChildren()}
+     *       <button class="${({ props }) => props.className}">
+     *           ${({ props }) => props.children}
      *       </button>
      *   `;
      *   ```
@@ -870,14 +878,14 @@ class Component extends View {
      *   // Create a button component.
      *   const Button = Component.create`
      *       <button class="button">
-     *           ${({ options }) => options.renderChildren()}
+     *           ${({ props }) => props.children}
      *       </button>
      *   `;
      *   // Create a navigation component. Add buttons as children. Iterate over items.
      *   const Navigation = Component.create`
      *       <nav>
      *           ${({ options }) => options.items.map(
-     *               item => Button.mount({ renderChildren: () => item.label })
+     *               item => Button.mount({ children : item.label })
      *           )}
      *       </nav>
      *   `;
@@ -893,7 +901,7 @@ class Component extends View {
      *   // Create a button component.
      *   const Button = Component.create`
      *       <button class="button">
-     *            ${({ options }) => options.renderChildren()}
+     *            ${({ props }) => props.children}
      *       </button>
      *   `;
      *   // Create a navigation component. Add buttons as children. Iterate over items.
@@ -916,7 +924,7 @@ class Component extends View {
      *   // Create a button component.
      *   const Button = Component.create`
      *       <button class="${({ options }) => options.className}">
-     *           ${self => self.renderChildren()}
+     *           ${({ props }) => props.children}
      *       </button>
      *   `;
      *   // Create a container that renders a Button component.
@@ -925,8 +933,8 @@ class Component extends View {
      *   `;
      *   // Create a container that renders a Button component, using a function.
      *   const ButtonCancel = Component.create(() => Button.mount({
-     *       className: 'cancel',
-     *       renderChildren: () => 'Cancel'
+     *       className : 'cancel',
+     *       children : 'Cancel'
      *   }));
      *   ```
      * @static

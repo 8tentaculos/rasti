@@ -96,15 +96,15 @@ const routes = [
 
 // Create a Link component for navigation items.
 const Link = Component.create`
-    <a href="${({ options }) => options.href}">
-        ${({ options }) => options.renderChildren()}
+    <a href="${({ props }) => props.href}">
+        ${({ props }) => props.children}
     </a>
 `;
 
 // Create a Navigation component that renders Link components for each route.
 const Navigation = Component.create`
     <nav>
-        ${({ options, partial }) => options.routes.map(
+        ${({ props, partial }) => props.routes.map(
             ({ label, href }) => partial`<${Link} href="${href}">${label}</${Link}>`
         )}
     </nav>
@@ -113,10 +113,10 @@ const Navigation = Component.create`
 // Create a Main component that includes the Navigation and displays the current route's label as the title.
 const Main = Component.create`
     <main>
-        <${Navigation} routes=${({ options }) => options.routes} />
+        <${Navigation} routes=${({ props }) => props.routes} />
         <section>
             <h1>
-                ${({ model, options }) => options.routes.find(
+                ${({ model, props }) => props.routes.find(
                     ({ href }) => href === (model.location || '#')
                 ).label}
             </h1>
@@ -125,7 +125,7 @@ const Main = Component.create`
 `;
 
 // Initialize a model to store the current location.
-const model = new Model({ location: document.location.hash });
+const model = new Model({ location : document.location.hash });
 
 // Update the model's location state when the browser's history changes.
 window.addEventListener('popstate', () => model.location = document.location.hash);
