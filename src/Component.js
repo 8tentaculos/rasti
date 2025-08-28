@@ -1,4 +1,5 @@
 import View from './View.js';
+import Model from './Model.js';
 import getResult from './utils/getResult.js';
 import deepFlat  from './utils/deepFlat.js';
 import parseHTML from './utils/parseHTML.js';
@@ -381,6 +382,7 @@ const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onRender'];
  * @property {string} [key] A unique key to identify the component. Used to recycle child components.
  * @property {Rasti.Model} [model] A `Rasti.Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method.
  * @property {Rasti.Model} [state] A `Rasti.Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method.
+ * @property {object} [props] An object containing props passed from parent component. If provided, it will be converted to a `Rasti.Model` and stored as `this.props`. The component will listen to `change` events on props and call `onChange` lifecycle method. When a component with a `key` is recycled during parent re-render, new props are automatically updated and any changes trigger a re-render.
  * @see {@link #module_component_create Component.create}
  * @example
  * import { Component, Model } from 'rasti';
@@ -404,10 +406,15 @@ class Component extends View {
         componentOptions.forEach(key => {
             if (key in options) this[key] = options[key];
         });
+        // Store props. If props are provided, convert to Model for reactive updates.
+        // When component is recycled, new props will be set on this.props Model.
+        if (options.props) this.props = new Model(options.props);
         // Store options by default.
         this.options = options;
         // Bind `partial` method to `this`.
         this.partial = this.partial.bind(this);
+        // Bind `onChange` method to `this`.
+        this.onChange = this.onChange.bind(this);
         // Call lifecycle method.
         this.onCreate.apply(this, arguments);
     }
@@ -415,23 +422,21 @@ class Component extends View {
     /**
      * Listen to `change` event on a model or emitter object and call `onChange` lifecycle method.
      * The listener will be removed when the component is destroyed.
-     * By default the component will be subscribed to `this.model` and `this.state`.
+     * By default the component will be subscribed to `this.model`, `this.state`, and `this.props`.
      * @param {Rasti.Model} model A model or emitter object to listen to changes.
      * @return {Component} The component instance.
      */
     subscribe(model) {
         // Check if model has `on` method.
         if (!model.on) return;
-        // Store bound onChange method.
-        const onChange = this.onChange.bind(this);
         // Listen to model changes and store unbind function.
-        const off = model.on('change', onChange);
+        const off = model.on('change', this.onChange);
         // Add unbind function to destroy queue.
         // So the component stops listening to model changes when destroyed.
         this.destroyQueue.push(
             // Rasti `on` method returns an unbind function.
             // But other libraries may return the object itself.
-            typeof off === 'function' ? off : () => model.off('change', onChange)
+            typeof off === 'function' ? off : () => model.off('change', this.onChange)
         );
 
         return this;
@@ -472,10 +477,9 @@ class Component extends View {
      * @private
      */
     hydrate(parent) {
-        // Listen to model changes and call onChange.
-        if (this.model) this.subscribe(this.model);
-        // Listen to state changes and call onChange.
-        if (this.state) this.subscribe(this.state);
+        ['model', 'state', 'props'].forEach(key => {
+            if (this[key]) this.subscribe(this[key]);
+        });
         // Search for every element in template using getSelector
         if (!this.isContainer()) {
             this.template.elements.forEach(element => {
@@ -718,9 +722,7 @@ class Component extends View {
                     // If child already exists, replace it html by its root element.
                     out = found.getRecyclePlaceholder();
                     // Add child to recycled children.
-                    recycledChildren.push(found);
-                    // Destroy new child component. Use recycled one instead.
-                    component.destroy();
+                    recycledChildren.push([found, component]);
                 } else {
                     // Not found. Add new child component.
                     nextChildren.push(component);
@@ -730,8 +732,12 @@ class Component extends View {
             }));
 
             // Replace children root elements with recycled components.
-            recycledChildren.forEach(recycledChild => {
+            recycledChildren.forEach(([recycledChild, discardedComponent]) => {
                 this.addChild(recycledChild).recycle(fragment);
+                // Update props.
+                if (recycledChild.props) recycledChild.props.set(discardedComponent.props.toJSON());
+                // Destroy new child component. Use recycled one instead.
+                discardedComponent.destroy();
             });
             // Add new children. Hydrate them.
             nextChildren.forEach(nextChild => {

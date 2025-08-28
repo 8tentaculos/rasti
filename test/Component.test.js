@@ -711,5 +711,51 @@ describe('Component', () => {
         expect(newButton.textContent.trim()).to.be.equal('World');
     });
 
+    it('must recycle child component with key and update props', () => {
+        // Create a child component that uses props from options
+        const ChildComponent = Component.create`
+            <button 
+                class="${({ props }) => props.className}" 
+                data-color="${({ props }) => props.color}"
+                data-size="${({ props }) => props.size}"
+            >
+                ${({ props }) => props.text}
+            </button>
+        `;
+        // Create a parent component that passes props to child
+        const ParentComponent = Component.create`
+            <div id="test-node">
+                <div>
+                    <${ChildComponent} key="child" props=${({ model }) => ({ className : model.className, color : model.color, size : model.size, text : model.text })} />
+                </div>
+            </div>
+        `.mount({ model : new Model({ className : 'btn-primary', color : 'blue', size : 'medium', text : 'Hello' }) }, document.body);
+
+        const originalDiv = document.getElementById('test-node');
+        const originalButton = originalDiv.querySelector('button');
+        // Verify initial props
+        expect(originalButton.className).to.be.equal('btn-primary');
+        expect(originalButton.getAttribute('data-color')).to.be.equal('blue');
+        expect(originalButton.getAttribute('data-size')).to.be.equal('medium');
+        expect(originalButton.textContent.trim()).to.be.equal('Hello');
+        // Store the child component reference
+        const originalChild = ParentComponent.children[0];
+        // Update the model to trigger re-render with new props
+        ParentComponent.model.className = 'btn-secondary';
+        ParentComponent.model.color = 'red';
+        ParentComponent.model.size = 'large';
+        ParentComponent.model.text = 'World';
+        // The same button element should be recycled and updated with new props
+        const updatedButton = originalDiv.querySelector('button');
+        expect(updatedButton).to.be.equal(originalButton);
+        // Verify the child component instance is recycled
+        expect(ParentComponent.children[0]).to.be.equal(originalChild);
+        // Verify new props are applied
+        expect(updatedButton.className).to.be.equal('btn-secondary');
+        expect(updatedButton.getAttribute('data-color')).to.be.equal('red');
+        expect(updatedButton.getAttribute('data-size')).to.be.equal('large');
+        expect(updatedButton.textContent.trim()).to.be.equal('World');
+    });
+
 });
 
