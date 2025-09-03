@@ -22,6 +22,47 @@ class SafeHTML {
 }
 
 /**
+ * Manager for delegated events.
+ * @class EventsManager
+ * @private
+ */
+class EventsManager {
+    constructor() {
+        this.listeners = [];
+        this.types = new Set();
+        this.previousSize = 0;
+    }
+
+    /**
+     * Add a listener to the events manager.
+     * @param {Function} listener The listener to add.
+     * @param {string} type The type of event.
+     * @return {number} The index of the listener.
+     */
+    addListener(listener, type) {
+        this.types.add(type);
+        this.listeners.push(listener);
+        return this.listeners.length - 1;
+    }
+
+    /**
+     * Reset the events manager.
+     */
+    reset() {
+        this.listeners = [];
+        this.previousSize = this.types.size;
+    }
+
+    /**
+     * Check if there are pending types.
+     * @return {boolean} True if there are pending types, false otherwise.
+     */
+    hasPendingTypes() {
+        return this.types.size > this.previousSize;
+    }
+}
+
+/**
  * Same as getResult, but pass context as argument to the expression.
  * Used to evaluate expressions in the context of a component.
  * @param {any} expression The expression to be evaluated.
@@ -84,39 +125,50 @@ const splitPlaceholders = (main, expressions) => {
  * @property {object} attributes Attributes.
  * @private
  */
-const expandAttributes = (attributes, getExpressionResult) => {
-    const out = attributes.reduce((out, pair) => {
-        const attribute = getExpressionResult(pair[0]);
-        // Attribute without value. 
-        if (pair.length === 1) {
-            if (typeof attribute === 'object') {
-                // Expand objects as attributes.
-                out.all = Object.assign(out.all, attribute);
-            } else if (typeof attribute === 'string') {
-                // Treat as boolean.
-                out.all[attribute] = true;
-            }
-        } else {
-            // Attribute with value.
-            const value = getExpressionResult(pair[1]);
-            out.all[attribute] = value;
+const expandAttributes = (attributes, getExpressionResult) => attributes.reduce((out, pair) => {
+    const attribute = getExpressionResult(pair[0]);
+    // Attribute without value. 
+    if (pair.length === 1) {
+        if (typeof attribute === 'object') {
+            // Expand objects as attributes.
+            out = Object.assign(out, attribute);
+        } else if (typeof attribute === 'string') {
+            // Treat as boolean.
+            out[attribute] = true;
         }
+    } else {
+        // Attribute with value.
+        const value = pair[2] ? getExpressionResult(pair[1]) : pair[1];
+        out[attribute] = value;
+    }
 
-        return out;
-    }, { all : {}, events : {}, attributes : {} });
+    return out;
+}, {});
 
-    Object.keys(out.all).forEach(key => {
+/**
+ * Expand events.
+ * @param {object} attributes Attributes object.
+ * @param {EventsManager} eventsManager Events manager.
+ * @return {object} Attributes object.
+ * @private
+ */
+const expandEvents = (attributes, eventsManager) => {
+    const out = {};
+    Object.keys(attributes).forEach(key => {
         // Check if key is an event listener.
         const match = key.match(/on(([A-Z]{1}[a-z]+)+)/);
+
         if (match && match[1]) {
-            // Add event listener.
-            out.events[match[1].toLowerCase()] = out.all[key];
+            const type = match[1].toLowerCase();
+            const listener = attributes[key];
+            const index = eventsManager.addListener(listener, type);
+            // Add event listener index.
+            out[Component.DATA_ATTRIBUTE_EVENT(type)] = index;
         } else {
             // Add attribute.
-            out.attributes[key] = out.all[key];
+            out[key] = attributes[key];
         }
     });
-
     return out;
 };
 
@@ -167,7 +219,7 @@ const expandComponents = (main, expressions) => {
             const attributes = parseAttributes(attributesStr, expressions);
             // Create mount function.
             const mount = function() {
-                const options = expandAttributes(attributes, value => getExpressionResult(value, this)).all;
+                const options = expandAttributes(attributes, value => getExpressionResult(value, this));
                 // Add renderChildren function to options.
                 if (renderChildren) options.renderChildren = renderChildren.bind(this);
                 // Mount component.
@@ -182,11 +234,64 @@ const expandComponents = (main, expressions) => {
 };
 
 /**
+ * Replace elements in template.
+ * @param {string} template Template string.
+ * @param {Function} replacer Replacer function.
+ * @return {string} Template string with replaced elements.
+ * @private
+ */
+const replaceElements = (template, replacer) => {
+    const PH = Component.PLACEHOLDER_EXPRESSION('(?:\\d+)');
+    return template.replace(
+        new RegExp(`<(${PH}|[a-z]+[1-6]?)(?:\\s*)((?:"[^"]*"|'[^']*'|[^>])*)(/?>)`, 'gi'),
+        replacer
+    );
+};
+
+/**
+ * Generate attributes.
+ * @param {object} attributes Attributes object.
+ * @param {object} previous Previous attributes object.
+ * @return {object} Attributes object containing `add`, `remove` and `html` properties.
+ * @private
+ */
+const generateAttributes = (attributes, previous = {}) => {
+    const add = {};
+    const remove = [];
+    const html = [];
+
+    Object.keys(attributes).forEach(key => {
+        let value = attributes[key];
+
+        if (value === true) {
+            add[key] = '';
+            html.push(Component.sanitize(key));
+        } else if (value !== false) {
+            if (value === null || typeof value === 'undefined') value = '';
+            add[key] = value;
+            html.push(`${Component.sanitize(key)}="${Component.sanitize(value)}"`);
+        }
+    });
+    // Remove attributes that were in previous attributes but not in current attributes.
+    Object.keys(previous).forEach(key => {
+        if (!(key in attributes) || ((previous[key] !== attributes[key]) && attributes[key] === false)) {
+            remove.push(key);
+        }
+    });
+
+    return {
+        add,
+        remove,
+        html : html.join(' ')
+    };
+};
+
+/**
  * Parse all HTML elements in template and extract their attributes.
  * @param {string} template Template string with placeholders.
  * @param {Array} expressions Array of expressions.
  * @param {Array} elements Array to store element references.
- * @return {string} Template with attribute placeholders.
+ * @return {string} Template with parsed attributes.
  * @private
  */
 const parseElements = (template, expressions, elements) => {
@@ -200,87 +305,93 @@ const parseElements = (template, expressions, elements) => {
 
     let elementUid = 0;
     // Match all HTML elements including placeholders and self-closed elements.
-    return template.replace(
-        // Capture opening tags with their attributes and closing syntax
-        new RegExp(`<(${PH}|[a-z]+[1-6]?)(?:\\s*)((?:"[^"]*"|'[^']*'|[^>])*)(/?>)`, 'gi'),
-        (match, tag, attributesStr, ending) => {
-            const isRoot = elementUid === 0;
-            const currentElementUid = ++elementUid;
-            // If there are no dynamic attributes, return original match.
-            if (!isRoot && !attributesStr.match(new RegExp(PH))) {
-                return match;
-            }
-            // Parse attributes.
-            const parsedAttributes = parseAttributes(attributesStr, expressions);
-            // Store previous attributes.
-            let previousAttributes = {};
-            // Create element reference.
-            const generateElementUid = componentUid => `${componentUid}-${currentElementUid}`;
-            // Create function that returns attributes object.
-            const getAttributes = function() {
-                const { attributes, events } = expandAttributes(parsedAttributes, value => getExpressionResult(value, this));
-                // Extend template attributes with `options.attributes`.
-                if (isRoot && this.attributes) {
-                    Object.assign(attributes, getResult(this.attributes, this));
-                }
-                // Add data attribute for element identification.
-                // First element gets the component uid, others get element uid.
-                attributes[Component.DATA_ATTRIBUTE_ELEMENT] = generateElementUid(this.uid);
-                // Store previous attributes.
-                const previous = previousAttributes;
-                previousAttributes = attributes;
-
-                const add = {};
-                const remove = {};
-                const html = [];
-
-                Object.keys(attributes).forEach(key => {
-                    let value = attributes[key];
-
-                    if (value === false) {
-                        remove[key] = true;
-                    } else if (value === true) {
-                        add[key] = '';
-                        html.push(key);
-                    } else {
-                        if (value === null || typeof value === 'undefined') value = '';
-                        add[key] = value;
-                        html.push(`${Component.sanitize(key)}="${Component.sanitize(value)}"`);
-                    }
-                });
-                // Remove attributes that were in previousAttributes but not in current attributes.
-                Object.keys(previous).forEach(key => {
-                    if (!(key in attributes)) {
-                        remove[key] = true;
-                    }
-                });
-
-                return {
-                    add,
-                    remove,
-                    events,
-                    html : html.join(' ')
-                };
-            };
-
-            const getSelector = function() {
-                return `[${Component.DATA_ATTRIBUTE_ELEMENT}="${generateElementUid(this.uid)}"]`;
-            };
-            // Add element reference to elements array.
-            elements.push({
-                getSelector,
-                getAttributes,
-            });
-            // Add new expression to expressions array.
-            expressions.push(function() {
-                return Component.markAsSafeHTML(getAttributes.call(this).html);
-            });
-            // Replace attributes with placeholder.
-            const placeholder = Component.PLACEHOLDER_EXPRESSION(expressions.length - 1);
-            // Preserve original tag ending (> or />)
-            return `<${tag} ${placeholder}${ending}`;
+    return replaceElements(template, (match, tag, attributesStr, ending) => {
+        const isRoot = elementUid === 0;
+        const currentElementUid = ++elementUid;
+        // If there are no dynamic attributes, return original match.
+        if (!isRoot && !attributesStr.match(new RegExp(PH))) {
+            return match;
         }
-    );
+        // Parse attributes.
+        const parsedAttributes = parseAttributes(attributesStr, expressions);
+        // Store previous attributes.
+        let previousAttributes = {};
+        // Create element reference.
+        const generateElementUid = componentUid => `${componentUid}-${currentElementUid}`;
+        // Create function that returns attributes object.
+        const getAttributes = function() {
+            const attributes = expandEvents(
+                expandAttributes(parsedAttributes, value => getExpressionResult(value, this)),
+                this.eventsManager
+            );
+            // Extend template attributes with `options.attributes`.
+            if (isRoot && this.attributes) {
+                Object.assign(attributes, getResult(this.attributes, this));
+            }
+            // Add data attribute for element identification.
+            // First element gets the component uid, others get element uid.
+            attributes[Component.DATA_ATTRIBUTE_ELEMENT] = generateElementUid(this.uid);
+            // Store previous attributes.
+            const previous = previousAttributes;
+            previousAttributes = attributes;
+
+            return generateAttributes(attributes, previous);
+        };
+
+        const getSelector = function() {
+            return `[${Component.DATA_ATTRIBUTE_ELEMENT}="${generateElementUid(this.uid)}"]`;
+        };
+        // Add element reference to elements array.
+        elements.push({
+            getSelector,
+            getAttributes,
+        });
+        // Add new expression to expressions array.
+        expressions.push(function() {
+            return Component.markAsSafeHTML(getAttributes.call(this).html);
+        });
+        // Replace attributes with placeholder.
+        const placeholder = Component.PLACEHOLDER_EXPRESSION(expressions.length - 1);
+        // Preserve original tag ending (> or />)
+        return `<${tag} ${placeholder}${ending}`;
+    });
+};
+
+/**
+ * Parse elements in partial template.
+ * @param {string} template Template string with placeholders.
+ * @param {Array} expressions Array of expressions.
+ * @return {string} Template with parsed attributes.
+ * @private
+ */
+const parsePartialElements = (template, expressions) => {
+    const PH = Component.PLACEHOLDER_EXPRESSION('(?:\\d+)');
+    // Match all HTML elements including placeholders and self-closed elements.
+    return replaceElements(template, (match, tag, attributesStr, ending) => {
+        // If there are no dynamic attributes, return original match.
+        if (!attributesStr.match(new RegExp(PH))) {
+            return match;
+        }
+        // Parse attributes.
+        const parsedAttributes = parseAttributes(attributesStr, expressions);
+        // Create function that returns attributes object.
+        const getAttributes = function() {
+            const attributes = expandEvents(
+                expandAttributes(parsedAttributes, value => getExpressionResult(value, this)),
+                this.eventsManager
+            );
+
+            return generateAttributes(attributes).html;
+        };
+        // Add new expression to expressions array.
+        expressions.push(function() {
+            return Component.markAsSafeHTML(getAttributes.call(this));
+        });
+        // Replace attributes with placeholder.
+        const placeholder = Component.PLACEHOLDER_EXPRESSION(expressions.length - 1);
+        // Preserve original tag ending (> or />)
+        return `<${tag} ${placeholder}${ending}`;
+    });
 };
 
 /**
@@ -336,7 +447,7 @@ const parseInterpolations = (template, expressions, interpolations) => {
  * Parse attributes string to extract dynamic attributes.
  * @param {string} attributesStr Attributes string from HTML element.
  * @param {Array} expressions Array of expressions.
- * @return {Array} Array of attribute pairs [key, value].
+ * @return {Array} Array of attribute pairs [key, value] or [key, value, hasQuotes].
  * @private
  */
 const parseAttributes = (attributesStr, expressions) => {
@@ -347,13 +458,13 @@ const parseAttributes = (attributesStr, expressions) => {
 
     let attributeMatch;
     while ((attributeMatch = regExp.exec(attributesStr)) !== null) {
-        const [, attribute, attributeIdx,, valueIdx, value] = attributeMatch;
+        const [, attribute, attributeIdx, quotes, valueIdx, value] = attributeMatch;
 
         const attr = typeof attributeIdx !== 'undefined' ? expressions[parseInt(attributeIdx, 10)] : attribute;
         const val = typeof valueIdx !== 'undefined' ? expressions[parseInt(valueIdx, 10)] : value;
 
         if (typeof val !== 'undefined') {
-            attributes.push([attr, val]);
+            attributes.push([attr, val, !!quotes]);
         } else {
             attributes.push([attr]);
         }
@@ -361,8 +472,6 @@ const parseAttributes = (attributesStr, expressions) => {
 
     return attributes;
 };
-
-
 
 /*
  * These option keys will be extended on the component instance.
@@ -412,6 +521,29 @@ class Component extends View {
         this.onCreate.apply(this, arguments);
     }
 
+    events() {
+        const events = {};
+        // Create events object.
+        this.eventsManager.types.forEach(type => {
+            const dataAttribute = Component.DATA_ATTRIBUTE_EVENT(type);
+            // Create a listener function that gets the listener index from the data attribute and calls the listener.
+            const listener = function(event, component, matched) {
+                // Get the listener index from the data attribute.
+                const index = matched.getAttribute(dataAttribute);
+                const currentListener = this.eventsManager.listeners[index];
+                // Call the listener.
+                if (currentListener) currentListener.call(this, event, component, matched);
+            };
+            // Add an event listener to the events object for each event type, using the data attribute
+            // as both a CSS selector and to store the listener's index.
+            events[`${type} [${dataAttribute}]`] = listener;
+            // Add an event listener to the events object for each event type that matches the root element.
+            events[type] = listener;
+        });
+
+        return events;
+    }
+
     /**
      * Listen to `change` event on a model or emitter object and call `onChange` lifecycle method.
      * The listener will be removed when the component is destroyed.
@@ -455,6 +587,8 @@ class Component extends View {
      * @private
      */
     ensureElement() {
+        // Store data event listeners.
+        this.eventsManager = new EventsManager();
         // If el is provided, delegate events.
         if (this.el) {
             // If "this.el" is a function, call it to get the element.
@@ -629,7 +763,14 @@ class Component extends View {
     partial(strings, ...expressions) {
         return deepFlat(
             splitPlaceholders(
-                expandComponents(addPlaceholders(strings, expressions), expressions), expressions
+                parsePartialElements(
+                    expandComponents(
+                        addPlaceholders(strings, expressions),
+                        expressions
+                    ),
+                    expressions
+                ),
+                expressions
             ).map(item => getExpressionResult(item, this))
         );
     }
@@ -662,6 +803,9 @@ class Component extends View {
     toString() {
         // Normally there won't be any children, but if there are, destroy them.
         this.destroyChildren();
+        // Normally there won't be any data event listeners, but if there are, clear them.
+        this.eventsManager.reset();
+        // Bind addChild method.
         const addChild = this.addChild.bind(this);
         // Render the template parts.
         return this.template.parts
@@ -686,17 +830,21 @@ class Component extends View {
             this.hydrate(fragment);
             return this;
         }
-
+        // Clear event listeners.
+        this.eventsManager.reset();
         // Store active element.
         const activeElement = this.isContainer() ? null : document.activeElement;
 
         this.template.elements.forEach(element => {
             const attributes = element.getAttributes.call(this);
-            Object.keys(attributes.remove).forEach(key => {
-                element.ref.removeAttribute(key);
+            // Remove attributes.
+            attributes.remove.forEach(attribute => {
+                element.ref.removeAttribute(attribute);
             });
+            // Add attributes.
             Object.keys(attributes.add).forEach(key => {
-                element.ref.setAttribute(key, attributes.add[key]);
+                const value = attributes.add[key];
+                element.ref.setAttribute(key, value);
             });
         });
 
@@ -763,6 +911,11 @@ class Component extends View {
         // If container, set el to the child element.
         if (this.isContainer()) {
             this.el = this.children[0].el;
+        } else {
+            // If there are pending event types, delegate events again.
+            if (this.eventsManager.hasPendingTypes()) {
+                this.delegateEvents();
+            }
         }
         // Restore focus.
         if (activeElement && this.el.contains(activeElement)) {
@@ -934,7 +1087,7 @@ class Component extends View {
             expressions = [strings];
             strings = ['', ''];
         }
-
+        // Create elements, interpolations and parts arrays.
         const elements = [], interpolations = [];
         const parts = splitPlaceholders(
             parseInterpolations(
@@ -954,42 +1107,19 @@ class Component extends View {
             ),
             expressions
         );
-
+        // Create template object.
         const template = {
             elements,
             interpolations,
             parts,
         };
-
-        let events;
-
-        if (template.elements.length > 0) {
-            // Get events.
-            events = function() {
-                const onlyEvents = template.elements[0].getAttributes.call(this).events;
-
-                return Object.keys(onlyEvents).reduce((out, key) => {
-                    const typeListeners = getExpressionResult(onlyEvents[key], this);
-
-                    Object.keys(typeListeners).forEach(selector => {
-                        out[`${key}${selector === '&' ? '' : ` ${selector}`}`] = typeListeners[selector];
-                    });
-
-                    return out;
-                }, {});
-            };
-        }
         // Create subclass for this component.
-        return this.extend({
-            // Set events.
-            events,
-            // Set template.
-            template,
-        });
+        return this.extend({ template });
     }
 }
 
 Component.DATA_ATTRIBUTE_ELEMENT = 'data-rasti-el';
+Component.DATA_ATTRIBUTE_EVENT = (type) => `rasti-on-${type}`;
 
 Component.PLACEHOLDER_EXPRESSION = (idx) => `__RASTI-${idx}__`;
 Component.INTERPOLATION_START = (uid) => `rasti-start-${uid}`;

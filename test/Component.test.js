@@ -81,8 +81,8 @@ describe('Component', () => {
         const Button = Component.create`<button>click me</button>`;
         const Main = Component.create`
             <div id="test-node">
-                <${Button} color="primary" disabled=${() => true} />
-                <${Button} color="secondary" disabled=${() => false} />
+                <${Button} color="primary" disabled="${() => true}" />
+                <${Button} color="secondary" disabled="${() => false}" />
             </div>`;
 
         const c = Main.mount({}, document.body);
@@ -286,8 +286,8 @@ describe('Component', () => {
 
     it('must delegate events', (done) => {
         const c = Component.create`
-            <section onClick=${{ 'button' : () => done() }}>
-                <button>click me</button>
+            <section>
+                <button onClick=${() => done()}>click me</button>
             </section>
         `.mount({}, document.body);
 
@@ -298,12 +298,170 @@ describe('Component', () => {
 
     it('must delegate events on root element', (done) => {
         const c = Component.create`
-            <button onClick=${{ '&' : () => done() }}>click me</button>
+            <button onClick=${() => done()}>click me</button>
         `.mount({}, document.body);
 
         c.el.dispatchEvent(
             new MouseEvent('click', { bubbles : true })
         );
+    });
+
+    it('must delegate multiple event types', (done) => {
+        let eventsCalled = [];
+        const expectedEvents = ['click', 'mouseover', 'keydown'];
+        
+        const checkComplete = () => {
+            if (eventsCalled.length === expectedEvents.length) {
+                // Verify all events were called
+                expect(eventsCalled).to.include.members(expectedEvents);
+                done();
+            }
+        };
+
+        const c = Component.create`
+            <div>
+                <button 
+                    onClick=${() => { eventsCalled.push('click'); checkComplete(); }}
+                    onMouseOver=${() => { eventsCalled.push('mouseover'); checkComplete(); }}
+                    onKeyDown=${() => { eventsCalled.push('keydown'); checkComplete(); }}
+                >
+                    multi events
+                </button>
+            </div>
+        `.mount({}, document.body);
+
+        const button = c.$('button');
+        // Dispatch different event types
+        button.dispatchEvent(new MouseEvent('click', { bubbles : true }));
+        button.dispatchEvent(new MouseEvent('mouseover', { bubbles : true }));
+        button.dispatchEvent(new KeyboardEvent('keydown', { bubbles : true, key : 'Enter' }));
+    });
+
+    it('must handle event bubbling from child to parent', (done) => {
+        let eventsOrder = [];
+
+        const c = Component.create`
+            <div onClick=${() => { eventsOrder.push('parent'); }}>
+                <span onClick=${() => { eventsOrder.push('child'); }}>
+                    <button onClick=${() => { eventsOrder.push('button'); }}>
+                        click me
+                    </button>
+                </span>
+            </div>
+        `.mount({}, document.body);
+
+        const button = c.$('button');
+
+        button.dispatchEvent(new MouseEvent('click', { bubbles : true }));
+
+        // Wait for event handling to complete
+        setTimeout(() => {
+            expect(eventsOrder).to.deep.equal(['button', 'child', 'parent']);
+            done();
+        }, 0);
+    });
+
+    it('must handle keyboard events properly', (done) => {
+        let keyboardEvents = [];
+
+        const c = Component.create`
+            <div>
+                <input 
+                    onKeyDown=${(e) => { keyboardEvents.push('keydown-' + e.key); }}
+                    onKeyUp=${(e) => { keyboardEvents.push('keyup-' + e.key); }}
+                    placeholder="Type here"
+                />
+            </div>
+        `.mount({}, document.body);
+
+        const input = c.$('input');
+
+        input.dispatchEvent(new KeyboardEvent('keydown', { bubbles : true, key : 'a' }));
+        input.dispatchEvent(new KeyboardEvent('keyup', { bubbles : true, key : 'a' }));
+        input.dispatchEvent(new KeyboardEvent('keydown', { bubbles : true, key : 'Enter' }));
+
+        setTimeout(() => {
+            expect(keyboardEvents).to.deep.equal(['keydown-a', 'keyup-a', 'keydown-Enter']);
+            done();
+        }, 0);
+    });
+
+    it('must handle mouse events with coordinates', (done) => {
+        let mouseEvents = [];
+
+        const c = Component.create`
+            <div>
+                <div 
+                    onMouseDown=${() => { mouseEvents.push('mousedown'); }}
+                    onMouseUp=${() => { mouseEvents.push('mouseup'); }}
+                    onMouseMove=${() => { mouseEvents.push('mousemove'); }}
+                    style="width: 100px; height: 100px;"
+                >
+                    mouse area
+                </div>
+            </div>
+        `.mount({}, document.body);
+
+        const mouseArea = c.$('div div');
+        
+        mouseArea.dispatchEvent(new MouseEvent('mousedown', { 
+            bubbles : true, 
+            clientX : 50, 
+            clientY : 50 
+        }));
+        mouseArea.dispatchEvent(new MouseEvent('mousemove', { 
+            bubbles : true, 
+            clientX : 60, 
+            clientY : 60 
+        }));
+        mouseArea.dispatchEvent(new MouseEvent('mouseup', { 
+            bubbles : true, 
+            clientX : 60, 
+            clientY : 60 
+        }));
+
+        setTimeout(() => {
+            expect(mouseEvents).to.deep.equal(['mousedown', 'mousemove', 'mouseup']);
+            done();
+        }, 0);
+    });
+
+    it('must delegate events dynamically with partials and re-renders', (done) => {
+        let eventsOrder = [];
+        let currentStep = 0;
+
+        const checkStep = (eventName) => {
+            eventsOrder.push(eventName);
+            if (eventsOrder.length === 2 && currentStep === 0) {
+                // First click completed, now change model to trigger re-render
+                expect(eventsOrder).to.deep.equal(['partial-click', 'div-click']);
+                eventsOrder = []; // Reset for next test
+                currentStep = 1;
+                c.model.eventType = 'mouseover';
+                
+                // Wait for re-render, then test mouseover
+                setTimeout(() => {
+                    const partialButton = c.$('button');
+                    partialButton.dispatchEvent(new MouseEvent('mouseover', { bubbles : true }));
+                }, 10);
+            } else if (eventsOrder.length === 2 && currentStep === 1) {
+                // Second event test completed
+                expect(eventsOrder).to.deep.equal(['partial-mouseover', 'div-mouseover']);
+                done();
+            }
+        };
+
+        const c = Component.create`
+            <div ${({ model }) => model.eventType === 'click' ? { onClick : () => checkStep('div-click') } : { onMouseOver : () => checkStep('div-mouseover') }}}>
+                ${({ partial, model }) => model.eventType === 'click' ? partial`<button onClick=${() => checkStep('partial-click')}>Click me</button>` : partial`<button onMouseOver=${() => checkStep('partial-mouseover')}>Hover me</button>`}}
+            </div>
+        `.mount({ model : new Model({ eventType : 'click' }) }, document.body);
+
+        // Start test by clicking the button
+        setTimeout(() => {
+            const button = c.$('button');
+            button.dispatchEvent(new MouseEvent('click', { bubbles : true }));
+        }, 10);
     });
 
     it('must be extended', () => {
