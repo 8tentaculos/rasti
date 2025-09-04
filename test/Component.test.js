@@ -97,7 +97,7 @@ describe('Component', () => {
     });
 
     it('must mount child component using tag component with children', () => {
-        const Button = Component.create`<button>${({ options }) => options.renderChildren()}</button>`;
+        const Button = Component.create`<button>${({ props }) => props.children}</button>`;
 
         const Main = Component.create`
             <div id="test-node">
@@ -621,9 +621,9 @@ describe('Component', () => {
     });
 
     it('must create container with children using tag', () => {
-        const Button = Component.create`<button>${({ options }) => options.renderChildren()}</button>`;
+        const Button = Component.create`<button>${({ props }) => props.children}</button>`;
         const OkButton = Component.create`<${Button} color="primary">ok</${Button}>`;
-        const CancelButton = Component.create`<${Button} color="secondary">${({ options }) => options.cancel && 'cancel'}</${Button}>`;
+        const CancelButton = Component.create`<${Button} color="secondary">${({ props }) => props.cancel && 'cancel'}</${Button}>`;
 
         expect(OkButton).to.exist;
 
@@ -649,7 +649,7 @@ describe('Component', () => {
     });
 
     it('must create container with children using tag and key', () => {
-        const Button = Component.create`<button>${({ options }) => options.renderChildren()}</button>`;
+        const Button = Component.create`<button>${({ props }) => props.children}</button>`;
         const OkButton = Component.create`
             <${Button} color="primary" key="ok">ok</${Button}>
         `;
@@ -667,7 +667,7 @@ describe('Component', () => {
     });
 
     it('must create container with children component using tag and key', () => {
-        const Button = Component.create`<button>${({ options }) => options.renderChildren()}</button>`;
+        const Button = Component.create`<button>${({ props }) => props.children}</button>`;
         const Icon = Component.create`<span class="icon"></span>`;
         const IconButton = Component.create`<${Button} color="primary" key="ok"><${Icon} /></${Button}>`;
 
@@ -775,7 +775,7 @@ describe('Component', () => {
         expect(c3.children[0].el).to.be.equal(document.querySelector('#test-node-3 button'));
         expect(c3.children[1].el).to.be.equal(document.querySelector('#test-node-3 span button'));
 
-        const ButtonWithChildren = Component.create`<button>${({ options }) => options.renderChildren()}</button>`;
+        const ButtonWithChildren = Component.create`<button>${({ props }) => props.children}</button>`;
 
         const c4 = Component.create`
             <div id="test-node-4">${({ partial }) => partial`<div><${ButtonWithChildren}>${({ options }) => options.ok && 'ok'}</${ButtonWithChildren}>`}</div>
@@ -867,6 +867,50 @@ describe('Component', () => {
         const newButton = originalDiv.querySelector('button');
         expect(newButton).not.to.be.equal(originalButton);
         expect(newButton.textContent.trim()).to.be.equal('World');
+    });
+
+    it('must recycle child component with key and update props', () => {
+        // Create a child component that uses props from options
+        const ChildComponent = Component.create`
+            <button 
+                class="${({ props }) => props.className}" 
+                data-color="${({ props }) => props.color}"
+                data-size="${({ props }) => props.size}"
+            >
+                ${({ props }) => props.text}
+            </button>
+        `;
+        // Create a parent component that passes props to child
+        const ParentComponent = Component.create`
+            <div id="test-node">
+                <div>${({ model }) => ChildComponent.mount({ key : 'child', className : model.className, color : model.color, size : model.size, text : model.text })}</div>
+            </div>
+        `.mount({ model : new Model({ className : 'btn-primary', color : 'blue', size : 'medium', text : 'Hello' }) }, document.body);
+
+        const originalDiv = document.getElementById('test-node');
+        const originalButton = originalDiv.querySelector('button');
+        // Verify initial props
+        expect(originalButton.className).to.be.equal('btn-primary');
+        expect(originalButton.getAttribute('data-color')).to.be.equal('blue');
+        expect(originalButton.getAttribute('data-size')).to.be.equal('medium');
+        expect(originalButton.textContent.trim()).to.be.equal('Hello');
+        // Store the child component reference
+        const originalChild = ParentComponent.children[0];
+        // Update the model to trigger re-render with new props
+        ParentComponent.model.className = 'btn-secondary';
+        ParentComponent.model.color = 'red';
+        ParentComponent.model.size = 'large';
+        ParentComponent.model.text = 'World';
+        // The same button element should be recycled and updated with new props
+        const updatedButton = originalDiv.querySelector('button');
+        expect(updatedButton).to.be.equal(originalButton);
+        // Verify the child component instance is recycled
+        expect(ParentComponent.children[0]).to.be.equal(originalChild);
+        // Verify new props are applied
+        expect(updatedButton.className).to.be.equal('btn-secondary');
+        expect(updatedButton.getAttribute('data-color')).to.be.equal('red');
+        expect(updatedButton.getAttribute('data-size')).to.be.equal('large');
+        expect(updatedButton.textContent.trim()).to.be.equal('World');
     });
 
 });

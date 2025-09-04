@@ -62,9 +62,13 @@ export default class View extends Emitter {
         this.children = [];
         // Mutable array to store handlers to be called on destroy.
         this.destroyQueue = [];
+        this.viewOptions = [];
         // Extend "this" with options.
         viewOptions.forEach(key => {
-            if (key in options) this[key] = options[key];
+            if (key in options) {
+                this[key] = options[key];
+                this.viewOptions.push(key);
+            }
         });
         // Ensure that the view has a unique id at `this.uid`.
         this.ensureUid();
