@@ -478,33 +478,7 @@ const parseAttributes = (attributesStr, expressions) => {
 const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onRender'];
 
 /**
- * Components are a special kind of `View` that is designed to be easily composable, 
- * making it simple to add child views and build complex user interfaces.  
- * Unlike views, which are render-agnostic, components have a specific set of rendering 
- * guidelines that allow for a more declarative development style.  
- * Components are defined with the {@link #module_component_create Component.create} static method, which takes a tagged template string or a function that returns another component.
- * @module
- * @extends Rasti.View
- * @param {object} options Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onRender, onCreate, onChange. Any additional options not in the component or view options list will be automatically extracted as props and stored as `this.props`.
- * @property {string} [key] A unique key to identify the component. Used to recycle child components.
- * @property {Rasti.Model} [model] A `Rasti.Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method.
- * @property {Rasti.Model} [state] A `Rasti.Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method.
- * @property {Rasti.Model} [props] Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Rasti.Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When a component with a `key` is recycled during parent re-render, new props are automatically updated and any changes trigger a re-render.
- * @see {@link #module_component_create Component.create}
- * @example
- * import { Component, Model } from 'rasti';
- * // Create Timer component.
- * const Timer = Component.create`
- *     <div>
- *         Seconds: <span>${({ model }) => model.seconds}</span>
- *     </div>
- * `;
- * // Create model to store seconds.
- * const model = new Model({ seconds: 0 });
- * // Mount timer on body.
- * Timer.mount({ model }, document.body);
- * // Increment `model.seconds` every second.
- * setInterval(() => model.seconds++, 1000);
+ * @lends module:Component
  */
 class Component extends View {
     constructor(options = {}) {
@@ -536,6 +510,11 @@ class Component extends View {
         this.onCreate.apply(this, arguments);
     }
 
+    /**
+     * Get events object for automatic event delegation, based on data attributes.
+     * @return {object} The events object.
+     * @private
+     */
     events() {
         const events = {};
         // Create events object.
@@ -809,8 +788,11 @@ class Component extends View {
         return Array.isArray(result) ? deepFlat(result).map(parse).join('') : `${parse(result)}`;
     }
 
-    /*
-     * Treat the whole view as a HTML string.
+    /**
+     * Render the component as a string.
+     * Used internally on the render process.
+     * Use it for server-side rendering or static site generation.
+     * @return {string} The rendered component.
      */
     toString() {
         // Normally there won't be any children, but if there are, destroy them.
@@ -1143,4 +1125,33 @@ Component.RENDER_TYPE_HYDRATE = 'hydrate';
 Component.RENDER_TYPE_RECYCLE = 'recycle';
 Component.RENDER_TYPE_RENDER = 'render';
 
+/**
+ * Components are a special kind of `View` that is designed to be easily composable, 
+ * making it simple to add child views and build complex user interfaces.  
+ * Unlike views, which are render-agnostic, components have a specific set of rendering 
+ * guidelines that allow for a more declarative development style.  
+ * Components are defined with the {@link #module_component_create Component.create} static method, which takes a tagged template string or a function that returns another component.
+ * @module
+ * @extends View
+ * @param {object} options Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onRender, onCreate, onChange. Any additional options not in the component or view options list will be automatically extracted as props and stored as `this.props`.
+ * @property {string} [key] A unique key to identify the component. Used to recycle child components.
+ * @property {Rasti.Model} [model] A `Rasti.Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method.
+ * @property {Rasti.Model} [state] A `Rasti.Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method.
+ * @property {Rasti.Model} [props] Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Rasti.Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When a component with a `key` is recycled during parent re-render, new props are automatically updated and any changes trigger a re-render.
+ * @see {@link #module_component_create Component.create}
+ * @example
+ * import { Component, Model } from 'rasti';
+ * // Create Timer component.
+ * const Timer = Component.create`
+ *     <div>
+ *         Seconds: <span>${({ model }) => model.seconds}</span>
+ *     </div>
+ * `;
+ * // Create model to store seconds.
+ * const model = new Model({ seconds: 0 });
+ * // Mount timer on body.
+ * Timer.mount({ model }, document.body);
+ * // Increment `model.seconds` every second.
+ * setInterval(() => model.seconds++, 1000);
+ */
 export default Component.create`<div></div>`;

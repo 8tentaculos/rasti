@@ -4,7 +4,6 @@
  * It can be extended to create new classes that have the ability to emit and bind custom named events.   
  * Emitter is used by `Model` and `View` classes, which inherit from it to implement 
  * event-driven functionality.
- *
  * @module
  * @example
  * import { Emitter } from 'rasti';
