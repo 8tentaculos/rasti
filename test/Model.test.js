@@ -143,4 +143,62 @@ describe('Model', () => {
         expect(JSON.stringify(m)).to.be.equal('{"test":true}');
         expect(m.attributes).to.not.be.equal(m.toJSON());
     });
+
+    it('must call parse method during construction', () => {
+        class MyModel extends Model {
+            parse(data) {
+                return Object.assign({}, data, { parsed : true });
+            }
+        }
+
+        const m = new MyModel({ test : 'value' });
+        expect(m.get('test')).to.equal('value');
+        expect(m.get('parsed')).to.be.true;
+    });
+
+    it('must pass additional arguments to parse method', () => {
+        class MyModel extends Model {
+            parse(data, options) {
+                options = options || {};
+                if (options.uppercase) {
+                    return Object.assign({}, data, { name : data.name && data.name.toUpperCase() });
+                }
+                return data;
+            }
+        }
+
+        const m = new MyModel({ name : 'alice' }, { uppercase : true });
+        expect(m.get('name')).to.equal('ALICE');
+    });
+
+    it('must use attributePrefix for generated properties', () => {
+        class PrefixedModel extends Model {}
+        PrefixedModel.attributePrefix = 'attr_';
+
+        const m = new PrefixedModel({ name : 'Alice', age : 30 });
+        // Prefixed properties should exist
+        expect(m.attr_name).to.equal('Alice');
+        expect(m.attr_age).to.equal(30);
+        // Original property names should not exist
+        expect(m.name).to.be.undefined;
+        expect(m.age).to.be.undefined;
+        // get/set should still work without prefix
+        expect(m.get('name')).to.equal('Alice');
+        m.set('name', 'Bob');
+        expect(m.attr_name).to.equal('Bob');
+    });
+
+    it('must emit change events when using prefixed properties', (done) => {
+        class PrefixedModel extends Model {}
+        PrefixedModel.attributePrefix = 'test_';
+
+        const m = new PrefixedModel({ value : 10 });
+        
+        m.on('change:value', (model, newValue) => {
+            expect(newValue).to.equal(20);
+            done();
+        });
+
+        m.test_value = 20;
+    });
 });
