@@ -524,9 +524,12 @@ class Component extends View {
             const listener = function(event, component, matched) {
                 // Get the listener index from the data attribute.
                 const index = matched.getAttribute(dataAttribute);
-                const currentListener = this.eventsManager.listeners[index];
-                // Call the listener.
-                if (currentListener) currentListener.call(this, event, component, matched);
+                // Root element listener may not have a data attribute.
+                if (index) {
+                    const currentListener = this.eventsManager.listeners[parseInt(index, 10)];
+                    // Call the listener.
+                    if (currentListener) currentListener.call(this, event, component, matched);
+                }
             };
             // Add an event listener to the events object for each event type, using the data attribute
             // as both a CSS selector and to store the listener's index.
