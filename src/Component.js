@@ -285,7 +285,7 @@ export default class Component extends View {
      */
     subscribe(model) {
         // Check if model has `on` method.
-        if (!model.on) return;
+        if (!model.on) return this;
         // Store bound onChange method.
         const onChange = this.onChange.bind(this);
         // Listen to model changes and store unbind function.
