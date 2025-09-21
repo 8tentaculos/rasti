@@ -547,7 +547,7 @@ class Component extends View {
      */
     subscribe(model) {
         // Check if model has `on` method.
-        if (!model.on) return;
+        if (!model.on) return this;
         // Listen to model changes and store unbind function.
         const off = model.on('change', this.onChange);
         // Add unbind function to destroy queue.
