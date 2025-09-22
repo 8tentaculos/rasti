@@ -1,9 +1,48 @@
 /**
+ * Validates that the listener is a function.
+ * @param {Function} listener The listener to validate.
+ * @throws {TypeError} If the listener is not a function.
+ * @private
+ */
+const validateListener = (listener) => {
+    if (typeof listener !== 'function') {
+        throw new TypeError('Listener must be a function');
+    }
+};
+
+/**
  * `Emitter` is a class that provides an easy way to implement the observer pattern 
  * in your applications.  
  * It can be extended to create new classes that have the ability to emit and bind custom named events.   
  * Emitter is used by `Model` and `View` classes, which inherit from it to implement 
  * event-driven functionality.
+ * 
+ * ## Inverse of Control Pattern
+ * 
+ * The Emitter class includes "inverse of control" methods (`listenTo`, `listenToOnce`, `stopListening`) 
+ * that allow an object to manage its own listening relationships. Instead of:
+ * 
+ * ```javascript
+ * // Traditional approach - harder to clean up
+ * otherObject.on('change', this.myHandler);
+ * otherObject.on('destroy', this.cleanup);
+ * // Later you need to remember to clean up each listener
+ * otherObject.off('change', this.myHandler);
+ * otherObject.off('destroy', this.cleanup);
+ * ```
+ * 
+ * You can use:
+ * 
+ * ```javascript
+ * // Inverse of control - easier cleanup
+ * this.listenTo(otherObject, 'change', this.myHandler);
+ * this.listenTo(otherObject, 'destroy', this.cleanup);
+ * // Later, clean up ALL listeners at once
+ * this.stopListening(); // Removes all listening relationships
+ * ```
+ * 
+ * This pattern is particularly useful for preventing memory leaks and simplifying cleanup
+ * in component lifecycle management.
  *
  * @module
  * @example
@@ -47,13 +86,12 @@ export default class Emitter {
      */
     on(type, listener) {
         // Validate listener.
-        if (typeof listener !== 'function') {
-            throw new TypeError('Listener must be a function');
-        }
+        validateListener(listener);
         // Create listeners object if it doesn't exist.
         if (!this.listeners) this.listeners = {};
+        // Every type must have an array of listeners.
         if (!this.listeners[type]) this.listeners[type] = [];
-        // Add listener.
+        // Add listener to the array of listeners.
         this.listeners[type].push(listener);
         // Return a function to remove the listener.
         return () => this.off(type, listener);
@@ -69,27 +107,40 @@ export default class Emitter {
      * this.model.once('change', () => console.log('This will happen once'));
      */
     once(type, listener) {
-        // If listener is a function, wrap it to remove it after it is called.
-        if (typeof listener === 'function') {
-            const self = this;
-            const originalListener = listener;
-
-            listener = function(...args) {
-                originalListener(...args);
-                self.off(type, listener);
-            };
-        }
+        // Validate listener.
+        validateListener(listener);
+        // Wrap listener to remove it after it is called.
+        const wrapper = (...args) => {
+            listener(...args);
+            this.off(type, wrapper);
+        };
         // Add listener.
-        return this.on(type, listener);
+        return this.on(type, wrapper);
     }
 
     /**
-     * Removes event listeners.
-     * @param {string} [type] Type of the event (e.g. `change`). If is not provided, it removes all listeners.
-     * @param {Function} [listener] Callback function to be called when the event is emitted. If listener is not provided, it removes all listeners for specified type.
+     * Removes event listeners with flexible parameter combinations.
+     * @param {string} [type] Type of the event (e.g. `change`). If not provided, removes ALL listeners from this emitter.
+     * @param {Function} [listener] Specific callback function to remove. If not provided, removes all listeners for the specified type.
+     * 
+     * **Behavior based on parameters:**
+     * - `off()` - Removes ALL listeners from this emitter
+     * - `off(type)` - Removes all listeners for the specified event type
+     * - `off(type, listener)` - Removes the specific listener for the specified event type
+     * 
      * @example
-     * // Stop listening to changes.
+     * // Remove all listeners from this emitter
+     * this.model.off();
+     * 
+     * @example
+     * // Remove all 'change' event listeners
      * this.model.off('change');
+     * 
+     * @example
+     * // Remove specific listener for 'change' events
+     * const myListener = () => console.log('changed');
+     * this.model.on('change', myListener);
+     * this.model.off('change', myListener);
      */
     off(type, listener) {
         // No listeners.
@@ -116,20 +167,131 @@ export default class Emitter {
     /**
      * Emits event of specified type. Listeners will receive specified arguments.
      * @param {string} type Type of the event (e.g. `change`).
-     * @param {any} [...args] Arguments to be passed to listener.
+     * @param {...any} [args] Optional arguments to be passed to listeners.
      * @example
-     * // Emit validation error event.
+     * // Emit validation error event with no arguments
      * this.emit('invalid');
+     * 
+     * @example
+     * // Emit change event with data
+     * this.emit('change', { field : 'name', value : 'John' });
      */
     emit(type, ...args) {
         // No listeners.
         if (!this.listeners || !this.listeners[type]) return;
         // Call listeners. Use `slice` to make a copy and prevent errors when 
         // removing listeners inside a listener.
-        this.listeners[type]
-            .slice()
-            .forEach(function(fn) {
-                fn(...args);
-            });
+        this.listeners[type].slice().forEach(fn => fn(...args));
+    }
+
+    /**
+     * Listen to an event of another emitter (Inverse of Control pattern).
+     * 
+     * This method allows this object to manage its own listening relationships,
+     * making cleanup easier and preventing memory leaks. Instead of calling
+     * `otherEmitter.on()`, you call `this.listenTo(otherEmitter, ...)` which
+     * allows this object to track and clean up all its listeners at once.
+     * 
+     * @param {Emitter} emitter The emitter to listen to.
+     * @param {string} type The type of the event to listen to.
+     * @param {Function} listener The listener to call when the event is emitted.
+     * @return {Function} A function to stop listening to the event.
+     * 
+     * @example
+     * // Instead of: otherModel.on('change', this.render.bind(this));
+     * // Use: this.listenTo(otherModel, 'change', this.render.bind(this));
+     * // This way you can later call this.stopListening() to clean up all listeners
+     */
+    listenTo(emitter, type, listener) {
+        // Add listener to the emitter.
+        emitter.on(type, listener);
+        // Create listeningTo array if it doesn't exist.
+        if (!this.listeningTo) this.listeningTo = [];
+        // Add listener to the array of listeners.
+        this.listeningTo.push({ emitter, type, listener });
+        // Return a function to stop listening to the event.
+        return () => this.stopListening(emitter, type, listener);
+    }
+
+    /**
+     * Listen to an event of another emitter and remove the listener after it is called (Inverse of Control pattern).
+     * 
+     * Similar to `listenTo()` but automatically removes the listener after the first execution,
+     * like `once()` but with the inverse of control benefits for cleanup management.
+     * 
+     * @param {Emitter} emitter The emitter to listen to.
+     * @param {string} type The type of the event to listen to.
+     * @param {Function} listener The listener to call when the event is emitted.
+     * @return {Function} A function to stop listening to the event.
+     * 
+     * @example
+     * // Listen once to another emitter's initialization event
+     * this.listenToOnce(otherModel, 'initialized', () => {
+     *     console.log('Other model initialized');
+     * });
+     */
+    listenToOnce(emitter, type, listener) {
+        validateListener(listener);
+        // Wrap listener to remove it after it is called.
+        const wrapper = (...args) => {
+            listener(...args);
+            this.stopListening(emitter, type, wrapper);
+        };
+        // Add listener.
+        return this.listenTo(emitter, type, wrapper);
+    }
+
+    /**
+     * Stop listening to events from other emitters (Inverse of Control pattern).
+     * 
+     * This method provides flexible cleanup of listening relationships established with `listenTo()`.
+     * All parameters are optional, allowing different levels of cleanup granularity.
+     * 
+     * @param {Emitter} [emitter] The emitter to stop listening to. If not provided, stops listening to ALL emitters.
+     * @param {string} [type] The type of event to stop listening to. If not provided, stops listening to all event types from the specified emitter.
+     * @param {Function} [listener] The specific listener to remove. If not provided, removes all listeners for the specified event type from the specified emitter.
+     * 
+     * **Behavior based on parameters:**
+     * - `stopListening()` - Stops listening to ALL events from ALL emitters
+     * - `stopListening(emitter)` - Stops listening to all events from the specified emitter
+     * - `stopListening(emitter, type)` - Stops listening to the specified event type from the specified emitter
+     * - `stopListening(emitter, type, listener)` - Stops listening to the specific listener for the specific event from the specific emitter
+     * 
+     * @example
+     * // Stop listening to all events from all emitters (complete cleanup)
+     * this.stopListening();
+     * 
+     * @example
+     * // Stop listening to all events from a specific emitter
+     * this.stopListening(otherModel);
+     * 
+     * @example
+     * // Stop listening to 'change' events from a specific emitter
+     * this.stopListening(otherModel, 'change');
+     * 
+     * @example
+     * // Stop listening to a specific listener
+     * const myListener = () => console.log('changed');
+     * this.listenTo(otherModel, 'change', myListener);
+     * this.stopListening(otherModel, 'change', myListener);
+     */
+    stopListening(emitter, type, listener) {
+        // No listeningTo object.
+        if (!this.listeningTo) return;
+        // Remove listener from the array of listeners.
+        this.listeningTo = this.listeningTo.filter(item => {
+            if (
+                !emitter ||
+                (emitter === item.emitter && !type) ||
+                (emitter === item.emitter && type === item.type && !listener) ||
+                (emitter === item.emitter && type === item.type && listener === item.listener)
+            ) {
+                item.emitter.off(item.type, item.listener);
+                return false;
+            }
+            return true;
+        });
+        // Remove listeningTo object if it's empty.
+        if (!this.listeningTo.length) delete this.listeningTo;
     }
 }
