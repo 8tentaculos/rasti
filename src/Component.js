@@ -542,25 +542,18 @@ class Component extends View {
     }
 
     /**
-     * Listen to `change` event on a model or emitter object and call `onChange` lifecycle method.
-     * The listener will be removed when the component is destroyed.
-     * By default the component will be subscribed to `this.model`, `this.state`, and `this.props`.
-     * @param {Rasti.Model} model A model or emitter object to listen to changes.
-     * @return {Component} The component instance.
+     * Subscribes to a `change` event on a model or emitter object and invokes the `onChange` lifecycle method.
+     * The subscription is automatically cleaned up when the component is destroyed.
+     * By default, the component subscribes to changes on `this.model`, `this.state`, and `this.props`.
+     * 
+     * @param {Object} model - The model or emitter object to listen to.
+     * @param {string} [type='change'] - The event type to listen for.
+     * @param {Function} [listener=this.onChange] - The callback to invoke when the event is emitted.
+     * @returns {Component} The current component instance for chaining.
      */
-    subscribe(model) {
+    subscribe(model, type = 'change', listener = this.onChange) {
         // Check if model has `on` method.
-        if (!model.on) return this;
-        // Listen to model changes and store unbind function.
-        const off = model.on('change', this.onChange);
-        // Add unbind function to destroy queue.
-        // So the component stops listening to model changes when destroyed.
-        this.destroyQueue.push(
-            // Rasti `on` method returns an unbind function.
-            // But other libraries may return the object itself.
-            typeof off === 'function' ? off : () => model.off('change', this.onChange)
-        );
-
+        if (model.on) this.listenTo(model, type, listener);
         return this;
     }
 

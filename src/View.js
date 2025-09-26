@@ -113,6 +113,8 @@ export default class View extends Emitter {
         this.destroyChildren();
         // Undelegate `this.el` event listeners
         this.undelegateEvents();
+        // Stop listening to events.
+        this.stopListening();
         // Unbind `this` events.
         this.off();
         // Call destroy queue.
