@@ -2,10 +2,12 @@
 
 * [Component](#module_component) ⇐ <code>View</code>
     * _instance_
-        * [.subscribe(model)](#module_component__subscribe) ⇒ <code>Component</code>
+        * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
         * [.onCreate(options)](#module_component__oncreate)
         * [.onChange(model, changed)](#module_component__onchange)
-        * [.onRender(type)](#module_component__onrender)
+        * [.onHydrate()](#module_component__onhydrate)
+        * [.onRecycle()](#module_component__onrecycle)
+        * [.onUpdate()](#module_component__onupdate)
         * [.onDestroy(options)](#module_component__ondestroy)
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ <code>Array</code>
         * [.toString()](#module_component__tostring) ⇒ <code>string</code>
@@ -62,7 +64,7 @@ Components are defined with the [Component.create](#module_component_create) sta
 
 | Param | Type | Description |
 | --- | --- | --- |
-| options | <code>object</code> | Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onRender, onCreate, onChange. Any additional options not in the component or view options list will be automatically extracted as props and stored as `this.props`. |
+| options | <code>object</code> | Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onHydrate, onRecycle, onUpdate, onCreate, onChange. Any additional options not in the component or view options list will be automatically extracted as props and stored as `this.props`. |
 
 **Properties**
 
@@ -92,10 +94,12 @@ setInterval(() => model.seconds++, 1000);
 
 * [Component](#module_component) ⇐ <code>View</code>
     * _instance_
-        * [.subscribe(model)](#module_component__subscribe) ⇒ <code>Component</code>
+        * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
         * [.onCreate(options)](#module_component__oncreate)
         * [.onChange(model, changed)](#module_component__onchange)
-        * [.onRender(type)](#module_component__onrender)
+        * [.onHydrate()](#module_component__onhydrate)
+        * [.onRecycle()](#module_component__onrecycle)
+        * [.onUpdate()](#module_component__onupdate)
         * [.onDestroy(options)](#module_component__ondestroy)
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ <code>Array</code>
         * [.toString()](#module_component__tostring) ⇒ <code>string</code>
@@ -107,17 +111,19 @@ setInterval(() => model.seconds++, 1000);
         * [.create(strings, ...expressions)](#module_component_create) ⇒ <code>Component</code>
 
 <a name="module_component__subscribe" id="module_component__subscribe" class="anchor"></a>
-### component.subscribe(model) ⇒ <code>Component</code>
-Listen to `change` event on a model or emitter object and call `onChange` lifecycle method.
-The listener will be removed when the component is destroyed.
-By default the component will be subscribed to `this.model`, `this.state`, and `this.props`.
+### component.subscribe(model, [type], [listener]) ⇒ <code>Component</code>
+Subscribes to a `change` event on a model or emitter object and invokes the `onChange` lifecycle method.
+The subscription is automatically cleaned up when the component is destroyed.
+By default, the component subscribes to changes on `this.model`, `this.state`, and `this.props`.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
-**Returns**: <code>Component</code> - The component instance.  
+**Returns**: <code>Component</code> - The current component instance for chaining.  
 
-| Param | Type | Description |
-| --- | --- | --- |
-| model | <code>Rasti.Model</code> | A model or emitter object to listen to changes. |
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| model | <code>Object</code> |  | The model or emitter object to listen to. |
+| [type] | <code>string</code> | <code>&quot;&#x27;change&#x27;&quot;</code> | The event type to listen for. |
+| [listener] | <code>function</code> | <code>this.onChange</code> | The callback to invoke when the event is emitted. |
 
 <a name="module_component__oncreate" id="module_component__oncreate" class="anchor"></a>
 ### component.onCreate(options)
@@ -145,22 +151,24 @@ render when needed.
 | changed | <code>object</code> | Object containing keys and values that has changed. |
 | [...args] | <code>any</code> | Any extra arguments passed to set method. |
 
-<a name="module_component__onrender" id="module_component__onrender" class="anchor"></a>
-### component.onRender(type)
-Lifecycle method. Called after the component is rendered.
-- When the component is rendered for the first time, this method is called with `Component.RENDER_TYPE_HYDRATE` as the argument.
-- When the component is updated or re-rendered, this method is called with `Component.RENDER_TYPE_RENDER` as the argument.
-- When the component is recycled (reused with the same key), this method is called with `Component.RENDER_TYPE_RECYCLE` as the argument.
+<a name="module_component__onhydrate" id="module_component__onhydrate" class="anchor"></a>
+### component.onHydrate()
+Lifecycle method. Called when the component is rendered for the first time and hydrated.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
+<a name="module_component__onrecycle" id="module_component__onrecycle" class="anchor"></a>
+### component.onRecycle()
+Lifecycle method. Called when the component is recycled (reused with the same key) and added to the DOM again.
 
-| Param | Type | Description |
-| --- | --- | --- |
-| type | <code>string</code> | The render type. Possible values are: `Component.RENDER_TYPE_HYDRATE`, `Component.RENDER_TYPE_RENDER` and `Component.RENDER_TYPE_RECYCLE`. |
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+<a name="module_component__onupdate" id="module_component__onupdate" class="anchor"></a>
+### component.onUpdate()
+Lifecycle method. Called when the component is updated or re-rendered.
 
+**Kind**: instance method of [<code>Component</code>](#module_component)  
 <a name="module_component__ondestroy" id="module_component__ondestroy" class="anchor"></a>
 ### component.onDestroy(options)
-Lifecycle method. Called when the view is destroyed.
+Lifecycle method. Called when the component is destroyed.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 
@@ -220,9 +228,9 @@ Use it for server-side rendering or static site generation.
 <a name="module_component__render" id="module_component__render" class="anchor"></a>
 ### component.render() ⇒ <code>Component</code>
 Render the `Component`.  
-- If `this.el` is not present, the `Component` will be rendered as a string inside a `DocumentFragment` and hydrated, making `this.el` available. The `onRender` lifecycle method will be called with `Component.RENDER_TYPE_HYDRATE` as an argument.  
-- If `this.el` is present, the method will update the attributes and inner HTML of the element, or recreate its child component in the case of a container. The `onRender` lifecycle method will be called with `Component.RENDER_TYPE_RENDER` as an argument.  
-- When rendering child components, if the new children have the same key as the previous ones, they will be recycled. A recycled `Component` will call the `onRender` lifecycle method with `Component.RENDER_TYPE_RECYCLE` as an argument.  
+- If `this.el` is not present, the `Component` will be rendered as a string inside a `DocumentFragment` and hydrated, making `this.el` available. The `onHydrate` lifecycle method will be called.  
+- If `this.el` is present, the method will update the attributes and inner HTML of the element, or recreate its child component in the case of a container. The `onUpdate` lifecycle method will be called.  
+- When rendering child components, if the new children have the same key as the previous ones, they will be recycled. A recycled `Component` will call the `onRecycle` lifecycle method.  
 - If the active element is inside the component, it will retain focus after the render.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
