@@ -1130,10 +1130,6 @@ Component.PLACEHOLDER_EXPRESSION = (idx) => `__RASTI-${idx}__`;
 Component.INTERPOLATION_START = (uid) => `rasti-start-${uid}`;
 Component.INTERPOLATION_END = (uid) => `rasti-end-${uid}`;
 
-Component.RENDER_TYPE_HYDRATE = 'hydrate';
-Component.RENDER_TYPE_RECYCLE = 'recycle';
-Component.RENDER_TYPE_RENDER = 'render';
-
 /**
  * Components are a special kind of `View` that is designed to be easily composable, 
  * making it simple to add child views and build complex user interfaces.  
