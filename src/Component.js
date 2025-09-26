@@ -291,6 +291,7 @@ const generateAttributes = (attributes, previous = {}) => {
  * @param {Array} expressions Array of expressions.
  * @param {Array} elements Array to store element references.
  * @return {string} Template with parsed attributes.
+ * @throws {SyntaxError} If the template does not have a single root element or is a container component.
  * @private
  */
 const parseElements = (template, expressions, elements) => {
