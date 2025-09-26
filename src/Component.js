@@ -475,7 +475,7 @@ const parseAttributes = (attributesStr, expressions) => {
 /*
  * These option keys will be extended on the component instance.
  */
-const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onRender'];
+const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', 'onRecycle', 'onUpdate'];
 
 /**
  * @lends module:Component
@@ -588,7 +588,7 @@ class Component extends View {
     /**
      * Used internally on the render process.
      * Attach the `Component` to the dom element providing `this.el`, delegate events, 
-     * subscribe to model changes and call `onRender` lifecycle method with `Component.RENDER_TYPE_HYDRATE` as argument.
+     * subscribe to model changes and call `onHydrate` lifecycle method.
      * @param parent {node} The parent node.
      * @return {Component} The component instance.
      * @private
@@ -634,8 +634,8 @@ class Component extends View {
         } else {
             this.children.forEach(child => child.hydrate(this.el));
         }
-        // Call `onRender` lifecycle method.
-        this.onRender.call(this, Component.RENDER_TYPE_HYDRATE);
+        // Call `onHydrate` lifecycle method.
+        this.onHydrate.call(this);
         // Return `this` for chaining.
         return this;
     }
@@ -663,7 +663,7 @@ class Component extends View {
     /**
      * Used internally on the render process.
      * Reuse a `Component` that has `key` when its parent is rendered.
-     * Call `onRender` lifecycle method with `Component.RENDER_TYPE_RECYCLE` as argument.
+     * Call `onRecycle` lifecycle method.
      * @param parent {node} The parent node.
      * @return {Component} The component instance.
      * @private
@@ -673,8 +673,8 @@ class Component extends View {
         const toBeReplaced = parent.querySelector(`[${Component.DATA_ATTRIBUTE_ELEMENT}="${this.uid}-1"]`);
         // Replace it with this.el.
         toBeReplaced.replaceWith(...this.getRecycleNodes());
-        // Call `onRender` lifecycle method.
-        this.onRender.call(this, Component.RENDER_TYPE_RECYCLE);
+        // Call `onRecycle` lifecycle method.
+        this.onRecycle.call(this);
         // Return `this` for chaining.
         return this;
     }
@@ -700,16 +700,22 @@ class Component extends View {
     }
 
     /**
-     * Lifecycle method. Called after the component is rendered.
-     * - When the component is rendered for the first time, this method is called with `Component.RENDER_TYPE_HYDRATE` as the argument.
-     * - When the component is updated or re-rendered, this method is called with `Component.RENDER_TYPE_RENDER` as the argument.
-     * - When the component is recycled (reused with the same key), this method is called with `Component.RENDER_TYPE_RECYCLE` as the argument.
-     * @param {string} type - The render type. Possible values are: `Component.RENDER_TYPE_HYDRATE`, `Component.RENDER_TYPE_RENDER` and `Component.RENDER_TYPE_RECYCLE`.
+     * Lifecycle method. Called when the component is rendered for the first time and hydrated.
      */
-    onRender() {}
+    onHydrate() {}
 
     /**
-     * Lifecycle method. Called when the view is destroyed.
+     * Lifecycle method. Called when the component is recycled (reused with the same key) and added to the DOM again.
+     */
+    onRecycle() {}
+
+    /**
+     * Lifecycle method. Called when the component is updated or re-rendered.
+     */
+    onUpdate() {}
+
+    /**
+     * Lifecycle method. Called when the component is destroyed.
      * @param {object} options Options object or any arguments passed to `destroy` method.
      */
     onDestroy() {}
@@ -805,9 +811,9 @@ class Component extends View {
 
     /**
      * Render the `Component`.  
-     * - If `this.el` is not present, the `Component` will be rendered as a string inside a `DocumentFragment` and hydrated, making `this.el` available. The `onRender` lifecycle method will be called with `Component.RENDER_TYPE_HYDRATE` as an argument.  
-     * - If `this.el` is present, the method will update the attributes and inner HTML of the element, or recreate its child component in the case of a container. The `onRender` lifecycle method will be called with `Component.RENDER_TYPE_RENDER` as an argument.  
-     * - When rendering child components, if the new children have the same key as the previous ones, they will be recycled. A recycled `Component` will call the `onRender` lifecycle method with `Component.RENDER_TYPE_RECYCLE` as an argument.  
+     * - If `this.el` is not present, the `Component` will be rendered as a string inside a `DocumentFragment` and hydrated, making `this.el` available. The `onHydrate` lifecycle method will be called.  
+     * - If `this.el` is present, the method will update the attributes and inner HTML of the element, or recreate its child component in the case of a container. The `onUpdate` lifecycle method will be called.  
+     * - When rendering child components, if the new children have the same key as the previous ones, they will be recycled. A recycled `Component` will call the `onRecycle` lifecycle method.  
      * - If the active element is inside the component, it will retain focus after the render.  
      * @return {Component} The component instance.
      */
@@ -913,8 +919,8 @@ class Component extends View {
         if (activeElement && this.el.contains(activeElement)) {
             activeElement.focus();
         }
-        // Call onRender lifecycle method.
-        this.onRender.call(this, Component.RENDER_TYPE_RENDER);
+        // Call onUpdate lifecycle method.
+        this.onUpdate.call(this);
         // Return this for chaining.
         return this;
     }
@@ -1117,10 +1123,6 @@ Component.PLACEHOLDER_EXPRESSION = (idx) => `__RASTI-${idx}__`;
 Component.INTERPOLATION_START = (uid) => `rasti-start-${uid}`;
 Component.INTERPOLATION_END = (uid) => `rasti-end-${uid}`;
 
-Component.RENDER_TYPE_HYDRATE = 'hydrate';
-Component.RENDER_TYPE_RECYCLE = 'recycle';
-Component.RENDER_TYPE_RENDER = 'render';
-
 /**
  * Components are a special kind of `View` that is designed to be easily composable, 
  * making it simple to add child views and build complex user interfaces.  
@@ -1129,7 +1131,7 @@ Component.RENDER_TYPE_RENDER = 'render';
  * Components are defined with the {@link #module_component_create Component.create} static method, which takes a tagged template string or a function that returns another component.
  * @module
  * @extends View
- * @param {object} options Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onRender, onCreate, onChange. Any additional options not in the component or view options list will be automatically extracted as props and stored as `this.props`.
+ * @param {object} options Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onHydrate, onRecycle, onUpdate, onCreate, onChange. Any additional options not in the component or view options list will be automatically extracted as props and stored as `this.props`.
  * @property {string} [key] A unique key to identify the component. Used to recycle child components.
  * @property {Rasti.Model} [model] A `Rasti.Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method.
  * @property {Rasti.Model} [state] A `Rasti.Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method.

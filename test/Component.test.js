@@ -684,15 +684,15 @@ describe('Component', () => {
         expect(child.children[0].el).to.be.equal(c.children[0].children[0].el);
     });
 
-    it('must call onRender with type hydrate', () => {
+    it('must call onHydrate lifecycle method', () => {
         let calls = 0;
-        const onRender = function(type) {
-            if (type === Component.RENDER_TYPE_HYDRATE) calls++;
+        const onHydrate = function() {
+            calls++;
         };
 
-        const Child = Component.create`<div></div>`.extend({ onRender });
-        const ChildContainer = Component.create`${() => Child.mount()}`.extend({ onRender });
-        const Main = Component.create`<div>${() => ChildContainer.mount()}</div>`.extend({ onRender });
+        const Child = Component.create`<div></div>`.extend({ onHydrate });
+        const ChildContainer = Component.create`${() => Child.mount()}`.extend({ onHydrate });
+        const Main = Component.create`<div>${() => ChildContainer.mount()}</div>`.extend({ onHydrate });
 
         expect(calls).to.be.equal(0);
 
@@ -701,52 +701,79 @@ describe('Component', () => {
         expect(calls).to.be.equal(3);
     });
 
-    it('must call onRender with type render', () => {
-        let calls = {};
-        const onRender = function(type) {
-            calls[type] = (calls[type] || 0) + 1;
+    it('must call onHydrate and onUpdate lifecycle methods', () => {
+        let hydrateCalls = 0;
+        let updateCalls = 0;
+
+        const onHydrate = function() {
+            hydrateCalls++;
         };
 
-        const Child = Component.create`<div></div>`.extend({ onRender });
-        const ChildContainer = Component.create`${() => Child.mount()}`.extend({ onRender });
-        const Main = Component.create`<div>${() => ChildContainer.mount()}</div>`.extend({ onRender });
+        const onUpdate = function() {
+            updateCalls++;
+        };
 
-        expect(calls).to.be.empty;
+        const Child = Component.create`<div></div>`.extend({ onHydrate, onUpdate });
+        const ChildContainer = Component.create`${() => Child.mount()}`.extend({ onHydrate, onUpdate });
+        const Main = Component.create`<div>${() => ChildContainer.mount()}</div>`.extend({ onHydrate, onUpdate });
+
+        expect(hydrateCalls).to.be.equal(0);
+        expect(updateCalls).to.be.equal(0);
 
         const main = Main.mount({}, document.body);
 
-        expect(calls[Component.RENDER_TYPE_HYDRATE]).to.be.equal(3);
+        expect(hydrateCalls).to.be.equal(3);
+        expect(updateCalls).to.be.equal(0);
 
-        calls = {};
+        hydrateCalls = 0;
+        updateCalls = 0;
 
         main.render();
 
-        expect(calls[Component.RENDER_TYPE_RENDER]).to.be.equal(1);
-        expect(calls[Component.RENDER_TYPE_HYDRATE]).to.be.equal(2);
+        expect(updateCalls).to.be.equal(1);
+        expect(hydrateCalls).to.be.equal(2);
     });
 
-    it('must call onRender with type recycle', () => {
-        let calls = {};
-        const onRender = function(type) {
-            calls[type] = (calls[type] || 0) + 1;
+    it('must call onHydrate, onUpdate and onRecycle lifecycle methods', () => {
+        let hydrateCalls = 0;
+        let updateCalls = 0;
+        let recycleCalls = 0;
+
+        const onHydrate = function() {
+            hydrateCalls++;
+        };
+        
+        const onUpdate = function() {
+            updateCalls++;
         };
 
-        const Child = Component.create`<div></div>`.extend({ onRender });
-        const ChildContainer = Component.create`${() => Child.mount()}`.extend({ onRender, key : 'child' });
-        const Main = Component.create`<div>${() => ChildContainer.mount()}</div>`.extend({ onRender });
+        const onRecycle = function() {
+            recycleCalls++;
+        };
 
-        expect(calls).to.be.empty;
+        const Child = Component.create`<div></div>`.extend({ onHydrate, onUpdate, onRecycle });
+        const ChildContainer = Component.create`${() => Child.mount()}`.extend({ onHydrate, onUpdate, onRecycle, key : 'child' });
+        const Main = Component.create`<div>${() => ChildContainer.mount()}</div>`.extend({ onHydrate, onUpdate, onRecycle });
+
+        expect(hydrateCalls).to.be.equal(0);
+        expect(updateCalls).to.be.equal(0);
+        expect(recycleCalls).to.be.equal(0);
 
         const main = Main.mount({}, document.body);
 
-        expect(calls[Component.RENDER_TYPE_HYDRATE]).to.be.equal(3);
+        expect(hydrateCalls).to.be.equal(3);
+        expect(updateCalls).to.be.equal(0);
+        expect(recycleCalls).to.be.equal(0);
 
-        calls = {};
+        hydrateCalls = 0;
+        updateCalls = 0;
+        recycleCalls = 0;
 
         main.render();
 
-        expect(calls[Component.RENDER_TYPE_RENDER]).to.be.equal(1);
-        expect(calls[Component.RENDER_TYPE_RECYCLE]).to.be.equal(1);
+        expect(updateCalls).to.be.equal(1);
+        expect(recycleCalls).to.be.equal(1);
+        expect(hydrateCalls).to.be.equal(0);
     });
 
     it('must render partial', () => {
