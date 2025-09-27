@@ -582,7 +582,10 @@ class Component extends View {
         if (this.el) {
             // If "this.el" is a function, call it to get the element.
             this.el = getResult(this.el, this);
-            this.delegateEvents();
+            // Render the component as a string to generate children components.
+            this.toString();
+            // Hydrate the component.
+            this.hydrate(this.el.parentNode);
         }
     }
 
@@ -598,13 +601,18 @@ class Component extends View {
         ['model', 'state', 'props'].forEach(key => {
             if (this[key]) this.subscribe(this[key]);
         });
+        // Store references to elements and interpolations.
+        this.ref = { elements : [], interpolations : [] };
         // Search for every element in template using getSelector
         if (!this.isContainer()) {
-            this.template.elements.forEach(element => {
+            this.template.elements.forEach((element, index) => {
                 const selector = element.getSelector.call(this);
-                element.ref = parent.querySelector(selector);
+                const el = index === 0 && this.el ? this.el : parent.querySelector(selector);
+                this.ref.elements.push(el);
             });
-            this.el = this.template.elements[0].ref;
+            // Set the first element as the component's element.
+            this.el = this.ref.elements[0];
+            // Delegate events.
             this.delegateEvents();
         }
         // Get references for interpolation marker comments
@@ -622,10 +630,10 @@ class Component extends View {
                 const startMarker = Component.INTERPOLATION_START(uid);
                 const endMarker = Component.INTERPOLATION_END(uid);
 
-                interpolation.ref = [
+                this.ref.interpolations.push([
                     commentMap.get(startMarker), 
                     commentMap.get(endMarker)
-                ];
+                ]);
             });
         }
         // Call hydrate on children.
@@ -657,7 +665,7 @@ class Component extends View {
      */
     getRecycleNodes() {
         return this.isContainer() ?
-            [this.template.interpolations[0].ref[0], ...this.children[0].getRecycleNodes(), this.template.interpolations[0].ref[1]] :
+            [this.ref.interpolations[0][0], ...this.children[0].getRecycleNodes(), this.ref.interpolations[0][1]] :
             [this.el];
     }
 
@@ -832,23 +840,24 @@ class Component extends View {
         // Store active element.
         const activeElement = this.isContainer() ? null : document.activeElement;
 
-        this.template.elements.forEach(element => {
+        this.template.elements.forEach((element, index) => {
             const attributes = element.getAttributes.call(this);
+            const el = this.ref.elements[index];
             // Remove attributes.
             attributes.remove.forEach(attribute => {
-                element.ref.removeAttribute(attribute);
+                el.removeAttribute(attribute);
             });
             // Add attributes.
             Object.keys(attributes.add).forEach(key => {
                 const value = attributes.add[key];
-                element.ref.setAttribute(key, value);
+                el.setAttribute(key, value);
             });
         });
 
         const previousChildren = this.children;
         this.children = [];
 
-        this.template.interpolations.forEach(interpolation => {
+        this.template.interpolations.forEach((interpolation, index) => {
             const nextChildren = [];
             const recycledChildren = [];
 
@@ -885,7 +894,7 @@ class Component extends View {
                 this.addChild(nextChild).hydrate(fragment);
             });
 
-            const [startComment, endComment] = interpolation.ref;
+            const [startComment, endComment] = this.ref.interpolations[index];
 
             const currentFirstElement = startComment.nextSibling;
             const currentSingleChildElement = currentFirstElement.nextSibling === endComment;
