@@ -10,22 +10,35 @@ const getClassName = ({ model, state }) => [
 
 // Single todo.
 const Todo = Component.create`
-    <li
-        onClick=${{
-            '.toggle' : function() {
-                this.model.toggle()
-            },
-            '.destroy' : function() {
-                this.options.handleRemove()
-            },
-        }}
-        onDblClick=${{
-            'label' : function() {
-                this.state.editing = true;
-            }
-        }}
-        onKeyUp=${{ 
-            '.edit' : function(ev) {
+    <li class="${getClassName}">
+        <div class="view">
+            <input
+                class="toggle"
+                type="checkbox"
+                checked="${({ model }) => model.completed}"
+                onClick=${function(ev) {
+                    this.model.toggle();
+                }}
+            >
+            <label
+                onDblClick=${function() {
+                    this.state.editing = true;
+                }}
+            >
+                ${({ model }) => model.title}
+            </label>
+            <button
+                class="destroy"
+                onClick=${function(ev) {
+                    this.options.handleRemove();
+                }}
+            ></button>
+        </div>
+
+        <input
+            class="edit"
+            value="${({ model }) => model.title}"
+            onKeyUp=${function(ev) {
                 // Save or cancel editing.
                 if (ev.which === ENTER_KEY || ev.which === ESC_KEY) {
                     // Save edited todo.
@@ -39,29 +52,22 @@ const Todo = Component.create`
                     // Close editing.
                     this.state.editing = false;
                 }
-            }
-        }}
-        onFocusOut=${{
-            '.edit' : function () {
+            }}
+            onFocusOut=${function () {
                 this.state.editing = false;
-            }
-        }}
-        class="${getClassName}"
-    >
-        <div class="view">
-            <input class="toggle" type="checkbox" ${({ model }) => model.completed ? 'checked' : ''}>
-            <label>${({ model }) => model.title}</label>
-            <button class="destroy"></button>
-        </div>
-
-        <input class="edit" value="${({ model }) => model.title}">
+            }}
+        />
     </li>
 `.extend({
     preinitialize() {
         // Internal component state.
         this.state = new Model({ editing : false });
     },
-    onRender() {
+    onHydrate() {
+        // Focus if editing.
+        if (this.state.editing) this.$('.edit').focus();
+    },
+    onUpdate() {
         // Focus if editing.
         if (this.state.editing) this.$('.edit').focus();
     }
