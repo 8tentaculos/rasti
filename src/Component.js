@@ -1118,7 +1118,7 @@ class Component extends View {
 }
 
 Component.DATA_ATTRIBUTE_ELEMENT = 'data-rasti-el';
-Component.DATA_ATTRIBUTE_EVENT = (type) => `rasti-on-${type}`;
+Component.DATA_ATTRIBUTE_EVENT = (type) => `data-rasti-on-${type}`;
 
 Component.PLACEHOLDER_EXPRESSION = (idx) => `__RASTI-${idx}__`;
 Component.INTERPOLATION_START = (uid) => `rasti-start-${uid}`;
