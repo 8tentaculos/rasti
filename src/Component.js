@@ -314,12 +314,11 @@ const parseElements = (template, expressions, elements) => {
         }
         // Parse attributes.
         const parsedAttributes = parseAttributes(attributesStr, expressions);
-        // Store previous attributes.
-        let previousAttributes = {};
         // Create element reference.
         const generateElementUid = componentUid => `${componentUid}-${currentElementUid}`;
         // Create function that returns attributes object.
         const getAttributes = function() {
+            // Expand attributes and events.
             const attributes = expandEvents(
                 expandAttributes(parsedAttributes, value => getExpressionResult(value, this)),
                 this.eventsManager
@@ -332,8 +331,8 @@ const parseElements = (template, expressions, elements) => {
             // First element gets the component uid, others get element uid.
             attributes[Component.DATA_ATTRIBUTE_ELEMENT] = generateElementUid(this.uid);
             // Store previous attributes.
-            const previous = previousAttributes;
-            previousAttributes = attributes;
+            const previous = this.previousAttributes || {};
+            this.previousAttributes = attributes;
 
             return generateAttributes(attributes, previous);
         };
