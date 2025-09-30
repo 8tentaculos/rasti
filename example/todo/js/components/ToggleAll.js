@@ -6,8 +6,8 @@ const ToggleAll = Component.create`
             class="toggle-all" 
             id="toggle-all" 
             type="checkbox"
-            checked="${({ model }) => !!model.todos.length && !model.remaining.length}"
-            onChange=${function(ev) { this.model.toggleAll(ev.target.checked); }}
+            checked="${({ props }) => props.checked}"
+            onChange=${function(ev) { this.props.handleChange(ev.target.checked); }}
          />
         <label for="toggle-all">
             Mark all as complete

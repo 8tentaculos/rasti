@@ -12,7 +12,7 @@ const App = Component.create`
 
         ${({ model, partial }) => !!model.todos.length && partial`
             <section class="main">
-                <${ToggleAll} model="${model}" />
+                <${ToggleAll} checked="${() => !!model.todos.length && !model.remaining.length}" handleChange=${(checked) => model.toggleAll(checked)} key="toggle-all" />
 
                 <ul class="todo-list">
                     ${model.filtered.map(todo => partial`

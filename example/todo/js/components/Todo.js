@@ -1,8 +1,6 @@
 import { Model } from 'rasti';
 import { Component } from 'rasti';
 
-import { ENTER_KEY, ESC_KEY } from '../constants.js';
-
 const getClassName = ({ model, state }) => [
     model.completed ? 'completed' : '',
     state.editing ? 'editing' : ''
@@ -40,9 +38,9 @@ const Todo = Component.create`
             value="${({ model }) => model.title}"
             onKeyUp=${function(ev) {
                 // Save or cancel editing.
-                if (ev.which === ENTER_KEY || ev.which === ESC_KEY) {
+                if (ev.key === 'Enter' || ev.key === 'Escape') {
                     // Save edited todo.
-                    if (ev.which === ENTER_KEY) {
+                    if (ev.key === 'Enter') {
                         const value = this.$('.edit').value;
                         // Set model.
                         if (value) {
