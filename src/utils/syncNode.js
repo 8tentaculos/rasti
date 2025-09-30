@@ -64,6 +64,7 @@ const syncAttributes = (targetEl, sourceEl) => {
  * Moves the nodes without cloning.
  * @param {Element} targetEl The element whose children will be replaced.
  * @param {Element} sourceEl The element providing new children.
+ * @module
  * @private
  */
 const syncNodeContent = (targetEl, sourceEl) => {
@@ -79,7 +80,7 @@ const syncNodeContent = (targetEl, sourceEl) => {
  * @param {Node} sourceNode The reference node to sync from (not in the DOM).
  * @private
  */
-const syncNode = (targetNode, sourceNode) => {
+export default function syncNode(targetNode, sourceNode) {
     // Replace if node types are different (e.g. element vs text).
     if (targetNode.nodeType !== sourceNode.nodeType) {
         targetNode.replaceWith(sourceNode);
@@ -103,6 +104,4 @@ const syncNode = (targetNode, sourceNode) => {
     if (!areChildNodesEqual(targetNode, sourceNode)) {
         syncNodeContent(targetNode, sourceNode);
     }
-};
-
-export default syncNode;
+}

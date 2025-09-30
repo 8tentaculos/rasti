@@ -1,7 +1,9 @@
-/*
- * Flatten an array recursively
+/**
+ * Flatten an array recursively.
  * @param {Array} arr Array to flat recursively
  * @return {Array} Flat array
+ * @module
+ * @private
  */
 const deepFlat = (arr) => arr.reduce((acc, val) => {
     if (Array.isArray(val)) acc.push(...deepFlat(val));
