@@ -4,6 +4,10 @@ import getResult from './utils/getResult.js';
 import deepFlat  from './utils/deepFlat.js';
 import parseHTML from './utils/parseHTML.js';
 import syncNode from './utils/syncNode.js';
+import getAttributesHTML from './utils/getAttributesHTML.js';
+import getAttributesDiff from './utils/getAttributesDiff.js';
+
+const SYNC_PROPS = ['value', 'checked', 'selected'];
 
 /**
  * Wrapper class for HTML strings marked as safe.
@@ -60,6 +64,124 @@ class EventsManager {
      */
     hasPendingTypes() {
         return this.types.size > this.previousSize;
+    }
+}
+
+/**
+ * Element reference for managing DOM element attributes.
+ * @class Element
+ * @private
+ */
+class Element {
+    /**
+     * Create an element reference.
+     * @param {Object} options The options object.
+     * @param {Function} options.getSelector Function that returns the CSS selector for the element.
+     * @param {Function} options.getAttributes Function that returns the attributes object for the element.
+     */
+    constructor(options) {
+        this.getSelector = options.getSelector;
+        this.getAttributes = options.getAttributes;
+        this.previousAttributes = {};
+    }
+
+    /**
+     * Attach the element reference to a DOM element.
+     * @param {Node} parent The parent node to search in.
+     */
+    hydrate(parent) {
+        this.ref = parent.querySelector(this.getSelector());
+    }
+
+    /**
+     * Update the element's attributes based on the difference with previous attributes.
+     */
+    update() {
+        // Attributes diff.
+        const attributes = this.getAttributes();
+        const { remove, add } = getAttributesDiff(attributes, this.previousAttributes);
+        // Store previous attributes.
+        this.previousAttributes = attributes;
+        // Remove attributes first so later `setAttribute` overrides if needed.
+        remove.forEach(attr => {
+            this.ref.removeAttribute(attr);
+            if (SYNC_PROPS.includes(attr) && attr in this.ref) {
+                // Reset property to default.
+                this.ref[attr] = attr === 'value' ? '' : false;
+            }
+        });
+        // Add / update attributes.
+        Object.keys(add).forEach(attr => {
+            const value = add[attr];
+            this.ref.setAttribute(attr, value);
+            if (SYNC_PROPS.includes(attr) && attr in this.ref) {
+                this.ref[attr] = attr === 'value' ? value : value !== false && value !== 'false';
+            }
+        });
+    }
+}
+
+/**
+ * Interpolation reference for managing dynamic content between comment markers.
+ * @class Interpolation
+ * @private
+ */
+class Interpolation {
+    /**
+     * Create an interpolation reference.
+     * @param {Object} options The options object.
+     * @param {Function} options.getUid Function that returns the unique identifier for the interpolation.
+     * @param {any} options.expression The expression to be evaluated for the interpolation.
+     */
+    constructor(options) {
+        this.getUid = options.getUid;
+        this.expression = options.expression;
+    }
+
+    /**
+     * Attach the interpolation reference to comment markers in the DOM.
+     * @param {Node} parent The parent node to search in.
+     */
+    hydrate(parent) {
+        const commentMap = new Map();
+        const walker = document.createTreeWalker(parent, NodeFilter.SHOW_COMMENT);
+
+        let node;
+        while ((node = walker.nextNode())) {
+            commentMap.set(node.textContent, node);
+        }
+
+        const uid = this.getUid();
+        const startMarker = Component.INTERPOLATION_START(uid);
+        const endMarker = Component.INTERPOLATION_END(uid);
+
+        this.ref = [
+            commentMap.get(startMarker), 
+            commentMap.get(endMarker)
+        ];
+    }
+
+    /**
+     * Update the interpolation content with a new fragment.
+     * @param {DocumentFragment} fragment The new content fragment to insert.
+     */
+    update(fragment) {
+        const [startComment, endComment] = this.ref;
+
+        const currentFirstElement = startComment.nextSibling;
+        const currentSingleChildElement = currentFirstElement.nextSibling === endComment;
+        const fragmentChildren = fragment.children;
+
+        if (currentSingleChildElement && fragmentChildren.length === 1 && !currentFirstElement.getAttribute(Component.DATA_ATTRIBUTE_ELEMENT)) {
+            // Update a single node.
+            syncNode(currentFirstElement, fragmentChildren[0]);
+        } else {
+            const range = document.createRange();
+            range.setStartAfter(startComment);
+            range.setEndBefore(endComment);
+            range.deleteContents();
+            range.insertNode(fragment);
+        }
     }
 }
 
@@ -248,44 +370,6 @@ const replaceElements = (template, replacer) => {
 };
 
 /**
- * Generate attributes.
- * @param {object} attributes Attributes object.
- * @param {object} previous Previous attributes object.
- * @return {object} Attributes object containing `add`, `remove` and `html` properties.
- * @private
- */
-const generateAttributes = (attributes, previous = {}) => {
-    const add = {};
-    const remove = [];
-    const html = [];
-
-    Object.keys(attributes).forEach(key => {
-        let value = attributes[key];
-
-        if (value === true) {
-            add[key] = '';
-            html.push(Component.sanitize(key));
-        } else if (value !== false) {
-            if (value === null || typeof value === 'undefined') value = '';
-            add[key] = value;
-            html.push(`${Component.sanitize(key)}="${Component.sanitize(value)}"`);
-        }
-    });
-    // Remove attributes that were in previous attributes but not in current attributes.
-    Object.keys(previous).forEach(key => {
-        if (!(key in attributes) || ((previous[key] !== attributes[key]) && attributes[key] === false)) {
-            remove.push(key);
-        }
-    });
-
-    return {
-        add,
-        remove,
-        html : html.join(' ')
-    };
-};
-
-/**
  * Parse all HTML elements in template and extract their attributes.
  * @param {string} template Template string with placeholders.
  * @param {Array} expressions Array of expressions.
@@ -330,11 +414,8 @@ const parseElements = (template, expressions, elements) => {
             // Add data attribute for element identification.
             // First element gets the component uid, others get element uid.
             attributes[Component.DATA_ATTRIBUTE_ELEMENT] = generateElementUid(this.uid);
-            // Store previous attributes.
-            const previous = this.previousAttributes || {};
-            this.previousAttributes = attributes;
 
-            return generateAttributes(attributes, previous);
+            return attributes;
         };
 
         const getSelector = function() {
@@ -347,7 +428,8 @@ const parseElements = (template, expressions, elements) => {
         });
         // Add new expression to expressions array.
         expressions.push(function() {
-            return Component.markAsSafeHTML(getAttributes.call(this).html);
+            const attributes = getAttributes.call(this);
+            return Component.markAsSafeHTML(getAttributesHTML(attributes));
         });
         // Replace attributes with placeholder.
         const placeholder = Component.PLACEHOLDER_EXPRESSION(expressions.length - 1);
@@ -380,11 +462,12 @@ const parsePartialElements = (template, expressions) => {
                 this.eventsManager
             );
 
-            return generateAttributes(attributes).html;
+            return attributes;
         };
         // Add new expression to expressions array.
         expressions.push(function() {
-            return Component.markAsSafeHTML(getAttributes.call(this));
+            const attributes = getAttributes.call(this);
+            return Component.markAsSafeHTML(getAttributesHTML(attributes));
         });
         // Replace attributes with placeholder.
         const placeholder = Component.PLACEHOLDER_EXPRESSION(expressions.length - 1);
@@ -577,6 +660,8 @@ class Component extends View {
     ensureElement() {
         // Store data event listeners.
         this.eventsManager = new EventsManager();
+        // Call template function.
+        this.template = getResult(this.template, this);
         // If el is provided, delegate events.
         if (this.el) {
             // If "this.el" is a function, call it to get the element.
@@ -600,40 +685,18 @@ class Component extends View {
         ['model', 'state', 'props'].forEach(key => {
             if (this[key]) this.subscribe(this[key]);
         });
-        // Store references to elements and interpolations.
-        this.ref = { elements : [], interpolations : [] };
         // Search for every element in template using getSelector
         if (!this.isContainer()) {
-            this.template.elements.forEach((element, index) => {
-                const selector = element.getSelector.call(this);
-                const el = index === 0 && this.el ? this.el : parent.querySelector(selector);
-                this.ref.elements.push(el);
-            });
+            this.template.elements.forEach(element => element.hydrate(parent));
             // Set the first element as the component's element.
-            this.el = this.ref.elements[0];
+            if (this.el) this.template.elements[0].ref = this.el;
+            else this.el = this.template.elements[0].ref;
             // Delegate events.
             this.delegateEvents();
         }
         // Get references for interpolation marker comments
         if (this.template.interpolations.length > 0) {
-            const commentMap = new Map();
-            const walker = document.createTreeWalker(parent, NodeFilter.SHOW_COMMENT);
-
-            let node;
-            while ((node = walker.nextNode())) {
-                commentMap.set(node.textContent, node);
-            }
-
-            this.template.interpolations.forEach(interpolation => {
-                const uid = interpolation.getUid.call(this);
-                const startMarker = Component.INTERPOLATION_START(uid);
-                const endMarker = Component.INTERPOLATION_END(uid);
-
-                this.ref.interpolations.push([
-                    commentMap.get(startMarker), 
-                    commentMap.get(endMarker)
-                ]);
-            });
+            this.template.interpolations.forEach(interpolation => interpolation.hydrate(parent));
         }
         // Call hydrate on children.
         if (this.isContainer()) {
@@ -664,7 +727,7 @@ class Component extends View {
      */
     getRecycleNodes() {
         return this.isContainer() ?
-            [this.ref.interpolations[0][0], ...this.children[0].getRecycleNodes(), this.ref.interpolations[0][1]] :
+            [this.template.interpolations[0].ref[0], ...this.children[0].getRecycleNodes(), this.template.interpolations[0].ref[1]] :
             [this.el];
     }
 
@@ -839,24 +902,12 @@ class Component extends View {
         // Store active element.
         const activeElement = this.isContainer() ? null : document.activeElement;
 
-        this.template.elements.forEach((element, index) => {
-            const attributes = element.getAttributes.call(this);
-            const el = this.ref.elements[index];
-            // Remove attributes.
-            attributes.remove.forEach(attribute => {
-                el.removeAttribute(attribute);
-            });
-            // Add attributes.
-            Object.keys(attributes.add).forEach(key => {
-                const value = attributes.add[key];
-                el.setAttribute(key, value);
-            });
-        });
+        this.template.elements.forEach(element => element.update());
 
         const previousChildren = this.children;
         this.children = [];
 
-        this.template.interpolations.forEach((interpolation, index) => {
+        this.template.interpolations.forEach(interpolation => {
             const nextChildren = [];
             const recycledChildren = [];
 
@@ -893,22 +944,7 @@ class Component extends View {
                 this.addChild(nextChild).hydrate(fragment);
             });
 
-            const [startComment, endComment] = this.ref.interpolations[index];
-
-            const currentFirstElement = startComment.nextSibling;
-            const currentSingleChildElement = currentFirstElement.nextSibling === endComment;
-            const fragmentChildren = fragment.children;
-
-            if (currentSingleChildElement && fragmentChildren.length === 1 && !currentFirstElement.getAttribute(Component.DATA_ATTRIBUTE_ELEMENT)) {
-                // Update a single node.
-                syncNode(currentFirstElement, fragmentChildren[0]);
-            } else {
-                const range = document.createRange();
-                range.setStartAfter(startComment);
-                range.setEndBefore(endComment);
-                range.deleteContents();
-                range.insertNode(fragment);
-            }
+            interpolation.update(fragment);
         });
         // Destroy unused children.
         previousChildren.forEach(previousChild => {
@@ -1114,14 +1150,22 @@ class Component extends View {
             ),
             expressions
         );
-        // Create template object.
-        const template = {
-            elements,
-            interpolations,
-            parts,
-        };
         // Create subclass for this component.
-        return this.extend({ template });
+        return this.extend({
+            template() {
+                return {
+                    elements : elements.map(element => new Element({
+                        getSelector : element.getSelector.bind(this),
+                        getAttributes : element.getAttributes.bind(this)
+                    })),
+                    interpolations : interpolations.map(interpolation => new Interpolation({
+                        getUid : interpolation.getUid.bind(this),
+                        expression : interpolation.expression
+                    })),
+                    parts,
+                };
+            }
+        });
     }
 }
 
