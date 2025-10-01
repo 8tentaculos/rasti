@@ -1,5 +1,10 @@
 import { Component } from 'rasti';
 
+/**
+ * Toggle all todos component.
+ * Checkbox to mark all todos as complete or incomplete.
+ * @class ToggleAll
+ */
 const ToggleAll = Component.create`
     <span>
         <input 

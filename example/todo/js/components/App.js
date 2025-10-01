@@ -5,23 +5,34 @@ import ToggleAll from './ToggleAll.js';
 import Todo from './Todo.js';
 import Footer from './Footer.js';
 
-// Todo app.
+/**
+ * Main Todo application component.
+ * Renders the complete todo app with header, todo list, and footer.
+ * @class App
+ */
 const App = Component.create`
     <main class="todoapp">
-        <${Header} model="${({ model }) => model}" key="header" />
+        <${Header} key="header" handleAddTodo="${({ model }) => (title) => model.addTodo({ title })}" />
 
         ${({ model, partial }) => !!model.todos.length && partial`
             <section class="main">
-                <${ToggleAll} checked="${() => !!model.todos.length && !model.remaining.length}" handleChange=${(checked) => model.toggleAll(checked)} key="toggle-all" />
+                <${ToggleAll}
+                    key="toggle-all"
+                    checked="${() => !!model.todos.length && !model.remaining.length}"
+                    handleChange=${(checked) => model.toggleAll(checked)}
+                />
 
                 <ul class="todo-list">
                     ${model.filtered.map(todo => partial`
-                        <${Todo} model="${todo}" handleRemove=${() => model.removeTodo(todo)} />
+                        <${Todo}
+                            model="${todo}"
+                            handleRemove=${() => model.removeTodo(todo)}
+                        />
                     `)}
                 </ul>
             </section>
 
-            <${Footer} model="${model}" key="footer" />
+            <${Footer} key="footer" model="${model}" />
         `}
     </main>
 `;

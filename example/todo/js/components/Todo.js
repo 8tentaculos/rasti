@@ -1,12 +1,25 @@
 import { Model } from 'rasti';
 import { Component } from 'rasti';
 
+/**
+ * Get CSS class names for todo item based on completion and editing state.
+ * @param {Object} params The parameters object.
+ * @param {Object} params.model The todo model.
+ * @param {Object} params.state The component state.
+ * @return {string} CSS class names.
+ * @private
+ */
 const getClassName = ({ model, state }) => [
     model.completed ? 'completed' : '',
     state.editing ? 'editing' : ''
 ].join(' ');
 
-// Single todo.
+/**
+ * Single todo item component.
+ * Displays a todo with checkbox, label, and delete button.
+ * Supports editing mode with inline editing.
+ * @class Todo
+ */
 const Todo = Component.create`
     <li class="${getClassName}">
         <div class="view">
@@ -41,8 +54,8 @@ const Todo = Component.create`
                 if (ev.key === 'Enter' || ev.key === 'Escape') {
                     // Save edited todo.
                     if (ev.key === 'Enter') {
-                        const value = this.$('.edit').value;
-                        // Set model.
+                        const value = ev.target.value;
+                        // Set todo title.
                         if (value) {
                             this.model.title = value;
                         }
@@ -57,17 +70,21 @@ const Todo = Component.create`
         />
     </li>
 `.extend({
+    /**
+     * Initialize component before rendering.
+     * Sets up internal state for editing mode.
+     */
     preinitialize() {
         // Internal component state.
         this.state = new Model({ editing : false });
     },
-    onHydrate() {
-        // Focus if editing.
-        if (this.state.editing) this.$('.edit').focus();
-    },
+    /**
+     * Called after component update.
+     * Focuses the edit input when in editing mode.
+     */
     onUpdate() {
         // Focus if editing.
-        if (this.state.editing) this.$('.edit').focus();
+        if (this.state.editing) this.$('input.edit').focus();
     }
 });
 
