@@ -27,6 +27,32 @@ class SafeHTML {
 }
 
 /**
+ * Wrapper class for partial templates that preserves structure.
+ * @class Partial
+ * @param {Array} items The items in the partial.
+ * @private
+ */
+class Partial {
+    constructor(items) {
+        this.items = items;
+    }
+}
+
+/**
+ * Wrapper for interpolation results with markers.
+ * @class InterpolationResult
+ * @param {number} interpolationUid The interpolation UID for markers.
+ * @param {any} result The interpolation result.
+ * @private
+ */
+class InterpolationResult {
+    constructor(interpolationUid, result) {
+        this.interpolationUid = interpolationUid;
+        this.result = result;
+    }
+}
+
+/**
  * Manager for delegated events.
  * @class EventsManager
  * @private
@@ -64,6 +90,77 @@ class EventsManager {
      */
     hasPendingTypes() {
         return this.types.size > this.previousSize;
+    }
+}
+
+/**
+ * Manager for component position tracking and recycling.
+ * @class PathManager
+ * @private
+ */
+class PathManager {
+    constructor() {}
+
+    /**
+     * Reset before render.
+     */
+    reset() {
+        this.previous = this.tracked || new Map();
+        this.tracked = new Map();
+        this.positionStack = [0];
+    }
+
+    /**
+     * Push position to stack.
+     */
+    push() {
+        this.positionStack.push(0);
+    }
+
+    /**
+     * Pop position from stack.
+     */
+    pop() {
+        this.positionStack.pop();
+    }
+
+    /**
+     * Increment position.
+     */
+    increment() {
+        this.positionStack[this.positionStack.length - 1]++;
+    }
+
+    /**
+     * Get current path as array.
+     * @return {string} Current position path.
+     */
+    getPath() {
+        return this.positionStack.join('-');
+    }
+
+    /**
+     * Track component at current path.
+     * @param {Component} component The component to track.
+     * @return {Component} The component.
+     */
+    track(component) {
+        this.tracked.set(
+            this.getPath(),
+            component
+        );
+
+        return component;
+    }
+
+    /**
+     * Find recyclable component by path and type.
+     * @param {Function} constructor The component constructor.
+     * @return {Component|null} The recyclable component or null.
+     */
+    findRecyclable(constructor) {
+        const prev = this.previous.get(this.getPath());
+        return prev && prev.constructor === constructor && !prev.key ? prev : null;
     }
 }
 
@@ -331,8 +428,13 @@ const expandComponents = (main, expressions) => {
             if (close) {
                 // Close component tag must match open component tag.
                 if (tag !== close) return match;
+                // Process inner content same way as partial().
                 // Recursively expand inner components.
-                innerList = splitPlaceholders(expandComponents(inner, expressions), expressions);
+                const innerTemplate = expandComponents(inner, expressions);
+                // Parse partial elements to handle dynamic attributes and events.
+                const parsedInner = parsePartialElements(innerTemplate, expressions);
+                // Split into items.
+                innerList = splitPlaceholders(parsedInner, expressions);
             }
             // Parse attributes.
             const attributes = parseAttributes(attributesStr, expressions);
@@ -340,8 +442,10 @@ const expandComponents = (main, expressions) => {
             const mount = function() {
                 const options = expandAttributes(attributes, value => getExpressionResult(value, this));
                 // Add children to options.
+                // Process same as partial(): evaluate items in parent context and create Partial.
                 if (innerList) {
-                    options.children = deepFlat(innerList.map(item => getExpressionResult(item, this)));
+                    const evaluatedItems = innerList.map(item => getExpressionResult(item, this));
+                    options.children = new Partial(evaluatedItems);
                 }
                 // Mount component.
                 return tag.mount(options);
@@ -509,16 +613,12 @@ const parseInterpolations = (template, expressions, interpolations) => {
                 },
                 expression : expressions[expressionIndex]
             });
-            // Create a new expression that contains markers and the result of the original expression.
-            const newExpression = function() {
-                const result = getExpressionResult(expressions[expressionIndex], this);
-                const interpolationUid = `${this.uid}-${currentInterpolationUid}`;
-                const startMarker = `<!--${Component.INTERPOLATION_START(interpolationUid)}-->`;
-                const endMarker = `<!--${Component.INTERPOLATION_END(interpolationUid)}-->`;
-                return [Component.markAsSafeHTML(startMarker), result, Component.markAsSafeHTML(endMarker)];
-            };
             // Add new expression to expressions array.
-            expressions.push(newExpression);
+            expressions.push(function() {
+                const result = getExpressionResult(expressions[expressionIndex], this);
+                const uid = `${this.uid}-${currentInterpolationUid}`;
+                return new InterpolationResult(uid, result);
+            });
             // Replace with new placeholder.
             return Component.PLACEHOLDER_EXPRESSION(expressions.length - 1);
         }
@@ -660,6 +760,8 @@ class Component extends View {
     ensureElement() {
         // Store data event listeners.
         this.eventsManager = new EventsManager();
+        // Store position tracking for recycling.
+        this.pathManager = new PathManager();
         // Call template function.
         this.template = getResult(this.template, this);
         // If el is provided, delegate events.
@@ -794,13 +896,13 @@ class Component extends View {
     /**
      * Tagged template helper method.
      * Used to create a partial template.  
-     * It will return a one-dimensional array with strings and expressions.  
+     * It will return a Partial object that preserves structure for position-based recycling.
      * Components will be added as children by the parent component. Template strings literals 
      * will be marked as safe HTML to be rendered.
      * This method is bound to the component instance by default.
      * @param {TemplateStringsArray} strings - Template strings.
      * @param  {...any} expressions - Template expressions.
-     * @return {Array} Array containing strings and expressions.
+     * @return {Partial} Partial object containing strings and expressions.
      * @example
      * import { Component } from 'rasti';
      * // Create a Title component.
@@ -825,8 +927,7 @@ class Component extends View {
      * });
      */
     partial(strings, ...expressions) {
-        return deepFlat(
-            splitPlaceholders(
+        const items = splitPlaceholders(
                 parsePartialElements(
                     expandComponents(
                         addPlaceholders(strings, expressions),
@@ -835,8 +936,9 @@ class Component extends View {
                     expressions
                 ),
                 expressions
-            ).map(item => getExpressionResult(item, this))
-        );
+        ).map(item => getExpressionResult(item, this));
+
+        return new Partial(items);
     }
 
     /**
@@ -847,18 +949,39 @@ class Component extends View {
      * @private
      */
     renderTemplatePart(part, addChild) {
+        this.pathManager.increment();
+
         const result = getExpressionResult(part, this);
 
         const parse = (item) => {
             if (typeof item !== 'undefined' && item !== null && item !== false && item !== true) {
                 if (item instanceof SafeHTML) return item;
                 if (item instanceof Component) return addChild(item);
+
+                if (item instanceof Partial) {
+                    this.pathManager.push();
+                    const out = item.items.map(subItem => parse(subItem)).join('');
+                    this.pathManager.pop();
+                    return out;
+                }
+                // Handle arrays (user loops) - disable tracking.
+                if (Array.isArray(item)) {
+                    return deepFlat(item).map(parse).join('');
+                }
+                // InterpolationResult: add markers and process maintaining tracking.
+                if (item instanceof InterpolationResult) {
+                    const startMarker = `<!--${Component.INTERPOLATION_START(item.interpolationUid)}-->`;
+                    const endMarker = `<!--${Component.INTERPOLATION_END(item.interpolationUid)}-->`;
+                    return `${startMarker}${parse(item.result)}${endMarker}`;
+                }
+
                 return Component.sanitize(item);
             }
+            // Return empty string if item is undefined, null, false, or true.
             return '';
         };
 
-        return Array.isArray(result) ? deepFlat(result).map(parse).join('') : `${parse(result)}`;
+        return `${parse(result)}`;
     }
 
     /**
@@ -872,8 +995,13 @@ class Component extends View {
         this.destroyChildren();
         // Normally there won't be any data event listeners, but if there are, clear them.
         this.eventsManager.reset();
+        // Reset position tracking.
+        this.pathManager.reset();
         // Bind addChild method.
-        const addChild = this.addChild.bind(this);
+        const addChild = component => {
+            this.pathManager.track(component);
+            return this.addChild(component);
+        };
         // Render the template parts.
         return this.template.parts
             .map(part => this.renderTemplatePart(part, addChild))
@@ -899,6 +1027,8 @@ class Component extends View {
         }
         // Clear event listeners.
         this.eventsManager.reset();
+        // Reset position tracking.
+        this.pathManager.reset();
         // Store active element.
         const activeElement = this.isContainer() ? null : document.activeElement;
 
@@ -911,45 +1041,53 @@ class Component extends View {
             const nextChildren = [];
             const recycledChildren = [];
 
-            const fragment = parseHTML(this.renderTemplatePart(interpolation.expression, component => {
+            const addChild = component => {
                 let out = component;
-                // Check if child already exists.
-                const found = !!component.key && previousChildren.find(
-                    previousChild => previousChild.key === component.key
-                );
+                let found = null;
+
+                // Check if child already exists by key.
+                if (component.key) {
+                    found = previousChildren.find(prev => prev.key === component.key);
+                } else {
+                    // Find by position and type.
+                    found = this.pathManager.findRecyclable(component.constructor);
+                }
 
                 if (found) {
-                    // If child already exists, replace it html by its root element.
+                    // Recycle existing component.
                     out = found.getRecyclePlaceholder();
-                    // Add child to recycled children.
                     recycledChildren.push([found, component]);
+                    // Track the component.
+                    this.pathManager.track(found);
                 } else {
-                    // Not found. Add new child component.
+                    // Add new component.
                     nextChildren.push(component);
+                    // Track the component.
+                    this.pathManager.track(component);
                 }
-                // Component html.
+                // Return the component or placeholder.
                 return out;
-            }));
+            };
 
+            const fragment = parseHTML(this.renderTemplatePart(interpolation.expression, addChild));
             // Replace children root elements with recycled components.
-            recycledChildren.forEach(([recycledChild, discardedComponent]) => {
-                this.addChild(recycledChild).recycle(fragment);
+            recycledChildren.forEach(([recycled, discarded]) => {
+                this.addChild(recycled).recycle(fragment);
                 // Update props.
-                recycledChild.props.set(discardedComponent.props.toJSON());
-                // Destroy new child component. Use recycled one instead.
-                discardedComponent.destroy();
+                recycled.props.set(discarded.props.toJSON());
+                // Destroy discarded component.
+                discarded.destroy();
             });
             // Add new children. Hydrate them.
-            nextChildren.forEach(nextChild => {
-                this.addChild(nextChild).hydrate(fragment);
+            nextChildren.forEach(child => {
+                this.addChild(child).hydrate(fragment);
             });
 
             interpolation.update(fragment);
         });
         // Destroy unused children.
-        previousChildren.forEach(previousChild => {
-            // Not found in recycled children. Destroy.
-            if (this.children.indexOf(previousChild) < 0) previousChild.destroy();
+        previousChildren.forEach(prev => {
+            if (this.children.indexOf(prev) < 0) prev.destroy();
         });
         // If container, set el to the child element.
         if (this.isContainer()) {

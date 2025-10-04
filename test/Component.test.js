@@ -876,7 +876,7 @@ describe('Component', () => {
         expect(updatedButton.textContent.trim()).to.be.equal('World');
     });
 
-    it('must replace child component without key and create new element', () => {
+    it('must recycle child component without key in same position', () => {
         const ChildComponent = Component.create`<button>${({ model }) => model.text}</button>`;
         const ParentComponent = Component.create`
             <div id="test-node">
@@ -890,9 +890,9 @@ describe('Component', () => {
         expect(originalButton.textContent.trim()).to.be.equal('Hello');
         // Change the model to trigger re-render
         ParentComponent.model.text = 'World';
-        // A new button element should be created
+        // The same button element should be recycled because it's in the same position
         const newButton = originalDiv.querySelector('button');
-        expect(newButton).not.to.be.equal(originalButton);
+        expect(newButton).to.be.equal(originalButton);
         expect(newButton.textContent.trim()).to.be.equal('World');
     });
 
@@ -938,6 +938,231 @@ describe('Component', () => {
         expect(updatedButton.getAttribute('data-color')).to.be.equal('red');
         expect(updatedButton.getAttribute('data-size')).to.be.equal('large');
         expect(updatedButton.textContent.trim()).to.be.equal('World');
+    });
+
+    it('must recycle components in partial by position', () => {
+        const Button = Component.create`<button>${({ props }) => props.text}</button>`;
+        const ParentComponent = Component.create`
+            <div id="test-node">
+                ${({ model, partial }) => partial`
+                    <${Button} text="${model.text1}" />
+                    <${Button} text="${model.text2}" />
+                `}
+            </div>
+        `.mount({ model : new Model({ text1 : 'First', text2 : 'Second' }) }, document.body);
+
+        const buttons = document.querySelectorAll('button');
+        const firstButton = buttons[0];
+        const secondButton = buttons[1];
+
+        expect(firstButton.textContent.trim()).to.be.equal('First');
+        expect(secondButton.textContent.trim()).to.be.equal('Second');
+
+        // Re-render with updated text
+        ParentComponent.model.text1 = 'Updated First';
+        ParentComponent.model.text2 = 'Updated Second';
+
+        const updatedButtons = document.querySelectorAll('button');
+        // Same button elements should be recycled
+        expect(updatedButtons[0]).to.be.equal(firstButton);
+        expect(updatedButtons[1]).to.be.equal(secondButton);
+        expect(updatedButtons[0].textContent.trim()).to.be.equal('Updated First');
+        expect(updatedButtons[1].textContent.trim()).to.be.equal('Updated Second');
+    });
+
+    it('must recycle components in nested partial by position', () => {
+        const Button = Component.create`<button>${({ props }) => props.text}</button>`;
+        const ParentComponent = Component.create`
+            <div id="test-node">
+                ${({ model, partial }) => partial`
+                    <div>
+                        ${partial`
+                            <${Button} text="${model.text}" />
+                        `}
+                    </div>
+                `}
+            </div>
+        `.mount({ model : new Model({ text : 'Nested' }) }, document.body);
+
+        const originalButton = document.querySelector('button');
+        expect(originalButton.textContent.trim()).to.be.equal('Nested');
+
+        // Re-render with updated text
+        ParentComponent.model.text = 'Updated Nested';
+
+        const updatedButton = document.querySelector('button');
+        // Same button element should be recycled
+        expect(updatedButton).to.be.equal(originalButton);
+        expect(updatedButton.textContent.trim()).to.be.equal('Updated Nested');
+    });
+
+    it('must NOT recycle components in arrays (without keys)', () => {
+        const Button = Component.create`<button>${({ props }) => props.text}</button>`;
+        const ParentComponent = Component.create`
+            <div id="test-node">
+                ${({ model }) => model.items.map(item => Button.mount({ text : item }))}
+            </div>
+        `.mount({ model : new Model({ items : ['A', 'B', 'C'] }) }, document.body);
+
+        const originalButtons = Array.from(document.querySelectorAll('button'));
+        expect(originalButtons.length).to.be.equal(3);
+
+        // Re-render with same items (same length)
+        ParentComponent.model.items = ['A', 'B', 'C'];
+
+        const newButtons = Array.from(document.querySelectorAll('button'));
+        // New button elements should be created (no recycling without keys in arrays)
+        expect(newButtons[0]).not.to.be.equal(originalButtons[0]);
+        expect(newButtons[1]).not.to.be.equal(originalButtons[1]);
+        expect(newButtons[2]).not.to.be.equal(originalButtons[2]);
+    });
+
+    it('must recycle components in arrays WITH keys', () => {
+        const Button = Component.create`<button>${({ props }) => props.text}</button>`;
+        const ParentComponent = Component.create`
+            <div id="test-node">
+                ${({ model }) => model.items.map(item => Button.mount({ key : item.id, text : item.text }))}
+            </div>
+        `.mount({ 
+            model : new Model({ 
+                items : [
+                    { id : '1', text : 'A' },
+                    { id : '2', text : 'B' },
+                    { id : '3', text : 'C' }
+                ] 
+            }) 
+        }, document.body);
+
+        const originalButtons = Array.from(document.querySelectorAll('button'));
+        expect(originalButtons.length).to.be.equal(3);
+
+        // Re-render with reordered items
+        ParentComponent.model.items = [
+            { id : '3', text : 'C-updated' },
+            { id : '1', text : 'A-updated' },
+            { id : '2', text : 'B-updated' }
+        ];
+
+        const newButtons = Array.from(document.querySelectorAll('button'));
+        // Buttons should be recycled by key
+        expect(newButtons[0]).to.be.equal(originalButtons[2]); // id '3'
+        expect(newButtons[1]).to.be.equal(originalButtons[0]); // id '1'
+        expect(newButtons[2]).to.be.equal(originalButtons[1]); // id '2'
+        expect(newButtons[0].textContent.trim()).to.be.equal('C-updated');
+        expect(newButtons[1].textContent.trim()).to.be.equal('A-updated');
+        expect(newButtons[2].textContent.trim()).to.be.equal('B-updated');
+    });
+
+    it('must recycle components in partial with array map using keys', () => {
+        const Button = Component.create`<button>${({ props }) => props.text}</button>`;
+        const ParentComponent = Component.create`
+            <div id="test-node">
+                ${({ model, partial }) => partial`
+                    <div>
+                        ${model.items.map(item => partial`<${Button} key="${item.id}" text="${item.text}" />`)}
+                    </div>
+                `}
+            </div>
+        `.mount({ 
+            model : new Model({ 
+                items : [
+                    { id : '1', text : 'A' },
+                    { id : '2', text : 'B' }
+                ] 
+            }) 
+        }, document.body);
+
+        const originalButtons = Array.from(document.querySelectorAll('button'));
+        expect(originalButtons.length).to.be.equal(2);
+
+        // Re-render with reordered items
+        ParentComponent.model.items = [
+            { id : '2', text : 'B-updated' },
+            { id : '1', text : 'A-updated' }
+        ];
+
+        const newButtons = Array.from(document.querySelectorAll('button'));
+        // Buttons should be recycled by key
+        expect(newButtons[0]).to.be.equal(originalButtons[1]);
+        expect(newButtons[1]).to.be.equal(originalButtons[0]);
+        expect(newButtons[0].textContent.trim()).to.be.equal('B-updated');
+        expect(newButtons[1].textContent.trim()).to.be.equal('A-updated');
+    });
+
+    it('must update props of recycled positioned components', () => {
+        const Button = Component.create`
+            <button class="${({ props }) => props.className}">
+                ${({ props }) => props.text}
+            </button>
+        `;
+        const ParentComponent = Component.create`
+            <div id="test-node">
+                ${({ model, partial }) => partial`
+                    <${Button} className="${model.class1}" text="${model.text1}" />
+                    <${Button} className="${model.class2}" text="${model.text2}" />
+                `}
+            </div>
+        `.mount({ 
+            model : new Model({ 
+                class1 : 'btn-primary', 
+                text1 : 'First', 
+                class2 : 'btn-secondary', 
+                text2 : 'Second' 
+            }) 
+        }, document.body);
+
+        const buttons = document.querySelectorAll('button');
+        const firstButton = buttons[0];
+        const secondButton = buttons[1];
+
+        expect(firstButton.className).to.be.equal('btn-primary');
+        expect(firstButton.textContent.trim()).to.be.equal('First');
+        expect(secondButton.className).to.be.equal('btn-secondary');
+        expect(secondButton.textContent.trim()).to.be.equal('Second');
+
+        // Update props
+        ParentComponent.model.class1 = 'btn-success';
+        ParentComponent.model.text1 = 'Updated First';
+        ParentComponent.model.class2 = 'btn-danger';
+        ParentComponent.model.text2 = 'Updated Second';
+
+        const updatedButtons = document.querySelectorAll('button');
+        // Same elements should be recycled with updated props
+        expect(updatedButtons[0]).to.be.equal(firstButton);
+        expect(updatedButtons[1]).to.be.equal(secondButton);
+        expect(updatedButtons[0].className).to.be.equal('btn-success');
+        expect(updatedButtons[0].textContent.trim()).to.be.equal('Updated First');
+        expect(updatedButtons[1].className).to.be.equal('btn-danger');
+        expect(updatedButtons[1].textContent.trim()).to.be.equal('Updated Second');
+    });
+
+    it('must recycle different component types in same position by constructor', () => {
+        const Button = Component.create`<button>Button</button>`;
+        const Link = Component.create`<a>Link</a>`;
+        
+        const ParentComponent = Component.create`
+            <div id="test-node">
+                ${({ model }) => model.showButton ? Button.mount() : Link.mount()}
+            </div>
+        `.mount({ model : new Model({ showButton : true }) }, document.body);
+
+        const originalButton = document.querySelector('button');
+        expect(originalButton).to.exist;
+
+        // Switch to Link
+        ParentComponent.model.showButton = false;
+
+        const link = document.querySelector('a');
+        expect(link).to.exist;
+        expect(document.querySelector('button')).not.to.exist;
+
+        // Switch back to Button
+        ParentComponent.model.showButton = true;
+
+        const newButton = document.querySelector('button');
+        expect(newButton).to.exist;
+        // Should be a different element (different component type)
+        expect(newButton).not.to.be.equal(originalButton);
     });
 
 });
