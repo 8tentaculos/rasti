@@ -267,12 +267,17 @@ class Interpolation {
 
         const currentFirstElement = startComment.nextSibling;
         const currentSingleChildElement = currentFirstElement.nextSibling === endComment;
+        const currentEmpty = currentFirstElement == endComment;
         const fragmentChildren = fragment.children;
 
         if (currentSingleChildElement && fragmentChildren.length === 1 && !currentFirstElement.getAttribute(Component.DATA_ATTRIBUTE_ELEMENT)) {
-            // Update a single node.
+            // There is a single child element that is not a component's root element. Sync node attributes and content.
             syncNode(currentFirstElement, fragmentChildren[0]);
+        } else if (currentEmpty) {
+            // Interpolation is empty. Insert the fragment.
+            endComment.parentNode.insertBefore(fragment, endComment);
         } else {
+            // Interpolation is not empty. Replace the interpolation content.
             const range = document.createRange();
             range.setStartAfter(startComment);
             range.setEndBefore(endComment);
@@ -814,22 +819,23 @@ class Component extends View {
     }
 
     /**
-     * Get the recycle placeholder.
+     * Get a `span` placeholder with same data attribute as this component.
+     * Used to replace the component when it is recycled.
      * @return {string} The recycle placeholder.
      * @private
      */
-    getRecyclePlaceholder() {
+    getPlaceholder() {
         return `<span ${Component.DATA_ATTRIBUTE_ELEMENT}="${this.uid}-1"></span>`;
     }
 
     /**
-     * Get the recycle nodes.
-     * @return {Node[]} The recycle nodes.
+     * Get the component nodes to be inserted in the DOM.
+     * @return {Node[]} The component nodes.
      * @private
      */
-    getRecycleNodes() {
+    getNodes() {
         return this.isContainer() ?
-            [this.template.interpolations[0].ref[0], ...this.children[0].getRecycleNodes(), this.template.interpolations[0].ref[1]] :
+            [this.template.interpolations[0].ref[0], ...this.children[0].getNodes(), this.template.interpolations[0].ref[1]] :
             [this.el];
     }
 
@@ -845,7 +851,7 @@ class Component extends View {
         // Find placeholder element to be replaced. It has same data attribute as this component.
         const toBeReplaced = parent.querySelector(`[${Component.DATA_ATTRIBUTE_ELEMENT}="${this.uid}-1"]`);
         // Replace it with this.el.
-        toBeReplaced.replaceWith(...this.getRecycleNodes());
+        toBeReplaced.replaceWith(...this.getNodes());
         // Call `onRecycle` lifecycle method.
         this.onRecycle.call(this);
         // Return `this` for chaining.
@@ -1054,8 +1060,9 @@ class Component extends View {
                 }
 
                 if (found) {
-                    // Recycle existing component.
-                    out = found.getRecyclePlaceholder();
+                    // If child already exists, replace it html by its root element.
+                    out = found.getPlaceholder();
+                    // Add child to recycled children.
                     recycledChildren.push([found, component]);
                     // Track the component.
                     this.pathManager.track(found);
@@ -1163,7 +1170,7 @@ class Component extends View {
                 component.hydrate(el);
             } else {
                 // Append element to the DOM.
-                el.appendChild(component.render().el);
+                el.append(...component.render().getNodes());
             }
         }
         // Return component instance.
