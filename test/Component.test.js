@@ -244,7 +244,7 @@ describe('Component', () => {
 
     it('must re render and destroy children', () => {
         const Button = Component.create`<button>click me</button>`;
-        const Main = Component.create`<div id="test-node">${({ model }) => Button.mount({ model })}</div>`;
+        const Main = Component.create`<div id="test-node">${({ model }) => [Button.mount({ model })]}</div>`;
 
         const c = Main.mount({ model : new Model({ count : 0 }) }, document.body);
 
@@ -548,7 +548,7 @@ describe('Component', () => {
         const Button = Component.create`<button>click me</button>`;
         const Span = Component.create`<span>hello world</span>`;
 
-        const ContainerButton = Component.create`${() => Button.mount()}`;
+        const ContainerButton = Component.create`${() => [Button.mount()]}`;
         const ContainerSpan = Component.create`${() => Span.mount({ key : 'span' })}`;
 
         const Main = Component.create`
@@ -581,7 +581,7 @@ describe('Component', () => {
         expect(Container).to.exist;
 
         const c = new Container({});
-        document.body.appendChild(c.render().el);
+        document.body.append(...c.render().getNodes());
 
         expect(document.querySelector('button')).to.exist;
         expect(c.el).to.be.equal(c.children[0].el);
@@ -731,7 +731,7 @@ describe('Component', () => {
         main.render();
 
         expect(updateCalls).to.be.equal(1);
-        expect(hydrateCalls).to.be.equal(2);
+        expect(hydrateCalls).to.be.equal(0);
     });
 
     it('must call onHydrate, onUpdate and onRecycle lifecycle methods', () => {
@@ -1023,15 +1023,7 @@ describe('Component', () => {
             <div id="test-node">
                 ${({ model }) => model.items.map(item => Button.mount({ key : item.id, text : item.text }))}
             </div>
-        `.mount({ 
-            model : new Model({ 
-                items : [
-                    { id : '1', text : 'A' },
-                    { id : '2', text : 'B' },
-                    { id : '3', text : 'C' }
-                ] 
-            }) 
-        }, document.body);
+        `.mount({ model : new Model({ items : [{ id : '1', text : 'A' }, { id : '2', text : 'B' }, { id : '3', text : 'C' }] }) }, document.body);
 
         const originalButtons = Array.from(document.querySelectorAll('button'));
         expect(originalButtons.length).to.be.equal(3);
@@ -1063,14 +1055,7 @@ describe('Component', () => {
                     </div>
                 `}
             </div>
-        `.mount({ 
-            model : new Model({ 
-                items : [
-                    { id : '1', text : 'A' },
-                    { id : '2', text : 'B' }
-                ] 
-            }) 
-        }, document.body);
+        `.mount({ model : new Model({ items : [{ id : '1', text : 'A' }, { id : '2', text : 'B' }] }) }, document.body);
 
         const originalButtons = Array.from(document.querySelectorAll('button'));
         expect(originalButtons.length).to.be.equal(2);
@@ -1102,14 +1087,7 @@ describe('Component', () => {
                     <${Button} className="${model.class2}" text="${model.text2}" />
                 `}
             </div>
-        `.mount({ 
-            model : new Model({ 
-                class1 : 'btn-primary', 
-                text1 : 'First', 
-                class2 : 'btn-secondary', 
-                text2 : 'Second' 
-            }) 
-        }, document.body);
+        `.mount({ model : new Model({ class1 : 'btn-primary', text1 : 'First', class2 : 'btn-secondary', text2 : 'Second' }) }, document.body);
 
         const buttons = document.querySelectorAll('button');
         const firstButton = buttons[0];

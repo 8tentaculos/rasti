@@ -105,6 +105,7 @@ class PathManager {
      * Reset before render.
      */
     reset() {
+        this.paused = false;
         this.previous = this.tracked || new Map();
         this.tracked = new Map();
         this.positionStack = [0];
@@ -132,6 +133,20 @@ class PathManager {
     }
 
     /**
+     * Pause tracking.
+     */
+    pause() {
+        this.paused = true;
+    }
+
+    /**
+     * Resume tracking.
+     */
+    resume() {
+        this.paused = false;
+    }
+
+    /**
      * Get current path as array.
      * @return {string} Current position path.
      */
@@ -145,6 +160,8 @@ class PathManager {
      * @return {Component} The component.
      */
     track(component) {
+        if (this.paused) return component;
+
         this.tracked.set(
             this.getPath(),
             component
@@ -934,14 +951,14 @@ class Component extends View {
      */
     partial(strings, ...expressions) {
         const items = splitPlaceholders(
-                parsePartialElements(
-                    expandComponents(
-                        addPlaceholders(strings, expressions),
-                        expressions
-                    ),
+            parsePartialElements(
+                expandComponents(
+                    addPlaceholders(strings, expressions),
                     expressions
                 ),
                 expressions
+            ),
+            expressions
         ).map(item => getExpressionResult(item, this));
 
         return new Partial(items);
@@ -955,27 +972,29 @@ class Component extends View {
      * @private
      */
     renderTemplatePart(part, addChild) {
-        this.pathManager.increment();
-
         const result = getExpressionResult(part, this);
 
-        const parse = (item) => {
+        const parse = item => {
             if (typeof item !== 'undefined' && item !== null && item !== false && item !== true) {
                 if (item instanceof SafeHTML) return item;
                 if (item instanceof Component) return addChild(item);
 
                 if (item instanceof Partial) {
                     this.pathManager.push();
-                    const out = item.items.map(subItem => parse(subItem)).join('');
+                    const out = item.items.map(subItem => { this.pathManager.increment(); return parse(subItem); }).join('');
                     this.pathManager.pop();
                     return out;
                 }
                 // Handle arrays (user loops) - disable tracking.
                 if (Array.isArray(item)) {
-                    return deepFlat(item).map(parse).join('');
+                    this.pathManager.pause();
+                    const out = deepFlat(item).map(parse).join('');
+                    this.pathManager.resume();
+                    return out;
                 }
                 // InterpolationResult: add markers and process maintaining tracking.
                 if (item instanceof InterpolationResult) {
+                    this.pathManager.increment();
                     const startMarker = `<!--${Component.INTERPOLATION_START(item.interpolationUid)}-->`;
                     const endMarker = `<!--${Component.INTERPOLATION_END(item.interpolationUid)}-->`;
                     return `${startMarker}${parse(item.result)}${endMarker}`;
@@ -1046,6 +1065,8 @@ class Component extends View {
         this.template.interpolations.forEach(interpolation => {
             const nextChildren = [];
             const recycledChildren = [];
+
+            this.pathManager.increment();
 
             const addChild = component => {
                 let out = component;
