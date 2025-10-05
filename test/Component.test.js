@@ -641,10 +641,10 @@ describe('Component', () => {
         c1.render();
         c2.render();
 
-        expect(document.querySelectorAll('button')[0].innerHTML).to.be.equal('<!--rasti-start-r-2-1-->ok<!--rasti-end-r-2-1-->');
+        expect(document.querySelectorAll('button')[0].innerHTML).to.be.equal('<!--rasti-start-r-5-1-->ok<!--rasti-end-r-5-1-->');
         expect(c1.el).to.be.equal(c1.children[0].el);
 
-        expect(document.querySelectorAll('button')[1].innerHTML).to.be.equal('<!--rasti-start-r-4-1-->cancel<!--rasti-end-r-4-1-->');
+        expect(document.querySelectorAll('button')[1].innerHTML).to.be.equal('<!--rasti-start-r-6-1-->cancel<!--rasti-end-r-6-1-->');
         expect(c2.el).to.be.equal(c2.children[0].el);
     });
 
