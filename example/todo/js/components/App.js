@@ -12,12 +12,11 @@ import Footer from './Footer.js';
  */
 const App = Component.create`
     <main class="todoapp">
-        <${Header} key="header" handleAddTodo="${({ model }) => (title) => model.addTodo({ title })}" />
+        <${Header} handleAddTodo="${({ model }) => (title) => model.addTodo({ title })}" />
 
         ${({ model, partial }) => !!model.todos.length && partial`
             <section class="main">
                 <${ToggleAll}
-                    key="toggle-all"
                     checked="${() => !!model.todos.length && !model.remaining.length}"
                     handleChange=${(checked) => model.toggleAll(checked)}
                 />
@@ -32,7 +31,7 @@ const App = Component.create`
                 </ul>
             </section>
 
-            <${Footer} key="footer" model="${model}" />
+            <${Footer} model="${model}" />
         `}
     </main>
 `;

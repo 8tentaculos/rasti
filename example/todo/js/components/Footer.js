@@ -13,7 +13,6 @@ const Footer = Component.create`
             ${({ model }) => model.remaining.length === 1 ? 'item' : 'items'} left
         </span>
         <${Filter}
-            key="filter"
             currentFilter="${({ model }) => model.filter}"
             handleFilter="${({ model }) => (filter) => {
                 model.filter = filter;
