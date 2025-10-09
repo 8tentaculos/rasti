@@ -3,13 +3,14 @@
 * [Component](#module_component) ⇐ <code>View</code>
     * _instance_
         * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
+        * [.getNodes()](#module_component__getnodes) ⇒ <code>Array.&lt;Node&gt;</code>
         * [.onCreate(options)](#module_component__oncreate)
         * [.onChange(model, changed)](#module_component__onchange)
         * [.onHydrate()](#module_component__onhydrate)
         * [.onRecycle()](#module_component__onrecycle)
         * [.onUpdate()](#module_component__onupdate)
         * [.onDestroy(options)](#module_component__ondestroy)
-        * [.partial(strings, ...expressions)](#module_component__partial) ⇒ <code>Array</code>
+        * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>Partial</code>](#new_partial_new)
         * [.toString()](#module_component__tostring) ⇒ <code>string</code>
         * [.render()](#module_component__render) ⇒ <code>Component</code>
     * _static_
@@ -70,7 +71,7 @@ Components are defined with the [Component.create](#module_component_create) sta
 
 | Name | Type | Description |
 | --- | --- | --- |
-| [key] | <code>string</code> | A unique key to identify the component. Used to recycle child components. |
+| [key] | <code>string</code> | A unique key to identify the component. Components with keys are recycled when the same key is found in the previous render. Unkeyed components are recycled based on type and position. |
 | [model] | <code>Rasti.Model</code> | A `Rasti.Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method. |
 | [state] | <code>Rasti.Model</code> | A `Rasti.Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method. |
 | [props] | <code>Rasti.Model</code> | Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Rasti.Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When a component with a `key` is recycled during parent re-render, new props are automatically updated and any changes trigger a re-render. |
@@ -95,13 +96,14 @@ setInterval(() => model.seconds++, 1000);
 * [Component](#module_component) ⇐ <code>View</code>
     * _instance_
         * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
+        * [.getNodes()](#module_component__getnodes) ⇒ <code>Array.&lt;Node&gt;</code>
         * [.onCreate(options)](#module_component__oncreate)
         * [.onChange(model, changed)](#module_component__onchange)
         * [.onHydrate()](#module_component__onhydrate)
         * [.onRecycle()](#module_component__onrecycle)
         * [.onUpdate()](#module_component__onupdate)
         * [.onDestroy(options)](#module_component__ondestroy)
-        * [.partial(strings, ...expressions)](#module_component__partial) ⇒ <code>Array</code>
+        * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>Partial</code>](#new_partial_new)
         * [.toString()](#module_component__tostring) ⇒ <code>string</code>
         * [.render()](#module_component__render) ⇒ <code>Component</code>
     * _static_
@@ -125,6 +127,17 @@ By default, the component subscribes to changes on `this.model`, `this.state`, a
 | [type] | <code>string</code> | <code>&quot;&#x27;change&#x27;&quot;</code> | The event type to listen for. |
 | [listener] | <code>function</code> | <code>this.onChange</code> | The callback to invoke when the event is emitted. |
 
+<a name="module_component__getnodes" id="module_component__getnodes" class="anchor"></a>
+### component.getNodes() ⇒ <code>Array.&lt;Node&gt;</code>
+Get the component nodes to be inserted into the DOM.
+Used internally during the render process, you usually don't need to call it if you use
+`mount()`.
+For components that render HTML elements you can safely rely on `this.el`.
+For container components that render another component you need the wrapper nodes to insert
+them into the DOM; use `getNodes()` for that.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+**Returns**: <code>Array.&lt;Node&gt;</code> - The component nodes.  
 <a name="module_component__oncreate" id="module_component__oncreate" class="anchor"></a>
 ### component.onCreate(options)
 Lifecycle method. Called when the view is created, at the end of the `constructor`.
@@ -177,16 +190,16 @@ Lifecycle method. Called when the component is destroyed.
 | options | <code>object</code> | Options object or any arguments passed to `destroy` method. |
 
 <a name="module_component__partial" id="module_component__partial" class="anchor"></a>
-### component.partial(strings, ...expressions) ⇒ <code>Array</code>
+### component.partial(strings, ...expressions) ⇒ [<code>Partial</code>](#new_partial_new)
 Tagged template helper method.
 Used to create a partial template.  
-It will return a one-dimensional array with strings and expressions.  
+It will return a Partial object that preserves structure for position-based recycling.
 Components will be added as children by the parent component. Template strings literals 
 will be marked as safe HTML to be rendered.
 This method is bound to the component instance by default.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
-**Returns**: <code>Array</code> - Array containing strings and expressions.  
+**Returns**: [<code>Partial</code>](#new_partial_new) - Partial object containing strings and expressions.  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -230,7 +243,10 @@ Use it for server-side rendering or static site generation.
 Render the `Component`.  
 - If `this.el` is not present, the `Component` will be rendered as a string inside a `DocumentFragment` and hydrated, making `this.el` available. The `onHydrate` lifecycle method will be called.  
 - If `this.el` is present, the method will update the attributes and inner HTML of the element, or recreate its child component in the case of a container. The `onUpdate` lifecycle method will be called.  
-- When rendering child components, if the new children have the same key as the previous ones, they will be recycled. A recycled `Component` will call the `onRecycle` lifecycle method.  
+- When rendering child components, recycling happens in two ways:
+  - Components with a `key` are recycled if a previous child with the same key exists.
+  - Unkeyed components are recycled if they have the same type and position in the template or partial.
+  A recycled `Component` will call the `onRecycle` lifecycle method.  
 - If the active element is inside the component, it will retain focus after the render.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
@@ -292,11 +308,13 @@ Takes a tagged template string or a function that returns another component, and
       </button>
   `;
   ```
-- Event handlers should be passed, at the root element as camelized attributes, in the format `onEventName=${{'selector' : listener }}`. They will be transformed to an event object and delegated to the root element. See [View.delegateEvents](#module_view__delegateevents). 
+- Attach DOM event handlers per element using camel-cased attributes, e.g. <code>onClick=${handleClick}</code>. 
+  Rasti still delegates all listeners to the component’s root element for performance. 
+  If you need custom delegation you may override the <code>events</code> property (object or function) as described in [View.delegateEvents](#module_view__delegateevents).
 - Boolean attributes should be passed in the format `attribute="${() => true}"`. `false` attributes won't be rendered. `true` attributes will be rendered without a value.
   ```javascript
   const Input = Component.create`
-      <input type="text" disabled=${({ options }) => options.disabled} />
+      <input type="text" disabled=${({ props }) => props.disabled} />
   `;
   ```
 - If the interpolated function returns a component instance, it will be added as a child component.
@@ -311,7 +329,7 @@ Takes a tagged template string or a function that returns another component, and
   // Create a navigation component. Add buttons as children. Iterate over items.
   const Navigation = Component.create`
       <nav>
-          ${({ options }) => options.items.map(
+          ${({ props }) => props.items.map(
               item => Button.mount({ children : item.label })
           )}
       </nav>
@@ -319,7 +337,7 @@ Takes a tagged template string or a function that returns another component, and
   // Create a header component. Add navigation as a child.
   const Header = Component.create`
       <header>
-          ${({ options }) => Navigation.mount({ items : options.items})}
+          ${({ props }) => Navigation.mount({ items : props.items})}
       </header>
   `;
   ```
@@ -334,7 +352,7 @@ Takes a tagged template string or a function that returns another component, and
   // Create a navigation component. Add buttons as children. Iterate over items.
   const Navigation = Component.create`
       <nav>
-          ${({ options, partial }) => options.items.map(
+          ${({ props, partial }) => props.items.map(
               item => partial`<${Button}>${item.label}</${Button}>`
           )}
       </nav>
@@ -342,7 +360,7 @@ Takes a tagged template string or a function that returns another component, and
   // Create a header component. Add navigation as a child.
   const Header = Component.create`
       <header>
-          <${Navigation} items="${({ options }) => options.items}" />
+          <${Navigation} items="${({ props }) => props.items}" />
       </header>
   `;
   ```
@@ -350,7 +368,7 @@ Takes a tagged template string or a function that returns another component, and
   ```javascript
   // Create a button component.
   const Button = Component.create`
-      <button class="${({ options }) => options.className}">
+      <button class="${({ props }) => props.className}">
           ${({ props }) => props.children}
       </button>
   `;
@@ -947,7 +965,7 @@ If `this.el` is not present, an element will be created using `this.tag` (defaul
 
 **Example**  
 ```js
-import { View } from 'rasti';
+import { View, Model } from 'rasti';
 
 class Timer extends View {
     constructor(options) {

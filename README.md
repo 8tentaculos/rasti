@@ -73,12 +73,13 @@ const Timer = Component.create`
 `;
 
 // Create a model to store the seconds.
-const model = new Model({ seconds: 0 });
+const model = new Model({ seconds : 0 });
 
 // Mount the Timer component to the body and pass the model as an option.
 Timer.mount({ model }, document.body);
 
 // Increment the `seconds` property of the model every second.
+// Only the text node inside the <span> gets updated on each render.
 setInterval(() => model.seconds++, 1000);
 ```
 
@@ -89,9 +90,9 @@ setInterval(() => model.seconds++, 1000);
 ```javascript
 // Define the routes for the navigation menu.
 const routes = [
-    { label: 'Home', href: '#' },
-    { label: 'Faq', href: '#faq' },
-    { label: 'Contact', href: '#contact' },
+    { label : 'Home', href : '#' },
+    { label : 'Faq', href : '#faq' },
+    { label : 'Contact', href : '#contact' },
 ];
 
 // Create a Link component for navigation items.
@@ -154,6 +155,13 @@ You can find a sample **TODO application** in the [example folder](https://githu
 ## API Documentation
 
 For detailed information on how to use **Rasti**, refer to the [API documentation](/docs/api.md).
+
+## Version History
+
+- **[v4.0.0](https://github.com/8tentaculos/rasti/releases/tag/v4.0.0)** - Current version with simpler event handling, smarter component reuse, and granular DOM updates
+- **[v3.0.0](https://github.com/8tentaculos/rasti/releases/tag/v3.0.0)** - Introduced **Containers**, dynamic element tags, **Component** tags, `partial` method, and dropped ES5 support
+- **[v2.0.0](https://github.com/8tentaculos/rasti/releases/tag/v2.0.0)** - Introduced **Components** and improved `Model.set` with atomic change events
+- **[v1.0.0](https://github.com/8tentaculos/rasti/releases/tag/v1.0.0)** - Initial release
 
 
 ## Powered by **Rasti**

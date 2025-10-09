@@ -29,7 +29,7 @@ const viewOptions = ['el', 'tag', 'attributes', 'events', 'model', 'template', '
  * @property {Function} template A function that returns a string with the view's inner HTML. See {@link module_view__render View.render}. 
  * @property {number} uid Unique identifier for the view instance. This can be used to generate unique IDs for elements within the view. It is automatically generated and should not be set manually.
  * @example
- * import { View } from 'rasti';
+ * import { View, Model } from 'rasti';
  * 
  * class Timer extends View {
  *     constructor(options) {
