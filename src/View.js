@@ -281,13 +281,8 @@ export default class View extends Emitter {
             const selector = keyParts.join(' ');
 
             let listener = events[key];
-            // Listener may be a string representing a method name on the view,
-            // or a function.
-            listener = (
-                typeof listener === 'string' ?
-                    this[listener] :
-                    listener
-            ).bind(this);
+            // Listener may be a string representing a method name on the view, or a function.
+            if (typeof listener === 'string') listener = this[listener];
 
             if (!eventTypes[type]) eventTypes[type] = [];
 
@@ -301,7 +296,7 @@ export default class View extends Emitter {
                 eventTypes[type].forEach(({ selector, listener }) => {
                     // No selector provided: invoke listener once with root element.
                     if (!selector) {
-                        listener(event, this, this.el);
+                        listener.call(this, event, this, this.el);
                         return;
                     }
 
@@ -309,7 +304,7 @@ export default class View extends Emitter {
                     // Traverse ancestors until reaching the view root (`this.el`).
                     while (node && node !== this.el) {
                         if (node.matches && node.matches(selector)) {
-                            listener(event, this, node);
+                            listener.call(this, event, this, node);
                         }
                         node = node.parentElement;
                     }
