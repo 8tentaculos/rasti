@@ -2,210 +2,215 @@ import { expect } from 'chai';
 import Emitter from '../src/Emitter.js';
 
 describe('Emitter', () => {
-    it('must exists', () => {
-        expect(Emitter).to.exist;
-    });
-
-    it('must instantiate', () => {
-        const e = new Emitter();
-
-        expect(e).to.exist;
-        expect(e).to.be.an.instanceof(Emitter);
-    });
-
-    it('must add listener', () => {
-        const e = new Emitter();
-
-        const l1 = () => {};
-        const l2 = () => {};
-        const l3 = () => {};
-        const l4 = () => {};
-
-        // Add listeners for two events and check listeners object.
-        e.on('myEventA', l1);
-        e.on('myEventA', l2);
-        e.on('myEventB', l3);
-        e.on('myEventB', l4);
-
-        // Check listeners for myEventA.
-        expect(e.listeners).to.exist;
-        expect(e.listeners['myEventA']).to.exist;
-        expect(e.listeners['myEventA'][0]).to.be.a('function');
-        expect(e.listeners['myEventA'][0]).to.be.equal(l1);
-        expect(e.listeners['myEventA'][1]).to.be.a('function');
-        expect(e.listeners['myEventA'][1]).to.be.equal(l2);
-
-        // Check listeners for myEventB.
-        expect(e.listeners['myEventB']).to.include(l3);
-        expect(e.listeners['myEventB']).to.include(l4);
-    });
-
-    it('must emit event', (done) => {
-        const e = new Emitter();
-
-        e.on('myEvent', done);
-
-        e.emit('myEvent');
-    });
-
-    it('must stop listening', () => {
-        const e = new Emitter();
-
-        const l1 = () => {};
-        const l2 = () => {};
-        const l3 = () => {};
-        const l4 = () => {};
-
-        e.on('myEventA', l1);
-        e.on('myEventA', l2);
-        e.on('myEventB', l3);
-        e.on('myEventB', l4);
-
-        // Remove l1 listener from myEventA.
-        e.off('myEventA', l1);
-
-        expect(e.listeners['myEventA']).to.have.lengthOf(1);
-        expect(e.listeners['myEventA'][0]).to.be.equal(l2);
-
-        // Remove all listeners from myEventB.
-        e.off('myEventB');
-        expect(e.listeners['myEventB']).to.not.exist;
-
-        // Remove all listeners.
-        e.off();
-        expect(e.listeners).to.not.exist;
-    });
-
-    it('must emit once', () => {
-        const e = new Emitter();
-        let count = 0;
-
-        e.once('myEvent', () => { count++; });
-
-        // Emit event 2 times.
-        e.emit('myEvent');
-        e.emit('myEvent');
-
-        expect(count).to.be.equal(1);
-    });
-
-    it('must return a function to remove listener', () => {
-        const e = new Emitter();
-        let count = 0;
-
-        const remove = e.on('myEvent', () => { count++; });
-
-        // Emit event 2 times.
-        e.emit('myEvent');
-        e.emit('myEvent');
-
-        expect(count).to.be.equal(2);
-
-        // Remove listener.
-        remove();
-
-        // Emit event 2 times.
-        e.emit('myEvent');
-        e.emit('myEvent');
-
-        expect(count).to.be.equal(2);
-        expect(e.listeners).to.not.exist;
-    });
-
-    it('must return a function to remove listener from once', () => {
-        const e = new Emitter();
-        let count = 0;
-
-        const remove = e.once('myEvent', () => { count++; });
-
-        // Remove listener before emitting.
-        remove();
-
-        // Emit event 2 times.
-        e.emit('myEvent');
-        e.emit('myEvent');
-
-        expect(count).to.be.equal(0);
-        expect(e.listeners).to.not.exist;
-    });
-
-    it('must pass arguments to listeners', () => {
-        const e = new Emitter();
-        let receivedArgs = null;
-
-        e.on('myEvent', (...args) => {
-            receivedArgs = args;
+    describe('Basic functionality', () => {
+        it('must exists', () => {
+            expect(Emitter).to.exist;
         });
 
-        // Emit with no arguments.
-        e.emit('myEvent');
-        expect(receivedArgs).to.deep.equal([]);
+        it('must instantiate', () => {
+            const e = new Emitter();
 
-        // Emit with single argument.
-        e.emit('myEvent', 'test');
-        expect(receivedArgs).to.deep.equal(['test']);
-
-        // Emit with multiple arguments.
-        e.emit('myEvent', 'arg1', 42, { key : 'value' });
-        expect(receivedArgs).to.deep.equal(['arg1', 42, { key : 'value' }]);
+            expect(e).to.exist;
+            expect(e).to.be.an.instanceof(Emitter);
+        });
     });
 
-    it('must throw error if listener is not a function', () => {
-        const e = new Emitter();
+    describe('Event handling', () => {
 
-        expect(() => e.on('myEvent', 'not a function')).to.throw(TypeError, 'Listener must be a function');
-        expect(() => e.on('myEvent', 123)).to.throw(TypeError, 'Listener must be a function');
-        expect(() => e.on('myEvent', null)).to.throw(TypeError, 'Listener must be a function');
-        expect(() => e.on('myEvent', undefined)).to.throw(TypeError, 'Listener must be a function');
+        it('must add listener', () => {
+            const e = new Emitter();
 
-        expect(() => e.once('myEvent', 'not a function')).to.throw(TypeError, 'Listener must be a function');
-    });
+            const l1 = () => {};
+            const l2 = () => {};
+            const l3 = () => {};
+            const l4 = () => {};
 
-    it('must handle repeated off calls gracefully', () => {
-        const e = new Emitter();
-        const listener = () => {};
+            // Add listeners for two events and check listeners object.
+            e.on('myEventA', l1);
+            e.on('myEventA', l2);
+            e.on('myEventB', l3);
+            e.on('myEventB', l4);
 
-        e.on('myEvent', listener);
+            // Check listeners for myEventA.
+            expect(e.listeners).to.exist;
+            expect(e.listeners['myEventA']).to.exist;
+            expect(e.listeners['myEventA'][0]).to.be.a('function');
+            expect(e.listeners['myEventA'][0]).to.be.equal(l1);
+            expect(e.listeners['myEventA'][1]).to.be.a('function');
+            expect(e.listeners['myEventA'][1]).to.be.equal(l2);
 
-        // Remove listener multiple times - should not throw errors.
-        expect(() => {
-            e.off('myEvent', listener);
-            e.off('myEvent', listener);
-            e.off('myEvent', listener);
-        }).to.not.throw();
+            // Check listeners for myEventB.
+            expect(e.listeners['myEventB']).to.include(l3);
+            expect(e.listeners['myEventB']).to.include(l4);
+        });
 
-        // Remove from non-existent event type.
-        expect(() => {
-            e.off('nonExistentEvent', listener);
-        }).to.not.throw();
+        it('must emit event', (done) => {
+            const e = new Emitter();
 
-        // Remove all listeners multiple times.
-        expect(() => {
+            e.on('myEvent', done);
+
+            e.emit('myEvent');
+        });
+
+        it('must stop listening', () => {
+            const e = new Emitter();
+
+            const l1 = () => {};
+            const l2 = () => {};
+            const l3 = () => {};
+            const l4 = () => {};
+
+            e.on('myEventA', l1);
+            e.on('myEventA', l2);
+            e.on('myEventB', l3);
+            e.on('myEventB', l4);
+
+            // Remove l1 listener from myEventA.
+            e.off('myEventA', l1);
+
+            expect(e.listeners['myEventA']).to.have.lengthOf(1);
+            expect(e.listeners['myEventA'][0]).to.be.equal(l2);
+
+            // Remove all listeners from myEventB.
+            e.off('myEventB');
+            expect(e.listeners['myEventB']).to.not.exist;
+
+            // Remove all listeners.
             e.off();
-            e.off();
-            e.off();
-        }).to.not.throw();
-    });
+            expect(e.listeners).to.not.exist;
+        });
 
-    it('must emit to correct listeners only', () => {
-        const e = new Emitter();
-        let countA = 0;
-        let countB = 0;
+        it('must emit once', () => {
+            const e = new Emitter();
+            let count = 0;
 
-        e.on('eventA', () => { countA++; });
-        e.on('eventB', () => { countB++; });
+            e.once('myEvent', () => { count++; });
 
-        e.emit('eventA');
-        expect(countA).to.equal(1);
-        expect(countB).to.equal(0);
+            // Emit event 2 times.
+            e.emit('myEvent');
+            e.emit('myEvent');
 
-        e.emit('eventB');
-        expect(countA).to.equal(1);
-        expect(countB).to.equal(1);
+            expect(count).to.be.equal(1);
+        });
 
-        e.emit('nonExistentEvent');
-        expect(countA).to.equal(1);
-        expect(countB).to.equal(1);
+        it('must return a function to remove listener', () => {
+            const e = new Emitter();
+            let count = 0;
+
+            const remove = e.on('myEvent', () => { count++; });
+
+            // Emit event 2 times.
+            e.emit('myEvent');
+            e.emit('myEvent');
+
+            expect(count).to.be.equal(2);
+
+            // Remove listener.
+            remove();
+
+            // Emit event 2 times.
+            e.emit('myEvent');
+            e.emit('myEvent');
+
+            expect(count).to.be.equal(2);
+            expect(e.listeners).to.not.exist;
+        });
+
+        it('must return a function to remove listener from once', () => {
+            const e = new Emitter();
+            let count = 0;
+
+            const remove = e.once('myEvent', () => { count++; });
+
+            // Remove listener before emitting.
+            remove();
+
+            // Emit event 2 times.
+            e.emit('myEvent');
+            e.emit('myEvent');
+
+            expect(count).to.be.equal(0);
+            expect(e.listeners).to.not.exist;
+        });
+
+        it('must pass arguments to listeners', () => {
+            const e = new Emitter();
+            let receivedArgs = null;
+
+            e.on('myEvent', (...args) => {
+                receivedArgs = args;
+            });
+
+            // Emit with no arguments.
+            e.emit('myEvent');
+            expect(receivedArgs).to.deep.equal([]);
+
+            // Emit with single argument.
+            e.emit('myEvent', 'test');
+            expect(receivedArgs).to.deep.equal(['test']);
+
+            // Emit with multiple arguments.
+            e.emit('myEvent', 'arg1', 42, { key : 'value' });
+            expect(receivedArgs).to.deep.equal(['arg1', 42, { key : 'value' }]);
+        });
+
+        it('must throw error if listener is not a function', () => {
+            const e = new Emitter();
+
+            expect(() => e.on('myEvent', 'not a function')).to.throw(TypeError, 'Listener must be a function');
+            expect(() => e.on('myEvent', 123)).to.throw(TypeError, 'Listener must be a function');
+            expect(() => e.on('myEvent', null)).to.throw(TypeError, 'Listener must be a function');
+            expect(() => e.on('myEvent', undefined)).to.throw(TypeError, 'Listener must be a function');
+
+            expect(() => e.once('myEvent', 'not a function')).to.throw(TypeError, 'Listener must be a function');
+        });
+
+        it('must handle repeated off calls gracefully', () => {
+            const e = new Emitter();
+            const listener = () => {};
+
+            e.on('myEvent', listener);
+
+            // Remove listener multiple times - should not throw errors.
+            expect(() => {
+                e.off('myEvent', listener);
+                e.off('myEvent', listener);
+                e.off('myEvent', listener);
+            }).to.not.throw();
+
+            // Remove from non-existent event type.
+            expect(() => {
+                e.off('nonExistentEvent', listener);
+            }).to.not.throw();
+
+            // Remove all listeners multiple times.
+            expect(() => {
+                e.off();
+                e.off();
+                e.off();
+            }).to.not.throw();
+        });
+
+        it('must emit to correct listeners only', () => {
+            const e = new Emitter();
+            let countA = 0;
+            let countB = 0;
+
+            e.on('eventA', () => { countA++; });
+            e.on('eventB', () => { countB++; });
+
+            e.emit('eventA');
+            expect(countA).to.equal(1);
+            expect(countB).to.equal(0);
+
+            e.emit('eventB');
+            expect(countA).to.equal(1);
+            expect(countB).to.equal(1);
+
+            e.emit('nonExistentEvent');
+            expect(countA).to.equal(1);
+            expect(countB).to.equal(1);
+        });
     });
 
     describe('Inverse of Control methods', () => {
