@@ -36,8 +36,8 @@ describe('Model', () => {
                 }
             }
 
-        const m = new MyModel();
-        expect(m.get('test')).to.be.true;
+            const m = new MyModel();
+            expect(m.get('test')).to.be.true;
         });
 
         it('must initialize with attributes', () => {
@@ -62,8 +62,8 @@ describe('Model', () => {
         it('must set and get attribute using setter', () => {
             const m = new Model({ test : false });
             m.test = true;
-        expect(m.test).to.be.true;
-        expect(m.get('test')).to.be.true;
+            expect(m.test).to.be.true;
+            expect(m.get('test')).to.be.true;
         });
 
         it('must set attribute and have previous value', () => {
