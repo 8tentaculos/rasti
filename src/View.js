@@ -228,7 +228,7 @@ export default class View extends Emitter {
      * All attached listeners are bound to the view, ensuring that `this` refers to the view object when the listeners are invoked.
      * When `delegateEvents` is called again, possibly with a different events object, all previous listeners are removed and delegated afresh.
      * 
-     * Listener signature: `(event, view, matched)`
+     * **Listener signature:** `(event, view, matched)`
      * - `event`:   The native DOM event object.
      * - `view`:    The current view instance (`this`).
      * - `matched`: The element that satisfies the selector. If no selector is provided, it will be the view's root element (`this.el`).
@@ -239,21 +239,32 @@ export default class View extends Emitter {
      * @param {object} [events] Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to the root element.
      * @return {Rasti.View} Returns `this` for chaining.
      * @example
-     * // Using a function.
+     * // Using prototype (recommended for static events)
      * class Modal extends View {
+     *     onClickOk(event, view, matched) {
+     *         // matched === the button.ok element that was clicked
+     *         this.close();
+     *     }
+     *     
+     *     onClickCancel() {
+     *         this.destroy();
+     *     }
+     * }
+     * Modal.prototype.events = {
+     *     'click button.ok': 'onClickOk',
+     *     'click button.cancel': 'onClickCancel',
+     *     'submit form': 'onSubmit'
+     * };
+     * 
+     * // Using a function for dynamic events
+     * class DynamicView extends View {
      *     events() {
      *         return {
-     *             'click button.ok': 'onClickOkButton',
-     *             'click button.cancel': function() {}
+     *             [`click .${this.model.buttonClass}`]: 'onButtonClick',
+     *             'click': 'onRootClick'
      *         };
      *     }
      * }
-     * 
-     * // Using an object.
-     * Modal.prototype.events = {
-     *     'click button.ok' : 'onClickOkButton',
-     *     'click button.cancel' : function() {}
-     * };
      */
     delegateEvents(events) {
         if (!events) events = getResult(this.events, this);

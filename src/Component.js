@@ -1213,9 +1213,36 @@ class Component extends View {
      *       </button>
      *   `;
      *   ```
-     * - Attach DOM event handlers per element using camel-cased attributes, e.g. <code>onClick=${handleClick}</code>. 
-     *   Rasti still delegates all listeners to the component’s root element for performance. 
-     *   If you need custom delegation you may override the <code>events</code> property (object or function) as described in {@link #module_view__delegateevents View.delegateEvents}.
+     * - Attach DOM event handlers per element using camel-cased attributes.
+     *   Event handlers are automatically bound to the component instance (`this`).
+     *   Internally, Rasti uses event delegation to the component's root element for performance.
+     *   
+     *   **Attribute Quoting:**
+     *   - **Quoted attributes** (`onClick="${handler}"`) evaluate the expression first, useful for dynamic values
+     *   - **Unquoted attributes** (`onClick=${handler}`) pass the function reference directly
+     *   
+     *   **Listener Signature:** `(event, component, matched)`
+     *   - `event`: The native DOM event object
+     *   - `component`: The component instance (same as `this`)
+     *   - `matched`: The element that matched the event (useful for delegation)
+     *   
+     *   ```javascript
+     *   const Button = Component.create`
+     *       <button 
+     *           onClick=${function(event, component, matched) {
+     *               // this === component
+     *               console.log('Button clicked:', matched);
+     *           }}
+     *           onMouseOver="${({ model }) => () => model.isHovered = true}"
+     *           onMouseOut="${({ model }) => () => model.isHovered = false}"
+     *       >
+     *           Click me
+     *       </button>
+     *   `;
+     *   ```
+     *   
+     *   If you need custom delegation (e.g., `{'click .selector': 'handler'}`), 
+     *   you may override the `events` property as described in {@link #module_view__delegateevents View.delegateEvents}.
      * - Boolean attributes should be passed in the format `attribute="${() => true}"`. `false` attributes won't be rendered. `true` attributes will be rendered without a value.
      *   ```javascript
      *   const Input = Component.create`
