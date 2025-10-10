@@ -308,9 +308,36 @@ Takes a tagged template string or a function that returns another component, and
       </button>
   `;
   ```
-- Attach DOM event handlers per element using camel-cased attributes, e.g. <code>onClick=${handleClick}</code>. 
-  Rasti still delegates all listeners to the component’s root element for performance. 
-  If you need custom delegation you may override the <code>events</code> property (object or function) as described in [View.delegateEvents](#module_view__delegateevents).
+- Attach DOM event handlers per element using camel-cased attributes.
+  Event handlers are automatically bound to the component instance (`this`).
+  Internally, Rasti uses event delegation to the component's root element for performance.
+  
+  **Attribute Quoting:**
+  - **Quoted attributes** (`onClick="${handler}"`) evaluate the expression first, useful for dynamic values
+  - **Unquoted attributes** (`onClick=${handler}`) pass the function reference directly
+  
+  **Listener Signature:** `(event, component, matched)`
+  - `event`: The native DOM event object
+  - `component`: The component instance (same as `this`)
+  - `matched`: The element that matched the event (useful for delegation)
+  
+  ```javascript
+  const Button = Component.create`
+      <button 
+          onClick=${function(event, component, matched) {
+              // this === component
+              console.log('Button clicked:', matched);
+          }}
+          onMouseOver="${({ model }) => () => model.isHovered = true}"
+          onMouseOut="${({ model }) => () => model.isHovered = false}"
+      >
+          Click me
+      </button>
+  `;
+  ```
+  
+  If you need custom delegation (e.g., `{'click .selector': 'handler'}`), 
+  you may override the `events` property as described in [View.delegateEvents](#module_view__delegateevents).
 - Boolean attributes should be passed in the format `attribute="${() => true}"`. `false` attributes won't be rendered. `true` attributes will be rendered without a value.
   ```javascript
   const Input = Component.create`
@@ -1128,7 +1155,7 @@ all of your DOM events will be connected automatically, and you will not need to
 All attached listeners are bound to the view, ensuring that `this` refers to the view object when the listeners are invoked.
 When `delegateEvents` is called again, possibly with a different events object, all previous listeners are removed and delegated afresh.
 
-Listener signature: `(event, view, matched)`
+**Listener signature:** `(event, view, matched)`
 - `event`:   The native DOM event object.
 - `view`:    The current view instance (`this`).
 - `matched`: The element that satisfies the selector. If no selector is provided, it will be the view's root element (`this.el`).
@@ -1145,21 +1172,32 @@ invoked **once for each matched element** (from inner to outer).
 
 **Example**  
 ```js
-// Using a function.
+// Using prototype (recommended for static events)
 class Modal extends View {
+    onClickOk(event, view, matched) {
+        // matched === the button.ok element that was clicked
+        this.close();
+    }
+    
+    onClickCancel() {
+        this.destroy();
+    }
+}
+Modal.prototype.events = {
+    'click button.ok': 'onClickOk',
+    'click button.cancel': 'onClickCancel',
+    'submit form': 'onSubmit'
+};
+
+// Using a function for dynamic events
+class DynamicView extends View {
     events() {
         return {
-            'click button.ok': 'onClickOkButton',
-            'click button.cancel': function() {}
+            [`click .${this.model.buttonClass}`]: 'onButtonClick',
+            'click': 'onRootClick'
         };
     }
 }
-
-// Using an object.
-Modal.prototype.events = {
-    'click button.ok' : 'onClickOkButton',
-    'click button.cancel' : function() {}
-};
 ```
 <a name="module_view__undelegateevents" id="module_view__undelegateevents" class="anchor"></a>
 ### view.undelegateEvents() ⇒ <code>Rasti.View</code>
