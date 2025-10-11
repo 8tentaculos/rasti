@@ -42,7 +42,7 @@ class Partial {
  * @param {any} result The interpolation result.
  * @private
  */
-class InterpolationResult {
+class InterpolationWrapper {
     constructor(interpolationUid, result) {
         this.interpolationUid = interpolationUid;
         this.result = result;
@@ -632,7 +632,7 @@ const parseInterpolations = (template, expressions, interpolations) => {
             expressions.push(function() {
                 const result = getExpressionResult(expressions[expressionIndex], this);
                 const uid = `${this.uid}-${currentInterpolationUid}`;
-                return new InterpolationResult(uid, result);
+                return new InterpolationWrapper(uid, result);
             });
             // Replace with new placeholder.
             return Component.PLACEHOLDER_EXPRESSION(expressions.length - 1);
@@ -991,8 +991,8 @@ class Component extends View {
                     this.pathManager.resume();
                     return out;
                 }
-                // InterpolationResult: add markers and process maintaining tracking.
-                if (item instanceof InterpolationResult) {
+                // InterpolationWrapper: add markers and process maintaining tracking.
+                if (item instanceof InterpolationWrapper) {
                     this.pathManager.increment();
                     const startMarker = `<!--${Component.INTERPOLATION_START(item.interpolationUid)}-->`;
                     const endMarker = `<!--${Component.INTERPOLATION_END(item.interpolationUid)}-->`;
