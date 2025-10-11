@@ -16,7 +16,6 @@ describe('Emitter', () => {
     });
 
     describe('Event handling', () => {
-
         it('must add listener', () => {
             const e = new Emitter();
 

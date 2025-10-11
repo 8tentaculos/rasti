@@ -19,7 +19,6 @@ describe('Model', () => {
     });
 
     describe('Initialization', () => {
-
         it('must initialize with defaults', () => {
             class MyModel extends Model {}
 
