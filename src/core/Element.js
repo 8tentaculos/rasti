@@ -4,15 +4,12 @@ const SYNC_PROPS = ['value', 'checked', 'selected'];
 
 /**
  * Element reference for managing DOM element attributes.
+ * @param {Object} options The options object.
+ * @param {Function} options.getSelector Function that returns the CSS selector for the element.
+ * @param {Function} options.getAttributes Function that returns the attributes object for the element.
  * @private
  */
 class Element {
-    /**
-     * Create an element reference.
-     * @param {Object} options The options object.
-     * @param {Function} options.getSelector Function that returns the CSS selector for the element.
-     * @param {Function} options.getAttributes Function that returns the attributes object for the element.
-     */
     constructor(options) {
         this.getSelector = options.getSelector;
         this.getAttributes = options.getAttributes;

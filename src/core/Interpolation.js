@@ -2,15 +2,12 @@ import syncNode from '../utils/syncNode.js';
 
 /**
  * Interpolation reference for managing dynamic content between comment markers.
+ * @param {Object} options The options object.
+ * @param {Function} options.getUid Function that returns the unique identifier for the interpolation.
+ * @param {any} options.expression The expression to be evaluated for the interpolation.
  * @private
  */
 class Interpolation {
-    /**
-     * Create an interpolation reference.
-     * @param {Object} options The options object.
-     * @param {Function} options.getUid Function that returns the unique identifier for the interpolation.
-     * @param {any} options.expression The expression to be evaluated for the interpolation.
-     */
     constructor(options) {
         this.getStart = options.getStart;
         this.getEnd = options.getEnd;
