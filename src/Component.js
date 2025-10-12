@@ -1,10 +1,16 @@
 import View from './View.js';
 import Model from './Model.js';
+import SafeHTML from './core/SafeHTML.js';
+import Partial from './core/Partial.js';
+import InterpolationWrapper from './core/InterpolationWrapper.js';
+import EventsManager from './core/EventsManager.js';
+import PathManager from './core/PathManager.js';
+import Element from './core/Element.js';
+import Interpolation from './core/Interpolation.js';
 import getResult from './utils/getResult.js';
 import deepFlat  from './utils/deepFlat.js';
 import parseHTML from './utils/parseHTML.js';
 import getAttributesHTML from './utils/getAttributesHTML.js';
-import { SafeHTML, Partial, InterpolationWrapper, EventsManager, PathManager, Element, Interpolation } from './core/index.js';
 
 /**
  * Same as getResult, but pass context as argument to the expression.
