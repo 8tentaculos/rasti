@@ -137,6 +137,30 @@ Main.mount({ routes, model }, document.body);
 
 [Try it on CodePen](https://codepen.io/8tentaculos/pen/dyBMNbq?editors=0010)
 
+### Adding event listeners
+
+```javascript
+// Create a model to store the counter value.
+const model = new Model({ count : 0 });
+
+// Create a Counter component with increment and decrement buttons.
+const Counter = Component.create`
+    <div>
+        <div>Counter: ${({ model }) => model.count}</div>
+        <button onClick=${function() { this.model.count++; }}>Increment</button>
+        <button onClick=${function() { this.model.count--; }}>Decrement</button>
+    </div>
+`;
+
+// Mount the Counter component to the body and pass the model as an option.
+Counter.mount({ model }, document.body);
+
+// Event listeners are bound to 'this' and use delegation from the root element.
+// When buttons are clicked, only the text node gets updated, not the entire component.
+```
+
+[Try it on CodePen](https://codepen.io/8tentaculos/pen/PLACEHOLDER_ID?editors=0010)
+
 ## Why Choose **Rasti**?  
 
 **Rasti** is built for developers who want a simple yet powerful way to create UI components without the complexity of heavy frameworks. Whether you're building a high-performance dashboard, or embedding a lightweight widget, **Rasti** lets you:  
