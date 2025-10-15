@@ -171,11 +171,10 @@ const expandComponents = (main, expressions) => {
             // Create mount function.
             const mount = function() {
                 const options = expandAttributes(attributes, value => getExpressionResult(value, this));
-                // Add children to options.
-                // Process same as partial(): evaluate items in parent context and create Partial.
+                // Add `renderChildren` function to options.
                 if (innerList) {
-                    const evaluatedItems = innerList.map(item => getExpressionResult(item, this));
-                    options.children = new Partial(evaluatedItems);
+                    // Evaluate items in parent context and create Partial.
+                    options.renderChildren = () => new Partial(innerList.map(item => getExpressionResult(item, this)));
                 }
                 // Mount component.
                 return tag.mount(options);

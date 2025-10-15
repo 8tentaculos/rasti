@@ -94,7 +94,7 @@ describe('Component', () => {
         });
 
         it('must mount child component using tag component with children', () => {
-            const Button = Component.create`<button>${({ props }) => props.children}</button>`;
+            const Button = Component.create`<button>${({ props }) => props.renderChildren()}</button>`;
 
             const Main = Component.create`
                 <div id="test-node">
@@ -672,7 +672,7 @@ describe('Component', () => {
         });
 
         it('must create container with children using tag', () => {
-            const Button = Component.create`<button>${({ props }) => props.children}</button>`;
+            const Button = Component.create`<button>${({ props }) => props.renderChildren()}</button>`;
             const OkButton = Component.create`<${Button} color="primary">ok</${Button}>`;
             const CancelButton = Component.create`<${Button} color="secondary">${({ props }) => props.cancel && 'cancel'}</${Button}>`;
 
@@ -700,7 +700,7 @@ describe('Component', () => {
         });
 
         it('must create container with children using tag and key', () => {
-            const Button = Component.create`<button>${({ props }) => props.children}</button>`;
+            const Button = Component.create`<button>${({ props }) => props.renderChildren()}</button>`;
             const OkButton = Component.create`
                 <${Button} color="primary" key="ok">ok</${Button}>
             `;
@@ -718,7 +718,7 @@ describe('Component', () => {
         });
 
         it('must create container with children component using tag and key', () => {
-            const Button = Component.create`<button>${({ props }) => props.children}</button>`;
+            const Button = Component.create`<button>${({ props }) => props.renderChildren()}</button>`;
             const Icon = Component.create`<span class="icon"></span>`;
             const IconButton = Component.create`<${Button} color="primary" key="ok"><${Icon} /></${Button}>`;
 
@@ -857,7 +857,7 @@ describe('Component', () => {
             expect(c3.children[0].el).to.be.equal(document.querySelector('#test-node-3 button'));
             expect(c3.children[1].el).to.be.equal(document.querySelector('#test-node-3 span button'));
 
-            const ButtonWithChildren = Component.create`<button>${({ props }) => props.children}</button>`;
+            const ButtonWithChildren = Component.create`<button>${({ props }) => props.renderChildren()}</button>`;
 
             const c4 = Component.create`
                 <div id="test-node-4">${({ partial }) => partial`<div><${ButtonWithChildren}>${({ options }) => options.ok && 'ok'}</${ButtonWithChildren}>`}</div>
