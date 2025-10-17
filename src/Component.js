@@ -23,6 +23,22 @@ import getAttributesHTML from './utils/getAttributesHTML.js';
 const getExpressionResult = (expression, context) => getResult(expression, context, context);
 
 /**
+ * Check if an element is a component element.
+ * @param {Element} el The element to check.
+ * @return {boolean} True if the element is a component element.
+ * @private
+ */
+const isComponent = (el) => el.hasAttribute(Component.DATA_ATTRIBUTE_ELEMENT) && el.getAttribute(Component.DATA_ATTRIBUTE_ELEMENT).endsWith('-1');
+
+/**
+ * Check if an element is a element element.
+ * @param {Element} el The element to check.
+ * @return {boolean} True if the element is a element element.
+ * @private
+ */
+const isElement = (el) => el.hasAttribute(Component.DATA_ATTRIBUTE_ELEMENT);
+
+/**
  * Generate string with placeholders for interpolated expressions.
  * @param {Array<string>} strings Array of strings.
  * @param {Array<any>} expressions Array of expressions.
@@ -486,7 +502,7 @@ class Component extends View {
      * @private
      */
     isContainer() {
-        return this.template.elements.length === 0;
+        return this.template.elements.length === 0 && this.template.interpolations.length === 1;
     }
 
     /**
@@ -524,24 +540,30 @@ class Component extends View {
         ['model', 'state', 'props'].forEach(key => {
             if (this[key]) this.subscribe(this[key]);
         });
-        // Search for every element in template using getSelector
-        if (!this.isContainer()) {
-            this.template.elements.forEach(element => element.hydrate(parent));
-            // Set the first element as the component's element.
-            if (this.el) this.template.elements[0].ref = this.el;
-            else this.el = this.template.elements[0].ref;
-            // Delegate events.
-            this.delegateEvents();
-        }
-        // Get references for interpolation marker comments
-        if (this.template.interpolations.length > 0) {
-            this.template.interpolations.forEach(interpolation => interpolation.hydrate(parent));
-        }
-        // Call hydrate on children.
+
         if (this.isContainer()) {
+            // Get references for interpolation marker comments
+            this.template.interpolations[0].hydrate(parent);
+            // Call hydrate on children.
             this.children[0].hydrate(parent);
+            // Set the first element as the component's element.
             this.el = this.children[0].el;
         } else {
+            // Search for every element in template using getSelector
+            this.template.elements.forEach((element, index) => { 
+                if (index === 0) {
+                    element.hydrate(parent);
+                    if (this.el) element.ref = this.el;
+                    else this.el = element.ref;
+                }
+                else {
+                    element.hydrate(this.el);
+                }
+            });
+            // Delegate events.
+            this.delegateEvents();
+            // Get references for interpolation marker comments
+            this.template.interpolations.forEach(interpolation => interpolation.hydrate(this.el));
             this.children.forEach(child => child.hydrate(this.el));
         }
         // Call `onHydrate` lifecycle method.
@@ -1078,7 +1100,9 @@ class Component extends View {
                     interpolations : interpolations.map(interpolation => new Interpolation({
                         getStart : interpolation.getStart.bind(this),
                         getEnd : interpolation.getEnd.bind(this),
-                        expression : interpolation.expression
+                        expression : interpolation.expression,
+                        isComponent,
+                        isElement
                     })),
                     parts,
                 };

@@ -1,10 +1,14 @@
 import syncNode from '../utils/syncNode.js';
+import findComment from '../utils/findComment.js';
 
 /**
  * Interpolation reference for managing dynamic content between comment markers.
  * @param {Object} options The options object.
- * @param {Function} options.getUid Function that returns the unique identifier for the interpolation.
+ * @param {Function} options.getStart Function that returns the start comment marker.
+ * @param {Function} options.getEnd Function that returns the end comment marker.
  * @param {any} options.expression The expression to be evaluated for the interpolation.
+ * @param {Function} options.isComponent Function that checks if an element is a component element.
+ * @param {Function} options.isElement Function that checks if an element has the data attribute.
  * @private
  */
 class Interpolation {
@@ -12,6 +16,8 @@ class Interpolation {
         this.getStart = options.getStart;
         this.getEnd = options.getEnd;
         this.expression = options.expression;
+        this.isComponent = options.isComponent;
+        this.isElement = options.isElement;
     }
 
     /**
@@ -19,17 +25,11 @@ class Interpolation {
      * @param {Node} parent The parent node to search in.
      */
     hydrate(parent) {
-        const commentMap = new Map();
-        const walker = document.createTreeWalker(parent, NodeFilter.SHOW_COMMENT);
-
-        let node;
-        while ((node = walker.nextNode())) {
-            commentMap.set(node.textContent, node);
-        }
-
+        const startComment = findComment(parent, this.getStart(), this.isComponent);
+        const endComment = findComment(parent, this.getEnd(), this.isComponent, startComment);
         this.ref = [
-            commentMap.get(this.getStart()), 
-            commentMap.get(this.getEnd())
+            startComment, 
+            endComment
         ];
     }
 
@@ -45,7 +45,7 @@ class Interpolation {
         const currentEmpty = currentFirstElement == endComment;
         const fragmentChildren = fragment.children;
 
-        if (currentSingleChildElement && fragmentChildren.length === 1 && !currentFirstElement.getAttribute('data-rasti-el')) {
+        if (currentSingleChildElement && fragmentChildren.length === 1 && !this.isElement(currentFirstElement)) {
             // There is a single child element that is not a component's root element. Sync node attributes and content.
             syncNode(currentFirstElement, fragmentChildren[0]);
         } else if (currentEmpty) {

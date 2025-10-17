@@ -192,7 +192,7 @@ For detailed information on how to use **Rasti**, refer to the [API documentatio
 
 ### [Crypto Babylon](https://cryptobabylon.net)  
 
-A market analytics platform efficiently rendering over 300 dynamic rows, updated in real-time with thousands of messages per second via multiple WebSocket connections.  
+A market analytics platform efficiently rendering over 1000 dynamic rows, updated in real-time with thousands of messages per second via multiple WebSocket connections.  
 
 ### [jsPacman](https://pacman.js.org)
 
