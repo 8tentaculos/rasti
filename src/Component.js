@@ -10,6 +10,7 @@ import Interpolation from './core/Interpolation.js';
 import getResult from './utils/getResult.js';
 import deepFlat  from './utils/deepFlat.js';
 import parseHTML from './utils/parseHTML.js';
+import findComment from './utils/findComment.js';
 import getAttributesHTML from './utils/getAttributesHTML.js';
 
 /**
@@ -584,7 +585,7 @@ class Component extends View {
      * @private
      */
     getPlaceholder() {
-        return `<span ${Component.DATA_ATTRIBUTE_ELEMENT}="${this.uid}-1"></span>`;
+        return `<!--${Component.PLACEHOLDER_RECYCLED(this.uid)}-->`;
     }
 
     /**
@@ -611,8 +612,8 @@ class Component extends View {
      * @private
      */
     recycle(parent) {
-        // Find placeholder element to be replaced. It has same data attribute as this component.
-        const toBeReplaced = parent.querySelector(`[${Component.DATA_ATTRIBUTE_ELEMENT}="${this.uid}-1"]`);
+        // Locate the placeholder comment and replace it with the real nodes
+        const toBeReplaced = findComment(parent, Component.PLACEHOLDER_RECYCLED(this.uid), () => false);
         // Replace it with this.el.
         toBeReplaced.replaceWith(...this.getNodes());
         // Call `onRecycle` lifecycle method.
@@ -1120,6 +1121,7 @@ Component.DATA_ATTRIBUTE_ELEMENT = 'data-rasti-el';
 Component.DATA_ATTRIBUTE_EVENT = (type) => `data-rasti-on-${type}`;
 
 Component.PLACEHOLDER_EXPRESSION = (idx) => `__RASTI-${idx}__`;
+Component.PLACEHOLDER_RECYCLED = uid => `rasti-rec-${uid}`;
 Component.INTERPOLATION_START = (uid) => `rasti-start-${uid}`;
 Component.INTERPOLATION_END = (uid) => `rasti-end-${uid}`;
 

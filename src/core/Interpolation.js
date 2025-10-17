@@ -31,6 +31,7 @@ class Interpolation {
     hydrate(parent, interpolationMarkers) {
         const startComment = findComment(parent, this.getStart(), this.isComponent, interpolationMarkers);
         const endComment = findComment(parent, this.getEnd(), this.isComponent, interpolationMarkers, startComment);
+
         this.ref = [
             startComment, 
             endComment
