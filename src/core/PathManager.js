@@ -64,12 +64,12 @@ class PathManager {
      * @return {Component} The component.
      */
     track(component) {
-        if (this.paused) return component;
-
-        this.tracked.set(
-            this.getPath(),
-            component
-        );
+        if (!this.paused && !component.key) {
+            this.tracked.set(
+                this.getPath(),
+                component
+            );
+        }
 
         return component;
     }
