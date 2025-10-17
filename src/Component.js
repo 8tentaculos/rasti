@@ -835,7 +835,7 @@ class Component extends View {
                     // Add child to recycled children.
                     recycledChildren.push([found, component]);
                     // Track the component.
-                    this.pathManager.track(found);
+                    if (!found.key) this.pathManager.track(found);
                 } else {
                     // Add new component.
                     nextChildren.push(component);

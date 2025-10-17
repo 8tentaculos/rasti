@@ -64,7 +64,7 @@ class PathManager {
      * @return {Component} The component.
      */
     track(component) {
-        if (!this.paused && !component.key) {
+        if (!this.paused) {
             this.tracked.set(
                 this.getPath(),
                 component
