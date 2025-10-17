@@ -23,17 +23,19 @@ import getAttributesHTML from './utils/getAttributesHTML.js';
 const getExpressionResult = (expression, context) => getResult(expression, context, context);
 
 /**
- * Check if an element is a component element.
+ * Check if an element is a component root element.
+ * Component root elements have the data attribute ending with '-1'.
  * @param {Element} el The element to check.
- * @return {boolean} True if the element is a component element.
+ * @return {boolean} True if the element is a component root element.
  * @private
  */
 const isComponent = (el) => el.hasAttribute(Component.DATA_ATTRIBUTE_ELEMENT) && el.getAttribute(Component.DATA_ATTRIBUTE_ELEMENT).endsWith('-1');
 
 /**
- * Check if an element is a element element.
+ * Check if an element has the Rasti data attribute.
+ * This includes both component root elements and regular tracked elements.
  * @param {Element} el The element to check.
- * @return {boolean} True if the element is a element element.
+ * @return {boolean} True if the element has the data attribute.
  * @private
  */
 const isElement = (el) => el.hasAttribute(Component.DATA_ATTRIBUTE_ELEMENT);
@@ -541,9 +543,12 @@ class Component extends View {
             if (this[key]) this.subscribe(this[key]);
         });
 
+        // Cache for interpolation marker comments to avoid repeated DOM searches.
+        const interpolationMarkers = new Map();
+
         if (this.isContainer()) {
             // Get references for interpolation marker comments
-            this.template.interpolations[0].hydrate(parent);
+            this.template.interpolations[0].hydrate(parent, interpolationMarkers);
             // Call hydrate on children.
             this.children[0].hydrate(parent);
             // Set the first element as the component's element.
@@ -563,7 +568,7 @@ class Component extends View {
             // Delegate events.
             this.delegateEvents();
             // Get references for interpolation marker comments
-            this.template.interpolations.forEach(interpolation => interpolation.hydrate(this.el));
+            this.template.interpolations.forEach(interpolation => interpolation.hydrate(this.el, interpolationMarkers));
             this.children.forEach(child => child.hydrate(this.el));
         }
         // Call `onHydrate` lifecycle method.

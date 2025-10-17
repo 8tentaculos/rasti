@@ -3,12 +3,14 @@ import findComment from '../utils/findComment.js';
 
 /**
  * Interpolation reference for managing dynamic content between comment markers.
+ * Handles the lifecycle of content that can change between renders, including
+ * component recycling and DOM synchronization.
  * @param {Object} options The options object.
- * @param {Function} options.getStart Function that returns the start comment marker.
- * @param {Function} options.getEnd Function that returns the end comment marker.
+ * @param {Function} options.getStart Function that returns the start comment marker text.
+ * @param {Function} options.getEnd Function that returns the end comment marker text.
  * @param {any} options.expression The expression to be evaluated for the interpolation.
- * @param {Function} options.isComponent Function that checks if an element is a component element.
- * @param {Function} options.isElement Function that checks if an element has the data attribute.
+ * @param {Function} options.isComponent Function that checks if an element is a component root element.
+ * @param {Function} options.isElement Function that checks if an element has the Rasti data attribute.
  * @private
  */
 class Interpolation {
@@ -22,11 +24,13 @@ class Interpolation {
 
     /**
      * Attach the interpolation reference to comment markers in the DOM.
+     * Searches for start and end comment markers, skipping component subtrees.
      * @param {Node} parent The parent node to search in.
+     * @param {Map<string, Comment>} interpolationMarkers Cache for found comment markers.
      */
-    hydrate(parent) {
-        const startComment = findComment(parent, this.getStart(), this.isComponent);
-        const endComment = findComment(parent, this.getEnd(), this.isComponent, startComment);
+    hydrate(parent, interpolationMarkers) {
+        const startComment = findComment(parent, this.getStart(), this.isComponent, interpolationMarkers);
+        const endComment = findComment(parent, this.getEnd(), this.isComponent, interpolationMarkers, startComment);
         this.ref = [
             startComment, 
             endComment
@@ -35,6 +39,7 @@ class Interpolation {
 
     /**
      * Update the interpolation content with a new fragment.
+     * Optimizes updates by syncing single non-component elements or replacing content entirely.
      * @param {DocumentFragment} fragment The new content fragment to insert.
      */
     update(fragment) {
