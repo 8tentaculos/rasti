@@ -1,8 +1,8 @@
 /**
  * Get difference between current and previous attributes.
- * @param {Object} attributes Current attributes object
- * @param {Object} previous Previous attributes object
- * @return {Object} Object with add and remove properties
+ * @param {Object} attributes Current attributes object.
+ * @param {Object} previous Previous attributes object.
+ * @return {Object} Object with add and remove properties.
  * @module
  * @private
  */
