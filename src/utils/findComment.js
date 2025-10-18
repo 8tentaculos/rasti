@@ -27,7 +27,7 @@ export default function findComment(
         // Cache every comment encountered along the way.
         if (node.nodeType === Node.COMMENT_NODE) {
             const key = node.data.trim();
-            if (!cache.has(key)) cache.set(key, node);
+            cache.set(key, node);
             if (key === text) return node;
         }
         // Descend into children if allowed and present.
