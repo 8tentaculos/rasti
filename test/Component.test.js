@@ -42,19 +42,19 @@ describe('Component', () => {
     describe('Template creation', () => {
         it('must be created with a self enclosed tag', () => {
             const c = Component.create`<input id="test-node" type="text" />`.mount({}, document.body);
-            expect(c.toString()).to.be.equal(`<input id="test-node" type="text" ${Component.DATA_ATTRIBUTE_ELEMENT}="r-1-1">`);
+            expect(c.toString()).to.be.equal(`<input id="test-node" type="text" ${Component.ATTRIBUTE_ELEMENT}="r-1-1">`);
             expect(document.getElementById('test-node')).to.exist;
         });
 
         it('must be created with a function tag', () => {
             const c = Component.create`<${() => 'div'} id="test-node"><span></span></${() => 'div'}>`.mount({}, document.body);
-            expect(c.toString()).to.be.equal(`<div id="test-node" ${Component.DATA_ATTRIBUTE_ELEMENT}="r-1-1"><span></span></div>`);
+            expect(c.toString()).to.be.equal(`<div id="test-node" ${Component.ATTRIBUTE_ELEMENT}="r-1-1"><span></span></div>`);
             expect(document.getElementById('test-node')).to.exist;
         });
 
         it('must be created with a function tag with self enclosed tag', () => {
             const c = Component.create`<${() => 'input'} id="test-node" type="text" />`.mount({}, document.body);
-            expect(c.toString()).to.be.equal(`<input id="test-node" type="text" ${Component.DATA_ATTRIBUTE_ELEMENT}="r-1-1">`);
+            expect(c.toString()).to.be.equal(`<input id="test-node" type="text" ${Component.ATTRIBUTE_ELEMENT}="r-1-1">`);
             expect(document.getElementById('test-node')).to.exist;
         });
 
@@ -199,21 +199,21 @@ describe('Component', () => {
         it('must render true and false attributes', () => {
             expect(
                 Component.create`<input id="test-node" disabled="${() => false}" />`.mount().toString()
-            ).to.be.equal(`<input id="test-node" ${Component.DATA_ATTRIBUTE_ELEMENT}="r-1-1">`);
+            ).to.be.equal(`<input id="test-node" ${Component.ATTRIBUTE_ELEMENT}="r-1-1">`);
 
             expect(
                 Component.create`<input id="test-node" disabled="${() => true}" />`.mount().toString()
-            ).to.be.equal(`<input id="test-node" disabled ${Component.DATA_ATTRIBUTE_ELEMENT}="r-2-1">`);
+            ).to.be.equal(`<input id="test-node" disabled ${Component.ATTRIBUTE_ELEMENT}="r-2-1">`);
         });
 
         it('must remove true and false placeholders', () => {
             expect(
                 Component.create`<div id="test-node">${() => true}</div>`.mount().toString()
-            ).to.be.equal(`<div id="test-node" ${Component.DATA_ATTRIBUTE_ELEMENT}="r-1-1"><!--rasti-start-r-1-1--><!--rasti-end-r-1-1--></div>`);
+            ).to.be.equal(`<div id="test-node" ${Component.ATTRIBUTE_ELEMENT}="r-1-1"><!--rasti-start-r-1-1--><!--rasti-end-r-1-1--></div>`);
 
             expect(
                 Component.create`<div id="test-node">${() => false}</div>`.mount().toString()
-            ).to.be.equal(`<div id="test-node" ${Component.DATA_ATTRIBUTE_ELEMENT}="r-2-1"><!--rasti-start-r-2-1--><!--rasti-end-r-2-1--></div>`);
+            ).to.be.equal(`<div id="test-node" ${Component.ATTRIBUTE_ELEMENT}="r-2-1"><!--rasti-start-r-2-1--><!--rasti-end-r-2-1--></div>`);
         });
     });
 
@@ -259,13 +259,13 @@ describe('Component', () => {
 
             const child = c.children[0];
             expect(document.querySelector('button')).to.be.equal(c.children[0].el);
-            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Component.INTERPOLATION_START('r-1-1')}--><button ${Component.DATA_ATTRIBUTE_ELEMENT}="r-2-1">click me</button><!--${Component.INTERPOLATION_END('r-1-1')}-->`);
+            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r-1-1')}--><button ${Component.ATTRIBUTE_ELEMENT}="r-2-1">click me</button><!--${Component.MARKER_END('r-1-1')}-->`);
 
             c.model.count = 1;
 
             expect(c.children[0]).not.to.be.equal(child);
             expect(document.querySelector('button')).to.be.equal(c.children[0].el);
-            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Component.INTERPOLATION_START('r-1-1')}--><button ${Component.DATA_ATTRIBUTE_ELEMENT}="r-3-1">click me</button><!--${Component.INTERPOLATION_END('r-1-1')}-->`);
+            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r-1-1')}--><button ${Component.ATTRIBUTE_ELEMENT}="r-3-1">click me</button><!--${Component.MARKER_END('r-1-1')}-->`);
         });
 
         it('must re render and recycle children with key', () => {
@@ -283,7 +283,7 @@ describe('Component', () => {
         });
 
         it('must hydrate existing dom', () => {
-            document.body.innerHTML = `<div ${Component.DATA_ATTRIBUTE_ELEMENT}="r-1-1"><button ${Component.DATA_ATTRIBUTE_ELEMENT}="r-2-1">click me</button></div>`;
+            document.body.innerHTML = `<div ${Component.ATTRIBUTE_ELEMENT}="r-1-1"><button ${Component.ATTRIBUTE_ELEMENT}="r-2-1">click me</button></div>`;
 
             const Button = Component.create`<button>click me</button>`;
             const Main = Component.create`<div>${() => Button.mount()}</div>`;
@@ -838,7 +838,7 @@ describe('Component', () => {
                 <div id="test-node-1">${self => self.partial`<div>${({ options }) => options && Button.mount()}</div>`}</div>
             `.mount({}, document.body);
 
-            expect(document.getElementById('test-node-1').innerHTML).to.be.equal(`<!--${Component.INTERPOLATION_START('r-1-1')}--><div><button ${Component.DATA_ATTRIBUTE_ELEMENT}="r-2-1">click me</button></div><!--${Component.INTERPOLATION_END('r-1-1')}-->`);
+            expect(document.getElementById('test-node-1').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r-1-1')}--><div><button ${Component.ATTRIBUTE_ELEMENT}="r-2-1">click me</button></div><!--${Component.MARKER_END('r-1-1')}-->`);
             expect(c1.children[0].el).to.be.equal(document.querySelector('button'));
 
             const c2 = Component.create`
@@ -865,7 +865,7 @@ describe('Component', () => {
 
             expect(c4.children.length).to.be.equal(1);
             expect(c4.children[0].el).to.be.equal(document.querySelector('#test-node-4 div button'));
-            expect(document.querySelector('#test-node-4 div button').innerHTML).to.be.equal(`<!--${Component.INTERPOLATION_START('r-10-1')}-->ok<!--${Component.INTERPOLATION_END('r-10-1')}-->`);
+            expect(document.querySelector('#test-node-4 div button').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r-10-1')}-->ok<!--${Component.MARKER_END('r-10-1')}-->`);
         });
 
         it('must sync interpolation first element using partial', () => {

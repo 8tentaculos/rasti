@@ -8,14 +8,14 @@
  *
  * @param {Node} root - Root node or fragment that limits the search scope.
  * @param {string} text - Exact comment text to match (e.g., "rasti-start-r-123-1").
- * @param {(el: Element) => boolean} shouldSkip - Function that receives an element and returns true if its subtree should be skipped.
+ * @param {(el: Element) => boolean} [shouldSkip] - Function that receives an element and returns true if its subtree should be skipped (defaults to no skipping).
  * @param {Map<string, Comment>} [cache] - Optional cache to store already found comments for performance.
  * @param {Node} [startNode] - Optional node to start searching from (defaults to root.firstChild).
  * @return {Comment|null} The first matching comment node, or null if not found.
  * @module
  * @private
  */
-export default function findComment(root, text, shouldSkip, cache = new Map(), startNode) {
+export default function findComment(root, text, shouldSkip = () => false, cache = new Map(), startNode) {
     let node = startNode || root.firstChild;
 
     while (node) {

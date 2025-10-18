@@ -30,7 +30,7 @@ const getExpressionResult = (expression, context) => getResult(expression, conte
  * @return {boolean} True if the element is a component root element.
  * @private
  */
-const isComponent = (el) => el.hasAttribute(Component.DATA_ATTRIBUTE_ELEMENT) && el.getAttribute(Component.DATA_ATTRIBUTE_ELEMENT).endsWith('-1');
+const isComponent = (el) => el.hasAttribute(Component.ATTRIBUTE_ELEMENT) && el.getAttribute(Component.ATTRIBUTE_ELEMENT).endsWith('-1');
 
 /**
  * Check if an element has the Rasti data attribute.
@@ -39,7 +39,7 @@ const isComponent = (el) => el.hasAttribute(Component.DATA_ATTRIBUTE_ELEMENT) &&
  * @return {boolean} True if the element has the data attribute.
  * @private
  */
-const isElement = (el) => el.hasAttribute(Component.DATA_ATTRIBUTE_ELEMENT);
+const isElement = (el) => el.hasAttribute(Component.ATTRIBUTE_ELEMENT);
 
 /**
  * Generate string with placeholders for interpolated expressions.
@@ -54,7 +54,7 @@ const addPlaceholders = (strings, expressions) =>
         out.push(string);
         // Add expression placeholders.
         if (typeof expressions[i] !== 'undefined') {
-            out.push(Component.PLACEHOLDER_EXPRESSION(i));
+            out.push(Component.PLACEHOLDER(i));
         }
         return out;
     }, []).join('');
@@ -67,7 +67,7 @@ const addPlaceholders = (strings, expressions) =>
  * @private
  */
 const splitPlaceholders = (main, expressions) => {
-    const PH = Component.PLACEHOLDER_EXPRESSION('(\\d+)');
+    const PH = Component.PLACEHOLDER('(\\d+)');
     const regExp = new RegExp(`${PH}`, 'g');
     const out = [];
     let lastIndex = 0;
@@ -132,7 +132,7 @@ const expandEvents = (attributes, eventsManager) => {
             const listener = attributes[key];
             const index = eventsManager.addListener(listener, type);
             // Add event listener index.
-            out[Component.DATA_ATTRIBUTE_EVENT(type)] = index;
+            out[Component.ATTRIBUTE_EVENT(type)] = index;
         } else {
             // Add attribute.
             out[key] = attributes[key];
@@ -154,7 +154,7 @@ const expandEvents = (attributes, eventsManager) => {
  * @private
  */
 const expandComponents = (main, expressions) => {
-    const PH = Component.PLACEHOLDER_EXPRESSION('(\\d+)');
+    const PH = Component.PLACEHOLDER('(\\d+)');
     // Match component tags.
     return main.replace(
         new RegExp(`<(${PH})([^>]*)>([\\s\\S]*?)</(${PH})>|<(${PH})([^>]*)/>`,'g'),
@@ -201,7 +201,7 @@ const expandComponents = (main, expressions) => {
             // Add mount function to expression.
             expressions.push(mount);
             // Replace whole string with expression placeholder.
-            return Component.PLACEHOLDER_EXPRESSION(expressions.length - 1);
+            return Component.PLACEHOLDER(expressions.length - 1);
         }
     );
 };
@@ -214,7 +214,7 @@ const expandComponents = (main, expressions) => {
  * @private
  */
 const replaceElements = (template, replacer) => {
-    const PH = Component.PLACEHOLDER_EXPRESSION('(?:\\d+)');
+    const PH = Component.PLACEHOLDER('(?:\\d+)');
     return template.replace(
         new RegExp(`<(${PH}|[a-z]+[1-6]?)(?:\\s*)((?:"[^"]*"|'[^']*'|[^>])*)(/?>)`, 'gi'),
         replacer
@@ -231,7 +231,7 @@ const replaceElements = (template, replacer) => {
  * @private
  */
 const parseElements = (template, expressions, elements) => {
-    const PH = Component.PLACEHOLDER_EXPRESSION('(?:\\d+)');
+    const PH = Component.PLACEHOLDER('(?:\\d+)');
     // Check if template is a container (single placeholder, no tag).
     const containerMatch = template.match(new RegExp(`^\\s*${PH}\\s*$`));
     if (containerMatch) return template;
@@ -265,13 +265,13 @@ const parseElements = (template, expressions, elements) => {
             }
             // Add data attribute for element identification.
             // First element gets the component uid, others get element uid.
-            attributes[Component.DATA_ATTRIBUTE_ELEMENT] = generateElementUid(this.uid);
+            attributes[Component.ATTRIBUTE_ELEMENT] = generateElementUid(this.uid);
 
             return attributes;
         };
 
         const getSelector = function() {
-            return `[${Component.DATA_ATTRIBUTE_ELEMENT}="${generateElementUid(this.uid)}"]`;
+            return `[${Component.ATTRIBUTE_ELEMENT}="${generateElementUid(this.uid)}"]`;
         };
         // Add element reference to elements array.
         elements.push({
@@ -284,7 +284,7 @@ const parseElements = (template, expressions, elements) => {
             return Component.markAsSafeHTML(getAttributesHTML(attributes));
         });
         // Replace attributes with placeholder.
-        const placeholder = Component.PLACEHOLDER_EXPRESSION(expressions.length - 1);
+        const placeholder = Component.PLACEHOLDER(expressions.length - 1);
         // Preserve original tag ending (> or />)
         return `<${tag} ${placeholder}${ending}`;
     });
@@ -298,7 +298,7 @@ const parseElements = (template, expressions, elements) => {
  * @private
  */
 const parsePartialElements = (template, expressions) => {
-    const PH = Component.PLACEHOLDER_EXPRESSION('(?:\\d+)');
+    const PH = Component.PLACEHOLDER('(?:\\d+)');
     // Match all HTML elements including placeholders and self-closed elements.
     return replaceElements(template, (match, tag, attributesStr, ending) => {
         // If there are no dynamic attributes, return original match.
@@ -322,7 +322,7 @@ const parsePartialElements = (template, expressions) => {
             return Component.markAsSafeHTML(getAttributesHTML(attributes));
         });
         // Replace attributes with placeholder.
-        const placeholder = Component.PLACEHOLDER_EXPRESSION(expressions.length - 1);
+        const placeholder = Component.PLACEHOLDER(expressions.length - 1);
         // Preserve original tag ending (> or />)
         return `<${tag} ${placeholder}${ending}`;
     });
@@ -337,7 +337,7 @@ const parsePartialElements = (template, expressions) => {
  * @private
  */
 const parseInterpolations = (template, expressions, interpolations) => {
-    const PH = Component.PLACEHOLDER_EXPRESSION('(\\d+)');
+    const PH = Component.PLACEHOLDER('(\\d+)');
     let interpolationUid = 0;
     // Match all expression placeholders.
     return template.replace(
@@ -356,10 +356,10 @@ const parseInterpolations = (template, expressions, interpolations) => {
             const currentInterpolationUid = ++interpolationUid;
 
             function getStart() {
-                return Component.INTERPOLATION_START(`${this.uid}-${currentInterpolationUid}`);
+                return Component.MARKER_START(`${this.uid}-${currentInterpolationUid}`);
             }
             function getEnd() {
-                return Component.INTERPOLATION_END(`${this.uid}-${currentInterpolationUid}`);
+                return Component.MARKER_END(`${this.uid}-${currentInterpolationUid}`);
             }
             // Add interpolation reference to interpolations array.
             interpolations.push({
@@ -374,7 +374,7 @@ const parseInterpolations = (template, expressions, interpolations) => {
                 return new InterpolationWrapper(uid, result);
             });
             // Replace with new placeholder.
-            return Component.PLACEHOLDER_EXPRESSION(expressions.length - 1);
+            return Component.PLACEHOLDER(expressions.length - 1);
         }
     );
 };
@@ -387,7 +387,7 @@ const parseInterpolations = (template, expressions, interpolations) => {
  * @private
  */
 const parseAttributes = (attributesStr, expressions) => {
-    const PH = Component.PLACEHOLDER_EXPRESSION('(\\d+)');
+    const PH = Component.PLACEHOLDER('(\\d+)');
     const attributes = [];
     // Parse attributes string with support for placeholders in both names and values.
     const regExp = new RegExp(`(${PH}|[\\w-]+)(?:=(["']?)(?:${PH}|((?:.?(?!["']?\\s+(?:\\S+)=|\\s*/?[>"']))+.))\\3)?`, 'g');
@@ -456,7 +456,7 @@ class Component extends View {
         const events = {};
         // Create events object.
         this.eventsManager.types.forEach(type => {
-            const dataAttribute = Component.DATA_ATTRIBUTE_EVENT(type);
+            const dataAttribute = Component.ATTRIBUTE_EVENT(type);
             // Create a listener function that gets the listener index from the data attribute and calls the listener.
             const listener = function(event, component, matched) {
                 // Get the listener index from the data attribute.
@@ -579,13 +579,13 @@ class Component extends View {
     }
 
     /**
-     * Get a `span` placeholder with same data attribute as this component.
+     * Get a `comment` marker with same data attribute as this component.
      * Used to replace the component when it is recycled.
      * @return {string} The recycle placeholder.
      * @private
      */
-    getPlaceholder() {
-        return `<!--${Component.PLACEHOLDER_RECYCLED(this.uid)}-->`;
+    getRecycledMarker() {
+        return `<!--${Component.MARKER_RECYCLED(this.uid)}-->`;
     }
 
     /**
@@ -605,7 +605,7 @@ class Component extends View {
 
     /**
      * Used internally on the render process.
-     * Reuse a `Component` that has `key` when its parent is rendered.
+     * Reuse a `Component` by replacing the placeholder comment with the real nodes.
      * Call `onRecycle` lifecycle method.
      * @param parent {node} The parent node.
      * @return {Component} The component instance.
@@ -613,7 +613,7 @@ class Component extends View {
      */
     recycle(parent) {
         // Locate the placeholder comment and replace it with the real nodes
-        const toBeReplaced = findComment(parent, Component.PLACEHOLDER_RECYCLED(this.uid), () => false);
+        const toBeReplaced = findComment(parent, Component.MARKER_RECYCLED(this.uid), isComponent);
         // Replace it with this.el.
         toBeReplaced.replaceWith(...this.getNodes());
         // Call `onRecycle` lifecycle method.
@@ -742,8 +742,8 @@ class Component extends View {
                 // InterpolationWrapper: add markers and process maintaining tracking.
                 if (item instanceof InterpolationWrapper) {
                     this.pathManager.increment();
-                    const startMarker = `<!--${Component.INTERPOLATION_START(item.interpolationUid)}-->`;
-                    const endMarker = `<!--${Component.INTERPOLATION_END(item.interpolationUid)}-->`;
+                    const startMarker = `<!--${Component.MARKER_START(item.interpolationUid)}-->`;
+                    const endMarker = `<!--${Component.MARKER_END(item.interpolationUid)}-->`;
                     return `${startMarker}${parse(item.result)}${endMarker}`;
                 }
 
@@ -806,12 +806,13 @@ class Component extends View {
         this.pathManager.reset();
         // Store active element.
         const activeElement = this.isContainer() ? null : document.activeElement;
-
+        // Update elements.
         this.template.elements.forEach(element => element.update());
-
+        // Store previous children.
         const previousChildren = this.children;
+        // Clear current children.
         this.children = [];
-
+        // Update interpolations.
         this.template.interpolations.forEach(interpolation => {
             const nextChildren = [];
             const recycledChildren = [];
@@ -821,7 +822,6 @@ class Component extends View {
             const addChild = component => {
                 let out = component;
                 let found = null;
-
                 // Check if child already exists by key.
                 if (component.key) {
                     found = previousChildren.find(prev => prev.key === component.key);
@@ -832,7 +832,7 @@ class Component extends View {
 
                 if (found) {
                     // If child already exists, replace it html by its root element.
-                    out = found.getPlaceholder();
+                    out = found.getRecycledMarker();
                     // Add child to recycled children.
                     recycledChildren.push([found, component]);
                     // Track the component.
@@ -1117,13 +1117,23 @@ class Component extends View {
     }
 }
 
-Component.DATA_ATTRIBUTE_ELEMENT = 'data-rasti-el';
-Component.DATA_ATTRIBUTE_EVENT = (type) => `data-rasti-on-${type}`;
+/*
+ * Attributes used to identify elements and events.
+ */
+Component.ATTRIBUTE_ELEMENT = 'data-rasti-el';
+Component.ATTRIBUTE_EVENT = (type) => `data-rasti-on-${type}`;
 
-Component.PLACEHOLDER_EXPRESSION = (idx) => `__RASTI-${idx}__`;
-Component.PLACEHOLDER_RECYCLED = uid => `rasti-rec-${uid}`;
-Component.INTERPOLATION_START = (uid) => `rasti-start-${uid}`;
-Component.INTERPOLATION_END = (uid) => `rasti-end-${uid}`;
+/*
+ * Placeholders used to temporarily replace expressions in the template.
+ */
+Component.PLACEHOLDER = (idx) => `__RASTI-${idx}__`;
+
+/*
+ * Markers used to identify interpolation and recycled components.
+ */
+Component.MARKER_RECYCLED = (uid) => `rasti-recycled-${uid}`;
+Component.MARKER_START = (uid) => `rasti-start-${uid}`;
+Component.MARKER_END = (uid) => `rasti-end-${uid}`;
 
 /**
  * Components are a special kind of `View` that is designed to be easily composable, 
