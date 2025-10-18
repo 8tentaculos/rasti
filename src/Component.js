@@ -544,12 +544,9 @@ class Component extends View {
             if (this[key]) this.subscribe(this[key]);
         });
 
-        // Cache for interpolation marker comments to avoid repeated DOM searches.
-        const interpolationMarkers = new Map();
-
         if (this.isContainer()) {
             // Get references for interpolation marker comments
-            this.template.interpolations[0].hydrate(parent, interpolationMarkers);
+            this.template.interpolations[0].hydrate(parent);
             // Call hydrate on children.
             this.children[0].hydrate(parent);
             // Set the first element as the component's element.
@@ -569,7 +566,7 @@ class Component extends View {
             // Delegate events.
             this.delegateEvents();
             // Get references for interpolation marker comments
-            this.template.interpolations.forEach(interpolation => interpolation.hydrate(this.el, interpolationMarkers));
+            this.template.interpolations.forEach(interpolation => interpolation.hydrate(this.el));
             this.children.forEach(child => child.hydrate(this.el));
         }
         // Call `onHydrate` lifecycle method.

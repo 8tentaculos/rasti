@@ -26,11 +26,10 @@ class Interpolation {
      * Attach the interpolation reference to comment markers in the DOM.
      * Searches for start and end comment markers, skipping component subtrees.
      * @param {Node} parent The parent node to search in.
-     * @param {Map<string, Comment>} interpolationMarkers Cache for found comment markers.
      */
-    hydrate(parent, interpolationMarkers) {
-        const startComment = findComment(parent, this.getStart(), this.isComponent, interpolationMarkers);
-        const endComment = findComment(parent, this.getEnd(), this.isComponent, interpolationMarkers, startComment);
+    hydrate(parent) {
+        const startComment = findComment(parent, this.getStart(), this.isComponent);
+        const endComment = findComment(parent, this.getEnd(), this.isComponent, startComment);
 
         this.ref = [
             startComment, 
