@@ -1,14 +1,4 @@
-/**
- * Validates that the listener is a function.
- * @param {Function} listener The listener to validate.
- * @throws {TypeError} If the listener is not a function.
- * @private
- */
-const validateListener = (listener) => {
-    if (typeof listener !== 'function') {
-        throw new TypeError('Listener must be a function');
-    }
-};
+import validateListener from './utils/validateListener.js';
 
 /**
  * `Emitter` is a class that provides an easy way to implement the observer pattern 

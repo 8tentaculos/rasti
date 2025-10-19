@@ -1,5 +1,6 @@
 import Emitter from './Emitter.js';
 import getResult from './utils/getResult.js';
+import validateListener from './utils/validateListener.js';
 
 /*
  * These option keys will be extended on the view instance.
@@ -283,6 +284,8 @@ export default class View extends Emitter {
             let listener = events[key];
             // Listener may be a string representing a method name on the view, or a function.
             if (typeof listener === 'string') listener = this[listener];
+            // Validate listener is a function.
+            validateListener(listener);
 
             if (!eventTypes[type]) eventTypes[type] = [];
 
