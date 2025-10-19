@@ -9,7 +9,7 @@ class PathManager {
      * Reset before render.
      */
     reset() {
-        this.paused = false;
+        this.paused = 0;
         this.previous = this.tracked || new Map();
         this.tracked = new Map();
         this.positionStack = [0];
@@ -40,14 +40,14 @@ class PathManager {
      * Pause tracking.
      */
     pause() {
-        this.paused = true;
+        this.paused++;
     }
 
     /**
      * Resume tracking.
      */
     resume() {
-        this.paused = false;
+        this.paused--;
     }
 
     /**
@@ -64,7 +64,7 @@ class PathManager {
      * @return {Component} The component.
      */
     track(component) {
-        if (!this.paused) {
+        if (this.paused === 0) {
             this.tracked.set(
                 this.getPath(),
                 component
