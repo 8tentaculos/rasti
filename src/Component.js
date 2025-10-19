@@ -7,6 +7,7 @@ import EventsManager from './core/EventsManager.js';
 import PathManager from './core/PathManager.js';
 import Element from './core/Element.js';
 import Interpolation from './core/Interpolation.js';
+import validateListener from './utils/validateListener.js';
 import getResult from './utils/getResult.js';
 import deepFlat  from './utils/deepFlat.js';
 import parseHTML from './utils/parseHTML.js';
@@ -466,8 +467,8 @@ class Component extends View {
                 // Root element listener may not have a data attribute.
                 if (index) {
                     let currentListener = this.eventsManager.listeners[parseInt(index, 10)];
-                    if (!currentListener) return;
                     if (typeof currentListener === 'string') currentListener = this[currentListener];
+                    validateListener(currentListener);
                     // Call the listener.
                     currentListener.call(this, event, component, matched);
                 }
