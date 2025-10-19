@@ -1,9 +1,10 @@
 /**
  * Finds the first comment node whose text matches exactly the given `text`.
- * Uses manual DOM traversal for maximum performance.
+ * Uses manual DOM traversal. Skips entire subtrees if `shouldSkip(element)` returns true.
+ * Starts searching from `startNode` if provided, otherwise from `root.firstChild`.
  * @param {Node} root - Root node or fragment that limits the search scope.
  * @param {string} text - Exact comment text to match.
- * @param {(el: Element) => boolean} [shouldSkip] - Function that returns true if subtree should be skipped.
+ * @param {Function} [shouldSkip] - Function that receives an element and returns true if its subtree should be skipped.
  * @param {Node} [startNode] - Node to start searching from (defaults to root.firstChild).
  * @return {Comment|null} The first matching comment node, or null if not found.
  * @module
