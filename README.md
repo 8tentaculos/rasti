@@ -98,7 +98,7 @@ const routes = [
 // Create a Link component for navigation items.
 const Link = Component.create`
     <a href="${({ props }) => props.href}">
-        ${({ props }) => props.children}
+        ${({ props }) => props.renderChildren()}
     </a>
 `;
 
@@ -159,7 +159,7 @@ Counter.mount({ model }, document.body);
 // When buttons are clicked, only the text node gets updated, not the entire component.
 ```
 
-[Try it on CodePen](https://codepen.io/8tentaculos/pen/PLACEHOLDER_ID?editors=0010)
+[Try it on CodePen](https://https://codepen.io/8tentaculos/pen/XJXVQOR?editors=0010)
 
 ## Why Choose **Rasti**?  
 
@@ -184,9 +184,8 @@ For detailed information on how to use **Rasti**, refer to the [API documentatio
 
 - **[v4.0.0](https://github.com/8tentaculos/rasti/releases/tag/v4.0.0)** - Current version with simpler event handling, smarter component reuse, and granular DOM updates
 - **[v3.0.0](https://github.com/8tentaculos/rasti/releases/tag/v3.0.0)** - Introduced **Containers**, dynamic element tags, **Component** tags, `partial` method, and dropped ES5 support
-- **[v2.0.0](https://github.com/8tentaculos/rasti/releases/tag/v2.0.0)** - Introduced **Components** and improved `Model.set` with atomic change events
+- **[v2.0.0](https://github.com/8tentaculos/rasti/releases/tag/v2.0.0)** - Introduced **Components**
 - **[v1.0.0](https://github.com/8tentaculos/rasti/releases/tag/v1.0.0)** - Initial release
-
 
 ## Powered by **Rasti**
 
