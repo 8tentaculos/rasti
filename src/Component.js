@@ -130,9 +130,11 @@ const expandEvents = (attributes, eventsManager) => {
         if (match && match[1]) {
             const type = match[1].toLowerCase();
             const listener = attributes[key];
-            const index = eventsManager.addListener(listener, type);
-            // Add event listener index.
-            out[Component.ATTRIBUTE_EVENT(type)] = index;
+            if (listener) {
+                const index = eventsManager.addListener(listener, type);
+                // Add event listener index.
+                out[Component.ATTRIBUTE_EVENT(type)] = index;
+            }
         } else {
             // Add attribute.
             out[key] = attributes[key];
