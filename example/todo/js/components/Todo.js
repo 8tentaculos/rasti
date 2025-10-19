@@ -27,7 +27,7 @@ const Todo = Component.create`
                 class="toggle"
                 type="checkbox"
                 checked="${({ model }) => model.completed}"
-                onClick=${function(ev) {
+                onClick=${function() {
                     this.model.toggle();
                 }}
             >
@@ -40,8 +40,8 @@ const Todo = Component.create`
             </label>
             <button
                 class="destroy"
-                onClick=${function(ev) {
-                    this.options.handleRemove();
+                onClick=${function() {
+                    this.props.handleRemove();
                 }}
             ></button>
         </div>
