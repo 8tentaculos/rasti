@@ -106,6 +106,53 @@ describe('Component', () => {
             expect(c.children[0].options.color).to.be.equal('primary');
             expect(document.querySelector('button').innerHTML).to.be.equal('<!--rasti-start-r-2-1-->click me<!--rasti-end-r-2-1-->');
         });
+
+        it('must mount nested component tags with opening and closing tags', () => {
+            const Surface = Component.create`<div class="${({ props }) => props.className}">${({ props }) => props.renderChildren()}</div>`;
+            const Table = Component.create`<table class="${({ props }) => props.className}">${({ props }) => props.renderChildren()}</table>`;
+            const LoadingRow = Component.create`<tr><td>Loading...</td></tr>`;
+
+            const LoadingTable = Component.create`
+                <${Surface} className="surface">
+                    <${Table} className="table">
+                        <${LoadingRow} />
+                        <${LoadingRow} />
+                    </${Table}>
+                </${Surface}>
+            `;
+
+            LoadingTable.mount({}, document.body);
+
+            expect(document.querySelector('.surface')).to.exist;
+            expect(document.querySelector('.table')).to.exist;
+            expect(document.querySelectorAll('tr').length).to.be.equal(2);
+        });
+
+        it('must mount sibling component tags with opening and closing tags', () => {
+            const Surface = Component.create`<div class="${({ props }) => props.className}">${({ props }) => props.renderChildren()}</div>`;
+            const Table = Component.create`<table class="${({ props }) => props.className}">${({ props }) => props.renderChildren()}</table>`;
+            const LoadingRow = Component.create`<tr><td>Loading...</td></tr>`;
+
+            const LoadingTables = Component.create`
+                <${Surface} className="surface">
+                    <${Table} className="table-1">
+                        <${LoadingRow} />
+                    </${Table}>
+                    <${Table} className="table-2">
+                        <${LoadingRow} />
+                        <${LoadingRow} />
+                    </${Table}>
+                </${Surface}>
+            `;
+
+            LoadingTables.mount({}, document.body);
+
+            expect(document.querySelector('.surface')).to.exist;
+            expect(document.querySelector('.table-1')).to.exist;
+            expect(document.querySelector('.table-2')).to.exist;
+            expect(document.querySelector('.table-1 tr')).to.exist;
+            expect(document.querySelectorAll('.table-2 tr').length).to.be.equal(2);
+        });
     });
 
     describe('Rendering and attributes', () => {
@@ -866,6 +913,31 @@ describe('Component', () => {
             expect(c4.children.length).to.be.equal(1);
             expect(c4.children[0].el).to.be.equal(document.querySelector('#test-node-4 div button'));
             expect(document.querySelector('#test-node-4 div button').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r-10-1')}-->ok<!--${Component.MARKER_END('r-10-1')}-->`);
+        });
+
+        it('must render partial with nested component tags with opening and closing tags', () => {
+            const Surface = Component.create`<div class="${({ props }) => props.className}">${({ props }) => props.renderChildren()}</div>`;
+            const Table = Component.create`<table class="${({ props }) => props.className}">${({ props }) => props.renderChildren()}</table>`;
+            const LoadingRow = Component.create`<tr><td>Loading...</td></tr>`;
+
+            const Main = Component.create`
+                <div id="test-node">
+                    ${({ partial }) => partial`
+                        <${Surface} className="surface">
+                            <${Table} className="table">
+                                <${LoadingRow} />
+                                <${LoadingRow} />
+                            </${Table}>
+                        </${Surface}>
+                    `}
+                </div>
+            `;
+
+            Main.mount({}, document.body);
+
+            expect(document.querySelector('.surface')).to.exist;
+            expect(document.querySelector('.table')).to.exist;
+            expect(document.querySelectorAll('tr').length).to.be.equal(2);
         });
 
         it('must sync interpolation first element using partial', () => {

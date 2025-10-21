@@ -152,21 +152,39 @@ const expandEvents = (attributes, eventsManager) => {
  * modifies the expressions array adding the mount functions.
  * @param main {string} The main template.
  * @param {Array<any>} expressions Array of expressions.
+ * @param {boolean} skipNormalization Skip placeholder normalization (for recursive calls).
  * @return {string} The template with components tags replaced by expressions
  * placeholders.
  * @private
  */
-const expandComponents = (main, expressions) => {
+const expandComponents = (main, expressions, skipNormalization = false) => {
     const PH = Component.PLACEHOLDER('(\\d+)');
-    // Match component tags.
+    const componentRefMap = new Map();
+    // Normalize component references to use first placeholder index.
+    // Only on first call, not on recursive calls.
+    if (!skipNormalization) {
+        main = main.replace(
+            new RegExp(PH, 'g'),
+            (match, idx) => {
+                const expression = expressions[idx];
+                if (expression && expression.prototype instanceof Component) {
+                    if (componentRefMap.has(expression)) {
+                        return componentRefMap.get(expression);
+                    }
+                    componentRefMap.set(expression, match);
+                }
+                return match;
+            }
+        );
+    }
+    // Match component tags with backreference to ensure correct pairing.
     return main.replace(
-        new RegExp(`<(${PH})([^>]*)>([\\s\\S]*?)</(${PH})>|<(${PH})([^>]*)/>`,'g'),
-        (match, openTag, openIdx, nonVoidAttrs, inner, closeTag, closeIdx, selfClosingTag, selfClosingIdx, selfClosingAttrs) => {
-            let tag, close, attributesStr;
+        new RegExp(`<(${PH})([^>]*)>([\\s\\S]*?)</\\1>|<(${PH})([^>]*)/>`,'g'),
+        (match, openTag, openIdx, nonVoidAttrs, inner, selfClosingTag, selfClosingIdx, selfClosingAttrs) => {
+            let tag, attributesStr, innerList;
 
             if (openTag) {
-                tag = typeof openIdx !== 'undefined' ? expressions[openIdx] : openTag;
-                close = typeof closeIdx !== 'undefined' ? expressions[closeIdx] : closeTag;
+                tag = expressions[openIdx];
                 attributesStr = nonVoidAttrs;
             } else {
                 tag = typeof selfClosingIdx !== 'undefined' ? expressions[selfClosingIdx] : selfClosingTag;
@@ -174,15 +192,11 @@ const expandComponents = (main, expressions) => {
             }
             // No component found.
             if (!(tag.prototype instanceof Component)) return match;
-
-            let innerList;
             // Non void component.
-            if (close) {
-                // Close component tag must match open component tag.
-                if (tag !== close) return match;
+            if (openTag) {
                 // Process inner content same way as partial().
                 // Recursively expand inner components.
-                const innerTemplate = expandComponents(inner, expressions);
+                const innerTemplate = expandComponents(inner, expressions, true);
                 // Parse partial elements to handle dynamic attributes and events.
                 const parsedInner = parsePartialElements(innerTemplate, expressions);
                 // Split into items.
