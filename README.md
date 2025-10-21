@@ -187,16 +187,6 @@ For detailed information on how to use **Rasti**, refer to the [API documentatio
 - **[v2.0.0](https://github.com/8tentaculos/rasti/releases/tag/v2.0.0)** - Introduced **Components**
 - **[v1.0.0](https://github.com/8tentaculos/rasti/releases/tag/v1.0.0)** - Initial release
 
-## Powered by **Rasti**
-
-### [Crypto Babylon](https://cryptobabylon.net)  
-
-A market analytics platform efficiently rendering over 1000 dynamic rows, updated in real-time with thousands of messages per second via multiple WebSocket connections.  
-
-### [jsPacman](https://pacman.js.org)
-
-A DOM-based remake of the classic Ms. Pac-Man game. **Rasti** powers its custom game engine.  
-
 ## License
 
 **Rasti** is open-source and available under the [MIT License](LICENSE).
