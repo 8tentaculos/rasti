@@ -31,7 +31,7 @@ const getExpressionResult = (expression, context) => getResult(expression, conte
  * @return {boolean} True if the element is a component root element.
  * @private
  */
-const isComponent = (el) => el.hasAttribute(Component.ATTRIBUTE_ELEMENT) && el.getAttribute(Component.ATTRIBUTE_ELEMENT).endsWith('-1');
+const isComponent = (el) => !!el.dataset[Component.DATASET_ELEMENT] && el.dataset[Component.DATASET_ELEMENT].endsWith('-1');
 
 /**
  * Check if an element has the Rasti data attribute.
@@ -40,7 +40,7 @@ const isComponent = (el) => el.hasAttribute(Component.ATTRIBUTE_ELEMENT) && el.g
  * @return {boolean} True if the element has the data attribute.
  * @private
  */
-const isElement = (el) => el.hasAttribute(Component.ATTRIBUTE_ELEMENT);
+const isElement = (el) => !!el.dataset[Component.DATASET_ELEMENT];
 
 /**
  * Generate string with placeholders for interpolated expressions.
@@ -1136,6 +1136,11 @@ class Component extends View {
  */
 Component.ATTRIBUTE_ELEMENT = 'data-rasti-el';
 Component.ATTRIBUTE_EVENT = (type) => `data-rasti-on-${type}`;
+
+/*
+ * Dataset attribute used to identify elements.
+ */
+Component.DATASET_ELEMENT = 'rastiEl';
 
 /*
  * Placeholders used to temporarily replace expressions in the template.
