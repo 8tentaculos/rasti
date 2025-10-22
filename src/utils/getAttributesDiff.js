@@ -12,12 +12,14 @@ export default function getAttributesDiff(attributes, previous = {}) {
     // Find attributes to add/update.
     Object.keys(attributes).forEach(key => {
         let value = attributes[key];
-        
-        if (value === true) {
-            add[key] = '';
-        } else if (value !== false) {
-            if (value === null || typeof value === 'undefined') value = '';
-            add[key] = value;
+        // Only add if the value is different from previous.
+        if (value !== previous[key]) {
+            if (value === true) {
+                add[key] = '';
+            } else if (value !== false) {
+                if (value === null || typeof value === 'undefined') value = '';
+                add[key] = value;
+            }
         }
     });
     // Find attributes to remove.
