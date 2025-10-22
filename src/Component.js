@@ -429,7 +429,7 @@ const parseAttributes = (attributesStr, expressions) => {
 /*
  * These option keys will be extended on the component instance.
  */
-const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', 'onRecycle', 'onUpdate'];
+const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', 'onMount', 'onRecycle', 'onUpdate'];
 
 /**
  * @lends module:Component
@@ -498,34 +498,6 @@ class Component extends View {
     }
 
     /**
-     * Subscribes to a `change` event on a model or emitter object and invokes the `onChange` lifecycle method.
-     * The subscription is automatically cleaned up when the component is destroyed.
-     * By default, the component subscribes to changes on `this.model`, `this.state`, and `this.props`.
-     * 
-     * @param {Object} model - The model or emitter object to listen to.
-     * @param {string} [type='change'] - The event type to listen for.
-     * @param {Function} [listener=this.onChange] - The callback to invoke when the event is emitted.
-     * @returns {Component} The current component instance for chaining.
-     */
-    subscribe(model, type = 'change', listener = this.onChange) {
-        // Check if model has `on` method.
-        if (model.on) this.listenTo(model, type, listener);
-        return this;
-    }
-
-    /**
-     * Tell if `Component` is a container.
-     * In which case, it will not have an element by itself.
-     * It will render a single expression which is expected to return a single component as child.
-     * `this.el` will be a reference to that child component's element.
-     * @return {boolean}
-     * @private
-     */
-    isContainer() {
-        return this.template.elements.length === 0 && this.template.interpolations.length === 1;
-    }
-
-    /**
      * Override super method. We don't want to ensure an element on instantiation.
      * We will provide it later.
      * @private
@@ -546,6 +518,34 @@ class Component extends View {
             // Hydrate the component.
             this.hydrate(this.el.parentNode);
         }
+    }
+
+    /**
+     * Tell if `Component` is a container.
+     * In which case, it will not have an element by itself.
+     * It will render a single expression which is expected to return a single component as child.
+     * `this.el` will be a reference to that child component's element.
+     * @return {boolean}
+     * @private
+     */
+    isContainer() {
+        return this.template.elements.length === 0 && this.template.interpolations.length === 1;
+    }
+
+    /**
+     * Subscribes to a `change` event on a model or emitter object and invokes the `onChange` lifecycle method.
+     * The subscription is automatically cleaned up when the component is destroyed.
+     * By default, the component subscribes to changes on `this.model`, `this.state`, and `this.props`.
+     * 
+     * @param {Object} model - The model or emitter object to listen to.
+     * @param {string} [type='change'] - The event type to listen for.
+     * @param {Function} [listener=this.onChange] - The callback to invoke when the event is emitted.
+     * @returns {Component} The current component instance for chaining.
+     */
+    subscribe(model, type = 'change', listener = this.onChange) {
+        // Check if model has `on` method.
+        if (model.on) this.listenTo(model, type, listener);
+        return this;
     }
 
     /**
@@ -593,6 +593,25 @@ class Component extends View {
     }
 
     /**
+     * Used internally on the render process.
+     * Reuse a `Component` by replacing the placeholder comment with the real nodes.
+     * Call `onRecycle` lifecycle method.
+     * @param parent {node} The parent node.
+     * @return {Component} The component instance.
+     * @private
+     */
+    recycle(parent) {
+        // Locate the placeholder comment and replace it with the real nodes
+        const toBeReplaced = findComment(parent, Component.MARKER_RECYCLED(this.uid), isComponent);
+        // Replace it with this.el.
+        toBeReplaced.replaceWith(...this.getNodes());
+        // Call `onRecycle` lifecycle method.
+        this.onRecycle.call(this);
+        // Return `this` for chaining.
+        return this;
+    }
+
+    /**
      * Get a `comment` marker with same data attribute as this component.
      * Used to replace the component when it is recycled.
      * @return {string} The recycle placeholder.
@@ -618,64 +637,18 @@ class Component extends View {
     }
 
     /**
-     * Used internally on the render process.
-     * Reuse a `Component` by replacing the placeholder comment with the real nodes.
-     * Call `onRecycle` lifecycle method.
-     * @param parent {node} The parent node.
-     * @return {Component} The component instance.
+     * Call onMount lifecycle method on children and self.
+     * Used internally during the mount and render process.
      * @private
      */
-    recycle(parent) {
-        // Locate the placeholder comment and replace it with the real nodes
-        const toBeReplaced = findComment(parent, Component.MARKER_RECYCLED(this.uid), isComponent);
-        // Replace it with this.el.
-        toBeReplaced.replaceWith(...this.getNodes());
-        // Call `onRecycle` lifecycle method.
-        this.onRecycle.call(this);
+    callOnMount() {
+        // Call onMount on children first.
+        this.children.forEach(child => child.callOnMount());
+        // Call onMount on self.
+        this.onMount.call(this);
         // Return `this` for chaining.
         return this;
     }
-
-    /**
-     * Lifecycle method. Called when the view is created, at the end of the `constructor`.
-     * @param options {object} The view options.
-     */
-    onCreate() {}
-
-    /**
-     * Lifecycle method. Called when model emits `change` event.
-     * By default calls `render` method.
-     * This method can be extended with custom logic.
-     * Maybe comparing new attributes with previous ones and calling
-     * render when needed.
-     * @param model {Rasti.Model} The model that emitted the event.
-     * @param changed {object} Object containing keys and values that has changed.
-     * @param [...args] {any} Any extra arguments passed to set method.
-     */
-    onChange() {
-        this.render();
-    }
-
-    /**
-     * Lifecycle method. Called when the component is rendered for the first time and hydrated.
-     */
-    onHydrate() {}
-
-    /**
-     * Lifecycle method. Called when the component is recycled (reused with the same key) and added to the DOM again.
-     */
-    onRecycle() {}
-
-    /**
-     * Lifecycle method. Called when the component is updated or re-rendered.
-     */
-    onUpdate() {}
-
-    /**
-     * Lifecycle method. Called when the component is destroyed.
-     * @param {object} options Options object or any arguments passed to `destroy` method.
-     */
-    onDestroy() {}
 
     /**
      * Tagged template helper method.
@@ -802,6 +775,7 @@ class Component extends View {
      *   - Components with a `key` are recycled if a previous child with the same key exists.
      *   - Unkeyed components are recycled if they have the same type and position in the template or partial.
      *   A recycled `Component` will call the `onRecycle` lifecycle method.  
+     * - All child components will have their `onMount` lifecycle method called after they are added to the DOM. New children will be hydrated first (calling their `onHydrate` lifecycle method).
      * - If the active element is inside the component, it will retain focus after the render.  
      * @return {Component} The component instance.
      */
@@ -871,12 +845,12 @@ class Component extends View {
                 discarded.destroy();
             });
             // Add new children. Hydrate them.
-            nextChildren.forEach(child => {
-                this.addChild(child).hydrate(fragment);
-            });
+            nextChildren.forEach(child => this.addChild(child).hydrate(fragment));
 
             interpolation.update(fragment);
         });
+        // Call onMount lifecycle method on all children after interpolations update.
+        this.children.forEach(child => child.callOnMount());
         // Destroy unused children.
         previousChildren.forEach(prev => {
             if (this.children.indexOf(prev) < 0) prev.destroy();
@@ -899,6 +873,55 @@ class Component extends View {
         // Return this for chaining.
         return this;
     }
+
+    /**
+     * Lifecycle method. Called when the view is created, at the end of the `constructor`.
+     * @param options {object} The view options.
+     */
+    onCreate() {}
+
+    /**
+     * Lifecycle method. Called when model emits `change` event.
+     * By default calls `render` method.
+     * This method can be extended with custom logic.
+     * Maybe comparing new attributes with previous ones and calling
+     * render when needed.
+     * @param model {Rasti.Model} The model that emitted the event.
+     * @param changed {object} Object containing keys and values that has changed.
+     * @param [...args] {any} Any extra arguments passed to set method.
+     */
+    onChange() {
+        this.render();
+    }
+
+    /**
+     * Lifecycle method. Called when the component is rendered for the first time and hydrated.
+     */
+    onHydrate() {}
+
+    /**
+     * Lifecycle method. Called when the component is mounted to the DOM.
+     * This method is called after `onHydrate` and only when the component's element is actually present in the document.
+     * It is called during the initial mount process (when using `Component.mount()`) and when new child components are added during render.
+     * Use this method to perform operations that require the element to be in the DOM, such as measuring dimensions or focusing elements.
+     */
+    onMount() {}
+
+    /**
+     * Lifecycle method. Called when the component is recycled (reused with the same key) and added to the DOM again.
+     */
+    onRecycle() {}
+
+    /**
+     * Lifecycle method. Called when the component is updated or re-rendered.
+     */
+    onUpdate() {}
+
+    /**
+     * Lifecycle method. Called when the component is destroyed.
+     * @param {object} options Options object or any arguments passed to `destroy` method.
+     */
+    onDestroy() {}
 
     /**
      * Mark a string as safe HTML to be rendered.  
@@ -936,6 +959,7 @@ class Component extends View {
      * Mount the component into the dom.
      * It instantiate the Component view using options, 
      * appends its element into the DOM (if `el` is provided).
+     * The `onMount` lifecycle method will be called after the component is added to the DOM.
      * And returns the view instance.
      * @static
      * @param {object} [options] The view options.
@@ -957,6 +981,8 @@ class Component extends View {
                 // Append element to the DOM.
                 el.append(...component.render().getNodes());
             }
+            // Call onMount lifecycle method after nodes are in the DOM.
+            component.callOnMount();
         }
         // Return component instance.
         return component;

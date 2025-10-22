@@ -875,6 +875,160 @@ describe('Component', () => {
             expect(recycleCalls).to.be.equal(1);
             expect(hydrateCalls).to.be.equal(0);
         });
+
+        it('must call onMount lifecycle method when mounting', () => {
+            let mountCalls = 0;
+            let elementsInDocument = [];
+            const onMount = function() {
+                mountCalls++;
+                // Verify that the element is available in the document when onMount is called
+                if (this.el && document.contains(this.el)) {
+                    elementsInDocument.push(this.el);
+                }
+            };
+
+            const Child = Component.create`<div></div>`.extend({ onMount });
+            const ChildContainer = Component.create`${() => Child.mount()}`.extend({ onMount });
+            const Main = Component.create`<div>${() => ChildContainer.mount()}</div>`.extend({ onMount });
+
+            expect(mountCalls).to.be.equal(0);
+
+            Main.mount({}, document.body);
+
+            expect(mountCalls).to.be.equal(3);
+            expect(elementsInDocument.length).to.be.equal(3);
+        });
+
+        it('must call onMount lifecycle method on new children during render', () => {
+            let mountCalls = 0;
+            let elementsInDocument = [];
+            const onMount = function() {
+                mountCalls++;
+                // Verify that the element is available in the document when onMount is called
+                if (this.el && document.contains(this.el)) {
+                    elementsInDocument.push(this.el);
+                }
+            };
+
+            const Child = Component.create`<div></div>`.extend({ onMount });
+            const Main = Component.create`
+                <div>
+                    ${({ model }) => model.showChild ? Child.mount() : null}
+                </div>
+            `.extend({ onMount }).mount({ model : new Model({ showChild : false }) }, document.body);
+
+            expect(mountCalls).to.be.equal(1); // Only Main component
+            expect(elementsInDocument.length).to.be.equal(1);
+
+            mountCalls = 0;
+            elementsInDocument = [];
+            Main.model.showChild = true;
+
+            expect(mountCalls).to.be.equal(1); // Only the new Child component
+            expect(elementsInDocument.length).to.be.equal(1);
+        });
+
+        it('must call onMount lifecycle method on recycled children during render', () => {
+            let mountCalls = 0;
+            const onMount = function() {
+                mountCalls++;
+            };
+
+            const Child = Component.create`<div></div>`.extend({ onMount });
+            const Main = Component.create`
+                <div>
+                    ${({ model }) => Child.mount({ key : 'child', text : model.text })}
+                </div>
+            `.extend({ onMount }).mount({ model : new Model({ text : 'Hello' }) }, document.body);
+
+            expect(mountCalls).to.be.equal(2); // Main + Child
+
+            mountCalls = 0;
+            Main.model.text = 'World';
+
+            expect(mountCalls).to.be.equal(1); // Recycled child calls onMount
+        });
+
+        it('must call onMount lifecycle method on children in partials during render', () => {
+            let mountCalls = 0;
+            const onMount = function() {
+                mountCalls++;
+            };
+
+            const Button = Component.create`<button>${({ props }) => props.text}</button>`.extend({ onMount });
+            const Main = Component.create`
+                <div>
+                    ${({ model, partial }) => partial`
+                        <${Button} text="${model.text}" />
+                    `}
+                </div>
+            `.extend({ onMount }).mount({ model : new Model({ text : 'Click me' }) }, document.body);
+
+            expect(mountCalls).to.be.equal(2); // Main + Button
+
+            mountCalls = 0;
+            Main.model.text = 'Updated';
+
+            expect(mountCalls).to.be.equal(1); // Recycled button calls onMount
+        });
+
+        it('must call onMount lifecycle method on new children in arrays during render', () => {
+            let mountCalls = 0;
+            let elementsInDocument = [];
+            const onMount = function() {
+                mountCalls++;
+                // Verify that the element is available in the document when onMount is called
+                if (this.el && document.contains(this.el)) {
+                    elementsInDocument.push(this.el);
+                }
+            };
+
+            const Item = Component.create`<div>${({ props }) => props.text}</div>`.extend({ onMount });
+            const Main = Component.create`
+                <div>
+                    ${({ model }) => model.items.map(item => Item.mount({ text : item }))}
+                </div>
+            `.extend({ onMount }).mount({ model : new Model({ items : ['A', 'B'] }) }, document.body);
+
+            expect(mountCalls).to.be.equal(3); // Main + 2 Items
+            expect(elementsInDocument.length).to.be.equal(3);
+
+            mountCalls = 0;
+            elementsInDocument = [];
+            Main.model.items = ['A', 'B', 'C']; // Add 3 new items
+
+            expect(mountCalls).to.be.equal(3); // 3 new items
+            expect(elementsInDocument.length).to.be.equal(3);
+        });
+
+        it('must call onMount lifecycle method on children with keys during render', () => {
+            let mountCalls = 0;
+            let elementsInDocument = [];
+            const onMount = function() {
+                mountCalls++;
+                // Verify that the element is available in the document when onMount is called
+                if (this.el && document.contains(this.el)) {
+                    elementsInDocument.push(this.el);
+                }
+            };
+
+            const Item = Component.create`<div>${({ props }) => props.text}</div>`.extend({ onMount });
+            const Main = Component.create`
+                <div>
+                    ${({ model }) => model.items.map(item => Item.mount({ key : item.id, text : item.text }))}
+                </div>
+            `.extend({ onMount }).mount({ model : new Model({ items : [{ id : '1', text : 'A' }, { id : '2', text : 'B' }] }) }, document.body);
+
+            expect(mountCalls).to.be.equal(3); // Main + 2 Items
+            expect(elementsInDocument.length).to.be.equal(3);
+
+            mountCalls = 0;
+            elementsInDocument = [];
+            Main.model.items = [{ id : '2', text : 'B' }, { id : '3', text : 'C' }]; // Remove A, add C
+
+            expect(mountCalls).to.be.equal(2); // Both items (recycled B + new C) call onMount
+            expect(elementsInDocument.length).to.be.equal(2);
+        });
     });
 
     describe('Partials and component recycling', () => {
