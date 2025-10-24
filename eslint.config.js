@@ -33,6 +33,8 @@ export default defineConfig([{
         'linebreak-style' : ['error', 'unix'],
         quotes : ['error', 'single'],
         semi : ['error', 'always'],
-        'key-spacing' : ['error', { beforeColon : true, afterColon : true }]
+        'key-spacing' : ['error', { beforeColon : true, afterColon : true }],
+        'no-trailing-spaces' : ['error', { skipBlankLines : false, ignoreComments : true }],
+        'no-multiple-empty-lines' : ['error', { max : 1, maxEOF : 0 }]
     }
 }]);

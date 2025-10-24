@@ -32,7 +32,7 @@ class Interpolation {
         const endComment = findComment(parent, this.getEnd(), this.isComponent, startComment);
 
         this.ref = [
-            startComment, 
+            startComment,
             endComment
         ];
     }

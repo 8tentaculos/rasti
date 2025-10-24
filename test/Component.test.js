@@ -463,19 +463,19 @@ describe('Component', () => {
             const mouseArea = c.$('div div');
 
             mouseArea.dispatchEvent(new MouseEvent('mousedown', {
-                bubbles : true, 
-                clientX : 50, 
-                clientY : 50 
+                bubbles : true,
+                clientX : 50,
+                clientY : 50
             }));
-            mouseArea.dispatchEvent(new MouseEvent('mousemove', { 
-                bubbles : true, 
-                clientX : 60, 
-                clientY : 60 
+            mouseArea.dispatchEvent(new MouseEvent('mousemove', {
+                bubbles : true,
+                clientX : 60,
+                clientY : 60
             }));
-            mouseArea.dispatchEvent(new MouseEvent('mouseup', { 
-                bubbles : true, 
-                clientX : 60, 
-                clientY : 60 
+            mouseArea.dispatchEvent(new MouseEvent('mouseup', {
+                bubbles : true,
+                clientX : 60,
+                clientY : 60
             }));
 
             setTimeout(() => {
@@ -487,7 +487,7 @@ describe('Component', () => {
         it('must handle all event attribute types: unquoted, quoted, and method names', (done) => {
             let eventsCalled = [];
             let model = { hovered : false };
-            
+
             const TestComponent = Component.create`
                 <div>
                     <button 
@@ -502,20 +502,17 @@ describe('Component', () => {
 
             const c = TestComponent.mount({ model }, document.body);
             const button = c.$('button');
-            
-            // Test method name (string)
+            // Test method name (string).
             button.dispatchEvent(new MouseEvent('click', { bubbles : true }));
             expect(eventsCalled).to.deep.equal(['method-click']);
-            
-            // Test quoted attribute
+            // Test quoted attribute.
             button.dispatchEvent(new MouseEvent('mouseover', { bubbles : true }));
             expect(eventsCalled).to.deep.equal(['method-click', 'quoted-hover']);
             expect(model.hovered).to.be.true;
-            
-            // Test unquoted attribute
+            // Test unquoted attribute.
             button.dispatchEvent(new MouseEvent('mouseout', { bubbles : true }));
             expect(eventsCalled).to.deep.equal(['method-click', 'quoted-hover', 'unquoted-out']);
-            
+
             done();
         });
 
@@ -526,13 +523,12 @@ describe('Component', () => {
             const checkStep = (eventName) => {
                 eventsOrder.push(eventName);
                 if (eventsOrder.length === 2 && currentStep === 0) {
-                    // First click completed, now change model to trigger re-render
+                    // First click completed, now change model to trigger re-render.
                     expect(eventsOrder).to.deep.equal(['partial-click', 'div-click']);
                     eventsOrder = []; // Reset for next test
                     currentStep = 1;
                     c.model.eventType = 'mouseover';
-                    
-                    // Wait for re-render, then test mouseover
+                    // Wait for re-render, then test mouseover.
                     setTimeout(() => {
                         const partialButton = c.$('button');
                         partialButton.dispatchEvent(new MouseEvent('mouseover', { bubbles : true }));
@@ -576,7 +572,7 @@ describe('Component', () => {
             // Test 1: Click the parent internal button - should execute parent internal.
             const parentInternalButton = parent.$('button:first-child');
             parentInternalButton.dispatchEvent(new MouseEvent('click', { bubbles : true }));
-            
+
             setTimeout(() => {
                 expect(parentInternalExecuted).to.be.true;
                 expect(childExecuted).to.be.false;
@@ -610,11 +606,11 @@ describe('Component', () => {
             `;
 
             const parent = Parent.mount({}, document.body);
-            
+
             // Click the child button - should execute child but NOT parent due to stopPropagation
             const childButton = parent.$('button');
             childButton.dispatchEvent(new MouseEvent('click', { bubbles : true }));
-            
+
             setTimeout(() => {
                 expect(childExecuted).to.be.true;
                 expect(parentExecuted).to.be.false;
@@ -637,11 +633,11 @@ describe('Component', () => {
             `;
 
             const parent = Parent.mount({}, document.body);
-            
+
             // Click the child button - should execute both child AND parent due to bubbling
             const childButton = parent.$('button');
             childButton.dispatchEvent(new MouseEvent('click', { bubbles : true }));
-            
+
             setTimeout(() => {
                 expect(childExecuted).to.be.true;
                 expect(parentExecuted).to.be.true;
@@ -934,7 +930,7 @@ describe('Component', () => {
             const onHydrate = function() {
                 hydrateCalls++;
             };
-            
+
             const onUpdate = function() {
                 updateCalls++;
             };
@@ -1141,7 +1137,7 @@ describe('Component', () => {
             expect(c2.children.length).to.be.equal(2);
             expect(c2.children[0].el).to.be.equal(document.querySelector('#test-node-2 button'));
             expect(c2.children[1].el).to.be.equal(document.querySelector('#test-node-2 span button'));
-            
+
             const c3 = Component.create`
                 <div id="test-node-3">${({ partial }) => partial`<div><${Button} /><span>${({ partial, options }) => options.ok && partial`<${Button} />`}</span></div>`}</div>
             `.mount({ ok : true }, document.body);
@@ -1490,7 +1486,7 @@ describe('Component', () => {
         it('must recycle different component types in same position by constructor', () => {
             const Button = Component.create`<button>Button</button>`;
             const Link = Component.create`<a>Link</a>`;
-            
+
             const ParentComponent = Component.create`
                 <div id="test-node">
                     ${({ model }) => model.showButton ? Button.mount() : Link.mount()}

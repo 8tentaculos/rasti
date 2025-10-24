@@ -270,7 +270,7 @@ describe('Emitter', () => {
             const e1 = new Emitter();
             const e2 = new Emitter();
             const e3 = new Emitter();
-            
+
             const l1 = () => {};
             const l2 = () => {};
             const l3 = () => {};
@@ -340,7 +340,7 @@ describe('Emitter', () => {
 
             // Stop listening to one specific listener.
             e1.stopListening(e2, 'myEvent', listener1);
-            
+
             e2.emit('myEvent');
             expect(count1).to.equal(1); // Should not increase
             expect(count2).to.equal(2); // Should increase
@@ -374,11 +374,11 @@ describe('Emitter', () => {
             let count = 0;
 
             const listener = () => { count++; };
-            
+
             // Test listenTo remove function.
             const remove1 = e1.listenTo(e2, 'event1', listener);
             expect(remove1).to.be.a('function');
-            
+
             // Test listenToOnce remove function.
             const remove2 = e1.listenToOnce(e2, 'event2', listener);
             expect(remove2).to.be.a('function');

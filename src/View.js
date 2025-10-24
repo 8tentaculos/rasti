@@ -168,7 +168,7 @@ export default class View extends Emitter {
      * You shouldn't call this method directly. It's called from the constructor.
      * You may override it if you want to use a different logic or to 
      * postpone element creation.
-     */ 
+     */
     ensureElement() {
         // Element is already present.
         if (this.el) {

@@ -6,7 +6,7 @@ describe('Model', () => {
         it('must exists', () => {
             expect(Model).to.exist;
         });
-        
+
         it('must run preinitialize', (done) => {
             class MyModel extends Model {
                 preinitialize() {
@@ -57,7 +57,7 @@ describe('Model', () => {
             m.set({ test : true });
             expect(m.get('test')).to.be.true;
         });
-    
+
         it('must set and get attribute using setter', () => {
             const m = new Model({ test : false });
             m.test = true;
@@ -94,7 +94,7 @@ describe('Model', () => {
         it('must set attribute using setter and emit change event passing arguments', (done) => {
             let m = new Model();
 
-            m.on('change', (model, changed, extra) => { 
+            m.on('change', (model, changed, extra) => {
                 expect(extra).to.be.true;
                 done();
             });
@@ -202,7 +202,7 @@ describe('Model', () => {
             PrefixedModel.attributePrefix = 'test_';
 
             const m = new PrefixedModel({ value : 10 });
-            
+
             m.on('change:value', (model, newValue) => {
                 expect(newValue).to.equal(20);
                 done();

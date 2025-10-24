@@ -128,7 +128,7 @@ describe('View', () => {
             MyView.prototype.events = {
                 'click section button' : () => done()
             };
-            
+
             const v = new MyView();
 
             document.body.appendChild(v.render().el);
@@ -146,7 +146,7 @@ describe('View', () => {
             MyView.prototype.events = {
                 'click section button' : () => done(new Error('Failed undelegating event listener'))
             };
-            
+
             const v = new MyView();
 
             document.body.appendChild(
@@ -168,7 +168,7 @@ describe('View', () => {
             MyView.prototype.events = {
                 'click' : () => done()
             };
-            
+
             let v = new MyView();
 
             document.body.appendChild(v.render().el);
@@ -278,7 +278,7 @@ describe('View', () => {
             const v = new TestView();
             document.body.appendChild(v.render().el);
             const button = v.$('button');
-            
+
             button.dispatchEvent(new MouseEvent('click', { bubbles : true }));
             button.dispatchEvent(new MouseEvent('mouseover', { bubbles : true }));
             button.dispatchEvent(new MouseEvent('mouseout', { bubbles : true }));
