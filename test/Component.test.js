@@ -367,7 +367,7 @@ describe('Component', () => {
         it('must delegate multiple event types', (done) => {
             let eventsCalled = [];
             const expectedEvents = ['click', 'mouseover', 'keydown'];
-            
+
             const checkComplete = () => {
                 if (eventsCalled.length === expectedEvents.length) {
                     // Verify all events were called
@@ -461,8 +461,8 @@ describe('Component', () => {
             `.mount({}, document.body);
 
             const mouseArea = c.$('div div');
-            
-            mouseArea.dispatchEvent(new MouseEvent('mousedown', { 
+
+            mouseArea.dispatchEvent(new MouseEvent('mousedown', {
                 bubbles : true, 
                 clientX : 50, 
                 clientY : 50 
@@ -554,6 +554,98 @@ describe('Component', () => {
             setTimeout(() => {
                 const button = c.$('button');
                 button.dispatchEvent(new MouseEvent('click', { bubbles : true }));
+            }, 10);
+        });
+
+        it('must not trigger parent internal node onClick when child component has onClick', (done) => {
+            let parentInternalExecuted = false;
+            let childExecuted = false;
+
+            const Child = Component.create`
+                <button onClick=${() => { childExecuted = true; }}>Child Button</button>
+            `;
+
+            const Parent = Component.create`
+                <div>
+                    <button onClick=${() => { parentInternalExecuted = true; }}>Parent Internal Button</button>
+                    <${Child} />
+                </div>
+            `;
+
+            const parent = Parent.mount({}, document.body);
+            // Test 1: Click the parent internal button - should execute parent internal.
+            const parentInternalButton = parent.$('button:first-child');
+            parentInternalButton.dispatchEvent(new MouseEvent('click', { bubbles : true }));
+            
+            setTimeout(() => {
+                expect(parentInternalExecuted).to.be.true;
+                expect(childExecuted).to.be.false;
+                // Reset for test 2.
+                parentInternalExecuted = false;
+                childExecuted = false;
+                // Test 2: Click the child button - should execute child, NOT parent internal
+                const childButton = parent.$('button:last-child');
+                childButton.dispatchEvent(new MouseEvent('click', { bubbles : true }));
+
+                setTimeout(() => {
+                    expect(childExecuted).to.be.true;
+                    expect(parentInternalExecuted).to.be.false;
+                    done();
+                }, 10);
+            }, 10);
+        });
+
+        it('must support event.stopPropagation() to prevent parent execution', (done) => {
+            let parentExecuted = false;
+            let childExecuted = false;
+
+            const Child = Component.create`
+                <button onClick=${(event) => { childExecuted = true; event.stopPropagation(); }}>Child Button with stopPropagation</button>
+            `;
+
+            const Parent = Component.create`
+                <div onClick=${() => { parentExecuted = true; }}>
+                    <${Child} />
+                </div>
+            `;
+
+            const parent = Parent.mount({}, document.body);
+            
+            // Click the child button - should execute child but NOT parent due to stopPropagation
+            const childButton = parent.$('button');
+            childButton.dispatchEvent(new MouseEvent('click', { bubbles : true }));
+            
+            setTimeout(() => {
+                expect(childExecuted).to.be.true;
+                expect(parentExecuted).to.be.false;
+                done();
+            }, 10);
+        });
+
+        it('must allow event bubbling when stopPropagation is not called', (done) => {
+            let parentExecuted = false;
+            let childExecuted = false;
+
+            const Child = Component.create`
+                <button onClick=${() => { childExecuted = true; }}>Child Button without stopPropagation</button>
+            `;
+
+            const Parent = Component.create`
+                <div onClick=${() => { parentExecuted = true; }}>
+                    <${Child} />
+                </div>
+            `;
+
+            const parent = Parent.mount({}, document.body);
+            
+            // Click the child button - should execute both child AND parent due to bubbling
+            const childButton = parent.$('button');
+            childButton.dispatchEvent(new MouseEvent('click', { bubbles : true }));
+            
+            setTimeout(() => {
+                expect(childExecuted).to.be.true;
+                expect(parentExecuted).to.be.true;
+                done();
             }, 10);
         });
     });

@@ -49,7 +49,7 @@ const isElement = (el) => !!el.dataset[Component.DATASET_ELEMENT];
  * @return {string} String with placeholders.
  * @private
  */
-const addPlaceholders = (strings, expressions) => 
+const addPlaceholders = (strings, expressions) =>
     strings.reduce((out, string, i) => {
         // Add string part.
         out.push(string);
@@ -119,10 +119,11 @@ const expandAttributes = (attributes, getExpressionResult) => attributes.reduce(
  * Expand events.
  * @param {object} attributes Attributes object.
  * @param {EventsManager} eventsManager Events manager.
+ * @param {Function} getDataAttribute Function to get data attribute name with uid.
  * @return {object} Attributes object.
  * @private
  */
-const expandEvents = (attributes, eventsManager) => {
+const expandEvents = (attributes, eventsManager, getDataAttribute) => {
     const out = {};
     Object.keys(attributes).forEach(key => {
         // Check if key is an event listener.
@@ -134,7 +135,7 @@ const expandEvents = (attributes, eventsManager) => {
             if (listener) {
                 const index = eventsManager.addListener(listener, type);
                 // Add event listener index.
-                out[Component.ATTRIBUTE_EVENT(type)] = index;
+                out[getDataAttribute(type)] = index;
             }
         } else {
             // Add attribute.
@@ -274,7 +275,8 @@ const parseElements = (template, expressions, elements) => {
             // Expand attributes and events.
             const attributes = expandEvents(
                 expandAttributes(parsedAttributes, value => getExpressionResult(value, this)),
-                this.eventsManager
+                this.eventsManager,
+                type => Component.ATTRIBUTE_EVENT(type, this.uid)
             );
             // Extend template attributes with `options.attributes`.
             if (isRoot && this.attributes) {
@@ -328,7 +330,8 @@ const parsePartialElements = (template, expressions) => {
         const getAttributes = function() {
             const attributes = expandEvents(
                 expandAttributes(parsedAttributes, value => getExpressionResult(value, this)),
-                this.eventsManager
+                this.eventsManager,
+                type => Component.ATTRIBUTE_EVENT(type, this.uid)
             );
 
             return attributes;
@@ -473,7 +476,7 @@ class Component extends View {
         const events = {};
         // Create events object.
         this.eventsManager.types.forEach(type => {
-            const dataAttribute = Component.ATTRIBUTE_EVENT(type);
+            const dataAttribute = Component.ATTRIBUTE_EVENT(type, this.uid);
             // Create a listener function that gets the listener index from the data attribute and calls the listener.
             const listener = function(event, component, matched) {
                 // Get the listener index from the data attribute.
@@ -570,7 +573,7 @@ class Component extends View {
             this.el = this.children[0].el;
         } else {
             // Search for every element in template using getSelector
-            this.template.elements.forEach((element, index) => { 
+            this.template.elements.forEach((element, index) => {
                 if (index === 0) {
                     element.hydrate(parent);
                     if (this.el) element.ref = this.el;
@@ -1161,7 +1164,7 @@ class Component extends View {
  * Attributes used to identify elements and events.
  */
 Component.ATTRIBUTE_ELEMENT = 'data-rasti-el';
-Component.ATTRIBUTE_EVENT = (type) => `data-rasti-on-${type}`;
+Component.ATTRIBUTE_EVENT = (type, uid) => `data-rasti-on-${type}-${uid}`;
 
 /*
  * Dataset attribute used to identify elements.
