@@ -1,6 +1,6 @@
 {
     "name": "rasti",
-    "version": "4.0.0-alpha.3",
+    "version": "4.0.0-alpha.4",
     "description": "Modern MVC for building user interfaces",
     "type": "module",
     "main": "lib/index.cjs",
