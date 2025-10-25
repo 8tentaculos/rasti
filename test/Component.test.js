@@ -1511,5 +1511,30 @@ describe('Component', () => {
             // Should be a different element (different component type)
             expect(newButton).not.to.be.equal(originalButton);
         });
+
+        it('must render conditional component inside partial', () => {
+            const Child = Component.create`<span class="child">child</span>`;
+
+            const Parent = Component.create`
+                <div class="parent">
+                    ${({ model, partial }) => partial`
+                        ${() => model.show ? partial`<${Child} />` : null}
+                    `}
+                </div>
+            `;
+
+            const parent = Parent.mount({ model : new Model({ show : false }) }, document.body);
+            // Initially no child element
+            expect(document.querySelector('.child')).to.not.exist;
+            // Toggle to show child
+            parent.model.show = true;
+            expect(document.querySelectorAll('.child').length).to.equal(1);
+            // Toggle to hide child
+            parent.model.show = false;
+            expect(document.querySelector('.child')).to.not.exist;
+            // Toggle to show child again – must not throw and still render only one child
+            parent.model.show = true;
+            expect(document.querySelectorAll('.child').length).to.equal(1);
+        });
     });
 });
