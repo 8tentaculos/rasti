@@ -30,6 +30,7 @@
         "posttest": "npm run lint",
         "lint": "eslint src test",
         "test": "mocha --require jsdom-global/register --reporter nyan test/*.js",
+        "version": "node -e \"const fs=require('fs');const v=require('./package.json').version;const re=/@v\\d+\\.\\d+\\.\\d+(?:-[\\w.-]+)?/g;const t=fs.readFileSync('README.md','utf8');fs.writeFileSync('README.md',t.replace(re,'@v'+v));\" && git add README.md",
         "docs:api": "jsdoc2md --module-index-format grouped --helper jsdoc2md/helper.cjs --partial jsdoc2md/header.hbs --partial jsdoc2md/sig-link.hbs --partial jsdoc2md/sig-link-html.hbs --partial jsdoc2md/sig-link-parent.hbs --partial jsdoc2md/link.hbs --files 'src/**/*.js' > docs/api.md"
     },
     "repository": {
