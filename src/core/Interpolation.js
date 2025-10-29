@@ -46,16 +46,21 @@ class Interpolation {
         const [startComment, endComment] = this.ref;
 
         const currentFirstElement = startComment.nextSibling;
-        const currentSingleChildElement = currentFirstElement.nextSibling === endComment;
-        const currentEmpty = currentFirstElement == endComment;
+        const currentEmpty = currentFirstElement === endComment;
+        const currentSingleChildElement = !currentEmpty && currentFirstElement.nextSibling === endComment;
         const fragmentChildren = fragment.children;
 
-        if (currentSingleChildElement && fragmentChildren.length === 1 && !this.isElement(currentFirstElement)) {
-            // There is a single child element that is not a component's root element. Sync node attributes and content.
-            syncNode(currentFirstElement, fragmentChildren[0]);
-        } else if (currentEmpty) {
+        if (currentEmpty) {
             // Interpolation is empty. Insert the fragment.
             endComment.parentNode.insertBefore(fragment, endComment);
+        } else if (currentSingleChildElement && fragmentChildren.length === 1) {
+            if (!this.isElement(currentFirstElement)) {
+                // There is a single child element that is not a component's root element. Sync node attributes and content.
+                syncNode(currentFirstElement, fragmentChildren[0]);
+            } else {
+                // There is a single child element that is a component's root element. Replace it with the new child element.
+                currentFirstElement.replaceWith(fragmentChildren[0]);
+            }
         } else {
             // Interpolation is not empty. Replace the interpolation content.
             const range = document.createRange();
