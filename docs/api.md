@@ -7,13 +7,12 @@
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>Partial</code>](#new_partial_new)
         * [.toString()](#module_component__tostring) ⇒ <code>string</code>
         * [.render()](#module_component__render) ⇒ <code>Component</code>
-        * [.onCreate(options)](#module_component__oncreate)
+        * [.onCreate(...args)](#module_component__oncreate)
         * [.onChange(model, changed)](#module_component__onchange)
         * [.onHydrate()](#module_component__onhydrate)
-        * [.onMount()](#module_component__onmount)
         * [.onRecycle()](#module_component__onrecycle)
         * [.onUpdate()](#module_component__onupdate)
-        * [.onDestroy(options)](#module_component__ondestroy)
+        * [.onDestroy(...args)](#module_component__ondestroy)
     * _static_
         * [.markAsSafeHTML(value)](#module_component_markassafehtml) ⇒ [<code>SafeHTML</code>](#new_safehtml_new)
         * [.extend(object)](#module_component_extend)
@@ -101,13 +100,12 @@ setInterval(() => model.seconds++, 1000);
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>Partial</code>](#new_partial_new)
         * [.toString()](#module_component__tostring) ⇒ <code>string</code>
         * [.render()](#module_component__render) ⇒ <code>Component</code>
-        * [.onCreate(options)](#module_component__oncreate)
+        * [.onCreate(...args)](#module_component__oncreate)
         * [.onChange(model, changed)](#module_component__onchange)
         * [.onHydrate()](#module_component__onhydrate)
-        * [.onMount()](#module_component__onmount)
         * [.onRecycle()](#module_component__onrecycle)
         * [.onUpdate()](#module_component__onupdate)
-        * [.onDestroy(options)](#module_component__ondestroy)
+        * [.onDestroy(...args)](#module_component__ondestroy)
     * _static_
         * [.markAsSafeHTML(value)](#module_component_markassafehtml) ⇒ [<code>SafeHTML</code>](#new_safehtml_new)
         * [.extend(object)](#module_component_extend)
@@ -198,20 +196,22 @@ Render the `Component`.
   - Components with a `key` are recycled if a previous child with the same key exists.
   - Unkeyed components are recycled if they have the same type and position in the template or partial.
   A recycled `Component` will call the `onRecycle` lifecycle method.  
-- All child components will have their `onMount` lifecycle method called after they are added to the DOM. New children will be hydrated first (calling their `onHydrate` lifecycle method).
 - If the active element is inside the component, it will retain focus after the render.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 **Returns**: <code>Component</code> - The component instance.  
 <a name="module_component__oncreate" id="module_component__oncreate" class="anchor"></a>
-### component.onCreate(options)
-Lifecycle method. Called when the view is created, at the end of the `constructor`.
+### component.onCreate(...args)
+Lifecycle method. Called when the component is created, at the end of the constructor.
+This method receives the same arguments passed to the constructor (options and any additional parameters).
+It executes both on client and server.
+Use this method to define models or state that will be used later in `onHydrate`.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| options | <code>object</code> | The view options. |
+| ...args | <code>\*</code> | The constructor arguments (options and any additional parameters). |
 
 <a name="module_component__onchange" id="module_component__onchange" class="anchor"></a>
 ### component.onChange(model, changed)
@@ -231,15 +231,9 @@ render when needed.
 
 <a name="module_component__onhydrate" id="module_component__onhydrate" class="anchor"></a>
 ### component.onHydrate()
-Lifecycle method. Called when the component is rendered for the first time and hydrated.
-
-**Kind**: instance method of [<code>Component</code>](#module_component)  
-<a name="module_component__onmount" id="module_component__onmount" class="anchor"></a>
-### component.onMount()
-Lifecycle method. Called when the component is mounted to the DOM.
-This method is called after `onHydrate` and only when the component's element is actually present in the document.
-It is called during the initial mount process (when using `Component.mount()`) and when new child components are added during render.
-Use this method to perform operations that require the element to be in the DOM, such as measuring dimensions or focusing elements.
+Lifecycle method. Called when the component is rendered for the first time and hydrated in a DocumentFragment.
+This method only executes on the client and only during the first render.
+Use this method for client-only operations like making API requests or setting up browser-specific functionality.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 <a name="module_component__onrecycle" id="module_component__onrecycle" class="anchor"></a>
@@ -250,17 +244,20 @@ Lifecycle method. Called when the component is recycled (reused with the same ke
 <a name="module_component__onupdate" id="module_component__onupdate" class="anchor"></a>
 ### component.onUpdate()
 Lifecycle method. Called when the component is updated or re-rendered.
+This method is called when the component's state, model, or props change and trigger a re-render.
+Use this method to perform operations that need to happen on every update.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 <a name="module_component__ondestroy" id="module_component__ondestroy" class="anchor"></a>
-### component.onDestroy(options)
+### component.onDestroy(...args)
 Lifecycle method. Called when the component is destroyed.
+Use this method to clean up resources, cancel timers, remove event listeners, etc.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| options | <code>object</code> | Options object or any arguments passed to `destroy` method. |
+| ...args | <code>\*</code> | Options object or any arguments passed to `destroy` method. |
 
 <a name="module_component_markassafehtml" id="module_component_markassafehtml" class="anchor"></a>
 ### Component.markAsSafeHTML(value) ⇒ [<code>SafeHTML</code>](#new_safehtml_new)

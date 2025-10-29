@@ -432,7 +432,7 @@ const parseAttributes = (attributesStr, expressions) => {
 /*
  * These option keys will be extended on the component instance.
  */
-const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', 'onMount', 'onRecycle', 'onUpdate'];
+const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', 'onRecycle', 'onUpdate'];
 
 /**
  * @lends module:Component
@@ -600,14 +600,21 @@ class Component extends View {
      * Reuse a `Component` by replacing the placeholder comment with the real nodes.
      * Call `onRecycle` lifecycle method.
      * @param parent {node} The parent node.
+     * @param props {object} The props to set on the recycled component.
      * @return {Component} The component instance.
      * @private
      */
-    recycle(parent) {
-        // Locate the placeholder comment and replace it with the real nodes
-        const toBeReplaced = findComment(parent, Component.MARKER_RECYCLED(this.uid), isComponent);
-        // Replace it with this.el.
-        toBeReplaced.replaceWith(...this.getNodes());
+    recycle(parent, props) {
+        if (parent) {
+            // Locate the placeholder comment and replace it with the real nodes
+            const toBeReplaced = findComment(parent, Component.MARKER_RECYCLED(this.uid), isComponent);
+            // Replace it with this.el.
+            toBeReplaced.replaceWith(...this.getNodes());
+        }
+        // Update props.
+        if (props) {
+            this.props.set(props);
+        }
         // Call `onRecycle` lifecycle method.
         this.onRecycle.call(this);
         // Return `this` for chaining.
@@ -637,20 +644,6 @@ class Component extends View {
         return this.isContainer() ?
             [this.template.interpolations[0].ref[0], ...this.children[0].getNodes(), this.template.interpolations[0].ref[1]] :
             [this.el];
-    }
-
-    /**
-     * Call onMount lifecycle method on children and self.
-     * Used internally during the mount and render process.
-     * @private
-     */
-    callOnMount() {
-        // Call onMount on children first.
-        this.children.forEach(child => child.callOnMount());
-        // Call onMount on self.
-        this.onMount.call(this);
-        // Return `this` for chaining.
-        return this;
     }
 
     /**
@@ -705,16 +698,29 @@ class Component extends View {
      * Render a template part.
      * @param {any} part - The template part.
      * @param {function} addChild - The addChild function.
+     * @param {Object} [stats={}] - Statistics object to track component and string counts.
+     * @param {number} [stats.components=0] - Counter for rendered components.
+     * @param {number} [stats.strings=0] - Counter for rendered strings.
      * @return {string} The rendered template part.
      * @private
      */
-    renderTemplatePart(part, addChild) {
+    renderTemplatePart(part, addChild, stats = {}) {
+        // Initialize counters if not present
+        stats.components = stats.components || 0;
+        stats.strings = stats.strings || 0;
+
         const result = getExpressionResult(part, this);
 
         const parse = item => {
             if (typeof item !== 'undefined' && item !== null && item !== false && item !== true) {
-                if (item instanceof SafeHTML) return item;
-                if (item instanceof Component) return addChild(item);
+                if (item instanceof SafeHTML) {
+                    stats.strings++;
+                    return item;
+                }
+                if (item instanceof Component) {
+                    stats.components++;
+                    return addChild(item);
+                }
 
                 if (item instanceof Partial) {
                     this.pathManager.push();
@@ -737,6 +743,7 @@ class Component extends View {
                     return `${startMarker}${parse(item.result)}${endMarker}`;
                 }
 
+                stats.strings++;
                 return Component.sanitize(item);
             }
             // Return empty string if item is undefined, null, false, or true.
@@ -778,7 +785,6 @@ class Component extends View {
      *   - Components with a `key` are recycled if a previous child with the same key exists.
      *   - Unkeyed components are recycled if they have the same type and position in the template or partial.
      *   A recycled `Component` will call the `onRecycle` lifecycle method.  
-     * - All child components will have their `onMount` lifecycle method called after they are added to the DOM. New children will be hydrated first (calling their `onHydrate` lifecycle method).
      * - If the active element is inside the component, it will retain focus after the render.  
      * @return {Component} The component instance.
      */
@@ -807,6 +813,7 @@ class Component extends View {
         this.template.interpolations.forEach(interpolation => {
             const nextChildren = [];
             const recycledChildren = [];
+            const stats = { components : 0, strings : 0 };
 
             this.pathManager.increment();
 
@@ -838,22 +845,27 @@ class Component extends View {
                 return out;
             };
 
-            const fragment = parseHTML(this.renderTemplatePart(interpolation.expression, addChild));
-            // Replace children root elements with recycled components.
-            recycledChildren.forEach(([recycled, discarded]) => {
-                this.addChild(recycled).recycle(fragment);
-                // Update props.
-                recycled.props.set(discarded.props.toJSON());
+            const rendered = this.renderTemplatePart(interpolation.expression, addChild, stats);
+
+            const recycle = ([recycled, discarded], fragment) => {
+                // Add child, update props and recycle (move to new position if needed).
+                this.addChild(recycled).recycle(fragment, discarded.props.toJSON());
                 // Destroy discarded component.
                 discarded.destroy();
-            });
+            };
+
+            if (stats.components === 1 && stats.strings === 0 && recycledChildren.length === 1) {
+                recycle(recycledChildren[0], null);
+                return;
+            }
+
+            const fragment = parseHTML(rendered);
+            // Add recycled components to children and move them to the new template in the fragment.
+            recycledChildren.forEach(recycled => recycle(recycled, fragment));
             // Add new children. Hydrate them.
             nextChildren.forEach(child => this.addChild(child).hydrate(fragment));
-
             interpolation.update(fragment);
         });
-        // Call onMount lifecycle method on all children after interpolations update.
-        this.children.forEach(child => child.callOnMount());
         // Destroy unused children.
         previousChildren.forEach(prev => {
             if (this.children.indexOf(prev) < 0) prev.destroy();
@@ -878,8 +890,11 @@ class Component extends View {
     }
 
     /**
-     * Lifecycle method. Called when the view is created, at the end of the `constructor`.
-     * @param options {object} The view options.
+     * Lifecycle method. Called when the component is created, at the end of the constructor.
+     * This method receives the same arguments passed to the constructor (options and any additional parameters).
+     * It executes both on client and server.
+     * Use this method to define models or state that will be used later in `onHydrate`.
+     * @param {...*} args The constructor arguments (options and any additional parameters).
      */
     onCreate() {}
 
@@ -898,17 +913,11 @@ class Component extends View {
     }
 
     /**
-     * Lifecycle method. Called when the component is rendered for the first time and hydrated.
+     * Lifecycle method. Called when the component is rendered for the first time and hydrated in a DocumentFragment.
+     * This method only executes on the client and only during the first render.
+     * Use this method for client-only operations like making API requests or setting up browser-specific functionality.
      */
     onHydrate() {}
-
-    /**
-     * Lifecycle method. Called when the component is mounted to the DOM.
-     * This method is called after `onHydrate` and only when the component's element is actually present in the document.
-     * It is called during the initial mount process (when using `Component.mount()`) and when new child components are added during render.
-     * Use this method to perform operations that require the element to be in the DOM, such as measuring dimensions or focusing elements.
-     */
-    onMount() {}
 
     /**
      * Lifecycle method. Called when the component is recycled (reused with the same key) and added to the DOM again.
@@ -917,12 +926,15 @@ class Component extends View {
 
     /**
      * Lifecycle method. Called when the component is updated or re-rendered.
+     * This method is called when the component's state, model, or props change and trigger a re-render.
+     * Use this method to perform operations that need to happen on every update.
      */
     onUpdate() {}
 
     /**
      * Lifecycle method. Called when the component is destroyed.
-     * @param {object} options Options object or any arguments passed to `destroy` method.
+     * Use this method to clean up resources, cancel timers, remove event listeners, etc.
+     * @param {...*} args Options object or any arguments passed to `destroy` method.
      */
     onDestroy() {}
 
@@ -984,8 +996,6 @@ class Component extends View {
                 // Append element to the DOM.
                 el.append(...component.render().getNodes());
             }
-            // Call onMount lifecycle method after nodes are in the DOM.
-            component.callOnMount();
         }
         // Return component instance.
         return component;

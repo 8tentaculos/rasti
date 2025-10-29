@@ -370,7 +370,7 @@ describe('Component', () => {
 
             const checkComplete = () => {
                 if (eventsCalled.length === expectedEvents.length) {
-                    // Verify all events were called
+                    // Verify all events were called.
                     expect(eventsCalled).to.include.members(expectedEvents);
                     done();
                 }
@@ -389,7 +389,7 @@ describe('Component', () => {
             `.mount({}, document.body);
 
             const button = c.$('button');
-            // Dispatch different event types
+            // Dispatch different event types.
             button.dispatchEvent(new MouseEvent('click', { bubbles : true }));
             button.dispatchEvent(new MouseEvent('mouseover', { bubbles : true }));
             button.dispatchEvent(new KeyboardEvent('keydown', { bubbles : true, key : 'Enter' }));
@@ -412,7 +412,7 @@ describe('Component', () => {
 
             button.dispatchEvent(new MouseEvent('click', { bubbles : true }));
 
-            // Wait for event handling to complete
+            // Wait for event handling to complete.
             setTimeout(() => {
                 expect(eventsOrder).to.deep.equal(['button', 'child', 'parent']);
                 done();
@@ -525,7 +525,7 @@ describe('Component', () => {
                 if (eventsOrder.length === 2 && currentStep === 0) {
                     // First click completed, now change model to trigger re-render.
                     expect(eventsOrder).to.deep.equal(['partial-click', 'div-click']);
-                    eventsOrder = []; // Reset for next test
+                    eventsOrder = []; // Reset for next test.
                     currentStep = 1;
                     c.model.eventType = 'mouseover';
                     // Wait for re-render, then test mouseover.
@@ -534,7 +534,7 @@ describe('Component', () => {
                         partialButton.dispatchEvent(new MouseEvent('mouseover', { bubbles : true }));
                     }, 10);
                 } else if (eventsOrder.length === 2 && currentStep === 1) {
-                    // Second event test completed
+                    // Second event test completed.
                     expect(eventsOrder).to.deep.equal(['partial-mouseover', 'div-mouseover']);
                     done();
                 }
@@ -546,7 +546,7 @@ describe('Component', () => {
                 </div>
             `.mount({ model : new Model({ eventType : 'click' }) }, document.body);
 
-            // Start test by clicking the button
+            // Start test by clicking the button.
             setTimeout(() => {
                 const button = c.$('button');
                 button.dispatchEvent(new MouseEvent('click', { bubbles : true }));
@@ -570,6 +570,7 @@ describe('Component', () => {
 
             const parent = Parent.mount({}, document.body);
             // Test 1: Click the parent internal button - should execute parent internal.
+            // Click the parent internal button - should execute parent internal.
             const parentInternalButton = parent.$('button:first-child');
             parentInternalButton.dispatchEvent(new MouseEvent('click', { bubbles : true }));
 
@@ -579,7 +580,7 @@ describe('Component', () => {
                 // Reset for test 2.
                 parentInternalExecuted = false;
                 childExecuted = false;
-                // Test 2: Click the child button - should execute child, NOT parent internal
+                // Click the child button - should execute child, NOT parent internal.
                 const childButton = parent.$('button:last-child');
                 childButton.dispatchEvent(new MouseEvent('click', { bubbles : true }));
 
@@ -607,7 +608,7 @@ describe('Component', () => {
 
             const parent = Parent.mount({}, document.body);
 
-            // Click the child button - should execute child but NOT parent due to stopPropagation
+            // Click the child button - should execute child but NOT parent due to stopPropagation.
             const childButton = parent.$('button');
             childButton.dispatchEvent(new MouseEvent('click', { bubbles : true }));
 
@@ -634,7 +635,7 @@ describe('Component', () => {
 
             const parent = Parent.mount({}, document.body);
 
-            // Click the child button - should execute both child AND parent due to bubbling
+            // Click the child button - should execute both child AND parent due to bubbling.
             const childButton = parent.$('button');
             childButton.dispatchEvent(new MouseEvent('click', { bubbles : true }));
 
@@ -963,160 +964,6 @@ describe('Component', () => {
             expect(recycleCalls).to.be.equal(1);
             expect(hydrateCalls).to.be.equal(0);
         });
-
-        it('must call onMount lifecycle method when mounting', () => {
-            let mountCalls = 0;
-            let elementsInDocument = [];
-            const onMount = function() {
-                mountCalls++;
-                // Verify that the element is available in the document when onMount is called
-                if (this.el && document.contains(this.el)) {
-                    elementsInDocument.push(this.el);
-                }
-            };
-
-            const Child = Component.create`<div></div>`.extend({ onMount });
-            const ChildContainer = Component.create`${() => Child.mount()}`.extend({ onMount });
-            const Main = Component.create`<div>${() => ChildContainer.mount()}</div>`.extend({ onMount });
-
-            expect(mountCalls).to.be.equal(0);
-
-            Main.mount({}, document.body);
-
-            expect(mountCalls).to.be.equal(3);
-            expect(elementsInDocument.length).to.be.equal(3);
-        });
-
-        it('must call onMount lifecycle method on new children during render', () => {
-            let mountCalls = 0;
-            let elementsInDocument = [];
-            const onMount = function() {
-                mountCalls++;
-                // Verify that the element is available in the document when onMount is called
-                if (this.el && document.contains(this.el)) {
-                    elementsInDocument.push(this.el);
-                }
-            };
-
-            const Child = Component.create`<div></div>`.extend({ onMount });
-            const Main = Component.create`
-                <div>
-                    ${({ model }) => model.showChild ? Child.mount() : null}
-                </div>
-            `.extend({ onMount }).mount({ model : new Model({ showChild : false }) }, document.body);
-
-            expect(mountCalls).to.be.equal(1); // Only Main component
-            expect(elementsInDocument.length).to.be.equal(1);
-
-            mountCalls = 0;
-            elementsInDocument = [];
-            Main.model.showChild = true;
-
-            expect(mountCalls).to.be.equal(1); // Only the new Child component
-            expect(elementsInDocument.length).to.be.equal(1);
-        });
-
-        it('must call onMount lifecycle method on recycled children during render', () => {
-            let mountCalls = 0;
-            const onMount = function() {
-                mountCalls++;
-            };
-
-            const Child = Component.create`<div></div>`.extend({ onMount });
-            const Main = Component.create`
-                <div>
-                    ${({ model }) => Child.mount({ key : 'child', text : model.text })}
-                </div>
-            `.extend({ onMount }).mount({ model : new Model({ text : 'Hello' }) }, document.body);
-
-            expect(mountCalls).to.be.equal(2); // Main + Child
-
-            mountCalls = 0;
-            Main.model.text = 'World';
-
-            expect(mountCalls).to.be.equal(1); // Recycled child calls onMount
-        });
-
-        it('must call onMount lifecycle method on children in partials during render', () => {
-            let mountCalls = 0;
-            const onMount = function() {
-                mountCalls++;
-            };
-
-            const Button = Component.create`<button>${({ props }) => props.text}</button>`.extend({ onMount });
-            const Main = Component.create`
-                <div>
-                    ${({ model, partial }) => partial`
-                        <${Button} text="${model.text}" />
-                    `}
-                </div>
-            `.extend({ onMount }).mount({ model : new Model({ text : 'Click me' }) }, document.body);
-
-            expect(mountCalls).to.be.equal(2); // Main + Button
-
-            mountCalls = 0;
-            Main.model.text = 'Updated';
-
-            expect(mountCalls).to.be.equal(1); // Recycled button calls onMount
-        });
-
-        it('must call onMount lifecycle method on new children in arrays during render', () => {
-            let mountCalls = 0;
-            let elementsInDocument = [];
-            const onMount = function() {
-                mountCalls++;
-                // Verify that the element is available in the document when onMount is called
-                if (this.el && document.contains(this.el)) {
-                    elementsInDocument.push(this.el);
-                }
-            };
-
-            const Item = Component.create`<div>${({ props }) => props.text}</div>`.extend({ onMount });
-            const Main = Component.create`
-                <div>
-                    ${({ model }) => model.items.map(item => Item.mount({ text : item }))}
-                </div>
-            `.extend({ onMount }).mount({ model : new Model({ items : ['A', 'B'] }) }, document.body);
-
-            expect(mountCalls).to.be.equal(3); // Main + 2 Items
-            expect(elementsInDocument.length).to.be.equal(3);
-
-            mountCalls = 0;
-            elementsInDocument = [];
-            Main.model.items = ['A', 'B', 'C']; // Add 3 new items
-
-            expect(mountCalls).to.be.equal(3); // 3 new items
-            expect(elementsInDocument.length).to.be.equal(3);
-        });
-
-        it('must call onMount lifecycle method on children with keys during render', () => {
-            let mountCalls = 0;
-            let elementsInDocument = [];
-            const onMount = function() {
-                mountCalls++;
-                // Verify that the element is available in the document when onMount is called
-                if (this.el && document.contains(this.el)) {
-                    elementsInDocument.push(this.el);
-                }
-            };
-
-            const Item = Component.create`<div>${({ props }) => props.text}</div>`.extend({ onMount });
-            const Main = Component.create`
-                <div>
-                    ${({ model }) => model.items.map(item => Item.mount({ key : item.id, text : item.text }))}
-                </div>
-            `.extend({ onMount }).mount({ model : new Model({ items : [{ id : '1', text : 'A' }, { id : '2', text : 'B' }] }) }, document.body);
-
-            expect(mountCalls).to.be.equal(3); // Main + 2 Items
-            expect(elementsInDocument.length).to.be.equal(3);
-
-            mountCalls = 0;
-            elementsInDocument = [];
-            Main.model.items = [{ id : '2', text : 'B' }, { id : '3', text : 'C' }]; // Remove A, add C
-
-            expect(mountCalls).to.be.equal(2); // Both items (recycled B + new C) call onMount
-            expect(elementsInDocument.length).to.be.equal(2);
-        });
     });
 
     describe('Partials and component recycling', () => {
@@ -1195,11 +1042,11 @@ describe('Component', () => {
             expect(originalSpan.className).to.be.equal('initial-class');
             expect(originalSpan.getAttribute('data-value')).to.be.equal('1');
             expect(originalSpan.textContent.trim()).to.be.equal('Hello World');
-            // Update the model to trigger re-render
+            // Update the model to trigger re-render.
             PartialComponent.model.className = 'updated-class';
             PartialComponent.model.value = '2';
             PartialComponent.model.text = 'Updated World';
-            // The same span element should be synced, not replaced
+            // The same span element should be synced, not replaced.
             const updatedSpan = originalDiv.querySelector('span');
             expect(updatedSpan).to.be.equal(originalSpan);
             expect(updatedSpan.className).to.be.equal('updated-class');
@@ -1220,7 +1067,7 @@ describe('Component', () => {
             expect(originalSpan.textContent.trim()).to.be.equal('Hello');
 
             ContentComponent.model.text = 'World';
-            // The same span element should be updated, not replaced
+            // The same span element should be updated, not replaced.
             expect(originalDiv.querySelector('span')).to.be.equal(originalSpan);
             expect(originalSpan.textContent.trim()).to.be.equal('World');
         });
@@ -1237,9 +1084,9 @@ describe('Component', () => {
             const originalButton = originalDiv.querySelector('button');
 
             expect(originalButton.textContent.trim()).to.be.equal('Hello');
-            // Change the model to trigger re-render
+            // Change the model to trigger re-render.
             ParentComponent.model.text = 'World';
-            // The same button element should be recycled and updated
+            // The same button element should be recycled and updated.
             const updatedButton = originalDiv.querySelector('button');
             expect(updatedButton).to.be.equal(originalButton);
             expect(updatedButton.textContent.trim()).to.be.equal('World');
@@ -1257,16 +1104,16 @@ describe('Component', () => {
             const originalButton = originalDiv.querySelector('button');
 
             expect(originalButton.textContent.trim()).to.be.equal('Hello');
-            // Change the model to trigger re-render
+            // Change the model to trigger re-render.
             ParentComponent.model.text = 'World';
-            // The same button element should be recycled because it's in the same position
+            // The same button element should be recycled because it's in the same position.
             const newButton = originalDiv.querySelector('button');
             expect(newButton).to.be.equal(originalButton);
             expect(newButton.textContent.trim()).to.be.equal('World');
         });
 
         it('must recycle child component with key and update props', () => {
-            // Create a child component that uses props from options
+            // Create a child component that uses props from options.
             const ChildComponent = Component.create`
                 <button 
                     class="${({ props }) => props.className}" 
@@ -1276,7 +1123,7 @@ describe('Component', () => {
                     ${({ props }) => props.text}
                 </button>
             `;
-            // Create a parent component that passes props to child
+            // Create a parent component that passes props to child.
             const ParentComponent = Component.create`
                 <div id="test-node">
                     <div>${({ model }) => ChildComponent.mount({ key : 'child', className : model.className, color : model.color, size : model.size, text : model.text })}</div>
@@ -1285,24 +1132,24 @@ describe('Component', () => {
 
             const originalDiv = document.getElementById('test-node');
             const originalButton = originalDiv.querySelector('button');
-            // Verify initial props
+            // Verify initial props.
             expect(originalButton.className).to.be.equal('btn-primary');
             expect(originalButton.getAttribute('data-color')).to.be.equal('blue');
             expect(originalButton.getAttribute('data-size')).to.be.equal('medium');
             expect(originalButton.textContent.trim()).to.be.equal('Hello');
-            // Store the child component reference
+            // Store the child component reference.
             const originalChild = ParentComponent.children[0];
-            // Update the model to trigger re-render with new props
+            // Update the model to trigger re-render with new props.
             ParentComponent.model.className = 'btn-secondary';
             ParentComponent.model.color = 'red';
             ParentComponent.model.size = 'large';
             ParentComponent.model.text = 'World';
-            // The same button element should be recycled and updated with new props
+            // The same button element should be recycled and updated with new props.
             const updatedButton = originalDiv.querySelector('button');
             expect(updatedButton).to.be.equal(originalButton);
-            // Verify the child component instance is recycled
+            // Verify the child component instance is recycled.
             expect(ParentComponent.children[0]).to.be.equal(originalChild);
-            // Verify new props are applied
+            // Verify new props are applied.
             expect(updatedButton.className).to.be.equal('btn-secondary');
             expect(updatedButton.getAttribute('data-color')).to.be.equal('red');
             expect(updatedButton.getAttribute('data-size')).to.be.equal('large');
@@ -1326,13 +1173,12 @@ describe('Component', () => {
 
             expect(firstButton.textContent.trim()).to.be.equal('First');
             expect(secondButton.textContent.trim()).to.be.equal('Second');
-
-            // Re-render with updated text
+            // Re-render with updated text.
             ParentComponent.model.text1 = 'Updated First';
             ParentComponent.model.text2 = 'Updated Second';
 
             const updatedButtons = document.querySelectorAll('button');
-            // Same button elements should be recycled
+            // Same button elements should be recycled.
             expect(updatedButtons[0]).to.be.equal(firstButton);
             expect(updatedButtons[1]).to.be.equal(secondButton);
             expect(updatedButtons[0].textContent.trim()).to.be.equal('Updated First');
@@ -1355,12 +1201,11 @@ describe('Component', () => {
 
             const originalButton = document.querySelector('button');
             expect(originalButton.textContent.trim()).to.be.equal('Nested');
-
-            // Re-render with updated text
+            // Re-render with updated text.
             ParentComponent.model.text = 'Updated Nested';
 
             const updatedButton = document.querySelector('button');
-            // Same button element should be recycled
+            // Same button element should be recycled.
             expect(updatedButton).to.be.equal(originalButton);
             expect(updatedButton.textContent.trim()).to.be.equal('Updated Nested');
         });
@@ -1375,12 +1220,11 @@ describe('Component', () => {
 
             const originalButtons = Array.from(document.querySelectorAll('button'));
             expect(originalButtons.length).to.be.equal(3);
-
-            // Re-render with same items (same length)
+            // Re-render with same items (same length).
             ParentComponent.model.items = ['A', 'B', 'C'];
 
             const newButtons = Array.from(document.querySelectorAll('button'));
-            // New button elements should be created (no recycling without keys in arrays)
+            // New button elements should be created (no recycling without keys in arrays).
             expect(newButtons[0]).not.to.be.equal(originalButtons[0]);
             expect(newButtons[1]).not.to.be.equal(originalButtons[1]);
             expect(newButtons[2]).not.to.be.equal(originalButtons[2]);
@@ -1396,8 +1240,7 @@ describe('Component', () => {
 
             const originalButtons = Array.from(document.querySelectorAll('button'));
             expect(originalButtons.length).to.be.equal(3);
-
-            // Re-render with reordered items
+            // Re-render with reordered items.
             ParentComponent.model.items = [
                 { id : '3', text : 'C-updated' },
                 { id : '1', text : 'A-updated' },
@@ -1405,7 +1248,7 @@ describe('Component', () => {
             ];
 
             const newButtons = Array.from(document.querySelectorAll('button'));
-            // Buttons should be recycled by key
+            // Buttons should be recycled by key.
             expect(newButtons[0]).to.be.equal(originalButtons[2]); // id '3'
             expect(newButtons[1]).to.be.equal(originalButtons[0]); // id '1'
             expect(newButtons[2]).to.be.equal(originalButtons[1]); // id '2'
@@ -1428,15 +1271,14 @@ describe('Component', () => {
 
             const originalButtons = Array.from(document.querySelectorAll('button'));
             expect(originalButtons.length).to.be.equal(2);
-
-            // Re-render with reordered items
+            // Re-render with reordered items.
             ParentComponent.model.items = [
                 { id : '2', text : 'B-updated' },
                 { id : '1', text : 'A-updated' }
             ];
 
             const newButtons = Array.from(document.querySelectorAll('button'));
-            // Buttons should be recycled by key
+            // Buttons should be recycled by key.
             expect(newButtons[0]).to.be.equal(originalButtons[1]);
             expect(newButtons[1]).to.be.equal(originalButtons[0]);
             expect(newButtons[0].textContent.trim()).to.be.equal('B-updated');
@@ -1466,15 +1308,14 @@ describe('Component', () => {
             expect(firstButton.textContent.trim()).to.be.equal('First');
             expect(secondButton.className).to.be.equal('btn-secondary');
             expect(secondButton.textContent.trim()).to.be.equal('Second');
-
-            // Update props
+            // Update props.
             ParentComponent.model.class1 = 'btn-success';
             ParentComponent.model.text1 = 'Updated First';
             ParentComponent.model.class2 = 'btn-danger';
             ParentComponent.model.text2 = 'Updated Second';
 
             const updatedButtons = document.querySelectorAll('button');
-            // Same elements should be recycled with updated props
+            // Same elements should be recycled with updated props.
             expect(updatedButtons[0]).to.be.equal(firstButton);
             expect(updatedButtons[1]).to.be.equal(secondButton);
             expect(updatedButtons[0].className).to.be.equal('btn-success');
@@ -1495,20 +1336,18 @@ describe('Component', () => {
 
             const originalButton = document.querySelector('button');
             expect(originalButton).to.exist;
-
-            // Switch to Link
+            // Switch to Link.
             ParentComponent.model.showButton = false;
 
             const link = document.querySelector('a');
             expect(link).to.exist;
             expect(document.querySelector('button')).not.to.exist;
-
-            // Switch back to Button
+            // Switch back to Button.
             ParentComponent.model.showButton = true;
 
             const newButton = document.querySelector('button');
             expect(newButton).to.exist;
-            // Should be a different element (different component type)
+            // Should be a different element (different component type).
             expect(newButton).not.to.be.equal(originalButton);
         });
 
@@ -1524,17 +1363,86 @@ describe('Component', () => {
             `;
 
             const parent = Parent.mount({ model : new Model({ show : false }) }, document.body);
-            // Initially no child element
+            // Initially no child element.
             expect(document.querySelector('.child')).to.not.exist;
-            // Toggle to show child
+            // Toggle to show child.
             parent.model.show = true;
             expect(document.querySelectorAll('.child').length).to.equal(1);
-            // Toggle to hide child
+            // Toggle to hide child.
             parent.model.show = false;
             expect(document.querySelector('.child')).to.not.exist;
-            // Toggle to show child again – must not throw and still render only one child
+            // Toggle to show child again – must not throw and still render only one child.
             parent.model.show = true;
             expect(document.querySelectorAll('.child').length).to.equal(1);
+        });
+    });
+
+    describe('Recycling behaviors', () => {
+        it('must recycle single component without moving', () => {
+            let recycleCalls = 0;
+            let originalElement = null;
+            let originalParent = null;
+
+            const Child = Component.create`<div>${({ props }) => props.text}</div>`.extend({
+                onRecycle() {
+                    recycleCalls++;
+                }
+            });
+
+            const Main = Component.create`
+                <div id="test-node">
+                    <${Child} text="${({ model }) => model.text}" />
+                </div>
+            `.mount({ model : new Model({ text : 'Hello' }) }, document.body);
+            // Store original element and parent.
+            originalElement = document.querySelector('#test-node div');
+            originalParent = originalElement.parentNode;
+            expect(originalElement.textContent.trim()).to.be.equal('Hello');
+            // Re-render with same component (should recycle without moving).
+            Main.model.text = 'World';
+            // Verify same element is reused and stayed in same position (same parent).
+            const updatedElement = document.querySelector('#test-node div');
+            expect(updatedElement).to.be.equal(originalElement);
+            expect(updatedElement.parentNode).to.be.equal(originalParent);
+            expect(updatedElement.parentNode.parentNode).to.be.equal(originalParent.parentNode);
+            expect(updatedElement.textContent.trim()).to.be.equal('World');
+            expect(recycleCalls).to.be.equal(1); // onRecycle was called.
+        });
+
+        it('must recycle component with movement when using partial', () => {
+            let recycleCalls = 0;
+            let originalChildElement = null;
+            let originalInnerSpan = null;
+            let originalOuterSpan = null;
+
+            const Child = Component.create`<div>${({ props }) => props.text}</div>`.extend({
+                onRecycle() {
+                    recycleCalls++;
+                }
+            });
+
+            const Main = Component.create`
+                <div id="test-node">
+                    ${({ model, partial }) => partial`<span class="outer"><span class="inner"><${Child} text="${model.text}" /></span></span>`}
+                </div>
+            `.mount({ model : new Model({ text : 'Hello' }) }, document.body);
+            // Store original elements.
+            originalChildElement = document.querySelector('#test-node .inner div');
+            originalInnerSpan = document.querySelector('#test-node .inner');
+            originalOuterSpan = document.querySelector('#test-node .outer');
+            expect(originalChildElement.textContent.trim()).to.be.equal('Hello');
+            // Re-render with same component (should recycle with movement due to partial).
+            Main.model.text = 'World';
+            // Verify child element is reused (same reference) and inner span is new (recreated).
+            const updatedChildElement = document.querySelector('#test-node .inner div');
+            const updatedInnerSpan = document.querySelector('#test-node .inner');
+            const updatedOuterSpan = document.querySelector('#test-node .outer');
+
+            expect(updatedChildElement).to.be.equal(originalChildElement); // Same child element object.
+            expect(updatedInnerSpan).not.to.be.equal(originalInnerSpan); // New inner span element (recreated).
+            expect(updatedOuterSpan).to.be.equal(originalOuterSpan); // Same outer span element (synchronized, first node).
+            expect(updatedChildElement.textContent.trim()).to.be.equal('World');
+            expect(recycleCalls).to.be.equal(1); // onRecycle was called.
         });
     });
 });
