@@ -238,7 +238,14 @@ Use this method for client-only operations like making API requests or setting u
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 <a name="module_component__onrecycle" id="module_component__onrecycle" class="anchor"></a>
 ### component.onRecycle()
-Lifecycle method. Called when the component is recycled (reused with the same key) and added to the DOM again.
+Lifecycle method. Called when the component is recycled and reused between renders.
+
+A component is recycled when:
+- It has a `key` and a previous child with the same key exists
+- It doesn't have a `key` but has the same type and position in the template or partial
+
+During recycling, the component instance is reused and its props are updated with new values.
+The component's element may be moved in the DOM if the new template structure differs from the previous one.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 <a name="module_component__onupdate" id="module_component__onupdate" class="anchor"></a>
