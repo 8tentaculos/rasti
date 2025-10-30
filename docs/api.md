@@ -3,7 +3,6 @@
 * [Component](#module_component) ⇐ <code>View</code>
     * _instance_
         * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
-        * [.getNodes()](#module_component__getnodes) ⇒ <code>Array.&lt;Node&gt;</code>
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>Partial</code>](#new_partial_new)
         * [.toString()](#module_component__tostring) ⇒ <code>string</code>
         * [.render()](#module_component__render) ⇒ <code>Component</code>
@@ -96,7 +95,6 @@ setInterval(() => model.seconds++, 1000);
 * [Component](#module_component) ⇐ <code>View</code>
     * _instance_
         * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
-        * [.getNodes()](#module_component__getnodes) ⇒ <code>Array.&lt;Node&gt;</code>
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>Partial</code>](#new_partial_new)
         * [.toString()](#module_component__tostring) ⇒ <code>string</code>
         * [.render()](#module_component__render) ⇒ <code>Component</code>
@@ -127,17 +125,6 @@ By default, the component subscribes to changes on `this.model`, `this.state`, a
 | [type] | <code>string</code> | <code>&quot;&#x27;change&#x27;&quot;</code> | The event type to listen for. |
 | [listener] | <code>function</code> | <code>this.onChange</code> | The callback to invoke when the event is emitted. |
 
-<a name="module_component__getnodes" id="module_component__getnodes" class="anchor"></a>
-### component.getNodes() ⇒ <code>Array.&lt;Node&gt;</code>
-Get the component nodes to be inserted into the DOM.
-Used internally during the render process, you usually don't need to call it if you use
-`mount()`.
-For components that render HTML elements you can safely rely on `this.el`.
-For container components that render another component you need the wrapper nodes to insert
-them into the DOM; use `getNodes()` for that.
-
-**Kind**: instance method of [<code>Component</code>](#module_component)  
-**Returns**: <code>Array.&lt;Node&gt;</code> - The component nodes.  
 <a name="module_component__partial" id="module_component__partial" class="anchor"></a>
 ### component.partial(strings, ...expressions) ⇒ [<code>Partial</code>](#new_partial_new)
 Tagged template helper method.

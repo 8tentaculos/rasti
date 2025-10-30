@@ -20,6 +20,7 @@ class Interpolation {
         this.expression = options.expression;
         this.isComponent = options.isComponent;
         this.isElement = options.isElement;
+        this.previousItems = [];
     }
 
     /**
@@ -41,8 +42,14 @@ class Interpolation {
      * Update the interpolation content with a new fragment.
      * Optimizes updates by syncing single non-component elements or replacing content entirely.
      * @param {DocumentFragment} fragment The new content fragment to insert.
+     * @param {Element} targetElement The target element to replace with the new fragment.
      */
-    update(fragment) {
+    update(fragment, targetElement) {
+        if (targetElement) {
+            targetElement.replaceWith(fragment.firstChild);
+            return;
+        }
+
         const [startComment, endComment] = this.ref;
 
         const currentFirstElement = startComment.nextSibling;

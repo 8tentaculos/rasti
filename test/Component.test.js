@@ -768,7 +768,7 @@ describe('Component', () => {
             expect(Container).to.exist;
 
             const c = new Container({});
-            document.body.append(...c.render().getNodes());
+            document.body.append(c.render().el);
 
             expect(document.querySelector('button')).to.exist;
             expect(c.el).to.be.equal(c.children[0].el);

@@ -2,7 +2,6 @@ import View from './View.js';
 import Model from './Model.js';
 import SafeHTML from './core/SafeHTML.js';
 import Partial from './core/Partial.js';
-import InterpolationWrapper from './core/InterpolationWrapper.js';
 import EventsManager from './core/EventsManager.js';
 import PathManager from './core/PathManager.js';
 import Element from './core/Element.js';
@@ -69,6 +68,9 @@ const addPlaceholders = (strings, expressions) =>
  */
 const splitPlaceholders = (main, expressions) => {
     const PH = Component.PLACEHOLDER('(\\d+)');
+    const matchSinglePlaceholder = main.match(new RegExp(`^${PH}$`));
+    if (matchSinglePlaceholder) return [expressions[parseInt(matchSinglePlaceholder[1], 10)]];
+
     const regExp = new RegExp(`${PH}`, 'g');
     const out = [];
     let lastIndex = 0;
@@ -77,7 +79,7 @@ const splitPlaceholders = (main, expressions) => {
     // so all the components are added as children by the parent component.
     while ((match = regExp.exec(main)) !== null) {
         const before = main.slice(lastIndex, match.index);
-        out.push(Component.markAsSafeHTML(before), expressions[match[1]]);
+        out.push(Component.markAsSafeHTML(before), expressions[parseInt(match[1], 10)]);
         lastIndex = match.index + match[0].length;
     }
     out.push(Component.markAsSafeHTML(main.slice(lastIndex)));
@@ -292,6 +294,7 @@ const parseElements = (template, expressions, elements) => {
         const getSelector = function() {
             return `[${Component.ATTRIBUTE_ELEMENT}="${generateElementUid(this.uid)}"]`;
         };
+        const elementIndex = elements.length;
         // Add element reference to elements array.
         elements.push({
             getSelector,
@@ -299,7 +302,9 @@ const parseElements = (template, expressions, elements) => {
         });
         // Add new expression to expressions array.
         expressions.push(function() {
-            const attributes = getAttributes.call(this);
+            const element = this.template.elements[elementIndex];
+            const attributes = element.getAttributes.call(this);
+            element.previousAttributes = attributes;
             return Component.markAsSafeHTML(getAttributesHTML(attributes));
         });
         // Replace attributes with placeholder.
@@ -381,6 +386,7 @@ const parseInterpolations = (template, expressions, interpolations) => {
             function getEnd() {
                 return Component.MARKER_END(`${this.uid}-${currentInterpolationUid}`);
             }
+            const interpolationIndex = interpolations.length;
             // Add interpolation reference to interpolations array.
             interpolations.push({
                 getStart,
@@ -389,9 +395,7 @@ const parseInterpolations = (template, expressions, interpolations) => {
             });
             // Add new expression to expressions array.
             expressions.push(function() {
-                const result = getExpressionResult(expressions[expressionIndex], this);
-                const uid = `${this.uid}-${currentInterpolationUid}`;
-                return new InterpolationWrapper(uid, result);
+                return this.template.interpolations[interpolationIndex];
             });
             // Replace with new placeholder.
             return Component.PLACEHOLDER(expressions.length - 1);
@@ -565,8 +569,7 @@ class Component extends View {
         });
 
         if (this.isContainer()) {
-            // Get references for interpolation marker comments
-            this.template.interpolations[0].hydrate(parent);
+            // Don't hydrate interpolation markers for container components as we know they will have only one child.
             // Call hydrate on children.
             this.children[0].hydrate(parent);
             // Set the first element as the component's element.
@@ -609,7 +612,7 @@ class Component extends View {
             // Locate the placeholder comment and replace it with the real nodes
             const toBeReplaced = findComment(parent, Component.MARKER_RECYCLED(this.uid), isComponent);
             // Replace it with this.el.
-            toBeReplaced.replaceWith(...this.getNodes());
+            toBeReplaced.replaceWith(this.el);
         }
         // Update props.
         if (props) {
@@ -629,21 +632,6 @@ class Component extends View {
      */
     getRecycledMarker() {
         return `<!--${Component.MARKER_RECYCLED(this.uid)}-->`;
-    }
-
-    /**
-     * Get the component nodes to be inserted into the DOM.
-     * Used internally during the render process, you usually don't need to call it if you use
-     * `mount()`.
-     * For components that render HTML elements you can safely rely on `this.el`.
-     * For container components that render another component you need the wrapper nodes to insert
-     * them into the DOM; use `getNodes()` for that.
-     * @return {Node[]} The component nodes.
-     */
-    getNodes() {
-        return this.isContainer() ?
-            [this.template.interpolations[0].ref[0], ...this.children[0].getNodes(), this.template.interpolations[0].ref[1]] :
-            [this.el];
     }
 
     /**
@@ -683,7 +671,10 @@ class Component extends View {
         const items = splitPlaceholders(
             parsePartialElements(
                 expandComponents(
-                    addPlaceholders(strings, expressions),
+                    addPlaceholders(
+                        strings,
+                        expressions
+                    ).trim(),
                     expressions
                 ),
                 expressions
@@ -698,56 +689,58 @@ class Component extends View {
      * Render a template part.
      * @param {any} part - The template part.
      * @param {function} addChild - The addChild function.
-     * @param {Object} [stats={}] - Statistics object to track component and string counts.
-     * @param {number} [stats.components=0] - Counter for rendered components.
-     * @param {number} [stats.strings=0] - Counter for rendered strings.
+     * @param {Array} items - The items array.
      * @return {string} The rendered template part.
      * @private
      */
-    renderTemplatePart(part, addChild, stats = {}) {
-        // Initialize counters if not present
-        stats.components = stats.components || 0;
-        stats.strings = stats.strings || 0;
-
+    renderTemplatePart(part, addChild, items = []) {
         const result = getExpressionResult(part, this);
 
         const parse = item => {
-            if (typeof item !== 'undefined' && item !== null && item !== false && item !== true) {
-                if (item instanceof SafeHTML) {
-                    stats.strings++;
-                    return item;
-                }
-                if (item instanceof Component) {
-                    stats.components++;
-                    return addChild(item);
-                }
-
-                if (item instanceof Partial) {
-                    this.pathManager.push();
-                    const out = item.items.map(subItem => { this.pathManager.increment(); return parse(subItem); }).join('');
-                    this.pathManager.pop();
-                    return out;
-                }
-                // Handle arrays (user loops) - disable tracking.
-                if (Array.isArray(item)) {
-                    this.pathManager.pause();
-                    const out = deepFlat(item).map(parse).join('');
-                    this.pathManager.resume();
-                    return out;
-                }
-                // InterpolationWrapper: add markers and process maintaining tracking.
-                if (item instanceof InterpolationWrapper) {
-                    this.pathManager.increment();
-                    const startMarker = `<!--${Component.MARKER_START(item.interpolationUid)}-->`;
-                    const endMarker = `<!--${Component.MARKER_END(item.interpolationUid)}-->`;
-                    return `${startMarker}${parse(item.result)}${endMarker}`;
-                }
-
-                stats.strings++;
-                return Component.sanitize(item);
+            if (typeof item === 'undefined' || item === null || item === false || item === true) {
+                return '';
             }
-            // Return empty string if item is undefined, null, false, or true.
-            return '';
+
+            if (item instanceof SafeHTML) {
+                items.push(item);
+                return item;
+            }
+
+            if (item instanceof Component) {
+                items.push(item);
+                return addChild(item);
+            }
+
+            if (item instanceof Partial) {
+                // Single item.
+                if (item.items.length === 1) return parse(item.items[0]);
+                // Several items.
+                this.pathManager.push();
+                const out = item.items.map(subItem => { this.pathManager.increment(); return parse(subItem); }).join('');
+                this.pathManager.pop();
+                return out;
+            }
+            // Handle arrays (user loops) - disable tracking.
+            if (Array.isArray(item)) {
+                this.pathManager.pause();
+                const out = deepFlat(item).map(parse).join('');
+                this.pathManager.resume();
+                return out;
+            }
+            // Interpolation: add markers and process maintaining tracking.
+            if (item instanceof Interpolation) {
+                this.pathManager.increment();
+                // Add Interpolation markers.
+                const startMarker = this.isContainer() ? '' : `<!--${item.getStart()}-->`;
+                const endMarker = this.isContainer() ? '' : `<!--${item.getEnd()}-->`;
+                const interpolationResult = parse(getExpressionResult(item.expression, this));
+                item.previousItems = items;
+                return `${startMarker}${interpolationResult}${endMarker}`;
+            }
+
+            const sanitized = Component.sanitize(item);
+            items.push(sanitized);
+            return sanitized;
         };
 
         return `${parse(result)}`;
@@ -813,7 +806,6 @@ class Component extends View {
         this.template.interpolations.forEach(interpolation => {
             const nextChildren = [];
             const recycledChildren = [];
-            const stats = { components : 0, strings : 0 };
 
             this.pathManager.increment();
 
@@ -844,8 +836,11 @@ class Component extends View {
                 // Return the component or placeholder.
                 return out;
             };
-
-            const rendered = this.renderTemplatePart(interpolation.expression, addChild, stats);
+            // Render the interpolation content and get the items.
+            const previousItems = interpolation.previousItems;
+            const items = [];
+            const rendered = this.renderTemplatePart(interpolation.expression, addChild, items);
+            interpolation.previousItems = items;
 
             const recycle = ([recycled, discarded], fragment) => {
                 // Add child, update props and recycle (move to new position if needed).
@@ -853,18 +848,22 @@ class Component extends View {
                 // Destroy discarded component.
                 discarded.destroy();
             };
-
-            if (stats.components === 1 && stats.strings === 0 && recycledChildren.length === 1) {
+            // Same single component in the same position. Don't move it.
+            if (previousItems.length === 1 && previousItems[0] instanceof Component &&
+                items.length === 1 && items[0] instanceof Component &&
+                recycledChildren.length === 1) {
                 recycle(recycledChildren[0], null);
                 return;
             }
-
+            // Parse the rendered content and get the fragment.
             const fragment = parseHTML(rendered);
             // Add recycled components to children and move them to the new template in the fragment.
             recycledChildren.forEach(recycled => recycle(recycled, fragment));
-            // Add new children. Hydrate them.
+            // Add new children. Hydrate them and update the interpolation.
             nextChildren.forEach(child => this.addChild(child).hydrate(fragment));
-            interpolation.update(fragment);
+            // Update the interpolation.
+            const targetElement = this.isContainer() ? this.el : null;
+            interpolation.update(fragment, targetElement);
         });
         // Destroy unused children.
         previousChildren.forEach(prev => {
@@ -1001,7 +1000,7 @@ class Component extends View {
                 component.hydrate(el);
             } else {
                 // Append element to the DOM.
-                el.append(...component.render().getNodes());
+                el.append(component.render().el);
             }
         }
         // Return component instance.
