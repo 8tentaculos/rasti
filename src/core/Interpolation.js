@@ -10,7 +10,7 @@ import findComment from '../utils/findComment.js';
  * @param {Function} options.getEnd Function that returns the end comment marker text.
  * @param {any} options.expression The expression to be evaluated for the interpolation.
  * @param {Function} options.isComponent Function that checks if an element is a component root element.
- * @param {Function} options.isElement Function that checks if an element has the Rasti data attribute.
+ * @param {Function} options.containsComponent Function that checks if an element contains a component.
  * @private
  */
 class Interpolation {
@@ -19,7 +19,7 @@ class Interpolation {
         this.getEnd = options.getEnd;
         this.expression = options.expression;
         this.isComponent = options.isComponent;
-        this.isElement = options.isElement;
+        this.containsComponent = options.containsComponent;
         this.previousItems = [];
     }
 
@@ -29,12 +29,12 @@ class Interpolation {
      * @param {Node} parent The parent node to search in.
      */
     hydrate(parent) {
-        const startComment = findComment(parent, this.getStart(), this.isComponent);
-        const endComment = findComment(parent, this.getEnd(), this.isComponent, startComment);
+        const startMark = findComment(parent, this.getStart(), this.isComponent);
+        const endMark = findComment(parent, this.getEnd(), this.isComponent, startMark);
 
         this.ref = [
-            startComment,
-            endComment
+            startMark,
+            endMark
         ];
     }
 
@@ -44,38 +44,66 @@ class Interpolation {
      * @param {DocumentFragment} fragment The new content fragment to insert.
      * @param {Element} targetElement The target element to replace with the new fragment.
      */
-    update(fragment, targetElement) {
-        if (targetElement) {
-            targetElement.replaceWith(fragment.firstChild);
-            return;
-        }
+    update(fragment, handleComponents) {
+        let divider;
+        // Reference to marker elements.
+        const [startMark, endMark] = this.ref;
 
-        const [startComment, endComment] = this.ref;
-
-        const currentFirstElement = startComment.nextSibling;
-        const currentEmpty = currentFirstElement === endComment;
-        const currentSingleChildElement = !currentEmpty && currentFirstElement.nextSibling === endComment;
-        const fragmentChildren = fragment.children;
+        const currentFirstElement = startMark.nextSibling;
+        // Check if the interpolation is empty.
+        const currentEmpty = currentFirstElement === endMark;
+        // Check if the interpolation has a single child element.
+        const currentSingleChildElement = !currentEmpty && currentFirstElement.nextSibling === endMark;
 
         if (currentEmpty) {
-            // Interpolation is empty. Insert the fragment.
-            endComment.parentNode.insertBefore(fragment, endComment);
-        } else if (currentSingleChildElement && fragmentChildren.length === 1) {
-            if (!this.isElement(currentFirstElement)) {
-                // There is a single child element that is not a component's root element. Sync node attributes and content.
-                syncNode(currentFirstElement, fragmentChildren[0]);
-            } else {
-                // There is a single child element that is a component's root element. Replace it with the new child element.
-                currentFirstElement.replaceWith(fragmentChildren[0]);
-            }
+            // The interpolation is empty. Insert the fragment.
+            endMark.before(fragment);
+        } else if (
+            currentSingleChildElement &&
+            fragment.children.length === 1 &&
+            !this.containsComponent(currentFirstElement) &&
+            !this.containsComponent(fragment.firstChild)
+        ) {
+            // The interpolation has a single child element and the new fragment has a single child element.
+            // The elements doesn't contain a component. Sync node attributes and content.
+            syncNode(currentFirstElement, fragment.firstChild);
         } else {
-            // Interpolation is not empty. Replace the interpolation content.
-            const range = document.createRange();
-            range.setStartAfter(startComment);
-            range.setEndBefore(endComment);
-            range.deleteContents();
-            range.insertNode(fragment);
+            // The interpolation has multiple child elements or the new fragment has multiple child elements.
+            // Insert a divider comment before the end marker and insert the new fragment after the divider.
+            divider = document.createComment('');
+            endMark.before(divider);
+            endMark.before(fragment);
         }
+        // Handle the components in the fragment. Execute the handler function.
+        handleComponents();
+
+        if (divider) {
+            // Remove old content and divider.
+            const startMark = this.ref[0];
+            if (startMark.nextSibling === divider) {
+                divider.remove();
+            } else {
+                const range = document.createRange();
+                range.setStartAfter(this.ref[0]);
+                range.setEndAfter(divider);
+                range.deleteContents();
+            }
+        }
+    }
+
+    /**
+     * Update the interpolation content with a new fragment. This is used for container components.
+     * @param {Element} element The element to replace with the new fragment.
+     * @param {DocumentFragment} fragment The new content fragment to insert.
+     * @param {Function} handleComponents Function to handle the components in the fragment before removing the old content.
+     */
+    updateElement(element, fragment, handleComponents) {
+        const divider = document.createComment('');
+        element.after(divider);
+        divider.after(fragment.firstChild);
+        handleComponents();
+        element.remove();
+        divider.remove();
     }
 }
 

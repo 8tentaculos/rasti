@@ -160,7 +160,7 @@ export default class View extends Emitter {
      * Ensure that the view has a unique id at `this.uid`.
      */
     ensureUid() {
-        if (!this.uid) this.uid = `r-${++View.uid}`;
+        if (!this.uid) this.uid = `r${++View.uid}`;
     }
 
     /**
@@ -209,7 +209,7 @@ export default class View extends Emitter {
      * @return {Rasti.View} Return `this` for chaining.
      */
     removeElement() {
-        this.el.parentNode.removeChild(this.el);
+        this.el.remove();
         // Return `this` for chaining.
         return this;
     }

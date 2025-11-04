@@ -174,6 +174,26 @@ Use it for server-side rendering or static site generation.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 **Returns**: <code>string</code> - The rendered component.  
+**Example**  
+```js
+import { Component } from 'rasti';
+const Button = Component.create`
+    <button class="button">Click me</button>
+`;
+const App = Component.create`
+    <div>
+        <${Button}>Click me</${Button}>
+    </div>
+`;
+
+const app = new App();
+
+console.log(app.toString());
+// <div data-rasti-el="r1-1"><!--rasti-s-r1-1--><button class="button" data-rasti-el="r2-1">Click me</button><!--rasti-e-r1-1--></div>
+
+console.log(`${app}`);
+// <div data-rasti-el="r1-1"><!--rasti-s-r1-1--><button class="button" data-rasti-el="r2-1">Click me</button><!--rasti-e-r1-1--></div>
+```
 <a name="module_component__render" id="module_component__render" class="anchor"></a>
 ### component.render() ⇒ <code>Component</code>
 Render the `Component`.  

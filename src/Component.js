@@ -12,6 +12,7 @@ import deepFlat  from './utils/deepFlat.js';
 import parseHTML from './utils/parseHTML.js';
 import findComment from './utils/findComment.js';
 import getAttributesHTML from './utils/getAttributesHTML.js';
+import moveNodeToPlaceholder from './utils/moveNodeToPlaceholder.js';
 
 /**
  * Same as getResult, but pass context as argument to the expression.
@@ -33,13 +34,13 @@ const getExpressionResult = (expression, context) => getResult(expression, conte
 const isComponent = (el) => !!(el && el.dataset && el.dataset[Component.DATASET_ELEMENT] && el.dataset[Component.DATASET_ELEMENT].endsWith('-1'));
 
 /**
- * Check if an element has the Rasti data attribute.
- * This includes both component root elements and regular tracked elements.
+ * Check if an element contains a component.
+ * It checks if the element is a component root element or if it contains a component.
  * @param {Element} el The element to check.
- * @return {boolean} True if the element has the data attribute.
+ * @return {boolean} True if the element contains a component.
  * @private
  */
-const isElement = (el) => !!(el && el.dataset && el.dataset[Component.DATASET_ELEMENT]);
+const containsComponent = (el) => isComponent(el) || !!el.querySelector(`[${Component.ATTRIBUTE_ELEMENT}]`);
 
 /**
  * Generate string with placeholders for interpolated expressions.
@@ -610,9 +611,8 @@ class Component extends View {
     recycle(parent, props) {
         if (parent) {
             // Locate the placeholder comment and replace it with the real nodes
-            const toBeReplaced = findComment(parent, Component.MARKER_RECYCLED(this.uid), isComponent);
-            // Replace it with this.el.
-            toBeReplaced.replaceWith(this.el);
+            const placeholder = findComment(parent, Component.MARKER_RECYCLED(this.uid), isComponent);
+            moveNodeToPlaceholder(placeholder, this.el);
         }
         // Update props.
         if (props) {
@@ -688,8 +688,8 @@ class Component extends View {
     /**
      * Render a template part.
      * @param {any} part - The template part.
-     * @param {function} addChild - The addChild function.
-     * @param {Array} items - The items array.
+     * @param {function} addChild - The addChild function. It should handle children and return a HTML string.
+     * @param {Array} items - The items array. It is used to store the items that are parsed.
      * @return {string} The rendered template part.
      * @private
      */
@@ -751,6 +751,24 @@ class Component extends View {
      * Used internally on the render process.
      * Use it for server-side rendering or static site generation.
      * @return {string} The rendered component.
+     * @example
+     * import { Component } from 'rasti';
+     * const Button = Component.create`
+     *     <button class="button">Click me</button>
+     * `;
+     * const App = Component.create`
+     *     <div>
+     *         <${Button}>Click me</${Button}>
+     *     </div>
+     * `;
+     * 
+     * const app = new App();
+     * 
+     * console.log(app.toString());
+     * // <div data-rasti-el="r1-1"><!--rasti-s-r1-1--><button class="button" data-rasti-el="r2-1">Click me</button><!--rasti-e-r1-1--></div>
+     * 
+     * console.log(`${app}`);
+     * // <div data-rasti-el="r1-1"><!--rasti-s-r1-1--><button class="button" data-rasti-el="r2-1">Click me</button><!--rasti-e-r1-1--></div>
      */
     toString() {
         // Normally there won't be any children, but if there are, destroy them.
@@ -794,8 +812,6 @@ class Component extends View {
         this.eventsManager.reset();
         // Reset position tracking.
         this.pathManager.reset();
-        // Store active element.
-        const activeElement = this.isContainer() ? null : document.activeElement;
         // Update elements.
         this.template.elements.forEach(element => element.update());
         // Store previous children.
@@ -808,7 +824,9 @@ class Component extends View {
             const recycledChildren = [];
 
             this.pathManager.increment();
-
+            // `addChild` handler is called from `renderTemplatePart` for every component.
+            // It should handle children and return a HTML string.
+            // In this case, where the component updates, it handles children recycling.
             const addChild = component => {
                 let out = component;
                 let found = null;
@@ -857,13 +875,19 @@ class Component extends View {
             }
             // Parse the rendered content and get the fragment.
             const fragment = parseHTML(rendered);
-            // Add recycled components to children and move them to the new template in the fragment.
-            recycledChildren.forEach(recycled => recycle(recycled, fragment));
-            // Add new children. Hydrate them and update the interpolation.
-            nextChildren.forEach(child => this.addChild(child).hydrate(fragment));
-            // Update the interpolation.
-            const targetElement = this.isContainer() ? this.el : null;
-            interpolation.update(fragment, targetElement);
+
+            const handleComponents = () => {
+                // Add recycled components to children and move them to the new template in the fragment.
+                recycledChildren.forEach(recycled => recycle(recycled, this.el));
+                // Add new children. Hydrate them and update the interpolation.
+                nextChildren.forEach(child => this.addChild(child).hydrate(this.el));
+            };
+
+            if (this.isContainer()) {
+                interpolation.updateElement(this.el, fragment, handleComponents);
+            } else {
+                interpolation.update(fragment, handleComponents);
+            }
         });
         // Destroy unused children.
         previousChildren.forEach(prev => {
@@ -877,10 +901,6 @@ class Component extends View {
             if (this.eventsManager.hasPendingTypes()) {
                 this.delegateEvents();
             }
-        }
-        // Restore focus.
-        if (activeElement && this.el.contains(activeElement)) {
-            activeElement.focus();
         }
         // Call onUpdate lifecycle method.
         this.onUpdate.call(this);
@@ -1167,7 +1187,7 @@ class Component extends View {
                         getEnd : interpolation.getEnd.bind(this),
                         expression : interpolation.expression,
                         isComponent,
-                        isElement
+                        containsComponent
                     })),
                     parts,
                 };
@@ -1190,14 +1210,14 @@ Component.DATASET_ELEMENT = 'rastiEl';
 /*
  * Placeholders used to temporarily replace expressions in the template.
  */
-Component.PLACEHOLDER = (idx) => `__RASTI-${idx}__`;
+Component.PLACEHOLDER = (idx) => `__RASTI_PH_${idx}__`;
 
 /*
  * Markers used to identify interpolation and recycled components.
  */
-Component.MARKER_RECYCLED = (uid) => `rasti-recycled-${uid}`;
-Component.MARKER_START = (uid) => `rasti-start-${uid}`;
-Component.MARKER_END = (uid) => `rasti-end-${uid}`;
+Component.MARKER_RECYCLED = (uid) => `rasti-r-${uid}`;
+Component.MARKER_START = (uid) => `rasti-s-${uid}`;
+Component.MARKER_END = (uid) => `rasti-e-${uid}`;
 
 /**
  * Components are a special kind of `View` that is designed to be easily composable, 
