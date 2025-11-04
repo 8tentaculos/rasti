@@ -18,8 +18,8 @@ class Interpolation {
         this.getStart = options.getStart;
         this.getEnd = options.getEnd;
         this.expression = options.expression;
-        this.isComponent = options.isComponent;
-        this.containsComponent = options.containsComponent;
+        this.shouldSkipFind = options.shouldSkipFind;
+        this.shouldSkipSync = options.shouldSkipSync;
         this.previousItems = [];
     }
 
@@ -29,8 +29,8 @@ class Interpolation {
      * @param {Node} parent The parent node to search in.
      */
     hydrate(parent) {
-        const startMark = findComment(parent, this.getStart(), this.isComponent);
-        const endMark = findComment(parent, this.getEnd(), this.isComponent, startMark);
+        const startMark = findComment(parent, this.getStart(), this.shouldSkipFind);
+        const endMark = findComment(parent, this.getEnd(), this.shouldSkipFind, startMark);
 
         this.ref = [
             startMark,
@@ -61,8 +61,8 @@ class Interpolation {
         } else if (
             currentSingleChildElement &&
             fragment.children.length === 1 &&
-            !this.containsComponent(currentFirstElement) &&
-            !this.containsComponent(fragment.firstChild)
+            !this.shouldSkipSync(currentFirstElement) &&
+            !this.shouldSkipSync(fragment.firstChild)
         ) {
             // The interpolation has a single child element and the new fragment has a single child element.
             // The elements doesn't contain a component. Sync node attributes and content.
