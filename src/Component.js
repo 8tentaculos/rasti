@@ -12,7 +12,7 @@ import deepFlat  from './utils/deepFlat.js';
 import parseHTML from './utils/parseHTML.js';
 import findComment from './utils/findComment.js';
 import getAttributesHTML from './utils/getAttributesHTML.js';
-import moveNodeToPlaceholder from './utils/moveNodeToPlaceholder.js';
+import replaceNode from './utils/replaceNode.js';
 
 /**
  * Same as getResult, but pass context as argument to the expression.
@@ -612,7 +612,7 @@ class Component extends View {
         if (parent) {
             // Locate the placeholder comment and replace it with the real nodes
             const placeholder = findComment(parent, Component.MARKER_RECYCLED(this.uid), isComponent);
-            moveNodeToPlaceholder(placeholder, this.el);
+            replaceNode(placeholder, this.el);
         }
         // Update props.
         if (props) {

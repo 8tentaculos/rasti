@@ -182,10 +182,12 @@ For detailed information on how to use **Rasti**, refer to the [API documentatio
 
 ## Version History
 
-- **[v4.0.0](https://github.com/8tentaculos/rasti/releases/tag/v4.0.0)** - Current version with simpler event handling, smarter component reuse, and granular DOM updates
-- **[v3.0.0](https://github.com/8tentaculos/rasti/releases/tag/v3.0.0)** - Introduced **Containers**, dynamic element tags, **Component** tags, `partial` method, and dropped ES5 support
-- **[v2.0.0](https://github.com/8tentaculos/rasti/releases/tag/v2.0.0)** - Introduced **Components**
-- **[v1.0.0](https://github.com/8tentaculos/rasti/releases/tag/v1.0.0)** - Initial release
+We strive to minimize breaking changes between major versions. However, if you're migrating between major versions, please refer to the release notes below for details on any breaking changes and migration tips.
+
+- **[v4.0.0](https://github.com/8tentaculos/rasti/releases/tag/v4.0.0)**
+- **[v3.0.0](https://github.com/8tentaculos/rasti/releases/tag/v3.0.0)**
+- **[v2.0.0](https://github.com/8tentaculos/rasti/releases/tag/v2.0.0)**
+- **[v1.0.0](https://github.com/8tentaculos/rasti/releases/tag/v1.0.0)**
 
 ## License
 
