@@ -102,7 +102,7 @@ class Interpolation {
         element.after(divider);
         divider.after(fragment.firstChild);
         handleComponents();
-        element.remove();
+        if (element.nextSibling === divider) element.remove();
         divider.remove();
     }
 }

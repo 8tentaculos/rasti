@@ -717,6 +717,61 @@ describe('Component', () => {
             expect(c.el).to.be.equal(c.children[0].children[0].el);
         });
 
+        it('must create nested containers with component sharing same model', () => {
+            const model = new Model({ count : 0 });
+            const Child = Component.create`<button>${({ model }) => model.count}</button>`;
+            const MiddleContainer = Component.create`${({ model }) => Child.mount({ model })}`;
+            const TopContainer = Component.create`${({ model }) => MiddleContainer.mount({ model })}`;
+
+            const c = TopContainer.mount({ model }, document.body);
+
+            expect(document.querySelector('button')).to.exist;
+            expect(document.querySelector('button').textContent.trim()).to.be.equal('0');
+            expect(c.el).to.be.equal(c.children[0].el);
+            expect(c.el).to.be.equal(c.children[0].children[0].el);
+            expect(c.model).to.be.equal(model);
+            expect(c.children[0].model).to.be.equal(model);
+            expect(c.children[0].children[0].model).to.be.equal(model);
+
+            model.count = 1;
+            expect(document.querySelector('button').textContent.trim()).to.be.equal('1');
+
+            c.render();
+            expect(document.querySelector('button')).to.exist;
+            expect(c.el).to.be.equal(c.children[0].el);
+            expect(c.el).to.be.equal(c.children[0].children[0].el);
+        });
+
+        it('must create nested containers with props and component sharing same model', () => {
+            const model = new Model({ count : 0, label : 'Count' });
+            const Child = Component.create`<button>${({ model, props }) => `${props.label}: ${model.count}`}</button>`;
+            const MiddleContainer = Component.create`${({ model, props }) => Child.mount({ model, label : props.label })}`;
+            const TopContainer = Component.create`${({ model }) => MiddleContainer.mount({ model, label : model.label })}`;
+
+            const c = TopContainer.mount({ model }, document.body);
+
+            expect(document.querySelector('button')).to.exist;
+            expect(document.querySelector('button').textContent.trim()).to.be.equal('Count: 0');
+            expect(c.el).to.be.equal(c.children[0].el);
+            expect(c.el).to.be.equal(c.children[0].children[0].el);
+            expect(c.model).to.be.equal(model);
+            expect(c.children[0].model).to.be.equal(model);
+            expect(c.children[0].children[0].model).to.be.equal(model);
+            expect(c.children[0].props.label).to.be.equal('Count');
+            expect(c.children[0].children[0].props.label).to.be.equal('Count');
+
+            model.count = 1;
+            expect(document.querySelector('button').textContent.trim()).to.be.equal('Count: 1');
+
+            model.label = 'Total';
+            expect(document.querySelector('button').textContent.trim()).to.be.equal('Total: 1');
+
+            c.render();
+            expect(document.querySelector('button')).to.exist;
+            expect(c.el).to.be.equal(c.children[0].el);
+            expect(c.el).to.be.equal(c.children[0].children[0].el);
+        });
+
         it('must create container inside component', () => {
             const Child = Component.create`<button>click me</button>`;
             const Container = Component.create`${() => Child.mount()}`;
