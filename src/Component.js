@@ -876,17 +876,17 @@ class Component extends View {
             // Parse the rendered content and get the fragment.
             const fragment = parseHTML(rendered);
 
-            const handleComponents = () => {
+            const handleComponents = (parent) => () => {
                 // Add recycled components to children and move them to the new template in the fragment.
-                recycledChildren.forEach(recycled => recycle(recycled, this.el));
+                recycledChildren.forEach(recycled => recycle(recycled, parent));
                 // Add new children. Hydrate them and update the interpolation.
-                nextChildren.forEach(child => this.addChild(child).hydrate(this.el));
+                nextChildren.forEach(child => this.addChild(child).hydrate(parent));
             };
 
             if (this.isContainer()) {
-                interpolation.updateElement(this.el, fragment, handleComponents);
+                interpolation.updateElement(this.el, fragment, handleComponents(this.el.parentNode));
             } else {
-                interpolation.update(fragment, handleComponents);
+                interpolation.update(fragment, handleComponents(this.el));
             }
         });
         // Destroy unused children.
