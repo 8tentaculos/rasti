@@ -415,17 +415,23 @@ const parseAttributes = (attributesStr, expressions) => {
     const PH = Component.PLACEHOLDER('(\\d+)');
     const attributes = [];
     // Parse attributes string with support for placeholders in both names and values.
-    const regExp = new RegExp(`(${PH}|[\\w-]+)(?:=(["']?)(?:${PH}|((?:.?(?!["']?\\s+(?:\\S+)=|\\s*/?[>"']))+.))\\3)?`, 'g');
+    const regExp = new RegExp(`(?:${PH}|([\\w-]+))(?:=(["']?)(?:${PH}|((?:.?(?!["']?\\s+(?:\\S+)=|\\s*/?[>"']))+.))?\\3)?`, 'g');
 
     let attributeMatch;
     while ((attributeMatch = regExp.exec(attributesStr)) !== null) {
-        const [, attribute, attributeIdx, quotes, valueIdx, value] = attributeMatch;
+        const [, attributeIdx, attribute, quotes, valueIdx, value] = attributeMatch;
 
-        const attr = typeof attributeIdx !== 'undefined' ? expressions[parseInt(attributeIdx, 10)] : attribute;
-        const val = typeof valueIdx !== 'undefined' ? expressions[parseInt(valueIdx, 10)] : value;
+        const hasQuotes = !!quotes;
+
+        let attr = typeof attributeIdx !== 'undefined' ? expressions[parseInt(attributeIdx, 10)] : attribute;
+        let val = typeof valueIdx !== 'undefined' ? expressions[parseInt(valueIdx, 10)] : value;
+
+        if (hasQuotes && typeof val === 'undefined') {
+            val = '';
+        }
 
         if (typeof val !== 'undefined') {
-            attributes.push([attr, val, !!quotes]);
+            attributes.push([attr, val, hasQuotes]);
         } else {
             attributes.push([attr]);
         }
