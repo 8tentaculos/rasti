@@ -300,21 +300,51 @@ Helper method used to extend a `Component`, creating a subclass.
 
 <a name="module_component_mount" id="module_component_mount" class="anchor"></a>
 ### Component.mount([options], [el], [hydrate]) ⇒ <code>Component</code>
-Mount the component into the dom.
-It instantiate the Component view using options, 
-appends its element into the DOM (if `el` is provided).
-The `onMount` lifecycle method will be called after the component is added to the DOM.
-And returns the view instance.
+Mount the component into the DOM.
+Creates a new component instance with the provided options and optionally mounts it into the DOM.
+
+**Mounting modes:**
+- **Normal mount** (default): Renders the component as HTML and appends it to the provided element. Use this for client-side rendering.
+- **Hydration mode**: Assumes the DOM already contains the component's HTML (from server-side rendering). 
+
+If `el` is not provided, the component is instantiated but not mounted (the same as using `new Component(options)`). You can mount it later by calling `render()` and appending the element (`this.el`) to the DOM.
 
 **Kind**: static method of [<code>Component</code>](#module_component)  
 **Returns**: <code>Component</code> - The component instance.  
 
-| Param | Type | Description |
-| --- | --- | --- |
-| [options] | <code>object</code> | The view options. |
-| [el] | <code>node</code> | Dom element to append the view element. |
-| [hydrate] | <code>boolean</code> | If true, the view will hydrate existing DOM. |
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| [options] | <code>object</code> | <code>{}</code> | The component options. These will be passed to the constructor and can include                               `model`, `state`, `props`, lifecycle methods, and any other component-specific options. |
+| [el] | <code>node</code> |  | The DOM element where the component will be mounted. If provided, the component will be                     rendered and appended to this element. If not provided, the component is created but not mounted. |
+| [hydrate] | <code>boolean</code> | <code>false</code> | If `true`, enables hydration mode for server-side rendering. The component will                                   assume the DOM already contains its HTML structure and will only hydrate it.                                  If `false` (default), the component will be rendered from scratch and appended to `el`. |
 
+**Example**  
+```js
+import { Component, Model } from 'rasti';
+
+const Button = Component.create`
+    <button class="${({ props }) => props.className}">
+        ${({ props }) => props.label}
+    </button>
+`;
+
+// Normal mount: render and append to DOM.
+const button = Button.mount({
+    label: 'Click me'
+}, document.body);
+
+// Create without mounting (mount later).
+const button2 = Button.mount({ className : 'secondary', label : 'Save' });
+// Later, render and append it to the DOM.
+document.body.appendChild(button2.render().el);
+
+// Hydration mode: hydrate existing server-rendered HTML
+// Assuming document.body already contains the HTML structure of the button.
+const hydratedButton = Button.mount({
+    className : 'primary',
+    label : 'Click me'
+}, document.body, true);
+```
 <a name="module_component_create" id="module_component_create" class="anchor"></a>
 ### Component.create(strings, ...expressions) ⇒ <code>Component</code>
 Takes a tagged template string or a function that returns another component, and returns a new `Component` class.

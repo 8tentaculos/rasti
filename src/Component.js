@@ -1003,16 +1003,49 @@ class Component extends View {
     }
 
     /**
-     * Mount the component into the dom.
-     * It instantiate the Component view using options, 
-     * appends its element into the DOM (if `el` is provided).
-     * The `onMount` lifecycle method will be called after the component is added to the DOM.
-     * And returns the view instance.
+     * Mount the component into the DOM.
+     * Creates a new component instance with the provided options and optionally mounts it into the DOM.
+     * 
+     * **Mounting modes:**
+     * - **Normal mount** (default): Renders the component as HTML and appends it to the provided element. Use this for client-side rendering.
+     * - **Hydration mode**: Assumes the DOM already contains the component's HTML (from server-side rendering). 
+     * 
+     * If `el` is not provided, the component is instantiated but not mounted (the same as using `new Component(options)`). You can mount it later by calling `render()` and appending the element (`this.el`) to the DOM.
+     * 
      * @static
-     * @param {object} [options] The view options.
-     * @param {node} [el] Dom element to append the view element.
-     * @param {boolean} [hydrate] If true, the view will hydrate existing DOM.
+     * @param {object} [options={}] The component options. These will be passed to the constructor and can include 
+     *                              `model`, `state`, `props`, lifecycle methods, and any other component-specific options.
+     * @param {node} [el] The DOM element where the component will be mounted. If provided, the component will be 
+     *                    rendered and appended to this element. If not provided, the component is created but not mounted.
+     * @param {boolean} [hydrate=false] If `true`, enables hydration mode for server-side rendering. The component will 
+     *                                  assume the DOM already contains its HTML structure and will only hydrate it.
+     *                                  If `false` (default), the component will be rendered from scratch and appended to `el`.
      * @return {Component} The component instance.
+     * @example
+     * import { Component, Model } from 'rasti';
+     * 
+     * const Button = Component.create`
+     *     <button class="${({ props }) => props.className}">
+     *         ${({ props }) => props.label}
+     *     </button>
+     * `;
+     * 
+     * // Normal mount: render and append to DOM.
+     * const button = Button.mount({
+     *     label: 'Click me'
+     * }, document.body);
+     * 
+     * // Create without mounting (mount later).
+     * const button2 = Button.mount({ className : 'secondary', label : 'Save' });
+     * // Later, render and append it to the DOM.
+     * document.body.appendChild(button2.render().el);
+     * 
+     * // Hydration mode: hydrate existing server-rendered HTML
+     * // Assuming document.body already contains the HTML structure of the button.
+     * const hydratedButton = Button.mount({
+     *     className : 'primary',
+     *     label : 'Click me'
+     * }, document.body, true);
      */
     static mount(options, el, hydrate) {
         // Instantiate component.
@@ -1020,14 +1053,14 @@ class Component extends View {
         // If `el` is passed, mount component.
         if (el) {
             if (hydrate) {
-                // Generate subcomponents.
+                // Hydrate existing DOM, only generate subcomponents calling `toString`.
                 component.toString();
-                // Hydrate existing DOM.
-                component.hydrate(el);
             } else {
-                // Append element to the DOM.
-                el.append(component.render().el);
+                // Render the component and append it to the provided element.
+                el.append(parseHTML(component));
             }
+            // Hydrate in both cases.
+            component.hydrate(el);
         }
         // Return component instance.
         return component;
