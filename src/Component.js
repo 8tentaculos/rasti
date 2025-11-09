@@ -527,6 +527,10 @@ class Component extends View {
         if (this.el) {
             // If "this.el" is a function, call it to get the element.
             this.el = getResult(this.el, this);
+            // Check if the element has a parent node.
+            if (!this.el.parentNode) {
+                throw new Error('Element must have a parent node');
+            }
             // Render the component as a string to generate children components.
             this.toString();
             // Hydrate the component.
@@ -586,8 +590,7 @@ class Component extends View {
             this.template.elements.forEach((element, index) => {
                 if (index === 0) {
                     element.hydrate(parent);
-                    if (this.el) element.ref = this.el;
-                    else this.el = element.ref;
+                    this.el = element.ref;
                 }
                 else {
                     element.hydrate(this.el);

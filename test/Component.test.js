@@ -20,7 +20,7 @@ describe('Component', () => {
         });
 
         it('must be instantiated with new on existing element', () => {
-            document.body.innerHTML = '<div id="test-node"></div>';
+            document.body.innerHTML = '<div id="test-node" data-rasti-el="r1-1"></div>';
             const c = new Component({ el : document.getElementById('test-node') });
             expect(c.render().el.id).to.be.equal('test-node');
         });
