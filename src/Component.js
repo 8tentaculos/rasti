@@ -13,16 +13,28 @@ import parseHTML from './utils/parseHTML.js';
 import findComment from './utils/findComment.js';
 import getAttributesHTML from './utils/getAttributesHTML.js';
 import replaceNode from './utils/replaceNode.js';
+import wrapWithErrorContext from './utils/wrapWithErrorContext.js';
+import createErrorMessage from './utils/createErrorMessage.js';
 
 /**
  * Same as getResult, but pass context as argument to the expression.
  * Used to evaluate expressions in the context of a component.
  * @param {any} expression The expression to be evaluated.
  * @param {any} context The context to call the expression with.
+ * @param {string} [meta] Optional metadata about the expression type for error messages.
  * @return {any} The result of the evaluated expression.
  * @private
  */
-const getExpressionResult = (expression, context) => getResult(expression, context, context);
+const getExpressionResult = (expression, context, meta) => {
+    const errorMessage = meta
+        ? `Error in ${context.constructor.name}#${context.uid} (${meta})`
+        : null;
+
+    return wrapWithErrorContext(
+        () => getResult(expression, context, context),
+        errorMessage
+    );
+};
 
 /**
  * Check if an element is a component root element.
@@ -210,7 +222,7 @@ const expandComponents = (main, expressions, skipNormalization = false) => {
             const attributes = parseAttributes(attributesStr, expressions);
             // Create mount function.
             const mount = function() {
-                const options = expandAttributes(attributes, value => getExpressionResult(value, this));
+                const options = expandAttributes(attributes, value => getExpressionResult(value, this, 'children options'));
                 // Add `renderChildren` function to options.
                 if (innerList) {
                     // Evaluate items in parent context and create Partial.
@@ -258,7 +270,12 @@ const parseElements = (template, expressions, elements) => {
     if (containerMatch) return template;
     // Validate that template has a root element.
     const rootElementMatch = template.match(new RegExp(`^\\s*<([a-z]+[1-6]?|${PH})([^>]*)>([\\s\\S]*?)</(\\1|${PH})>\\s*$|^\\s*<([a-z]+[1-6]?|${PH})([^>]*)/>\\s*$`));
-    if (!rootElementMatch) throw new SyntaxError(`Template must have a single root element or be a container component: "${template.trim()}"`);
+    if (!rootElementMatch) {
+        throw new SyntaxError(createErrorMessage(
+            'Template validation error',
+            `Template must have a single root element or be a container component`
+        ));
+    }
 
     let elementUid = 0;
     // Match all HTML elements including placeholders and self-closed elements.
@@ -277,7 +294,7 @@ const parseElements = (template, expressions, elements) => {
         const getAttributes = function() {
             // Expand attributes and events.
             const attributes = expandEvents(
-                expandAttributes(parsedAttributes, value => getExpressionResult(value, this)),
+                expandAttributes(parsedAttributes, value => getExpressionResult(value, this, 'element attribute')),
                 this.eventsManager,
                 type => Component.ATTRIBUTE_EVENT(type, this.uid)
             );
@@ -335,7 +352,7 @@ const parsePartialElements = (template, expressions) => {
         // Create function that returns attributes object.
         const getAttributes = function() {
             const attributes = expandEvents(
-                expandAttributes(parsedAttributes, value => getExpressionResult(value, this)),
+                expandAttributes(parsedAttributes, value => getExpressionResult(value, this, 'partial element attribute')),
                 this.eventsManager,
                 type => Component.ATTRIBUTE_EVENT(type, this.uid)
             );
@@ -529,7 +546,10 @@ class Component extends View {
             this.el = getResult(this.el, this);
             // Check if the element has a parent node.
             if (!this.el.parentNode) {
-                throw new Error('Element must have a parent node');
+                throw new Error(createErrorMessage(
+                    'Component hydration error',
+                    'Element must have a parent node'
+                ));
             }
             // Render the component as a string to generate children components.
             this.toString();
@@ -689,7 +709,7 @@ class Component extends View {
                 expressions
             ),
             expressions
-        ).map(item => getExpressionResult(item, this));
+        ).map(item => getExpressionResult(item, this, 'partial'));
 
         return new Partial(items);
     }
@@ -703,7 +723,7 @@ class Component extends View {
      * @private
      */
     renderTemplatePart(part, addChild, items = []) {
-        const result = getExpressionResult(part, this);
+        const result = getExpressionResult(part, this, 'template part');
 
         const parse = item => {
             if (typeof item === 'undefined' || item === null || item === false || item === true) {
@@ -742,7 +762,7 @@ class Component extends View {
                 // Add Interpolation markers.
                 const startMarker = this.isContainer() ? '' : `<!--${item.getStart()}-->`;
                 const endMarker = this.isContainer() ? '' : `<!--${item.getEnd()}-->`;
-                const interpolationResult = parse(getExpressionResult(item.expression, this));
+                const interpolationResult = parse(getExpressionResult(item.expression, this, 'interpolation'));
                 item.previousItems = items;
                 return `${startMarker}${interpolationResult}${endMarker}`;
             }

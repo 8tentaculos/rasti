@@ -1,3 +1,5 @@
+import createErrorMessage from './createErrorMessage.js';
+
 /**
  * Validates that the listener is a function.
  * @param {Function} listener The listener to validate.
@@ -7,6 +9,9 @@
  */
 export default function validateListener(listener) {
     if (typeof listener !== 'function') {
-        throw new TypeError('Listener must be a function');
+        throw new TypeError(createErrorMessage(
+            'Event listener validation error',
+            'Listener must be a function'
+        ));
     }
 }
