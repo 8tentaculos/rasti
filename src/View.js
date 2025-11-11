@@ -209,7 +209,7 @@ export default class View extends Emitter {
      * @return {Rasti.View} Return `this` for chaining.
      */
     removeElement() {
-        this.el.remove();
+        this.el.parentNode.removeChild(this.el);
         // Return `this` for chaining.
         return this;
     }

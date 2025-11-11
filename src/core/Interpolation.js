@@ -57,7 +57,7 @@ class Interpolation {
 
         if (currentEmpty) {
             // The interpolation is empty. Insert the fragment.
-            endMark.before(fragment);
+            endMark.parentNode.insertBefore(fragment, endMark);
         } else if (
             currentSingleChildElement &&
             fragment.children.length === 1 &&
@@ -71,8 +71,8 @@ class Interpolation {
             // The interpolation has multiple child elements or the new fragment has multiple child elements.
             // Insert a divider comment before the end marker and insert the new fragment after the divider.
             divider = document.createComment('');
-            endMark.before(divider);
-            endMark.before(fragment);
+            endMark.parentNode.insertBefore(divider, endMark);
+            endMark.parentNode.insertBefore(fragment, endMark);
         }
         // Handle the components in the fragment. Execute the handler function.
         handleComponents();
@@ -81,7 +81,7 @@ class Interpolation {
             // Remove old content and divider.
             const startMark = this.ref[0];
             if (startMark.nextSibling === divider) {
-                divider.remove();
+                divider.parentNode.removeChild(divider);
             } else {
                 const range = document.createRange();
                 range.setStartAfter(this.ref[0]);
@@ -99,11 +99,11 @@ class Interpolation {
      */
     updateElement(element, fragment, handleComponents) {
         const divider = document.createComment('');
-        element.after(divider);
-        divider.after(fragment.firstChild);
+        element.parentNode.insertBefore(divider, element.nextSibling);
+        divider.parentNode.insertBefore(fragment.firstChild, divider.nextSibling);
         handleComponents();
-        if (element.nextSibling === divider) element.remove();
-        divider.remove();
+        if (element.nextSibling === divider) element.parentNode.removeChild(element);
+        divider.parentNode.removeChild(divider);
     }
 }
 

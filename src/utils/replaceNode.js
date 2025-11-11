@@ -10,11 +10,11 @@
 export default function replaceNode(oldNode, newNode) {
     if (Element.prototype.moveBefore) {
         oldNode.parentNode.moveBefore(newNode, oldNode);
-        oldNode.remove();
+        oldNode.parentNode.removeChild(oldNode);
     } else {
         const activeElement = document.activeElement;
-        oldNode.before(newNode);
-        oldNode.remove();
+        oldNode.parentNode.insertBefore(newNode, oldNode);
+        oldNode.parentNode.removeChild(oldNode);
         if (activeElement && activeElement !== document.activeElement && newNode.contains(activeElement)) {
             activeElement.focus();
         }

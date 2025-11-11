@@ -36,7 +36,7 @@ class Element {
         // Remove attributes first so later `setAttribute` overrides if needed.
         remove.forEach(attr => {
             this.ref.removeAttribute(attr);
-            if (SYNC_PROPS.includes(attr) && attr in this.ref) {
+            if (SYNC_PROPS.indexOf(attr) !== -1 && attr in this.ref) {
                 // Reset property to default.
                 this.ref[attr] = attr === 'value' ? '' : false;
             }
@@ -45,7 +45,7 @@ class Element {
         Object.keys(add).forEach(attr => {
             const value = add[attr];
             this.ref.setAttribute(attr, value);
-            if (SYNC_PROPS.includes(attr) && attr in this.ref) {
+            if (SYNC_PROPS.indexOf(attr) !== -1 && attr in this.ref) {
                 this.ref[attr] = attr === 'value' ? value : value !== false && value !== 'false';
             }
         });

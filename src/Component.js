@@ -273,7 +273,7 @@ const parseElements = (template, expressions, elements) => {
     if (!rootElementMatch) {
         throw new SyntaxError(createErrorMessage(
             'Template validation error',
-            `Template must have a single root element or be a container component`
+            'Template must have a single root element or be a container component'
         ));
     }
 
@@ -479,7 +479,7 @@ class Component extends View {
         // Extract props from options that aren't component or view options.
         const props = {};
         Object.keys(options).forEach(key => {
-            if (!this.viewOptions.includes(key) && !this.componentOptions.includes(key)) {
+            if (this.viewOptions.indexOf(key) === -1 && this.componentOptions.indexOf(key) === -1) {
                 props[key] = options[key];
             }
         });
