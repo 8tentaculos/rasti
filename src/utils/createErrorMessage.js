@@ -15,8 +15,7 @@ export default function createErrorMessage(context, message) {
     const contentWidth = Math.max(minWidth, title.length, context.length, message.length);
     const catPadding = Math.floor((contentWidth - catWidth) / 2);
     const border = '+' + padEnd('-', contentWidth + 2, '-') + '+';
-    
-    const lines = [
+    return [
         '',
         `  ${border}`,
         `  | ${padEnd(title, contentWidth)} |`,
@@ -31,6 +30,5 @@ export default function createErrorMessage(context, message) {
         `  ${repeat(' ', catPadding)}    /|     |\\`,
         `  ${repeat(' ', catPadding)}   (_|     |_)`,
         ''
-    ];
-    return lines.join('\n');
+    ].join('\n');
 }
