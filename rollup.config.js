@@ -24,18 +24,21 @@ const config = [
                 dir : 'lib',
                 format : 'cjs',
                 exports : 'auto',
-                entryFileNames : '[name].cjs'
+                entryFileNames : '[name].cjs',
+                sourcemap : true
             },
             {
                 dir : 'es',
                 format : 'esm',
-                entryFileNames : '[name].js'
+                entryFileNames : '[name].js',
+                sourcemap : true
             }
         ],
         plugins : [
             replace({
                 'const __DEV__ = true;' : 'const __DEV__ = process.env.NODE_ENV !== \'production\';',
-                preventAssignment : true
+                preventAssignment : true,
+                sourcemap : true
             })
         ]
     },
@@ -44,12 +47,14 @@ const config = [
         output : {
             file : 'dist/rasti.js',
             format : 'umd',
-            name : 'Rasti'
+            name : 'Rasti',
+            sourcemap : true
         },
         plugins : [
             replace({
                 'const __DEV__ = true;' : 'const __DEV__ = true;',
-                preventAssignment : true
+                preventAssignment : true,
+                sourcemap : true
             })
         ]
     },
@@ -58,14 +63,18 @@ const config = [
         output : {
             file : 'dist/rasti.min.js',
             format : 'umd',
-            name : 'Rasti'
+            name : 'Rasti',
+            sourcemap : true
         },
         plugins : [
             replace({
                 'const __DEV__ = true;' : 'const __DEV__ = false;',
-                preventAssignment : true
+                preventAssignment : true,
+                sourcemap : true
             }),
-            terser()
+            terser({
+                sourceMap : true
+            })
         ]
     }
 ];
