@@ -13,8 +13,9 @@ import parseHTML from './utils/parseHTML.js';
 import findComment from './utils/findComment.js';
 import getAttributesHTML from './utils/getAttributesHTML.js';
 import replaceNode from './utils/replaceNode.js';
-import wrapWithErrorContext from './utils/wrapWithErrorContext.js';
-import createErrorMessage from './utils/createErrorMessage.js';
+import createDevelopmentErrorMessage from './utils/createDevelopmentErrorMessage.js';
+import createProductionErrorMessage from './utils/createProductionErrorMessage.js';
+import __DEV__ from './utils/dev.js';
 
 /**
  * Same as getResult, but pass context as argument to the expression.
@@ -26,14 +27,19 @@ import createErrorMessage from './utils/createErrorMessage.js';
  * @private
  */
 const getExpressionResult = (expression, context, meta) => {
-    const errorMessage = meta
-        ? `Error in ${context.constructor.name}#${context.uid} (${meta})`
-        : null;
-
-    return wrapWithErrorContext(
-        () => getResult(expression, context, context),
-        errorMessage
-    );
+    try {
+        return getResult(expression, context, context);
+    } catch (error) {
+        if (meta && !error.cause) {
+            const message = __DEV__ ?
+                createDevelopmentErrorMessage(`Error in ${context.constructor.name}#${context.uid} (${meta})\n${error.message}`) :
+                createProductionErrorMessage(`Error in ${context.constructor.name}#${context.uid}`);
+            const enhancedError = new Error(message, { cause : error });
+            enhancedError.stack = error.stack;
+            throw enhancedError;
+        }
+        throw error;
+    }
 };
 
 /**
@@ -268,18 +274,20 @@ const parseElements = (template, expressions, elements) => {
     // Check if template is a container (single placeholder, no tag).
     const containerMatch = template.match(new RegExp(`^\\s*${PH}\\s*$`));
     if (containerMatch) return template;
+
     // Validate that template has a root element.
     const rootElementMatch = template.match(new RegExp(`^\\s*<([a-z]+[1-6]?|${PH})([^>]*)>([\\s\\S]*?)</(\\1|${PH})>\\s*$|^\\s*<([a-z]+[1-6]?|${PH})([^>]*)/>\\s*$`));
+
     if (!rootElementMatch) {
-        throw new SyntaxError(createErrorMessage(
-            'Template validation error',
-            'Template must have a single root element or be a container component'
-        ));
+        const message = 'Template must have a single root element or render a single component as a child';
+        throw new Error(
+            __DEV__ ? createDevelopmentErrorMessage(message) : createProductionErrorMessage(message)
+        );
     }
 
     let elementUid = 0;
     // Match all HTML elements including placeholders and self-closed elements.
-    return replaceElements(template, (match, tag, attributesStr, ending) => {
+    return replaceElements(rootElementMatch[0], (match, tag, attributesStr, ending) => {
         const isRoot = elementUid === 0;
         const currentElementUid = ++elementUid;
         // If there are no dynamic attributes, return original match.
@@ -546,10 +554,8 @@ class Component extends View {
             this.el = getResult(this.el, this);
             // Check if the element has a parent node.
             if (!this.el.parentNode) {
-                throw new Error(createErrorMessage(
-                    'Component hydration error',
-                    'Element must have a parent node'
-                ));
+                const message = 'Element must have a parent node for hydration';
+                throw new Error(__DEV__ ? createDevelopmentErrorMessage(message) : createProductionErrorMessage(message));
             }
             // Render the component as a string to generate children components.
             this.toString();

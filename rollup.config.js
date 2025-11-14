@@ -1,4 +1,5 @@
 import terser from '@rollup/plugin-terser';
+import replace from '@rollup/plugin-replace';
 import { glob } from 'glob';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,7 +32,12 @@ const config = [
                 entryFileNames : '[name].js'
             }
         ],
-        plugins : []
+        plugins : [
+            replace({
+                'const __DEV__ = true;' : 'const __DEV__ = process.env.NODE_ENV !== \'production\';',
+                preventAssignment : true
+            })
+        ]
     },
     {
         input : 'src/index.js',
@@ -40,7 +46,12 @@ const config = [
             format : 'umd',
             name : 'Rasti'
         },
-        plugins : []
+        plugins : [
+            replace({
+                'const __DEV__ = true;' : 'const __DEV__ = true;',
+                preventAssignment : true
+            })
+        ]
     },
     {
         input : 'src/index.js',
@@ -50,6 +61,10 @@ const config = [
             name : 'Rasti'
         },
         plugins : [
+            replace({
+                'const __DEV__ = true;' : 'const __DEV__ = false;',
+                preventAssignment : true
+            }),
             terser()
         ]
     }

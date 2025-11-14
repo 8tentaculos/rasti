@@ -1,4 +1,6 @@
-import createErrorMessage from './createErrorMessage.js';
+import createDevelopmentErrorMessage from './createDevelopmentErrorMessage.js';
+import createProductionErrorMessage from './createProductionErrorMessage.js';
+import __DEV__ from './dev.js';
 
 /**
  * Validates that the listener is a function.
@@ -9,9 +11,7 @@ import createErrorMessage from './createErrorMessage.js';
  */
 export default function validateListener(listener) {
     if (typeof listener !== 'function') {
-        throw new TypeError(createErrorMessage(
-            'Event listener validation error',
-            'Listener must be a function'
-        ));
+        const message = 'Event listener must be a function';
+        throw new TypeError(__DEV__ ? createDevelopmentErrorMessage(message) : createProductionErrorMessage(message));
     }
 }

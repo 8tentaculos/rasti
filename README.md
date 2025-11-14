@@ -11,11 +11,11 @@
 
 **Rasti** is a lightweight MVC library for building fast, reactive user interfaces. Inspired by **Backbone.js**, it retains a familiar API while removing non-essential features and introducing modern, declarative, and composable components to simplify complex UI development.
 
-[![Travis (.com)](https://img.shields.io/travis/com/8tentaculos/rasti?style=flat-square)](https://app.travis-ci.com/8tentaculos/rasti)
-[![npm version](https://img.shields.io/npm/v/rasti.svg?style=flat-square)](https://www.npmjs.com/package/rasti)
-[![npm package minimized gzipped size](https://img.shields.io/bundlejs/size/rasti?style=flat-square)](https://unpkg.com/rasti/dist/rasti.min.js)
-[![npm downloads](https://img.shields.io/npm/dm/rasti.svg?style=flat-square)](https://www.npmjs.com/package/rasti)
-[![jsDelivr hits (npm)](https://img.shields.io/jsdelivr/npm/hm/rasti?style=flat-square)](https://www.jsdelivr.com/package/npm/rasti)
+[![Travis (.com)](https://img.shields.io/travis/com/8tentaculos/rasti)](https://app.travis-ci.com/8tentaculos/rasti)
+[![npm version](https://img.shields.io/npm/v/rasti.svg)](https://www.npmjs.com/package/rasti)
+[![npm package minimized gzipped size](https://img.shields.io/bundlejs/size/rasti)](https://unpkg.com/rasti/dist/rasti.min.js)
+[![npm downloads](https://img.shields.io/npm/dm/rasti.svg)](https://www.npmjs.com/package/rasti)
+[![jsDelivr hits (npm)](https://img.shields.io/jsdelivr/npm/hm/rasti)](https://www.jsdelivr.com/package/npm/rasti)
 
 ## Key Features  
 
@@ -46,17 +46,24 @@ $ npm install rasti
 import { Model, Component } from 'rasti';
 ```
 
-### Using ES modules
+### Using ES modules via CDN
 
 ```javascript
 import { Model, Component } from 'https://esm.run/rasti';
 ```
 
-### Using a `<script>` tag
+### Using a UMD build via CDN
+
+Include **Rasti** directly in your HTML using a CDN. Available UMD builds:
+
+- [https://cdn.jsdelivr.net/npm/rasti/dist/rasti.js](https://cdn.jsdelivr.net/npm/rasti/dist/rasti.js)
+- [https://cdn.jsdelivr.net/npm/rasti/dist/rasti.min.js](https://cdn.jsdelivr.net/npm/rasti/dist/rasti.min.js)
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/rasti/dist/rasti.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/rasti"></script>
 ```
+
+The UMD build exposes the `Rasti` global object:
 
 ```javascript
 const { Model, Component } = Rasti;
