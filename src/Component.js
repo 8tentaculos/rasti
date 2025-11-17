@@ -15,6 +15,7 @@ import getAttributesHTML from './utils/getAttributesHTML.js';
 import replaceNode from './utils/replaceNode.js';
 import createDevelopmentErrorMessage from './utils/createDevelopmentErrorMessage.js';
 import createProductionErrorMessage from './utils/createProductionErrorMessage.js';
+import formatTemplateSource from './utils/formatTemplateSource.js';
 import __DEV__ from './utils/dev.js';
 
 /**
@@ -31,9 +32,14 @@ const getExpressionResult = (expression, context, meta) => {
         return getResult(expression, context, context);
     } catch (error) {
         if (meta && !error.cause) {
-            const message = __DEV__ ?
-                createDevelopmentErrorMessage(`Error in ${context.constructor.name}#${context.uid} (${meta})\n${error.message}`) :
-                createProductionErrorMessage(`Error in ${context.constructor.name}#${context.uid}`);
+            let message;
+
+            if (__DEV__) {
+                const formattedSource = formatTemplateSource(context.source, expression);
+                message = createDevelopmentErrorMessage(`Error in ${context.constructor.name}#${context.uid} (${meta})\n${error.message}\n\nTemplate source:\n\n${formattedSource}`);
+            } else {
+                message = createProductionErrorMessage(`Error in ${context.constructor.name}#${context.uid} expression`);
+            }
             const enhancedError = new Error(message, { cause : error });
             enhancedError.stack = error.stack;
             throw enhancedError;
@@ -279,10 +285,19 @@ const parseElements = (template, expressions, elements) => {
     const rootElementMatch = template.match(new RegExp(`^\\s*<([a-z]+[1-6]?|${PH})([^>]*)>([\\s\\S]*?)</(\\1|${PH})>\\s*$|^\\s*<([a-z]+[1-6]?|${PH})([^>]*)/>\\s*$`));
 
     if (!rootElementMatch) {
-        const message = 'Template must have a single root element or render a single component as a child';
-        throw new Error(
-            __DEV__ ? createDevelopmentErrorMessage(message) : createProductionErrorMessage(message)
-        );
+        const message = __DEV__ ?
+            createDevelopmentErrorMessage(
+                'Invalid component template structure.\n' +
+                'The template must have a single root element or render a single component.\n\n' +
+                'Valid examples:\n' +
+                '- `<div>content</div>`\n' +
+                '- `<${MyComponent} />`\n\n' +
+                'Invalid examples:\n' +
+                '- `<div></div><div></div>`  (multiple root elements)\n' +
+                '- `text <div></div>`  (text outside root element)'
+            ) :
+            createProductionErrorMessage('Invalid component template');
+        throw new Error(message);
     }
 
     let elementUid = 0;
@@ -554,8 +569,14 @@ class Component extends View {
             this.el = getResult(this.el, this);
             // Check if the element has a parent node.
             if (!this.el.parentNode) {
-                const message = 'Element must have a parent node for hydration';
-                throw new Error(__DEV__ ? createDevelopmentErrorMessage(message) : createProductionErrorMessage(message));
+                const message = __DEV__ ?
+                    createDevelopmentErrorMessage(
+                        `Hydration failed in ${this.constructor.name}#${this.uid}\n` +
+                        'The element must have a parent node for hydration to work.\n' +
+                        'Make sure the element is mounted in the DOM before hydrating.'
+                    ) :
+                    createProductionErrorMessage(`Hydration failed in ${this.constructor.name}#${this.uid}`);
+                throw new Error(message);
             }
             // Render the component as a string to generate children components.
             this.toString();
@@ -1222,6 +1243,8 @@ class Component extends View {
             expressions = [strings];
             strings = ['', ''];
         }
+        // Store original template source for debugging (only in dev mode).
+        const source = __DEV__ ? { strings, expressions : [...expressions] } : null;
         // Create elements, interpolations and parts arrays.
         const elements = [], interpolations = [];
         const parts = splitPlaceholders(
@@ -1244,6 +1267,7 @@ class Component extends View {
         );
         // Create subclass for this component.
         return this.extend({
+            source,
             template() {
                 return {
                     elements : elements.map(element => new Element({

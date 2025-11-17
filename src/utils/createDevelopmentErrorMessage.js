@@ -1,21 +1,5 @@
-/**
- * Repeats a string a given number of times.
- * @param {string} string The string to repeat.
- * @param {number} length The number of times to repeat the string.
- * @return {string} The repeated string.
- * @private
- */
-const repeat = (string, length, acc = '') => length > 0 ? repeat(string, length - 1, acc + string) : acc;
-
-/**
- * Pads a string to a given length with a given character.
- * @param {string} string The string to pad.
- * @param {number} length The length to pad the string to.
- * @param {string} char The character to pad the string with.
- * @return {string} The padded string.
- * @private
- */
-const padEnd = (string, length, char = ' ') => string + repeat(char, length - string.length);
+import repeat from './repeat.js';
+import padEnd from './padEnd.js';
 
 /**
  * The ASCII art cat.
@@ -50,6 +34,7 @@ export default function createDevelopmentErrorMessage(message) {
         '',
         `  ${border}`,
         `  | ${padEnd(title, contentWidth)} |`,
+        `  | ${padEnd('', contentWidth)} |`,
     ].concat(lines.map(line => `  | ${padEnd(line, contentWidth)} |`))
         .concat([`  ${border}`])
         .concat(cat.map(line => `  ${repeat(' ', catPadding)} ${line}`))
