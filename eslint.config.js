@@ -35,6 +35,7 @@ export default defineConfig([{
         semi : ['error', 'always'],
         'key-spacing' : ['error', { beforeColon : true, afterColon : true }],
         'no-trailing-spaces' : ['error', { skipBlankLines : false, ignoreComments : true }],
-        'no-multiple-empty-lines' : ['error', { max : 1, maxEOF : 0 }]
+        'no-multiple-empty-lines' : ['error', { max : 1, maxEOF : 0 }],
+        'no-console' : 'error'
     }
 }]);
