@@ -1,3 +1,4 @@
+import PathManager from './PathManager.js';
 import syncNode from '../utils/syncNode.js';
 import findComment from '../utils/findComment.js';
 
@@ -20,7 +21,7 @@ class Interpolation {
         this.expression = options.expression;
         this.shouldSkipFind = options.shouldSkipFind;
         this.shouldSkipSync = options.shouldSkipSync;
-        this.previousItems = [];
+        this.tracker = new PathManager();
     }
 
     /**

@@ -75,13 +75,30 @@ class PathManager {
     }
 
     /**
-     * Find recyclable component by path and type.
-     * @param {Function} constructor The component constructor.
-     * @return {Component|null} The recyclable component or null.
+     * Tell if there was only one component rendered in the previous and current tracked maps
+     * and that component instance is the same (was recycled).
+     * Used by Component to detect simple single component cases and skip DOM moves.
+     * @return {boolean} Returns true when there is exactly one component at the first level
+     *                   and it was successfully recycled.
      */
-    findRecyclable(constructor) {
+    hasSingleComponent() {
+        if (this.tracked.size !== 1 || this.previous.size !== 1) return false;
+        const [currentPath, currentComponent] = this.tracked.entries().next().value;
+        const [prevPath, prevComponent] = this.previous.entries().next().value;
+        // Ensure the component is at the root level (path '0') so it is not part of a deeper partial/array.
+        if (currentPath !== '0' || prevPath !== '0') return false;
+        return currentComponent === prevComponent;
+    }
+
+    /**
+     * Find a recyclable component for the current path based on constructor (type)
+     * when the component is un-keyed.
+     * @param {Component} candidate The candidate component instance.
+     * @return {Component|null} The recyclable component or null if none found.
+     */
+    findRecyclable(candidate) {
         const prev = this.previous.get(this.getPath());
-        return prev && prev.constructor === constructor && !prev.key ? prev : null;
+        return prev && !prev.key && prev.constructor === candidate.constructor ? prev : null;
     }
 }
 

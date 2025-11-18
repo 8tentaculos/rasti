@@ -3,7 +3,6 @@ import Model from './Model.js';
 import SafeHTML from './core/SafeHTML.js';
 import Partial from './core/Partial.js';
 import EventsManager from './core/EventsManager.js';
-import PathManager from './core/PathManager.js';
 import Element from './core/Element.js';
 import Interpolation from './core/Interpolation.js';
 import validateListener from './utils/validateListener.js';
@@ -559,8 +558,6 @@ class Component extends View {
     ensureElement() {
         // Store data event listeners.
         this.eventsManager = new EventsManager();
-        // Store position tracking for recycling.
-        this.pathManager = new PathManager();
         // Call template function.
         this.template = getResult(this.template, this);
         // If el is provided, delegate events.
@@ -749,57 +746,51 @@ class Component extends View {
      * @return {string} The rendered template part.
      * @private
      */
-    renderTemplatePart(part, addChild, items = []) {
-        const result = getExpressionResult(part, this, 'template part');
+    renderTemplatePart(part, addChild, tracker) {
+        const item = getExpressionResult(part, this, 'template part');
 
-        const parse = item => {
-            if (typeof item === 'undefined' || item === null || item === false || item === true) {
-                return '';
-            }
+        if (typeof item === 'undefined' || item === null || item === false || item === true) {
+            return '';
+        }
 
-            if (item instanceof SafeHTML) {
-                items.push(item);
-                return item;
-            }
+        if (item instanceof SafeHTML) {
+            return `${item}`;
+        }
 
-            if (item instanceof Component) {
-                items.push(item);
-                return addChild(item);
-            }
+        if (item instanceof Component) {
+            return `${addChild(item, tracker)}`;
+        }
 
-            if (item instanceof Partial) {
-                // Single item.
-                if (item.items.length === 1) return parse(item.items[0]);
-                // Several items.
-                this.pathManager.push();
-                const out = item.items.map(subItem => { this.pathManager.increment(); return parse(subItem); }).join('');
-                this.pathManager.pop();
-                return out;
-            }
-            // Handle arrays (user loops) - disable tracking.
-            if (Array.isArray(item)) {
-                this.pathManager.pause();
-                const out = deepFlat(item).map(parse).join('');
-                this.pathManager.resume();
-                return out;
-            }
-            // Interpolation: add markers and process maintaining tracking.
-            if (item instanceof Interpolation) {
-                this.pathManager.increment();
-                // Add Interpolation markers.
-                const startMarker = this.isContainer() ? '' : `<!--${item.getStart()}-->`;
-                const endMarker = this.isContainer() ? '' : `<!--${item.getEnd()}-->`;
-                const interpolationResult = parse(getExpressionResult(item.expression, this, 'interpolation'));
-                item.previousItems = items;
-                return `${startMarker}${interpolationResult}${endMarker}`;
-            }
+        if (item instanceof Partial) {
+            // Single item.
+            if (item.items.length === 1) return this.renderTemplatePart(item.items[0], addChild, tracker);
+            // Several items.
+            tracker.push();
+            const out = item.items.map(subItem => {
+                tracker.increment();
+                return this.renderTemplatePart(subItem, addChild, tracker);
+            }).join('');
+            tracker.pop();
+            return out;
+        }
+        // Handle arrays (user loops) - disable tracking.
+        if (Array.isArray(item)) {
+            tracker.pause();
+            const out = deepFlat(item).map(subItem => this.renderTemplatePart(subItem, addChild, tracker)).join('');
+            tracker.resume();
+            return out;
+        }
+        // Interpolation: add markers and process maintaining tracking.
+        if (item instanceof Interpolation) {
+            const tracker = item.tracker;
+            tracker.reset();
+            // Add Interpolation markers.
+            const startMarker = this.isContainer() ? '' : `<!--${item.getStart()}-->`;
+            const endMarker = this.isContainer() ? '' : `<!--${item.getEnd()}-->`;
+            return `${startMarker}${this.renderTemplatePart(item.expression, addChild, tracker)}${endMarker}`;
+        }
 
-            const sanitized = Component.sanitize(item);
-            items.push(sanitized);
-            return sanitized;
-        };
-
-        return `${parse(result)}`;
+        return `${Component.sanitize(item)}`;
     }
 
     /**
@@ -831,11 +822,9 @@ class Component extends View {
         this.destroyChildren();
         // Normally there won't be any data event listeners, but if there are, clear them.
         this.eventsManager.reset();
-        // Reset position tracking.
-        this.pathManager.reset();
         // Bind addChild method.
-        const addChild = component => {
-            this.pathManager.track(component);
+        const addChild = (component, tracker) => {
+            tracker.track(component);
             return this.addChild(component);
         };
         // Render the template parts.
@@ -866,8 +855,6 @@ class Component extends View {
         }
         // Clear event listeners.
         this.eventsManager.reset();
-        // Reset position tracking.
-        this.pathManager.reset();
         // Update elements.
         this.template.elements.forEach(element => element.update());
         // Store previous children.
@@ -876,22 +863,24 @@ class Component extends View {
         this.children = [];
         // Update interpolations.
         this.template.interpolations.forEach(interpolation => {
+            const tracker = interpolation.tracker;
+            tracker.reset();
+
             const nextChildren = [];
             const recycledChildren = [];
 
-            this.pathManager.increment();
             // `addChild` handler is called from `renderTemplatePart` for every component.
             // It should handle children and return a HTML string.
             // In this case, where the component updates, it handles children recycling.
-            const addChild = component => {
+            const addChild = (component) => {
                 let out = component;
                 let found = null;
                 // Check if child already exists by key.
                 if (component.key) {
                     found = previousChildren.find(prev => prev.key === component.key);
                 } else {
-                    // Find by position and type.
-                    found = this.pathManager.findRecyclable(component.constructor);
+                    // Find by position and type using tracker.
+                    found = tracker.findRecyclable(component);
                 }
 
                 if (found) {
@@ -900,21 +889,18 @@ class Component extends View {
                     // Add child to recycled children.
                     recycledChildren.push([found, component]);
                     // Track the component.
-                    if (!found.key) this.pathManager.track(found);
+                    tracker.track(found);
                 } else {
                     // Add new component.
                     nextChildren.push(component);
                     // Track the component.
-                    this.pathManager.track(component);
+                    tracker.track(component);
                 }
                 // Return the component or placeholder.
                 return out;
             };
-            // Render the interpolation content and get the items.
-            const previousItems = interpolation.previousItems;
-            const items = [];
-            const rendered = this.renderTemplatePart(interpolation.expression, addChild, items);
-            interpolation.previousItems = items;
+            // Render the interpolation content.
+            const rendered = this.renderTemplatePart(interpolation.expression, addChild, tracker);
 
             const recycle = ([recycled, discarded], fragment) => {
                 // Add child, update props and recycle (move to new position if needed).
@@ -923,9 +909,7 @@ class Component extends View {
                 discarded.destroy();
             };
             // Same single component in the same position. Don't move it.
-            if (previousItems.length === 1 && previousItems[0] instanceof Component &&
-                items.length === 1 && items[0] instanceof Component &&
-                recycledChildren.length === 1) {
+            if (tracker.hasSingleComponent()) {
                 recycle(recycledChildren[0], null);
                 return;
             }
