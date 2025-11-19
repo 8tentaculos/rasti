@@ -782,6 +782,7 @@ class Component extends View {
         }
         // Interpolation: add markers and process maintaining tracking.
         if (item instanceof Interpolation) {
+            // Reset the tracker.
             const tracker = item.tracker;
             tracker.reset();
             // Add Interpolation markers.
@@ -863,6 +864,7 @@ class Component extends View {
         this.children = [];
         // Update interpolations.
         this.template.interpolations.forEach(interpolation => {
+            // Reset the tracker.
             const tracker = interpolation.tracker;
             tracker.reset();
 
