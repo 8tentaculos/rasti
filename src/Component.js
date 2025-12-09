@@ -1320,7 +1320,7 @@ Component.MARKER_END = (uid) => `rasti-e-${uid}`;
  *     </div>
  * `;
  * // Create model to store seconds.
- * const model = new Model({ seconds: 0 });
+ * const model = new Model({ seconds : 0 });
  * // Mount timer on body.
  * Timer.mount({ model }, document.body);
  * // Increment `model.seconds` every second.
