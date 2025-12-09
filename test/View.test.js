@@ -119,6 +119,38 @@ describe('View', () => {
         });
     });
 
+    describe('Static methods', () => {
+        it('must reset uid counter', () => {
+            View.uid = 5;
+            const v1 = new View();
+            expect(v1.uid).to.be.equal('r6');
+
+            View.resetUid();
+            expect(View.uid).to.be.equal(0);
+
+            const v2 = new View();
+            expect(v2.uid).to.be.equal('r1');
+        });
+
+        it('must sanitize HTML entities', () => {
+            expect(View.sanitize('&')).to.be.equal('&amp;');
+            expect(View.sanitize('<')).to.be.equal('&lt;');
+            expect(View.sanitize('>')).to.be.equal('&gt;');
+            expect(View.sanitize('"')).to.be.equal('&quot;');
+            expect(View.sanitize('\'')).to.be.equal('&#039;');
+            expect(View.sanitize('<script>alert("xss")</script>')).to.be.equal('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;');
+            expect(View.sanitize('Hello & World')).to.be.equal('Hello &amp; World');
+            expect(View.sanitize('')).to.be.equal('');
+            expect(View.sanitize('normal text')).to.be.equal('normal text');
+        });
+
+        it('must sanitize non-string values', () => {
+            expect(View.sanitize(123)).to.be.equal('123');
+            expect(View.sanitize(null)).to.be.equal('null');
+            expect(View.sanitize(undefined)).to.be.equal('undefined');
+        });
+    });
+
     describe('Event delegation', () => {
         it('must delegate events', (done) => {
             class MyView extends View {}

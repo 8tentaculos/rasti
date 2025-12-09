@@ -20,7 +20,7 @@ describe('Component', () => {
         });
 
         it('must be instantiated with new on existing element', () => {
-            document.body.innerHTML = '<div id="test-node" data-rasti-el="r1-1"></div>';
+            document.body.innerHTML = `<div id="test-node" ${Component.ATTRIBUTE_ELEMENT}="r1-1"></div>`;
             const c = new Component({ el : document.getElementById('test-node') });
             expect(c.render().el.id).to.be.equal('test-node');
         });
@@ -104,7 +104,7 @@ describe('Component', () => {
             const c = Main.mount({}, document.body);
 
             expect(c.children[0].options.color).to.be.equal('primary');
-            expect(document.querySelector('button').innerHTML).to.be.equal('<!--rasti-s-r2-1-->click me<!--rasti-e-r2-1-->');
+            expect(document.querySelector('button').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r2-1')}-->click me<!--${Component.MARKER_END('r2-1')}-->`);
         });
 
         it('must mount nested component tags with opening and closing tags', () => {
@@ -161,11 +161,11 @@ describe('Component', () => {
                 model : new Model({ count : 0 }),
             }, document.body);
 
-            expect(document.getElementById('test-node').innerHTML).to.be.equal('<!--rasti-s-r1-1-->0<!--rasti-e-r1-1-->');
+            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r1-1')}-->0<!--${Component.MARKER_END('r1-1')}-->`);
 
             c.model.count = 1;
 
-            expect(document.getElementById('test-node').innerHTML).to.be.equal('<!--rasti-s-r1-1-->1<!--rasti-e-r1-1-->');
+            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r1-1')}-->1<!--${Component.MARKER_END('r1-1')}-->`);
         });
 
         it('must handle attributes', () => {
@@ -256,11 +256,11 @@ describe('Component', () => {
         it('must remove true and false placeholders', () => {
             expect(
                 Component.create`<div id="test-node">${() => true}</div>`.mount().toString()
-            ).to.be.equal(`<div id="test-node" ${Component.ATTRIBUTE_ELEMENT}="r1-1"><!--rasti-s-r1-1--><!--rasti-e-r1-1--></div>`);
+            ).to.be.equal(`<div id="test-node" ${Component.ATTRIBUTE_ELEMENT}="r1-1"><!--${Component.MARKER_START('r1-1')}--><!--${Component.MARKER_END('r1-1')}--></div>`);
 
             expect(
                 Component.create`<div id="test-node">${() => false}</div>`.mount().toString()
-            ).to.be.equal(`<div id="test-node" ${Component.ATTRIBUTE_ELEMENT}="r2-1"><!--rasti-s-r2-1--><!--rasti-e-r2-1--></div>`);
+            ).to.be.equal(`<div id="test-node" ${Component.ATTRIBUTE_ELEMENT}="r2-1"><!--${Component.MARKER_START('r2-1')}--><!--${Component.MARKER_END('r2-1')}--></div>`);
         });
     });
 
@@ -286,16 +286,16 @@ describe('Component', () => {
                 <div id="test-node">${({ model }) => model.count}${({ state }) => state.count}</div>
             `.mount({ model : new Model({ count : 0 }), state : new CustomModel({ count : 0 }) }, document.body);
 
-            expect(document.getElementById('test-node').innerHTML).to.be.equal('<!--rasti-s-r1-1-->0<!--rasti-e-r1-1--><!--rasti-s-r1-2-->0<!--rasti-e-r1-2-->');
+            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r1-1')}-->0<!--${Component.MARKER_END('r1-1')}--><!--${Component.MARKER_START('r1-2')}-->0<!--${Component.MARKER_END('r1-2')}-->`);
 
             c.model.count = 1;
             c.state.count = 1;
-            expect(document.getElementById('test-node').innerHTML).to.be.equal('<!--rasti-s-r1-1-->1<!--rasti-e-r1-1--><!--rasti-s-r1-2-->1<!--rasti-e-r1-2-->');
+            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r1-1')}-->1<!--${Component.MARKER_END('r1-1')}--><!--${Component.MARKER_START('r1-2')}-->1<!--${Component.MARKER_END('r1-2')}-->`);
 
             c.destroy();
             c.model.count = 2;
             c.state.count = 2;
-            expect(document.getElementById('test-node').innerHTML).to.be.equal('<!--rasti-s-r1-1-->1<!--rasti-e-r1-1--><!--rasti-s-r1-2-->1<!--rasti-e-r1-2-->');
+            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r1-1')}-->1<!--${Component.MARKER_END('r1-1')}--><!--${Component.MARKER_START('r1-2')}-->1<!--${Component.MARKER_END('r1-2')}-->`);
         });
 
         it('must re render and destroy children', () => {
@@ -681,6 +681,18 @@ describe('Component', () => {
             expect(c.undelegateEvents()).to.be.equal(c);
             expect(c.destroy()).to.be.equal(c);
             expect(c.removeElement()).to.be.equal(c);
+        });
+
+        it('must inherit resetUid static method from View', () => {
+            View.uid = 5;
+            const c1 = Component.create`<div></div>`.mount();
+            expect(c1.uid).to.be.equal('r6');
+
+            Component.resetUid();
+            expect(View.uid).to.be.equal(0);
+
+            const c2 = Component.create`<div></div>`.mount();
+            expect(c2.uid).to.be.equal('r1');
         });
 
     });
