@@ -107,7 +107,7 @@ export default class View extends Emitter {
      * Destroy the view.
      * Destroy children views if any, undelegate events, stop listening to events, call `onDestroy` lifecycle method.
      * @param {object} options Options object or any arguments passed to `destroy` method will be passed to `onDestroy` method.
-     * @return {Rasti.View} Return `this` for chaining.
+     * @return {View} Return `this` for chaining.
      */
     destroy() {
         // Call destroy on children.
@@ -140,8 +140,8 @@ export default class View extends Emitter {
      * Add a view as a child.
      * Children views are stored at `this.children`, and destroyed when the parent is destroyed.
      * Returns the child for chaining.
-     * @param {Rasti.View} child
-     * @return {Rasti.View}
+     * @param {View} child
+     * @return {View}
      */
     addChild(child) {
         this.children.push(child);
@@ -206,7 +206,7 @@ export default class View extends Emitter {
 
     /**
      * Remove `this.el` from the DOM.
-     * @return {Rasti.View} Return `this` for chaining.
+     * @return {View} Return `this` for chaining.
      */
     removeElement() {
         this.el.parentNode.removeChild(this.el);
@@ -238,7 +238,7 @@ export default class View extends Emitter {
      * invoked **once for each matched element** (from inner to outer).
      *
      * @param {object} [events] Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to the root element.
-     * @return {Rasti.View} Returns `this` for chaining.
+     * @return {View} Returns `this` for chaining.
      * @example
      * // Using prototype (recommended for static events)
      * class Modal extends View {
@@ -325,7 +325,7 @@ export default class View extends Emitter {
      * Removes all of the view's delegated events. 
      * Useful if you want to disable or remove a view from the DOM temporarily. 
      * Called automatically when the view is destroyed and when `delegateEvents` is called again.
-     * @return {Rasti.View} Return `this` for chaining.
+     * @return {View} Return `this` for chaining.
      */
     undelegateEvents() {
         this.delegatedEventListeners.forEach(({ type, listener }) => {
@@ -350,7 +350,7 @@ export default class View extends Emitter {
      * You can use the {@link #module_view_sanitize View.sanitize} static method to escape HTML entities in a string.  
      * For best practices on secure data handling, refer to the 
      * [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
-     * @return {Rasti.View} Returns `this` for chaining.
+     * @return {View} Returns `this` for chaining.
      */
     render() {
         if (this.template) this.el.innerHTML = this.template(this.model);
@@ -375,6 +375,17 @@ export default class View extends Emitter {
             '"' : '&quot;',
             '\'' : '&#039;'
         }[match]));
+    }
+
+    /**
+     * Reset the unique ID counter to 0.
+     * This is useful for server-side rendering scenarios where you want to ensure that
+     * the generated unique IDs match those on the client, enabling seamless hydration of components.
+     * This method is inherited by {@link #module_component Component}.
+     * @static
+     */
+    static resetUid() {
+        View.uid = 0;
     }
 }
 

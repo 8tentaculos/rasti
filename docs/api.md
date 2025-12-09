@@ -37,19 +37,20 @@
         * [.preinitialize(options)](#module_view__preinitialize)
         * [.$(selector)](#module_view__$) ⇒ <code>node</code>
         * [.$$(selector)](#module_view__$$) ⇒ <code>Array.&lt;node&gt;</code>
-        * [.destroy(options)](#module_view__destroy) ⇒ <code>Rasti.View</code>
+        * [.destroy(options)](#module_view__destroy) ⇒ <code>View</code>
         * [.onDestroy(options)](#module_view__ondestroy)
-        * [.addChild(child)](#module_view__addchild) ⇒ <code>Rasti.View</code>
+        * [.addChild(child)](#module_view__addchild) ⇒ <code>View</code>
         * [.destroyChildren()](#module_view__destroychildren)
         * [.ensureUid()](#module_view__ensureuid)
         * [.ensureElement()](#module_view__ensureelement)
         * [.createElement(tag, attributes)](#module_view__createelement) ⇒ <code>node</code>
-        * [.removeElement()](#module_view__removeelement) ⇒ <code>Rasti.View</code>
-        * [.delegateEvents([events])](#module_view__delegateevents) ⇒ <code>Rasti.View</code>
-        * [.undelegateEvents()](#module_view__undelegateevents) ⇒ <code>Rasti.View</code>
-        * [.render()](#module_view__render) ⇒ <code>Rasti.View</code>
+        * [.removeElement()](#module_view__removeelement) ⇒ <code>View</code>
+        * [.delegateEvents([events])](#module_view__delegateevents) ⇒ <code>View</code>
+        * [.undelegateEvents()](#module_view__undelegateevents) ⇒ <code>View</code>
+        * [.render()](#module_view__render) ⇒ <code>View</code>
     * _static_
         * [.sanitize(value)](#module_view_sanitize) ⇒ <code>string</code>
+        * [.resetUid()](#module_view_resetuid)
 
 <a name="module_component" id="module_component" class="anchor"></a>
 ## Component ⇐ <code>View</code>
@@ -71,9 +72,9 @@ Components are defined with the [Component.create](#module_component_create) sta
 | Name | Type | Description |
 | --- | --- | --- |
 | [key] | <code>string</code> | A unique key to identify the component. Components with keys are recycled when the same key is found in the previous render. Unkeyed components are recycled based on type and position. |
-| [model] | <code>Rasti.Model</code> | A `Rasti.Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method. |
-| [state] | <code>Rasti.Model</code> | A `Rasti.Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method. |
-| [props] | <code>Rasti.Model</code> | Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Rasti.Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When a component with a `key` is recycled during parent re-render, new props are automatically updated and any changes trigger a re-render. |
+| [model] | <code>Model</code> | A `Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method. |
+| [state] | <code>Model</code> | A `Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method. |
+| [props] | <code>Model</code> | Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When a component with a `key` is recycled during parent re-render, new props are automatically updated and any changes trigger a re-render. |
 
 **Example**  
 ```js
@@ -232,7 +233,7 @@ render when needed.
 
 | Param | Type | Description |
 | --- | --- | --- |
-| model | <code>Rasti.Model</code> | The model that emitted the event. |
+| model | <code>Model</code> | The model that emitted the event. |
 | changed | <code>object</code> | Object containing keys and values that has changed. |
 | [...args] | <code>any</code> | Any extra arguments passed to set method. |
 
@@ -1071,19 +1072,20 @@ document.body.appendChild(new Timer().render().el);
         * [.preinitialize(options)](#module_view__preinitialize)
         * [.$(selector)](#module_view__$) ⇒ <code>node</code>
         * [.$$(selector)](#module_view__$$) ⇒ <code>Array.&lt;node&gt;</code>
-        * [.destroy(options)](#module_view__destroy) ⇒ <code>Rasti.View</code>
+        * [.destroy(options)](#module_view__destroy) ⇒ <code>View</code>
         * [.onDestroy(options)](#module_view__ondestroy)
-        * [.addChild(child)](#module_view__addchild) ⇒ <code>Rasti.View</code>
+        * [.addChild(child)](#module_view__addchild) ⇒ <code>View</code>
         * [.destroyChildren()](#module_view__destroychildren)
         * [.ensureUid()](#module_view__ensureuid)
         * [.ensureElement()](#module_view__ensureelement)
         * [.createElement(tag, attributes)](#module_view__createelement) ⇒ <code>node</code>
-        * [.removeElement()](#module_view__removeelement) ⇒ <code>Rasti.View</code>
-        * [.delegateEvents([events])](#module_view__delegateevents) ⇒ <code>Rasti.View</code>
-        * [.undelegateEvents()](#module_view__undelegateevents) ⇒ <code>Rasti.View</code>
-        * [.render()](#module_view__render) ⇒ <code>Rasti.View</code>
+        * [.removeElement()](#module_view__removeelement) ⇒ <code>View</code>
+        * [.delegateEvents([events])](#module_view__delegateevents) ⇒ <code>View</code>
+        * [.undelegateEvents()](#module_view__undelegateevents) ⇒ <code>View</code>
+        * [.render()](#module_view__render) ⇒ <code>View</code>
     * _static_
         * [.sanitize(value)](#module_view_sanitize) ⇒ <code>string</code>
+        * [.resetUid()](#module_view_resetuid)
 
 <a name="module_view__preinitialize" id="module_view__preinitialize" class="anchor"></a>
 ### view.preinitialize(options)
@@ -1120,12 +1122,12 @@ scoped to DOM elements within the current view's root element (`this.el`).
 | selector | <code>string</code> | CSS selector. |
 
 <a name="module_view__destroy" id="module_view__destroy" class="anchor"></a>
-### view.destroy(options) ⇒ <code>Rasti.View</code>
+### view.destroy(options) ⇒ <code>View</code>
 Destroy the view.
 Destroy children views if any, undelegate events, stop listening to events, call `onDestroy` lifecycle method.
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
-**Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
+**Returns**: <code>View</code> - Return `this` for chaining.  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -1143,7 +1145,7 @@ Override with your code. Useful to stop listening to model's events.
 | options | <code>object</code> | Options object or any arguments passed to `destroy` method. |
 
 <a name="module_view__addchild" id="module_view__addchild" class="anchor"></a>
-### view.addChild(child) ⇒ <code>Rasti.View</code>
+### view.addChild(child) ⇒ <code>View</code>
 Add a view as a child.
 Children views are stored at `this.children`, and destroyed when the parent is destroyed.
 Returns the child for chaining.
@@ -1152,7 +1154,7 @@ Returns the child for chaining.
 
 | Param | Type |
 | --- | --- |
-| child | <code>Rasti.View</code> | 
+| child | <code>View</code> | 
 
 <a name="module_view__destroychildren" id="module_view__destroychildren" class="anchor"></a>
 ### view.destroyChildren()
@@ -1187,13 +1189,13 @@ the view has a root element.
 | attributes | <code>object</code> |  | Attributes for the element. |
 
 <a name="module_view__removeelement" id="module_view__removeelement" class="anchor"></a>
-### view.removeElement() ⇒ <code>Rasti.View</code>
+### view.removeElement() ⇒ <code>View</code>
 Remove `this.el` from the DOM.
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
-**Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
+**Returns**: <code>View</code> - Return `this` for chaining.  
 <a name="module_view__delegateevents" id="module_view__delegateevents" class="anchor"></a>
-### view.delegateEvents([events]) ⇒ <code>Rasti.View</code>
+### view.delegateEvents([events]) ⇒ <code>View</code>
 Provide declarative listeners for DOM events within a view. If an events object is not provided, 
 it defaults to using `this.events`. If `this.events` is a function, it will be called to get the events object.
 
@@ -1217,7 +1219,7 @@ If more than one ancestor between `event.target` and the view's root element mat
 invoked **once for each matched element** (from inner to outer).
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
-**Returns**: <code>Rasti.View</code> - Returns `this` for chaining.  
+**Returns**: <code>View</code> - Returns `this` for chaining.  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -1253,15 +1255,15 @@ class DynamicView extends View {
 }
 ```
 <a name="module_view__undelegateevents" id="module_view__undelegateevents" class="anchor"></a>
-### view.undelegateEvents() ⇒ <code>Rasti.View</code>
+### view.undelegateEvents() ⇒ <code>View</code>
 Removes all of the view's delegated events. 
 Useful if you want to disable or remove a view from the DOM temporarily. 
 Called automatically when the view is destroyed and when `delegateEvents` is called again.
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
-**Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
+**Returns**: <code>View</code> - Return `this` for chaining.  
 <a name="module_view__render" id="module_view__render" class="anchor"></a>
-### view.render() ⇒ <code>Rasti.View</code>
+### view.render() ⇒ <code>View</code>
 Renders the view.  
 This method should be overridden with custom logic.
 The only convention is to manipulate the DOM within the scope of `this.el`,
@@ -1276,7 +1278,7 @@ For best practices on secure data handling, refer to the
 [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
-**Returns**: <code>Rasti.View</code> - Returns `this` for chaining.  
+**Returns**: <code>View</code> - Returns `this` for chaining.  
 <a name="module_view_sanitize" id="module_view_sanitize" class="anchor"></a>
 ### View.sanitize(value) ⇒ <code>string</code>
 Escape HTML entities in a string.
@@ -1291,3 +1293,11 @@ This method is inherited by [Component](#module_component) and used to escape te
 | --- | --- | --- |
 | value | <code>string</code> | String to escape. |
 
+<a name="module_view_resetuid" id="module_view_resetuid" class="anchor"></a>
+### View.resetUid()
+Reset the unique ID counter to 0.
+This is useful for server-side rendering scenarios where you want to ensure that
+the generated unique IDs match those on the client, enabling seamless hydration of components.
+This method is inherited by [Component](#module_component).
+
+**Kind**: static method of [<code>View</code>](#module_view)  
