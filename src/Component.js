@@ -1277,25 +1277,25 @@ class Component extends View {
 /*
  * Attributes used to identify elements and events.
  */
-Component.ATTRIBUTE_ELEMENT = 'data-rasti-el';
-Component.ATTRIBUTE_EVENT = (type, uid) => `data-rasti-on-${type}-${uid}`;
+Component.ATTRIBUTE_ELEMENT = 'data-rst-el';
+Component.ATTRIBUTE_EVENT = (type, uid) => `data-rst-on-${type}-${uid}`;
 
 /*
  * Dataset attribute used to identify elements.
  */
-Component.DATASET_ELEMENT = 'rastiEl';
+Component.DATASET_ELEMENT = 'rstEl';
 
 /*
  * Placeholders used to temporarily replace expressions in the template.
  */
-Component.PLACEHOLDER = (idx) => `__RASTI_PH_${idx}__`;
+Component.PLACEHOLDER = (idx) => `__RASTI_PLACEHOLDER_${idx}__`;
 
 /*
  * Markers used to identify interpolation and recycled components.
  */
-Component.MARKER_RECYCLED = (uid) => `rasti-r-${uid}`;
-Component.MARKER_START = (uid) => `rasti-s-${uid}`;
-Component.MARKER_END = (uid) => `rasti-e-${uid}`;
+Component.MARKER_RECYCLED = (uid) => `rst-r-${uid}`;
+Component.MARKER_START = (uid) => `rst-s-${uid}`;
+Component.MARKER_END = (uid) => `rst-e-${uid}`;
 
 /**
  * Components are a special kind of `View` that is designed to be easily composable, 
