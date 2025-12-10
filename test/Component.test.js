@@ -153,6 +153,32 @@ describe('Component', () => {
             expect(document.querySelector('.table-1 tr')).to.exist;
             expect(document.querySelectorAll('.table-2 tr').length).to.be.equal(2);
         });
+
+        it('must mount mixed self-closing and non-void component tags of same type', () => {
+            const Button = Component.create`<button>${({ props }) => props.renderChildren ? props.renderChildren() : props.label}</button>`;
+
+            const Main = Component.create`
+                <div class="root">
+                    <ul>
+                        <li>
+                            <${Button} label="hello" />
+                        </li>
+                        <li>
+                            <${Button}>
+                                bye
+                            </${Button}>
+                        </li>
+                    </ul>
+                </div>
+            `;
+
+            const c = Main.mount({}, document.body);
+
+            expect(c.children.length).to.be.equal(2);
+            expect(document.querySelectorAll('button').length).to.be.equal(2);
+            expect(document.querySelectorAll('button')[0].textContent.trim()).to.be.equal('hello');
+            expect(document.querySelectorAll('button')[1].textContent.trim()).to.be.equal('bye');
+        });
     });
 
     describe('Rendering and attributes', () => {

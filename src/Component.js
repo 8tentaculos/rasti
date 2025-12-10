@@ -208,8 +208,9 @@ const expandComponents = (main, expressions, skipNormalization = false) => {
         );
     }
     // Match component tags with backreference to ensure correct pairing.
+    // Use negative lookbehind (?<!\/) to ensure non-void pattern doesn't match self-closing tags.
     return main.replace(
-        new RegExp(`<(${PH})([^>]*)>([\\s\\S]*?)</\\1>|<(${PH})([^>]*)/>`,'g'),
+        new RegExp(`<(${PH})([^>]*)(?<!\\/)>([\\s\\S]*?)</\\1>|<(${PH})([^>]*)/>`,'g'),
         (match, openTag, openIdx, nonVoidAttrs, inner, selfClosingTag, selfClosingIdx, selfClosingAttrs) => {
             let tag, attributesStr, innerList;
 
