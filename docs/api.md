@@ -148,7 +148,7 @@ This method is bound to the component instance by default.
 import { Component } from 'rasti';
 // Create a Title component.
 const Title = Component.create`
-    <h1>${({ props }) => props.children}</h1>
+    <h1>${({ props }) => props.renderChildren()}</h1>
 `;
 // Create Main component.
 const Main = Component.create`
@@ -358,7 +358,7 @@ Takes a tagged template string or a function that returns another component, and
   ```javascript
   const Button = Component.create`
       <button class="${({ props }) => props.className}">
-          ${({ props }) => props.children}
+          ${({ props }) => props.renderChildren()}
       </button>
   `;
   ```
@@ -404,14 +404,14 @@ Takes a tagged template string or a function that returns another component, and
   // Create a button component.
   const Button = Component.create`
       <button class="button">
-          ${({ props }) => props.children}
+          ${({ props }) => props.renderChildren()}
       </button>
   `;
   // Create a navigation component. Add buttons as children. Iterate over items.
   const Navigation = Component.create`
       <nav>
           ${({ props }) => props.items.map(
-              item => Button.mount({ children : item.label })
+              item => Button.mount({ renderChildren : () => item.label })
           )}
       </nav>
   `;
@@ -427,7 +427,7 @@ Takes a tagged template string or a function that returns another component, and
   // Create a button component.
   const Button = Component.create`
       <button class="button">
-           ${({ props }) => props.children}
+           ${({ props }) => props.renderChildren()}
       </button>
   `;
   // Create a navigation component. Add buttons as children. Iterate over items.
@@ -450,7 +450,7 @@ Takes a tagged template string or a function that returns another component, and
   // Create a button component.
   const Button = Component.create`
       <button class="${({ props }) => props.className}">
-          ${({ props }) => props.children}
+          ${({ props }) => props.renderChildren()}
       </button>
   `;
   // Create a container that renders a Button component.
@@ -460,7 +460,7 @@ Takes a tagged template string or a function that returns another component, and
   // Create a container that renders a Button component, using a function.
   const ButtonCancel = Component.create(() => Button.mount({
       className : 'cancel',
-      children : 'Cancel'
+      renderChildren : () => 'Cancel'
   }));
   ```
 
