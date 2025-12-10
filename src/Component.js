@@ -28,9 +28,9 @@ import __DEV__ from './utils/dev.js';
  */
 const getExpressionResult = (expression, context, meta) => {
     try {
-        return getResult(expression, context, context);
+        return typeof expression !== 'function' ? expression : expression.call(context, context);
     } catch (error) {
-        if (meta && !error.cause) {
+        if (meta && !error._rasti) {
             let message;
 
             if (__DEV__) {
@@ -39,10 +39,13 @@ const getExpressionResult = (expression, context, meta) => {
             } else {
                 message = createProductionErrorMessage(`Error in ${context.constructor.name}#${context.uid} expression`);
             }
+
             const enhancedError = new Error(message, { cause : error });
-            enhancedError.stack = error.stack;
+            enhancedError._rasti = true;
+
             throw enhancedError;
         }
+
         throw error;
     }
 };
@@ -237,7 +240,7 @@ const expandComponents = (main, expressions, skipNormalization = false) => {
                 // Add `renderChildren` function to options.
                 if (innerList) {
                     // Evaluate items in parent context and create Partial.
-                    options.renderChildren = () => new Partial(innerList.map(item => getExpressionResult(item, this)));
+                    options.renderChildren = () => new Partial(innerList.map(item => getExpressionResult(item, this, 'children')));
                 }
                 // Mount component.
                 return tag.mount(options);
