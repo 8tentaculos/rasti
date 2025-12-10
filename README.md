@@ -9,7 +9,9 @@
     <b>Modern MVC for building user interfaces</b>
 </p>
 
-**Rasti** is a lightweight MVC library for building fast, reactive user interfaces. Inspired by **Backbone.js**, it retains a familiar API while removing non-essential features and introducing modern, declarative, and composable components to simplify complex UI development.
+**Rasti is a lightweight MVC library for building fast, reactive user interfaces.**  
+It provides declarative, composable **components** for building state-driven UIs.  
+Its low-level MVC core, inspired by **Backbone.js**’s architecture, provides **models**, **views** and **event emitters** as the fundamental building blocks.
 
 [![Travis (.com)](https://img.shields.io/travis/com/8tentaculos/rasti)](https://app.travis-ci.com/8tentaculos/rasti)
 [![npm version](https://img.shields.io/npm/v/rasti.svg)](https://www.npmjs.com/package/rasti)
@@ -30,7 +32,7 @@
 - **Lightweight and Fast** ⚡  
   Minimal overhead with efficient rendering.  
 - **Legacy Compatibility** 🕰️  
-  Seamlessly integrates into existing **Backbone.js** projects.  
+  Seamlessly integrates into existing **Backbone.js** legacy projects.  
 - **Standards-Based** 📐  
   Built on modern web standards, no tooling required.  
 
