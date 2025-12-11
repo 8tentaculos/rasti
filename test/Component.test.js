@@ -179,6 +179,26 @@ describe('Component', () => {
             expect(document.querySelectorAll('button')[0].textContent.trim()).to.be.equal('hello');
             expect(document.querySelectorAll('button')[1].textContent.trim()).to.be.equal('bye');
         });
+
+        it('must mount self-closing component with slash in attribute value', () => {
+            const Link = Component.create`<a href="${({ props }) => props.href}">${({ props }) => props.label}</a>`;
+
+            const Main = Component.create`
+                <nav>
+                    <${Link} href="/api/" label="API" />
+                    <${Link} href="/docs/guide/" label="Guide" />
+                </nav>
+            `;
+
+            const c = Main.mount({}, document.body);
+
+            expect(c.children.length).to.be.equal(2);
+            expect(document.querySelectorAll('a').length).to.be.equal(2);
+            expect(document.querySelectorAll('a')[0].getAttribute('href')).to.be.equal('/api/');
+            expect(document.querySelectorAll('a')[0].textContent.trim()).to.be.equal('API');
+            expect(document.querySelectorAll('a')[1].getAttribute('href')).to.be.equal('/docs/guide/');
+            expect(document.querySelectorAll('a')[1].textContent.trim()).to.be.equal('Guide');
+        });
     });
 
     describe('Rendering and attributes', () => {

@@ -208,10 +208,9 @@ const expandComponents = (main, expressions, skipNormalization = false) => {
         );
     }
     // Match component tags with backreference to ensure correct pairing.
-    // Use negative lookbehind (?<!\/) to ensure non-void pattern doesn't match self-closing tags.
     return main.replace(
-        new RegExp(`<(${PH})([^>]*)(?<!\\/)>([\\s\\S]*?)</\\1>|<(${PH})([^>]*)/>`,'g'),
-        (match, openTag, openIdx, nonVoidAttrs, inner, selfClosingTag, selfClosingIdx, selfClosingAttrs) => {
+        new RegExp(`<(${PH})([^>]*)/>|<(${PH})([^>]*)>([\\s\\S]*?)</\\4>`,'g'),
+        (match, selfClosingTag, selfClosingIdx, selfClosingAttrs, openTag, openIdx, nonVoidAttrs, inner) => {
             let tag, attributesStr, innerList;
 
             if (openTag) {
@@ -458,7 +457,7 @@ const parseAttributes = (attributesStr, expressions) => {
     const PH = Component.PLACEHOLDER('(\\d+)');
     const attributes = [];
     // Parse attributes string with support for placeholders in both names and values.
-    const regExp = new RegExp(`(?:${PH}|([\\w-]+))(?:=(["']?)(?:${PH}|((?:.?(?!["']?\\s+(?:\\S+)=|\\s*/?[>"']))+.))?\\3)?`, 'g');
+    const regExp = new RegExp(`(?:${PH}|([\\w-]+))(?:=(["']?)(?:${PH}|((?:.?(?!["']?\\s+(?:\\S+)=|\\s*/>|\\s*[>"']))+.))?\\3)?`, 'g');
 
     let attributeMatch;
     while ((attributeMatch = regExp.exec(attributesStr)) !== null) {
