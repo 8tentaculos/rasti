@@ -168,7 +168,7 @@ Counter.mount({ model }, document.body);
 // When buttons are clicked, only the text node gets updated, not the entire component.
 ```
 
-[Try it on CodePen](https://https://codepen.io/8tentaculos/pen/XJXVQOR?editors=0010)
+[Try it on CodePen](https://codepen.io/8tentaculos/pen/XJXVQOR?editors=0010)
 
 ## Why Choose **Rasti**?  
 
