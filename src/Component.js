@@ -28,14 +28,27 @@ import __DEV__ from './utils/dev.js';
  */
 const getExpressionResult = (expression, context, meta) => {
     try {
-        return typeof expression !== 'function' ? expression : expression.call(context, context);
+        if (typeof expression !== 'function') return expression;
+        // In development, detect uninstantiated Component classes and provide a helpful error.
+        // This typically happens when a component tag is malformed and not properly expanded.
+        if (__DEV__ && expression.prototype instanceof Component) {
+            throw new Error(
+                `Received uninstantiated Component class "${expression.name || 'Anonymous'}". ` +
+                'This usually happens when a component tag is malformed (e.g., missing closing tag or typo). ' +
+                'If that\'s not the case, make sure to instantiate child components using a component tag, mount(), or new.'
+            );
+        }
+
+        return expression.call(context, context);
     } catch (error) {
         if (meta && !error._rasti) {
             let message;
 
             if (__DEV__) {
                 const formattedSource = formatTemplateSource(context.source, expression);
-                message = createDevelopmentErrorMessage(`Error in ${context.constructor.name}#${context.uid} (${meta})\n${error.message}\n\nTemplate source:\n\n${formattedSource}`);
+                message = createDevelopmentErrorMessage(
+                    `Error in ${context.constructor.name}#${context.uid} (${meta})\n${error.message}\n\nTemplate source:\n\n${formattedSource}`
+                );
             } else {
                 message = createProductionErrorMessage(`Error in ${context.constructor.name}#${context.uid} expression`);
             }

@@ -199,6 +199,19 @@ describe('Component', () => {
             expect(document.querySelectorAll('a')[1].getAttribute('href')).to.be.equal('/docs/guide/');
             expect(document.querySelectorAll('a')[1].textContent.trim()).to.be.equal('Guide');
         });
+
+        it('must throw error when component tag is malformed', () => {
+            const Button = Component.create`<button>click me</button>`;
+
+            // Missing closing tag - the closing tag is malformed (missing >)
+            const Main = Component.create`
+                <div>
+                    <${Button} color="primary"</${Button}>
+                </div>
+            `;
+
+            expect(() => Main.mount({}, document.body)).to.throw('uninstantiated Component class');
+        });
     });
 
     describe('Rendering and attributes', () => {
