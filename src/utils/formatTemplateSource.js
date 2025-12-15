@@ -99,7 +99,7 @@ export default function formatTemplateSource(source, errorExpression) {
     // If error expression is multi-line, show full details.
     if (typeof errorExpression === 'function') {
         const fullSource = errorExpression.toString();
-        if (fullSource.includes('\n')) {
+        if (fullSource.match(/\n/)) {
             formattedLines.push('');
             formattedLines.push('     | Expression details:');
             fullSource.split('\n').forEach(line => {
