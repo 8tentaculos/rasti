@@ -189,6 +189,10 @@ You can find a sample **TODO application** in the [example folder](https://githu
 
 For detailed information on how to use **Rasti**, refer to the [API documentation](/docs/api.md).
 
+## Working with LLMs
+
+For those working with LLMs, there is an [AI Agents reference guide](/docs/AGENTS.md) that provides API patterns, lifecycle methods, and best practices, optimized for LLM context. You can share this guide with AI assistants to help them understand **Rasti**'s architecture and component APIs.
+
 ## Version History
 
 We strive to minimize breaking changes between major versions. However, if you're migrating between major versions, please refer to the release notes below for details on any breaking changes and migration tips.
