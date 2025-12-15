@@ -914,8 +914,6 @@ class Component extends View {
         this.onBeforeUpdate.call(this);
         // Clear event listeners.
         this.eventsManager.reset();
-        // Update elements.
-        this.template.elements.forEach(element => element.update());
         // Store previous children.
         const previousChildren = this.children;
         // Clear current children.
@@ -997,14 +995,17 @@ class Component extends View {
         previousChildren.forEach(prev => {
             if (this.children.indexOf(prev) < 0) prev.destroy();
         });
-        // Update props.
+        // Update recycled children props.
         propsQueue.forEach(([recycled, props]) => {
             recycled.updateProps(props);
         });
-        // If container, set el to the child element.
+        // If this component is a container, set el to the child element.
+        // Otherwise, update elements attributes and delegate events.
         if (this.isContainer()) {
             this.el = this.children[0].el;
         } else {
+            // Update elements attributes.
+            this.template.elements.forEach(element => element.update());
             // If there are pending event types, delegate events again.
             if (this.eventsManager.hasPendingTypes()) {
                 this.delegateEvents();
