@@ -9,7 +9,9 @@
         * [.onCreate(...args)](#module_component__oncreate)
         * [.onChange(model, changed)](#module_component__onchange)
         * [.onHydrate()](#module_component__onhydrate)
+        * [.onBeforeRecycle()](#module_component__onbeforerecycle)
         * [.onRecycle()](#module_component__onrecycle)
+        * [.onBeforeUpdate()](#module_component__onbeforeupdate)
         * [.onUpdate()](#module_component__onupdate)
         * [.onDestroy(...args)](#module_component__ondestroy)
     * _static_
@@ -102,7 +104,9 @@ setInterval(() => model.seconds++, 1000);
         * [.onCreate(...args)](#module_component__oncreate)
         * [.onChange(model, changed)](#module_component__onchange)
         * [.onHydrate()](#module_component__onhydrate)
+        * [.onBeforeRecycle()](#module_component__onbeforerecycle)
         * [.onRecycle()](#module_component__onrecycle)
+        * [.onBeforeUpdate()](#module_component__onbeforeupdate)
         * [.onUpdate()](#module_component__onupdate)
         * [.onDestroy(...args)](#module_component__ondestroy)
     * _static_
@@ -244,6 +248,19 @@ This method only executes on the client and only during the first render.
 Use this method for client-only operations like making API requests or setting up browser-specific functionality.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
+<a name="module_component__onbeforerecycle" id="module_component__onbeforerecycle" class="anchor"></a>
+### component.onBeforeRecycle()
+Lifecycle method. Called before the component is recycled and reused between renders.
+This method is called at the beginning of the `recycle` method, before any recycling operations occur.
+
+A component is recycled when:
+- It has a `key` and a previous child with the same key exists
+- It doesn't have a `key` but has the same type and position in the template or partial
+
+Use this method to perform operations that need to happen before the component is recycled,
+such as storing previous state or preparing for the recycling.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
 <a name="module_component__onrecycle" id="module_component__onrecycle" class="anchor"></a>
 ### component.onRecycle()
 Lifecycle method. Called when the component is recycled and reused between renders.
@@ -254,6 +271,14 @@ A component is recycled when:
 
 During recycling, the component instance is reused and its props are updated with new values.
 The component's element may be moved in the DOM if the new template structure differs from the previous one.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+<a name="module_component__onbeforeupdate" id="module_component__onbeforeupdate" class="anchor"></a>
+### component.onBeforeUpdate()
+Lifecycle method. Called before the component is updated or re-rendered.
+This method is called at the beginning of the `render` method when the component's state, model, or props change and trigger a re-render.
+Use this method to perform operations that need to happen before the component is updated,
+such as saving previous state or preparing for the update.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 <a name="module_component__onupdate" id="module_component__onupdate" class="anchor"></a>

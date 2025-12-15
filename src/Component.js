@@ -498,7 +498,7 @@ const parseAttributes = (attributesStr, expressions) => {
 /*
  * These option keys will be extended on the component instance.
  */
-const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', 'onRecycle', 'onUpdate'];
+const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', 'onBeforeRecycle', 'onRecycle', 'onBeforeUpdate', 'onUpdate'];
 
 /**
  * @lends module:Component
@@ -678,6 +678,8 @@ class Component extends View {
      * @private
      */
     recycle(parent, props) {
+        // Call `onBeforeRecycle` lifecycle method.
+        this.onBeforeRecycle.call(this);
         if (parent) {
             // Locate the placeholder comment and replace it with the real nodes
             const placeholder = findComment(parent, Component.MARKER_RECYCLED(this.uid), isComponent);
@@ -870,6 +872,8 @@ class Component extends View {
             this.hydrate(fragment);
             return this;
         }
+        // Call `onBeforeUpdate` lifecycle method.
+        this.onBeforeUpdate.call(this);
         // Clear event listeners.
         this.eventsManager.reset();
         // Update elements.
@@ -997,6 +1001,19 @@ class Component extends View {
     onHydrate() {}
 
     /**
+     * Lifecycle method. Called before the component is recycled and reused between renders.
+     * This method is called at the beginning of the `recycle` method, before any recycling operations occur.
+     * 
+     * A component is recycled when:
+     * - It has a `key` and a previous child with the same key exists
+     * - It doesn't have a `key` but has the same type and position in the template or partial
+     * 
+     * Use this method to perform operations that need to happen before the component is recycled,
+     * such as storing previous state or preparing for the recycling.
+     */
+    onBeforeRecycle() {}
+
+    /**
      * Lifecycle method. Called when the component is recycled and reused between renders.
      * 
      * A component is recycled when:
@@ -1007,6 +1024,14 @@ class Component extends View {
      * The component's element may be moved in the DOM if the new template structure differs from the previous one.
      */
     onRecycle() {}
+
+    /**
+     * Lifecycle method. Called before the component is updated or re-rendered.
+     * This method is called at the beginning of the `render` method when the component's state, model, or props change and trigger a re-render.
+     * Use this method to perform operations that need to happen before the component is updated,
+     * such as saving previous state or preparing for the update.
+     */
+    onBeforeUpdate() {}
 
     /**
      * Lifecycle method. Called when the component is updated or re-rendered.
