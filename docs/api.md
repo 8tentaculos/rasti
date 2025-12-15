@@ -67,7 +67,7 @@ Components are defined with the [Component.create](#module_component_create) sta
 
 | Param | Type | Description |
 | --- | --- | --- |
-| options | <code>object</code> | Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onHydrate, onRecycle, onUpdate, onCreate, onChange. Any additional options not in the component or view options list will be automatically extracted as props and stored as `this.props`. |
+| options | <code>object</code> | Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onHydrate, onBeforeRecycle, onRecycle, onBeforeUpdate, onUpdate, onCreate, onChange. Any additional options not in the component or view options list will be automatically extracted as props and stored as `this.props`. |
 
 **Properties**
 
@@ -201,14 +201,41 @@ console.log(`${app}`);
 ```
 <a name="module_component__render" id="module_component__render" class="anchor"></a>
 ### component.render() ⇒ <code>Component</code>
-Render the `Component`.  
-- If `this.el` is not present, the `Component` will be rendered as a string inside a `DocumentFragment` and hydrated, making `this.el` available. The `onHydrate` lifecycle method will be called.  
-- If `this.el` is present, the method will update the attributes and inner HTML of the element, or recreate its child component in the case of a container. The `onUpdate` lifecycle method will be called.  
-- When rendering child components, recycling happens in two ways:
-  - Components with a `key` are recycled if a previous child with the same key exists.
-  - Unkeyed components are recycled if they have the same type and position in the template or partial.
-  A recycled `Component` will call the `onRecycle` lifecycle method.  
-- If the active element is inside the component, it will retain focus after the render.
+Render the `Component`.
+
+**First render (when `this.el` is not present):**
+This is the initial render call. The component will be rendered as a string inside a `DocumentFragment` and hydrated, 
+making `this.el` available. `this.el` is the root DOM element of the component that can be applied to the DOM. 
+The `onHydrate` lifecycle method will be called. 
+
+**Note:** Typically, you don't need to call `render()` directly for the first render. The static method `Component.mount()` 
+handles this process automatically, creating the component instance, rendering it, and appending it to the DOM.
+
+**Update render (when `this.el` is present):**
+This indicates the component is being updated. The method will:
+- Update only the attributes of the root element and child elements
+- Update only the content of interpolations (the dynamic parts of the template)
+- For container components (components that render a single child component), update the single interpolation
+
+The `onBeforeUpdate` lifecycle method will be called at the beginning, followed by the `onUpdate` lifecycle method at the end.
+
+**Child component handling:**
+When rendering child components, they can be either recreated or recycled:
+
+- **Recreation:** A new component instance is created, running the constructor again. This happens when no matching component 
+  is found for recycling.
+
+- **Recycling:** The same component instance is reused. Recycling happens in two ways:
+  - Components with a `key` are recycled if a previous child with the same key exists
+  - Unkeyed components are recycled if they have the same type and position in the template or partial
+
+  When a component is recycled:
+  - The `onBeforeRecycle` lifecycle method is called when recycling starts
+  - The component's `this.props` is updated with the new props from the parent
+  - The `onRecycle` lifecycle method is called after props are updated
+
+  A recycled component may not use props at all and remain unchanged, or it may be subscribed to a different model 
+  (or even the same model as the parent) and update independently in subsequent render cycles.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 **Returns**: <code>Component</code> - The component instance.  
