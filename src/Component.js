@@ -673,22 +673,31 @@ class Component extends View {
      * Reuse a `Component` by replacing the placeholder comment with the real nodes.
      * Call `onRecycle` lifecycle method.
      * @param parent {node} The parent node.
-     * @param props {object} The props to set on the recycled component.
      * @return {Component} The component instance.
      * @private
      */
-    recycle(parent, props) {
+    recycle(parent) {
         // Call `onBeforeRecycle` lifecycle method.
         this.onBeforeRecycle.call(this);
+        // No parent means the node is already in the correct position. So we don't need to replace it.
         if (parent) {
             // Locate the placeholder comment and replace it with the real nodes
             const placeholder = findComment(parent, Component.MARKER_RECYCLED(this.uid), isComponent);
             replaceNode(placeholder, this.el);
         }
-        // Update props.
-        if (props) {
-            this.props.set(props);
-        }
+        // Return `this` for chaining.
+        return this;
+    }
+
+    /**
+     * Update the component's props.
+     * @param props {object} The props to set on the component.
+     * @return {Component} The component instance.
+     * @private
+     */
+    updateProps(props) {
+        // Set the props.
+        this.props.set(props);
         // Call `onRecycle` lifecycle method.
         this.onRecycle.call(this);
         // Return `this` for chaining.
@@ -882,6 +891,8 @@ class Component extends View {
         const previousChildren = this.children;
         // Clear current children.
         this.children = [];
+        // Store props to update.
+        const propsQueue = [];
         // Update interpolations.
         this.template.interpolations.forEach(interpolation => {
             // Reset the tracker.
@@ -925,8 +936,10 @@ class Component extends View {
             const rendered = this.renderTemplatePart(interpolation.expression, addChild, tracker);
 
             const recycle = ([recycled, discarded], fragment) => {
-                // Add child, update props and recycle (move to new position if needed).
-                this.addChild(recycled).recycle(fragment, discarded.props.toJSON());
+                // Store props to update.
+                propsQueue.push([recycled, discarded.props.toJSON()]);
+                // Add child and recycle (move to new position if needed).
+                this.addChild(recycled).recycle(fragment);
                 // Destroy discarded component.
                 discarded.destroy();
             };
@@ -954,6 +967,10 @@ class Component extends View {
         // Destroy unused children.
         previousChildren.forEach(prev => {
             if (this.children.indexOf(prev) < 0) prev.destroy();
+        });
+        // Update props.
+        propsQueue.forEach(([recycled, props]) => {
+            recycled.updateProps(props);
         });
         // If container, set el to the child element.
         if (this.isContainer()) {
