@@ -10,6 +10,7 @@ const Header = Component.create`
         <h1>todos</h1>
         <input
             class="new-todo"
+            name="new-todo"
             placeholder="What needs to be done?"
             autofocus
             onKeyUp=${function(ev) {

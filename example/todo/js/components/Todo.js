@@ -24,6 +24,7 @@ const Todo = Component.create`
     <li class="${getClassName}">
         <div class="view">
             <input
+                name="toggle"
                 class="toggle"
                 type="checkbox"
                 checked="${({ model }) => model.completed}"
@@ -49,6 +50,7 @@ const Todo = Component.create`
         <input
             class="edit"
             value="${({ model }) => model.title}"
+            name="edit"
             onKeyUp=${function(ev) {
                 // Save or cancel editing.
                 if (ev.key === 'Enter' || ev.key === 'Escape') {

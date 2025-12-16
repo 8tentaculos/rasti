@@ -15,12 +15,8 @@ class App extends Model {
      */
     constructor(attrs) {
         super(attrs);
-        // Bind event handler to this.
-        this.onChangeTodo = this.onChangeTodo.bind(this);
-        // Create models and bind events for the first time.
-        this.attributes.todos = this.attributes.todos.map(this.createTodo.bind(this));
     }
-    
+
     /**
      * Get todos filtered by the current filter setting.
      * @return {Array<Todo>} Filtered todos.
@@ -28,7 +24,7 @@ class App extends Model {
     get filtered() {
         return this[this.filter];
     }
-    
+
     /**
      * Get all todos.
      * @return {Array<Todo>} All todos.
@@ -36,7 +32,7 @@ class App extends Model {
     get all() {
         return this.todos;
     }
-    
+
     /**
      * Get completed todos.
      * @return {Array<Todo>} Completed todos.
@@ -44,7 +40,7 @@ class App extends Model {
     get completed() {
         return this.todos.filter(todo => todo.completed);
     }
-    
+
     /**
      * Get remaining (incomplete) todos.
      * @return {Array<Todo>} Remaining todos.
@@ -52,19 +48,19 @@ class App extends Model {
     get remaining() {
         return this.todos.filter(todo => !todo.completed);
     }
-    
+
     /**
-     * Create a new todo model and bind events.
+     * Create a new todo model.
      * @param {Object} attrs Attributes for the new todo.
      * @return {Todo} The created todo model.
      */
     createTodo(attrs) {
         const todo = new TodoModel(attrs);
         // Bind event on todo change.
-        todo.on('change', this.onChangeTodo);
+        this.listenTo(todo, 'change', this.onChangeTodo.bind(this));
         return todo;
     }
-    
+
     /**
      * Add a new todo to the collection.
      * @param {Object} attrs Attributes for the new todo.
@@ -72,36 +68,27 @@ class App extends Model {
     addTodo(attrs) {
         const todo = this.createTodo(attrs);
         // Add todo model to list.
-        this.todos.push(todo);
-        // Emit events to update app view.
-        this.emit('todos:add', todo);
-        this.emit('change');
+        this.todos = this.todos.concat(todo);
     }
-    
+
     /**
      * Remove a todo from the collection.
      * @param {Todo} todo The todo to remove.
      */
     removeTodo(todo) {
-        // Index of todo to be removed.
-        const idx = this.todos.indexOf(todo);
         // Remove from array.
-        this.todos.splice(idx, 1);
-        // Emit events to update app view.
-        this.emit('todos:remove', todo);
-        this.emit('change');
+        this.todos = this.todos.filter(current => current !== todo);
         // Unbind todo model events.
-        todo.off();
+        this.stopListening(todo);
     }
-    
+
     /**
      * Remove all completed todos.
      */
     removeCompleted() {
-        this.todos.filter(todo => todo.completed)
-            .forEach(this.removeTodo.bind(this));
+        this.todos.filter(todo => todo.completed).forEach((todo) => this.removeTodo(todo));
     }
-    
+
     /**
      * Toggle completion status of all todos.
      * @param {boolean} completed Whether to mark all todos as completed.
@@ -111,15 +98,26 @@ class App extends Model {
             todo.completed = completed;
         });
     }
-    
+
+    /**
+     * Parse the data and create the todos.
+     * @param {Object} data The data to parse.
+     * @return {Object} The parsed data.
+     */
+    parse(data) {
+        return data && Object.keys(data).length ? {
+            todos : data.todos ? data.todos.map(attrs => this.createTodo(attrs)) : [],
+            filter : data.filter,
+        } : {};
+    }
+
     /**
      * Event handler for todo changes.
-     * Emits 'todos:change' and 'change' events when a todo changes.
+     * Emits 'change' event when a todo changes.
+     * @param {...any} args Additional arguments to pass to the 'change' event.
      */
-    onChangeTodo() {
-        // Emit event to update app view.
-        this.emit('todos:change');
-        this.emit('change');
+    onChangeTodo(...args) {
+        this.emit('change', ...args);
     }
 }
 
