@@ -5,6 +5,7 @@
  * - UMD dev: replaced with true
  * - UMD prod: replaced with false
  * @type {boolean}
+ * @module
  * @private
  */
 const __DEV__ = true;
