@@ -1198,6 +1198,36 @@ describe('Component', () => {
             expect(originalSpan.textContent.trim()).to.be.equal('World');
         });
 
+        it('must transform interpolation from text node to partial with div', () => {
+            const Main = Component.create`
+                <div id="test-node">
+                    <div>${({ model, partial }) => model.usePartial ? partial`<div class="transformed">${model.text}</div>` : model.text}</div>
+                </div>
+            `.mount({ model : new Model({ text : 'Hello', usePartial : false }) }, document.body);
+
+            const originalDiv = document.getElementById('test-node');
+            const innerDiv = originalDiv.querySelector('div > div');
+
+            // Initially, the interpolation should render as a text node (no child div element).
+            const initialChildDiv = innerDiv.querySelector('div');
+            expect(initialChildDiv).to.be.null;
+            expect(innerDiv.textContent.trim()).to.be.equal('Hello');
+
+            // Verify that the content is a text node by checking there's no element children.
+            const textNodes = Array.from(innerDiv.childNodes).filter(node => node.nodeType === Node.TEXT_NODE);
+            expect(textNodes.length).to.be.greaterThan(0);
+            expect(textNodes.some(node => node.textContent.trim() === 'Hello')).to.be.true;
+
+            // Update the model to trigger re-render with partial.
+            Main.model.usePartial = true;
+
+            // After update, the interpolation should be transformed to a partial with a div.
+            const transformedDiv = originalDiv.querySelector('div > div > div');
+            expect(transformedDiv).to.exist;
+            expect(transformedDiv.className).to.be.equal('transformed');
+            expect(transformedDiv.textContent.trim()).to.be.equal('Hello');
+        });
+
         it('must recycle child component with key and keep same element', () => {
             const ChildComponent = Component.create`<button>${({ model }) => model.text}</button>`;
             const ParentComponent = Component.create`

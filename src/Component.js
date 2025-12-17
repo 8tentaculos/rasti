@@ -79,7 +79,9 @@ const isComponent = (el) => !!(el && el.dataset && el.dataset[Component.DATASET_
  * @return {boolean} True if the element contains a component.
  * @private
  */
-const containsElement = (el) => !!(el && el.dataset && el.dataset[Component.DATASET_ELEMENT]) || !!el.querySelector(`[${Component.ATTRIBUTE_ELEMENT}]`);
+const containsElement = (el) => !!(
+    el && ((el.dataset && el.dataset[Component.DATASET_ELEMENT]) || (el.querySelector && el.querySelector(`[${Component.ATTRIBUTE_ELEMENT}]`)))
+);
 
 /**
  * Generate string with placeholders for interpolated expressions.
