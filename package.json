@@ -24,7 +24,7 @@
         "src"
     ],
     "scripts": {
-        "clean": "rimraf lib dist es",
+        "clean": "node -e \"const fs=require('fs');['lib','dist','es'].forEach(d=>fs.rmSync(d,{recursive:true,force:true}))\"",
         "build": "rollup -c",
         "prepare": "npm run clean && npm run test && npm run build",
         "posttest": "npm run lint",
@@ -65,7 +65,6 @@
         "jsdom": "^26.1.0",
         "jsdom-global": "3.0.2",
         "mocha": "^11.7.1",
-        "rimraf": "^6.0.1",
         "rollup": "^4.48.1"
     },
     "directories": {
