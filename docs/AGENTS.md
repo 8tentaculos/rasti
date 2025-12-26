@@ -2,7 +2,7 @@
 
 This document provides a comprehensive reference for AI agents working with the Rasti library. It covers the core API patterns, lifecycle methods, and best practices.
 
-For detailed API documentation, see: [API Documentation](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md)
+For detailed API documentation, see: [API Documentation](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md)
 
 ## 🔧 Component API
 
@@ -39,9 +39,9 @@ const ExtendedComponent = Component.create`...`.extend({
 ```
 
 **Key Methods:**
-- [`Component.create`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_component_create) - Creates a new component class from a template
-- [`Component.mount`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_component_mount) - Creates and mounts a component instance
-- [`Component.extend`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_component_extend) - Extends a component with additional methods
+- [`Component.create`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_component_create) - Creates a new component class from a template
+- [`Component.mount`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_component_mount) - Creates and mounts a component instance
+- [`Component.extend`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_component_extend) - Extends a component with additional methods
 
 ### Event Handling
 
@@ -118,9 +118,9 @@ const ChildComponent = Component.create`
 ```
 
 **Key Properties:**
-- `this.props` - [Model](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_model) containing props passed from parent
-- `this.model` - [Model](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_model) for application data
-- `this.state` - [Model](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_model) for internal component state
+- `this.props` - [Model](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_model) containing props passed from parent
+- `this.model` - [Model](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_model) for application data
+- `this.state` - [Model](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_model) for internal component state
 
 ### Container Components
 
@@ -244,7 +244,7 @@ ${({ props }) => props.showHeader ?
 
 ### Using Partial
 
-The [`partial`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_component__partial) method creates sub-templates that preserve DOM structure for efficient recycling.
+The [`partial`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_component__partial) method creates sub-templates that preserve DOM structure for efficient recycling.
 
 ```js
 const MyComponent = Component.create`
@@ -288,7 +288,7 @@ ${({ props }) => Component.markAsSafeHTML(props.trustedHTML)}
 // ⚠️ Only use with trusted, sanitized HTML
 ```
 
-**Related:** [`Component.markAsSafeHTML`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_component_markassafehtml)
+**Related:** [`Component.markAsSafeHTML`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_component_markassafehtml)
 
 ### Lifecycle Hooks
 
@@ -360,14 +360,14 @@ const MyComponent = Component.create`...`.extend({
 5. **Destruction**: `onDestroy()` - called when component is destroyed
 
 **Related API:**
-- [`component.onCreate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_component__oncreate)
-- [`component.onChange`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_component__onchange)
-- [`component.onHydrate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_component__onhydrate)
-- [`component.onBeforeUpdate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_component__onbeforeupdate)
-- [`component.onUpdate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_component__onupdate)
-- [`component.onBeforeRecycle`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_component__onbeforerecycle)
-- [`component.onRecycle`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_component__onrecycle)
-- [`component.onDestroy`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_component__ondestroy)
+- [`component.onCreate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_component__oncreate)
+- [`component.onChange`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_component__onchange)
+- [`component.onHydrate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_component__onhydrate)
+- [`component.onBeforeUpdate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_component__onbeforeupdate)
+- [`component.onUpdate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_component__onupdate)
+- [`component.onBeforeRecycle`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_component__onbeforerecycle)
+- [`component.onRecycle`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_component__onrecycle)
+- [`component.onDestroy`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_component__ondestroy)
 
 ### Model Integration
 
@@ -411,13 +411,13 @@ const Dashboard = Component.create`...`.extend({
 ```
 
 **Related API:**
-- [`component.subscribe`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_component__subscribe) - Subscribe to model 'change' events
-- [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_emitter__listento) - Subscribe to custom events
-- [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_model) - Data model class
+- [`component.subscribe`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_component__subscribe) - Subscribe to model 'change' events
+- [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_emitter__listento) - Subscribe to custom events
+- [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_model) - Data model class
 
 ### Rendering
 
-The [`render()`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md#module_component__render) method handles both initial render and updates:
+The [`render()`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md#module_component__render) method handles both initial render and updates:
 
 **First render (when `this.el` is not present):**
 - Renders component as string inside a `DocumentFragment` and hydrates it
@@ -471,6 +471,6 @@ The [`render()`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/d
 
 ## Additional Resources
 
-- **Full API Documentation**: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.11/docs/api.md)
+- **Full API Documentation**: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/api.md)
 - **GitHub Repository**: [8tentaculos/rasti](https://github.com/8tentaculos/rasti)
 - **Examples**: Check the `example/` folder in the repository
