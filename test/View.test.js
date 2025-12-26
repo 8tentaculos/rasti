@@ -153,7 +153,12 @@ describe('View', () => {
 
     describe('Event delegation', () => {
         it('must delegate events', (done) => {
-            class MyView extends View {}
+            class MyView extends View {
+                render() {
+                    this.el.innerHTML = this.template();
+                    return this;
+                }
+            }
 
             MyView.prototype.template = () => '<section><button>click me</button></section>';
 
@@ -171,7 +176,12 @@ describe('View', () => {
         });
 
         it('must undelegate and delegate events', (done) => {
-            class MyView extends View {}
+            class MyView extends View {
+                render() {
+                    this.el.innerHTML = this.template();
+                    return this;
+                }
+            }
 
             MyView.prototype.template = () => '<section><button>click me</button></section>';
 
@@ -193,7 +203,12 @@ describe('View', () => {
         });
 
         it('must delegate events on root element', (done) => {
-            class MyView extends View {}
+            class MyView extends View {
+                render() {
+                    this.el.innerHTML = this.template();
+                    return this;
+                }
+            }
 
             MyView.prototype.template = () => '<section><button>click me</button></section>';
 
@@ -211,7 +226,12 @@ describe('View', () => {
         });
 
         it('must call handler for each ascendant match', (done) => {
-            class MyView extends View {}
+            class MyView extends View {
+                render() {
+                    this.el.innerHTML = this.template();
+                    return this;
+                }
+            }
 
             MyView.prototype.template = () => `
                 <section class="target">
@@ -239,7 +259,12 @@ describe('View', () => {
         });
 
         it('must not match elements outside the view', (done) => {
-            class MyView extends View {}
+            class MyView extends View {
+                render() {
+                    this.el.innerHTML = this.template();
+                    return this;
+                }
+            }
 
             MyView.prototype.template = () => `
                 <div class="target"><button id="btn-out"></button></div>
@@ -290,6 +315,11 @@ describe('View', () => {
                         'mouseover button' : () => { eventsOrder.push('function-hover'); },
                         'mouseout button' : 'handleMouseOut'
                     };
+                }
+
+                render() {
+                    this.el.innerHTML = this.template();
+                    return this;
                 }
 
                 handleClick() {

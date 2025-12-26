@@ -44,7 +44,14 @@ const viewOptions = ['el', 'tag', 'attributes', 'events', 'model', 'template', '
  *     }
  *
  *     template(model) {
- *         return `Seconds: <span>${model.seconds}</span>`;
+ *         return `Seconds: <span>${View.sanitize(model.seconds)}</span>`;
+ *     }
+ *
+ *     render() {
+ *         if (this.template) {
+ *             this.el.innerHTML = this.template(this.model);
+ *         }
+ *         return this;
  *     }
  * }
  * // Render view and append view's element into the body.
@@ -338,23 +345,29 @@ export default class View extends Emitter {
     }
 
     /**
-     * Renders the view.  
-     * This method should be overridden with custom logic.
-     * The only convention is to manipulate the DOM within the scope of `this.el`,
-     * and to return `this` for chaining.  
-     * If you add any child views, you should call `this.destroyChildren` before re-rendering.  
-     * The default implementation updates `this.el`'s innerHTML with the result
-     * of calling `this.template`, passing `this.model` as the argument.
-     * <br><br> &#9888; **Security Notice:** The default implementation utilizes `innerHTML`, which may introduce Cross-Site Scripting (XSS) risks.  
-     * Ensure that any user-generated content is properly sanitized before inserting it into the DOM. 
-     * You can use the {@link #module_view_sanitize View.sanitize} static method to escape HTML entities in a string.  
-     * For best practices on secure data handling, refer to the 
-     * [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
+     * `render` is the core function that your view should override, in order to populate its element (`this.el`), with the appropriate HTML. The convention is for `render` to always return `this`.  
+     * Views are low-level building blocks for creating user interfaces. For most use cases, we recommend using {@link #module_component Component} instead, which provides a more declarative template syntax, automatic DOM updates, and a more efficient render pipeline.  
+     * If you add any child views, you should call `this.destroyChildren` before re-rendering.
+     * 
      * @return {View} Returns `this` for chaining.
+     * @example
+     * class UserView extends View {
+     *     render() {
+     *         if (this.template) {
+     *             const model = this.model;
+     *             // Sanitize model attributes to prevent XSS attacks.
+     *             const safeData = {
+     *                 name : View.sanitize(model.name),
+     *                 email : View.sanitize(model.email),
+     *                 bio : View.sanitize(model.bio)
+     *             };
+     *             this.el.innerHTML = this.template(safeData);
+     *         }
+     *         return this;
+     *     }
+     * }
      */
     render() {
-        if (this.template) this.el.innerHTML = this.template(this.model);
-        // Return `this` for chaining.
         return this;
     }
 
