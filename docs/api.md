@@ -1,71 +1,82 @@
 ## Modules
 
-* [Component](#module_component) ⇐ <code>Rasti.View</code>
+* [Component](#module_component) ⇐ <code>View</code>
     * _instance_
-        * [.subscribe(model)](#module_component__subscribe) ⇒ <code>Rasti.Component</code>
-        * [.destroy(options)](#module_component__destroy) ⇒ <code>Rasti.View</code>
-        * [.onCreate(options)](#module_component__oncreate)
+        * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
+        * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>Partial</code>](#new_partial_new)
+        * [.toString()](#module_component__tostring) ⇒ <code>string</code>
+        * [.render()](#module_component__render) ⇒ <code>Component</code>
+        * [.onCreate(...args)](#module_component__oncreate)
         * [.onChange(model, changed)](#module_component__onchange)
-        * [.onRender(type)](#module_component__onrender)
-        * [.onDestroy(options)](#module_component__ondestroy)
-        * [.partial(strings, ...expressions)](#module_component__partial) ⇒ <code>Array</code>
-        * [.render()](#module_component__render) ⇒ <code>Rasti.Component</code>
+        * [.onHydrate()](#module_component__onhydrate)
+        * [.onBeforeRecycle()](#module_component__onbeforerecycle)
+        * [.onRecycle()](#module_component__onrecycle)
+        * [.onBeforeUpdate()](#module_component__onbeforeupdate)
+        * [.onUpdate()](#module_component__onupdate)
+        * [.onDestroy(...args)](#module_component__ondestroy)
     * _static_
-        * [.markAsSafeHTML(value)](#module_component_markassafehtml) ⇒ <code>Rasti.SafeHTML</code>
+        * [.markAsSafeHTML(value)](#module_component_markassafehtml) ⇒ [<code>SafeHTML</code>](#new_safehtml_new)
         * [.extend(object)](#module_component_extend)
-        * [.mount(options, el, hydrate)](#module_component_mount) ⇒ <code>Rasti.Component</code>
-        * [.create(strings, ...expressions)](#module_component_create) ⇒ <code>Rasti.Component</code>
+        * [.mount([options], [el], [hydrate])](#module_component_mount) ⇒ <code>Component</code>
+        * [.create(strings, ...expressions)](#module_component_create) ⇒ <code>Component</code>
 * [Emitter](#module_emitter)
-    * [.on(type, listener)](#module_emitter__on)
-    * [.once(type, listener)](#module_emitter__once)
+    * [.on(type, listener)](#module_emitter__on) ⇒ <code>function</code>
+    * [.once(type, listener)](#module_emitter__once) ⇒ <code>function</code>
     * [.off([type], [listener])](#module_emitter__off)
-    * [.emit(type)](#module_emitter__emit)
-* [Model](#module_model) ⇐ <code>Rasti.Emitter</code>
-    * [.preinitialize(attributes)](#module_model__preinitialize)
+    * [.emit(type, [...args])](#module_emitter__emit)
+    * [.listenTo(emitter, type, listener)](#module_emitter__listento) ⇒ <code>function</code>
+    * [.listenToOnce(emitter, type, listener)](#module_emitter__listentoonce) ⇒ <code>function</code>
+    * [.stopListening([emitter], [type], [listener])](#module_emitter__stoplistening)
+* [Model](#module_model) ⇐ <code>Emitter</code>
+    * [.preinitialize([attributes], [...args])](#module_model__preinitialize)
     * [.defineAttribute(key)](#module_model__defineattribute)
     * [.get(key)](#module_model__get) ⇒ <code>any</code>
-    * [.set(key, [value])](#module_model__set) ⇒ <code>this</code>
+    * [.set(key, [value], [...args])](#module_model__set) ⇒ <code>Model</code>
+    * [.parse([data], [...args])](#module_model__parse) ⇒ <code>object</code>
     * [.toJSON()](#module_model__tojson) ⇒ <code>object</code>
 * [View](#module_view) ⇐ <code>Emitter</code>
     * _instance_
-        * [.preinitialize(attrs)](#module_view__preinitialize)
+        * [.preinitialize(options)](#module_view__preinitialize)
         * [.$(selector)](#module_view__$) ⇒ <code>node</code>
         * [.$$(selector)](#module_view__$$) ⇒ <code>Array.&lt;node&gt;</code>
-        * [.destroy(options)](#module_view__destroy) ⇒ <code>Rasti.View</code>
+        * [.destroy(options)](#module_view__destroy) ⇒ <code>View</code>
         * [.onDestroy(options)](#module_view__ondestroy)
-        * [.addChild(child)](#module_view__addchild) ⇒ <code>Rasti.View</code>
+        * [.addChild(child)](#module_view__addchild) ⇒ <code>View</code>
         * [.destroyChildren()](#module_view__destroychildren)
+        * [.ensureUid()](#module_view__ensureuid)
         * [.ensureElement()](#module_view__ensureelement)
         * [.createElement(tag, attributes)](#module_view__createelement) ⇒ <code>node</code>
-        * [.removeElement()](#module_view__removeelement) ⇒ <code>Rasti.View</code>
-        * [.delegateEvents([events])](#module_view__delegateevents) ⇒ <code>Rasti.View</code>
-        * [.undelegateEvents()](#module_view__undelegateevents) ⇒ <code>Rasti.View</code>
-        * [.render()](#module_view__render) ⇒ <code>Rasti.View</code>
+        * [.removeElement()](#module_view__removeelement) ⇒ <code>View</code>
+        * [.delegateEvents([events])](#module_view__delegateevents) ⇒ <code>View</code>
+        * [.undelegateEvents()](#module_view__undelegateevents) ⇒ <code>View</code>
+        * [.render()](#module_view__render) ⇒ <code>View</code>
     * _static_
-        * [.sanitize(str)](#module_view_sanitize) ⇒ <code>string</code>
+        * [.sanitize(value)](#module_view_sanitize) ⇒ <code>string</code>
+        * [.resetUid()](#module_view_resetuid)
 
 <a name="module_component" id="module_component" class="anchor"></a>
-## Component ⇐ <code>Rasti.View</code>
+## Component ⇐ <code>View</code>
 Components are a special kind of `View` that is designed to be easily composable, 
 making it simple to add child views and build complex user interfaces.  
 Unlike views, which are render-agnostic, components have a specific set of rendering 
 guidelines that allow for a more declarative development style.  
 Components are defined with the [Component.create](#module_component_create) static method, which takes a tagged template string or a function that returns another component.
 
-**Extends**: <code>Rasti.View</code>  
+**Extends**: <code>View</code>  
 **See**: [Component.create](#module_component_create)  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| options | <code>object</code> | Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onRender, onCreate, onChange. |
+| options | <code>object</code> | Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onHydrate, onBeforeRecycle, onRecycle, onBeforeUpdate, onUpdate, onCreate, onChange. Any additional options not in the component or view options list will be automatically extracted as props and stored as `this.props`. |
 
 **Properties**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| key | <code>string</code> | A unique key to identify the component. Used to recycle child components. |
-| model | <code>object</code> | A `Rasti.Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method. |
-| state | <code>object</code> | A `Rasti.Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method. |
+| [key] | <code>string</code> | A unique key to identify the component. Components with keys are recycled when the same key is found in the previous render. Unkeyed components are recycled based on type and position. |
+| [model] | <code>Model</code> | A `Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method. |
+| [state] | <code>Model</code> | A `Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method. |
+| [props] | <code>Model</code> | Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When a component with a `key` is recycled during parent re-render, new props are automatically updated and any changes trigger a re-render. |
 
 **Example**  
 ```js
@@ -77,114 +88,59 @@ const Timer = Component.create`
     </div>
 `;
 // Create model to store seconds.
-const model = new Model({ seconds: 0 });
+const model = new Model({ seconds : 0 });
 // Mount timer on body.
 Timer.mount({ model }, document.body);
 // Increment `model.seconds` every second.
 setInterval(() => model.seconds++, 1000);
 ```
 
-* [Component](#module_component) ⇐ <code>Rasti.View</code>
+* [Component](#module_component) ⇐ <code>View</code>
     * _instance_
-        * [.subscribe(model)](#module_component__subscribe) ⇒ <code>Rasti.Component</code>
-        * [.destroy(options)](#module_component__destroy) ⇒ <code>Rasti.View</code>
-        * [.onCreate(options)](#module_component__oncreate)
+        * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
+        * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>Partial</code>](#new_partial_new)
+        * [.toString()](#module_component__tostring) ⇒ <code>string</code>
+        * [.render()](#module_component__render) ⇒ <code>Component</code>
+        * [.onCreate(...args)](#module_component__oncreate)
         * [.onChange(model, changed)](#module_component__onchange)
-        * [.onRender(type)](#module_component__onrender)
-        * [.onDestroy(options)](#module_component__ondestroy)
-        * [.partial(strings, ...expressions)](#module_component__partial) ⇒ <code>Array</code>
-        * [.render()](#module_component__render) ⇒ <code>Rasti.Component</code>
+        * [.onHydrate()](#module_component__onhydrate)
+        * [.onBeforeRecycle()](#module_component__onbeforerecycle)
+        * [.onRecycle()](#module_component__onrecycle)
+        * [.onBeforeUpdate()](#module_component__onbeforeupdate)
+        * [.onUpdate()](#module_component__onupdate)
+        * [.onDestroy(...args)](#module_component__ondestroy)
     * _static_
-        * [.markAsSafeHTML(value)](#module_component_markassafehtml) ⇒ <code>Rasti.SafeHTML</code>
+        * [.markAsSafeHTML(value)](#module_component_markassafehtml) ⇒ [<code>SafeHTML</code>](#new_safehtml_new)
         * [.extend(object)](#module_component_extend)
-        * [.mount(options, el, hydrate)](#module_component_mount) ⇒ <code>Rasti.Component</code>
-        * [.create(strings, ...expressions)](#module_component_create) ⇒ <code>Rasti.Component</code>
+        * [.mount([options], [el], [hydrate])](#module_component_mount) ⇒ <code>Component</code>
+        * [.create(strings, ...expressions)](#module_component_create) ⇒ <code>Component</code>
 
 <a name="module_component__subscribe" id="module_component__subscribe" class="anchor"></a>
-### component.subscribe(model) ⇒ <code>Rasti.Component</code>
-Listen to `change` event on a model or emitter object and call `onChange` lifecycle method.
-The listener will be removed when the component is destroyed.
-By default the component will be subscribed to `this.model` and `this.state`.
+### component.subscribe(model, [type], [listener]) ⇒ <code>Component</code>
+Subscribes to a `change` event on a model or emitter object and invokes the `onChange` lifecycle method.
+The subscription is automatically cleaned up when the component is destroyed.
+By default, the component subscribes to changes on `this.model`, `this.state`, and `this.props`.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
-**Returns**: <code>Rasti.Component</code> - The component instance.  
+**Returns**: <code>Component</code> - The current component instance for chaining.  
 
-| Param | Type | Description |
-| --- | --- | --- |
-| model | <code>Rasti.Model</code> | A model or emitter object to listen to changes. |
-
-<a name="module_component__destroy" id="module_component__destroy" class="anchor"></a>
-### component.destroy(options) ⇒ <code>Rasti.View</code>
-Destroy the `Component`.
-Destroy children components if any, undelegate events, stop listening to events, call `onDestroy` lifecycle method.
-
-**Kind**: instance method of [<code>Component</code>](#module_component)  
-**Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| options | <code>object</code> | Options object or any arguments passed to `destroy` method will be passed to `onDestroy` method. |
-
-<a name="module_component__oncreate" id="module_component__oncreate" class="anchor"></a>
-### component.onCreate(options)
-Lifecycle method. Called when the view is created, at the end of the `constructor`.
-
-**Kind**: instance method of [<code>Component</code>](#module_component)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| options | <code>object</code> | The view options. |
-
-<a name="module_component__onchange" id="module_component__onchange" class="anchor"></a>
-### component.onChange(model, changed)
-Lifecycle method. Called when model emits `change` event.
-By default calls `render` method.
-This method can be extended with custom logic.
-Maybe comparing new attributes with previous ones and calling
-render when needed.
-
-**Kind**: instance method of [<code>Component</code>](#module_component)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| model | <code>Rasti.Model</code> | The model that emitted the event. |
-| changed | <code>object</code> | Object containing keys and values that has changed. |
-| [...args] | <code>any</code> | Any extra arguments passed to set method. |
-
-<a name="module_component__onrender" id="module_component__onrender" class="anchor"></a>
-### component.onRender(type)
-Lifecycle method. Called after the component is rendered.
-- When the component is rendered for the first time, this method is called with `Component.RENDER_TYPE_HYDRATE` as the argument.
-- When the component is updated or re-rendered, this method is called with `Component.RENDER_TYPE_RENDER` as the argument.
-- When the component is recycled (reused with the same key), this method is called with `Component.RENDER_TYPE_RECYCLE` as the argument.
-
-**Kind**: instance method of [<code>Component</code>](#module_component)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| type | <code>string</code> | The render type. Possible values are: `Component.RENDER_TYPE_HYDRATE`, `Component.RENDER_TYPE_RENDER` and `Component.RENDER_TYPE_RECYCLE`. |
-
-<a name="module_component__ondestroy" id="module_component__ondestroy" class="anchor"></a>
-### component.onDestroy(options)
-Lifecycle method. Called when the view is destroyed.
-
-**Kind**: instance method of [<code>Component</code>](#module_component)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| options | <code>object</code> | Options object or any arguments passed to `destroy` method. |
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| model | <code>Object</code> |  | The model or emitter object to listen to. |
+| [type] | <code>string</code> | <code>&quot;&#x27;change&#x27;&quot;</code> | The event type to listen for. |
+| [listener] | <code>function</code> | <code>this.onChange</code> | The callback to invoke when the event is emitted. |
 
 <a name="module_component__partial" id="module_component__partial" class="anchor"></a>
-### component.partial(strings, ...expressions) ⇒ <code>Array</code>
+### component.partial(strings, ...expressions) ⇒ [<code>Partial</code>](#new_partial_new)
 Tagged template helper method.
 Used to create a partial template.  
-It will return a one-dimensional array with strings and expressions.  
+It will return a Partial object that preserves structure for position-based recycling.
 Components will be added as children by the parent component. Template strings literals 
 will be marked as safe HTML to be rendered.
 This method is bound to the component instance by default.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
-**Returns**: <code>Array</code> - Array containing strings and expressions.  
+**Returns**: [<code>Partial</code>](#new_partial_new) - Partial object containing strings and expressions.  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -196,7 +152,7 @@ This method is bound to the component instance by default.
 import { Component } from 'rasti';
 // Create a Title component.
 const Title = Component.create`
-    <h1>${self => self.renderChildren()}</h1>
+    <h1>${({ props }) => props.renderChildren()}</h1>
 `;
 // Create Main component.
 const Main = Component.create`
@@ -215,18 +171,163 @@ const Main = Component.create`
     }
 });
 ```
-<a name="module_component__render" id="module_component__render" class="anchor"></a>
-### component.render() ⇒ <code>Rasti.Component</code>
-Render the `Component`.  
-- If `this.el` is not present, the `Component` will be rendered as a string inside a `DocumentFragment` and hydrated, making `this.el` available. The `onRender` lifecycle method will be called with `Component.RENDER_TYPE_HYDRATE` as an argument.  
-- If `this.el` is present, the method will update the attributes and inner HTML of the element, or recreate its child component in the case of a container. The `onRender` lifecycle method will be called with `Component.RENDER_TYPE_RENDER` as an argument.  
-- When rendering child components, if the new children have the same key as the previous ones, they will be recycled. A recycled `Component` will call the `onRender` lifecycle method with `Component.RENDER_TYPE_RECYCLE` as an argument.  
-- If the active element is inside the component, it will retain focus after the render.
+<a name="module_component__tostring" id="module_component__tostring" class="anchor"></a>
+### component.toString() ⇒ <code>string</code>
+Render the component as a string.
+Used internally on the render process.
+Use it for server-side rendering or static site generation.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
-**Returns**: <code>Rasti.Component</code> - The component instance.  
+**Returns**: <code>string</code> - The rendered component.  
+**Example**  
+```js
+import { Component } from 'rasti';
+const Button = Component.create`
+    <button class="button">Click me</button>
+`;
+const App = Component.create`
+    <div>
+        <${Button}>Click me</${Button}>
+    </div>
+`;
+
+const app = new App();
+
+console.log(app.toString());
+// <div data-rasti-el="r1-1"><!--rasti-s-r1-1--><button class="button" data-rasti-el="r2-1">Click me</button><!--rasti-e-r1-1--></div>
+
+console.log(`${app}`);
+// <div data-rasti-el="r1-1"><!--rasti-s-r1-1--><button class="button" data-rasti-el="r2-1">Click me</button><!--rasti-e-r1-1--></div>
+```
+<a name="module_component__render" id="module_component__render" class="anchor"></a>
+### component.render() ⇒ <code>Component</code>
+Render the `Component`.
+
+**First render (when `this.el` is not present):**
+This is the initial render call. The component will be rendered as a string inside a `DocumentFragment` and hydrated, 
+making `this.el` available. `this.el` is the root DOM element of the component that can be applied to the DOM. 
+The `onHydrate` lifecycle method will be called. 
+
+**Note:** Typically, you don't need to call `render()` directly for the first render. The static method `Component.mount()` 
+handles this process automatically, creating the component instance, rendering it, and appending it to the DOM.
+
+**Update render (when `this.el` is present):**
+This indicates the component is being updated. The method will:
+- Update only the attributes of the root element and child elements
+- Update only the content of interpolations (the dynamic parts of the template)
+- For container components (components that render a single child component), update the single interpolation
+
+The `onBeforeUpdate` lifecycle method will be called at the beginning, followed by the `onUpdate` lifecycle method at the end.
+
+**Child component handling:**
+When rendering child components, they can be either recreated or recycled:
+
+- **Recreation:** A new component instance is created, running the constructor again. This happens when no matching component 
+  is found for recycling.
+
+- **Recycling:** The same component instance is reused. Recycling happens in two ways:
+  - Components with a `key` are recycled if a previous child with the same key exists
+  - Unkeyed components are recycled if they have the same type and position in the template or partial
+
+  When a component is recycled:
+  - The `onBeforeRecycle` lifecycle method is called when recycling starts
+  - The component's `this.props` is updated with the new props from the parent
+  - The `onRecycle` lifecycle method is called after props are updated
+
+  A recycled component may not use props at all and remain unchanged, or it may be subscribed to a different model 
+  (or even the same model as the parent) and update independently in subsequent render cycles.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+**Returns**: <code>Component</code> - The component instance.  
+<a name="module_component__oncreate" id="module_component__oncreate" class="anchor"></a>
+### component.onCreate(...args)
+Lifecycle method. Called when the component is created, at the end of the constructor.
+This method receives the same arguments passed to the constructor (options and any additional parameters).
+It executes both on client and server.
+Use this method to define models or state that will be used later in `onHydrate`.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| ...args | <code>\*</code> | The constructor arguments (options and any additional parameters). |
+
+<a name="module_component__onchange" id="module_component__onchange" class="anchor"></a>
+### component.onChange(model, changed)
+Lifecycle method. Called when model emits `change` event.
+By default calls `render` method.
+This method can be extended with custom logic.
+Maybe comparing new attributes with previous ones and calling
+render when needed.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| model | <code>Model</code> | The model that emitted the event. |
+| changed | <code>object</code> | Object containing keys and values that has changed. |
+| [...args] | <code>any</code> | Any extra arguments passed to set method. |
+
+<a name="module_component__onhydrate" id="module_component__onhydrate" class="anchor"></a>
+### component.onHydrate()
+Lifecycle method. Called when the component is rendered for the first time and hydrated in a DocumentFragment.
+This method only executes on the client and only during the first render.
+Use this method for client-only operations like making API requests or setting up browser-specific functionality.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+<a name="module_component__onbeforerecycle" id="module_component__onbeforerecycle" class="anchor"></a>
+### component.onBeforeRecycle()
+Lifecycle method. Called before the component is recycled and reused between renders.
+This method is called at the beginning of the `recycle` method, before any recycling operations occur.
+
+A component is recycled when:
+- It has a `key` and a previous child with the same key exists
+- It doesn't have a `key` but has the same type and position in the template or partial
+
+Use this method to perform operations that need to happen before the component is recycled,
+such as storing previous state or preparing for the recycling.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+<a name="module_component__onrecycle" id="module_component__onrecycle" class="anchor"></a>
+### component.onRecycle()
+Lifecycle method. Called when the component is recycled and reused between renders.
+
+A component is recycled when:
+- It has a `key` and a previous child with the same key exists
+- It doesn't have a `key` but has the same type and position in the template or partial
+
+During recycling, the component instance is reused and its props are updated with new values.
+The component's element may be moved in the DOM if the new template structure differs from the previous one.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+<a name="module_component__onbeforeupdate" id="module_component__onbeforeupdate" class="anchor"></a>
+### component.onBeforeUpdate()
+Lifecycle method. Called before the component is updated or re-rendered.
+This method is called at the beginning of the `render` method when the component's state, model, or props change and trigger a re-render.
+Use this method to perform operations that need to happen before the component is updated,
+such as saving previous state or preparing for the update.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+<a name="module_component__onupdate" id="module_component__onupdate" class="anchor"></a>
+### component.onUpdate()
+Lifecycle method. Called when the component is updated or re-rendered.
+This method is called when the component's state, model, or props change and trigger a re-render.
+Use this method to perform operations that need to happen on every update.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+<a name="module_component__ondestroy" id="module_component__ondestroy" class="anchor"></a>
+### component.onDestroy(...args)
+Lifecycle method. Called when the component is destroyed.
+Use this method to clean up resources, cancel timers, remove event listeners, etc.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| ...args | <code>\*</code> | Options object or any arguments passed to `destroy` method. |
+
 <a name="module_component_markassafehtml" id="module_component_markassafehtml" class="anchor"></a>
-### Component.markAsSafeHTML(value) ⇒ <code>Rasti.SafeHTML</code>
+### Component.markAsSafeHTML(value) ⇒ [<code>SafeHTML</code>](#new_safehtml_new)
 Mark a string as safe HTML to be rendered.  
 Normally you don't need to use this method, as Rasti will automatically mark string literals 
 as safe HTML when the component is [created](#module_component_create) and when 
@@ -234,7 +335,7 @@ using the [Component.partial](#module_component__partial) method.
 Be sure that the string is safe to be rendered, as it will be inserted into the DOM without any sanitization.
 
 **Kind**: static method of [<code>Component</code>](#module_component)  
-**Returns**: <code>Rasti.SafeHTML</code> - A safe HTML object.  
+**Returns**: [<code>SafeHTML</code>](#new_safehtml_new) - A safe HTML object.  
 
 | Param | Type |
 | --- | --- |
@@ -248,25 +349,57 @@ Helper method used to extend a `Component`, creating a subclass.
 
 | Param | Type | Description |
 | --- | --- | --- |
-| object | <code>object</code> | Object containing methods to be added to the new `Component` subclass. Also can be a function that receives the parent prototype and returns an object. |
+| object | <code>object</code> \| <code>function</code> | Object containing methods to be added to the new `Component` subclass. Also can be a function that receives the parent prototype and returns an object. |
 
 <a name="module_component_mount" id="module_component_mount" class="anchor"></a>
-### Component.mount(options, el, hydrate) ⇒ <code>Rasti.Component</code>
-Mount the component into the dom.
-It instantiate the Component view using options, 
-appends its element into the DOM (if `el` is provided).
-And returns the view instance.
+### Component.mount([options], [el], [hydrate]) ⇒ <code>Component</code>
+Mount the component into the DOM.
+Creates a new component instance with the provided options and optionally mounts it into the DOM.
+
+**Mounting modes:**
+- **Normal mount** (default): Renders the component as HTML and appends it to the provided element. Use this for client-side rendering.
+- **Hydration mode**: Assumes the DOM already contains the component's HTML (from server-side rendering). 
+
+If `el` is not provided, the component is instantiated but not mounted (the same as using `new Component(options)`). You can mount it later by calling `render()` and appending the element (`this.el`) to the DOM.
 
 **Kind**: static method of [<code>Component</code>](#module_component)  
+**Returns**: <code>Component</code> - The component instance.  
 
-| Param | Type | Description |
-| --- | --- | --- |
-| options | <code>object</code> | The view options. |
-| el | <code>node</code> | Dom element to append the view element. |
-| hydrate | <code>boolean</code> | If true, the view will hydrate existing DOM. |
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| [options] | <code>object</code> | <code>{}</code> | The component options. These will be passed to the constructor and can include                               `model`, `state`, `props`, lifecycle methods, and any other component-specific options. |
+| [el] | <code>node</code> |  | The DOM element where the component will be mounted. If provided, the component will be                     rendered and appended to this element. If not provided, the component is created but not mounted. |
+| [hydrate] | <code>boolean</code> | <code>false</code> | If `true`, enables hydration mode for server-side rendering. The component will                                   assume the DOM already contains its HTML structure and will only hydrate it.                                  If `false` (default), the component will be rendered from scratch and appended to `el`. |
 
+**Example**  
+```js
+import { Component, Model } from 'rasti';
+
+const Button = Component.create`
+    <button class="${({ props }) => props.className}">
+        ${({ props }) => props.label}
+    </button>
+`;
+
+// Normal mount: render and append to DOM.
+const button = Button.mount({
+    label: 'Click me'
+}, document.body);
+
+// Create without mounting (mount later).
+const button2 = Button.mount({ className : 'secondary', label : 'Save' });
+// Later, render and append it to the DOM.
+document.body.appendChild(button2.render().el);
+
+// Hydration mode: hydrate existing server-rendered HTML
+// Assuming document.body already contains the HTML structure of the button.
+const hydratedButton = Button.mount({
+    className : 'primary',
+    label : 'Click me'
+}, document.body, true);
+```
 <a name="module_component_create" id="module_component_create" class="anchor"></a>
-### Component.create(strings, ...expressions) ⇒ <code>Rasti.Component</code>
+### Component.create(strings, ...expressions) ⇒ <code>Component</code>
 Takes a tagged template string or a function that returns another component, and returns a new `Component` class.
 - The template outer tag and attributes will be used to create the view's root element.
 - The template inner HTML will be used as the view's template.
@@ -276,16 +409,45 @@ Takes a tagged template string or a function that returns another component, and
 - Template interpolations that are functions will be evaluated during the render process, receiving the view instance as an argument and being bound to it. If the function returns `null`, `undefined`, `false`, or an empty string, the interpolation won't render any content.
   ```javascript
   const Button = Component.create`
-      <button class="${({ options }) => options.className}">
-          ${({ options }) => options.renderChildren()}
+      <button class="${({ props }) => props.className}">
+          ${({ props }) => props.renderChildren()}
       </button>
   `;
   ```
-- Event handlers should be passed, at the root element as camelized attributes, in the format `onEventName=${{'selector' : listener }}`. They will be transformed to an event object and delegated to the root element. See [View.delegateEvents](#module_view__delegateevents). 
+- Attach DOM event handlers per element using camel-cased attributes.
+  Event handlers are automatically bound to the component instance (`this`).
+  Internally, Rasti uses event delegation to the component's root element for performance.
+  
+  **Attribute Quoting:**
+  - **Quoted attributes** (`onClick="${handler}"`) evaluate the expression first, useful for dynamic values
+  - **Unquoted attributes** (`onClick=${handler}`) pass the function reference directly
+  
+  **Listener Signature:** `(event, component, matched)`
+  - `event`: The native DOM event object
+  - `component`: The component instance (same as `this`)
+  - `matched`: The element that matched the event (useful for delegation)
+  
+  ```javascript
+  const Button = Component.create`
+      <button 
+          onClick=${function(event, component, matched) {
+              // this === component
+              console.log('Button clicked:', matched);
+          }}
+          onMouseOver="${({ model }) => () => model.isHovered = true}"
+          onMouseOut="${({ model }) => () => model.isHovered = false}"
+      >
+          Click me
+      </button>
+  `;
+  ```
+  
+  If you need custom delegation (e.g., `{'click .selector': 'handler'}`), 
+  you may override the `events` property as described in [View.delegateEvents](#module_view__delegateevents).
 - Boolean attributes should be passed in the format `attribute="${() => true}"`. `false` attributes won't be rendered. `true` attributes will be rendered without a value.
   ```javascript
   const Input = Component.create`
-      <input type="text" disabled=${({ options }) => options.disabled} />
+      <input type="text" disabled=${({ props }) => props.disabled} />
   `;
   ```
 - If the interpolated function returns a component instance, it will be added as a child component.
@@ -294,21 +456,21 @@ Takes a tagged template string or a function that returns another component, and
   // Create a button component.
   const Button = Component.create`
       <button class="button">
-          ${({ options }) => options.renderChildren()}
+          ${({ props }) => props.renderChildren()}
       </button>
   `;
   // Create a navigation component. Add buttons as children. Iterate over items.
   const Navigation = Component.create`
       <nav>
-          ${({ options }) => options.items.map(
-              item => Button.mount({ renderChildren: () => item.label })
+          ${({ props }) => props.items.map(
+              item => Button.mount({ renderChildren : () => item.label })
           )}
       </nav>
   `;
   // Create a header component. Add navigation as a child.
   const Header = Component.create`
       <header>
-          ${({ options }) => Navigation.mount({ items : options.items})}
+          ${({ props }) => Navigation.mount({ items : props.items})}
       </header>
   `;
   ```
@@ -317,13 +479,13 @@ Takes a tagged template string or a function that returns another component, and
   // Create a button component.
   const Button = Component.create`
       <button class="button">
-           ${({ options }) => options.renderChildren()}
+           ${({ props }) => props.renderChildren()}
       </button>
   `;
   // Create a navigation component. Add buttons as children. Iterate over items.
   const Navigation = Component.create`
       <nav>
-          ${({ options, partial }) => options.items.map(
+          ${({ props, partial }) => props.items.map(
               item => partial`<${Button}>${item.label}</${Button}>`
           )}
       </nav>
@@ -331,7 +493,7 @@ Takes a tagged template string or a function that returns another component, and
   // Create a header component. Add navigation as a child.
   const Header = Component.create`
       <header>
-          <${Navigation} items="${({ options }) => options.items}" />
+          <${Navigation} items="${({ props }) => props.items}" />
       </header>
   `;
   ```
@@ -339,8 +501,8 @@ Takes a tagged template string or a function that returns another component, and
   ```javascript
   // Create a button component.
   const Button = Component.create`
-      <button class="${({ options }) => options.className}">
-          ${self => self.renderChildren()}
+      <button class="${({ props }) => props.className}">
+          ${({ props }) => props.renderChildren()}
       </button>
   `;
   // Create a container that renders a Button component.
@@ -349,13 +511,13 @@ Takes a tagged template string or a function that returns another component, and
   `;
   // Create a container that renders a Button component, using a function.
   const ButtonCancel = Component.create(() => Button.mount({
-      className: 'cancel',
-      renderChildren: () => 'Cancel'
+      className : 'cancel',
+      renderChildren : () => 'Cancel'
   }));
   ```
 
 **Kind**: static method of [<code>Component</code>](#module_component)  
-**Returns**: <code>Rasti.Component</code> - The newly created component class.  
+**Returns**: <code>Component</code> - The newly created component class.  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -369,6 +531,33 @@ in your applications.
 It can be extended to create new classes that have the ability to emit and bind custom named events.   
 Emitter is used by `Model` and `View` classes, which inherit from it to implement 
 event-driven functionality.
+
+## Inverse of Control Pattern
+
+The Emitter class includes "inverse of control" methods (`listenTo`, `listenToOnce`, `stopListening`) 
+that allow an object to manage its own listening relationships. Instead of:
+
+```javascript
+// Traditional approach - harder to clean up
+otherObject.on('change', this.myHandler);
+otherObject.on('destroy', this.cleanup);
+// Later you need to remember to clean up each listener
+otherObject.off('change', this.myHandler);
+otherObject.off('destroy', this.cleanup);
+```
+
+You can use:
+
+```javascript
+// Inverse of control - easier cleanup
+this.listenTo(otherObject, 'change', this.myHandler);
+this.listenTo(otherObject, 'destroy', this.cleanup);
+// Later, clean up ALL listeners at once
+this.stopListening(); // Removes all listening relationships
+```
+
+This pattern is particularly useful for preventing memory leaks and simplifying cleanup
+in component lifecycle management.
 
 **Example**  
 ```js
@@ -402,16 +591,20 @@ cart.addItem(item2); // Output: "Item added to cart: Headphones - Price: $150"
 ```
 
 * [Emitter](#module_emitter)
-    * [.on(type, listener)](#module_emitter__on)
-    * [.once(type, listener)](#module_emitter__once)
+    * [.on(type, listener)](#module_emitter__on) ⇒ <code>function</code>
+    * [.once(type, listener)](#module_emitter__once) ⇒ <code>function</code>
     * [.off([type], [listener])](#module_emitter__off)
-    * [.emit(type)](#module_emitter__emit)
+    * [.emit(type, [...args])](#module_emitter__emit)
+    * [.listenTo(emitter, type, listener)](#module_emitter__listento) ⇒ <code>function</code>
+    * [.listenToOnce(emitter, type, listener)](#module_emitter__listentoonce) ⇒ <code>function</code>
+    * [.stopListening([emitter], [type], [listener])](#module_emitter__stoplistening)
 
 <a name="module_emitter__on" id="module_emitter__on" class="anchor"></a>
-### emitter.on(type, listener)
+### emitter.on(type, listener) ⇒ <code>function</code>
 Adds event listener.
 
 **Kind**: instance method of [<code>Emitter</code>](#module_emitter)  
+**Returns**: <code>function</code> - A function to remove the listener.  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -424,10 +617,11 @@ Adds event listener.
 this.model.on('change', this.render.bind(this));
 ```
 <a name="module_emitter__once" id="module_emitter__once" class="anchor"></a>
-### emitter.once(type, listener)
+### emitter.once(type, listener) ⇒ <code>function</code>
 Adds event listener that executes once.
 
 **Kind**: instance method of [<code>Emitter</code>](#module_emitter)  
+**Returns**: <code>function</code> - A function to remove the listener.  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -441,22 +635,34 @@ this.model.once('change', () => console.log('This will happen once'));
 ```
 <a name="module_emitter__off" id="module_emitter__off" class="anchor"></a>
 ### emitter.off([type], [listener])
-Removes event listeners.
+Removes event listeners with flexible parameter combinations.
 
 **Kind**: instance method of [<code>Emitter</code>](#module_emitter)  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| [type] | <code>string</code> | Type of the event (e.g. `change`). If is not provided, it removes all listeners. |
-| [listener] | <code>function</code> | Callback function to be called when the event is emitted. If listener is not provided, it removes all listeners for specified type. |
+| [type] | <code>string</code> | Type of the event (e.g. `change`). If not provided, removes ALL listeners from this emitter. |
+| [listener] | <code>function</code> | Specific callback function to remove. If not provided, removes all listeners for the specified type. **Behavior based on parameters:** - `off()` - Removes ALL listeners from this emitter - `off(type)` - Removes all listeners for the specified event type - `off(type, listener)` - Removes the specific listener for the specified event type |
 
 **Example**  
 ```js
-// Stop listening to changes.
+// Remove all listeners from this emitter
+this.model.off();
+```
+**Example**  
+```js
+// Remove all 'change' event listeners
 this.model.off('change');
 ```
+**Example**  
+```js
+// Remove specific listener for 'change' events
+const myListener = () => console.log('changed');
+this.model.on('change', myListener);
+this.model.off('change', myListener);
+```
 <a name="module_emitter__emit" id="module_emitter__emit" class="anchor"></a>
-### emitter.emit(type)
+### emitter.emit(type, [...args])
 Emits event of specified type. Listeners will receive specified arguments.
 
 **Kind**: instance method of [<code>Emitter</code>](#module_emitter)  
@@ -464,101 +670,284 @@ Emits event of specified type. Listeners will receive specified arguments.
 | Param | Type | Description |
 | --- | --- | --- |
 | type | <code>string</code> | Type of the event (e.g. `change`). |
-| [...args] | <code>any</code> | Arguments to be passed to listener. |
+| [...args] | <code>any</code> | Optional arguments to be passed to listeners. |
 
 **Example**  
 ```js
-// Emit validation error event.
+// Emit validation error event with no arguments
 this.emit('invalid');
 ```
+**Example**  
+```js
+// Emit change event with data
+this.emit('change', { field : 'name', value : 'John' });
+```
+<a name="module_emitter__listento" id="module_emitter__listento" class="anchor"></a>
+### emitter.listenTo(emitter, type, listener) ⇒ <code>function</code>
+Listen to an event of another emitter (Inverse of Control pattern).
+
+This method allows this object to manage its own listening relationships,
+making cleanup easier and preventing memory leaks. Instead of calling
+`otherEmitter.on()`, you call `this.listenTo(otherEmitter, ...)` which
+allows this object to track and clean up all its listeners at once.
+
+**Kind**: instance method of [<code>Emitter</code>](#module_emitter)  
+**Returns**: <code>function</code> - A function to stop listening to the event.  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| emitter | <code>Emitter</code> | The emitter to listen to. |
+| type | <code>string</code> | The type of the event to listen to. |
+| listener | <code>function</code> | The listener to call when the event is emitted. |
+
+**Example**  
+```js
+// Instead of: otherModel.on('change', this.render.bind(this));
+// Use: this.listenTo(otherModel, 'change', this.render.bind(this));
+// This way you can later call this.stopListening() to clean up all listeners
+```
+<a name="module_emitter__listentoonce" id="module_emitter__listentoonce" class="anchor"></a>
+### emitter.listenToOnce(emitter, type, listener) ⇒ <code>function</code>
+Listen to an event of another emitter and remove the listener after it is called (Inverse of Control pattern).
+
+Similar to `listenTo()` but automatically removes the listener after the first execution,
+like `once()` but with the inverse of control benefits for cleanup management.
+
+**Kind**: instance method of [<code>Emitter</code>](#module_emitter)  
+**Returns**: <code>function</code> - A function to stop listening to the event.  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| emitter | <code>Emitter</code> | The emitter to listen to. |
+| type | <code>string</code> | The type of the event to listen to. |
+| listener | <code>function</code> | The listener to call when the event is emitted. |
+
+**Example**  
+```js
+// Listen once to another emitter's initialization event
+this.listenToOnce(otherModel, 'initialized', () => {
+    console.log('Other model initialized');
+});
+```
+<a name="module_emitter__stoplistening" id="module_emitter__stoplistening" class="anchor"></a>
+### emitter.stopListening([emitter], [type], [listener])
+Stop listening to events from other emitters (Inverse of Control pattern).
+
+This method provides flexible cleanup of listening relationships established with `listenTo()`.
+All parameters are optional, allowing different levels of cleanup granularity.
+
+**Kind**: instance method of [<code>Emitter</code>](#module_emitter)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| [emitter] | <code>Emitter</code> | The emitter to stop listening to. If not provided, stops listening to ALL emitters. |
+| [type] | <code>string</code> | The type of event to stop listening to. If not provided, stops listening to all event types from the specified emitter. |
+| [listener] | <code>function</code> | The specific listener to remove. If not provided, removes all listeners for the specified event type from the specified emitter. **Behavior based on parameters:** - `stopListening()` - Stops listening to ALL events from ALL emitters - `stopListening(emitter)` - Stops listening to all events from the specified emitter - `stopListening(emitter, type)` - Stops listening to the specified event type from the specified emitter - `stopListening(emitter, type, listener)` - Stops listening to the specific listener for the specific event from the specific emitter |
+
+**Example**  
+```js
+// Stop listening to all events from all emitters (complete cleanup)
+this.stopListening();
+```
+**Example**  
+```js
+// Stop listening to all events from a specific emitter
+this.stopListening(otherModel);
+```
+**Example**  
+```js
+// Stop listening to 'change' events from a specific emitter
+this.stopListening(otherModel, 'change');
+```
+**Example**  
+```js
+// Stop listening to a specific listener
+const myListener = () => console.log('changed');
+this.listenTo(otherModel, 'change', myListener);
+this.stopListening(otherModel, 'change', myListener);
+```
 <a name="module_model" id="module_model" class="anchor"></a>
-## Model ⇐ <code>Rasti.Emitter</code>
+## Model ⇐ <code>Emitter</code>
 - Orchestrates data and business logic.
 - Emits events when data changes.
 
 A `Model` manages an internal table of data attributes and triggers change events when any of its data is modified.  
 Models may handle syncing data with a persistence layer. To design your models, create atomic, reusable objects 
 that contain all the necessary functions for manipulating their specific data.  
-Models should be easily passed throughout your app and used anywhere the corresponding data is needed.  
-Rasti models store their attributes in `this.attributes`, which is extended from `this.defaults` and the 
-constructor `attributes` parameter. For every attribute, a getter is generated to retrieve the model property 
-from `this.attributes`, and a setter is created to set the model property in `this.attributes` and emit `change` 
-and `change:attribute` events.
+Models should be easily passed throughout your app and used anywhere the corresponding data is needed.
 
-**Extends**: <code>Rasti.Emitter</code>  
+## Construction Flow
+1. `preinitialize()` is called with all constructor arguments
+2. `this.defaults` are resolved (if function, it's called and bound to the model)
+3. `parse()` is called with all constructor arguments to process the data
+4. `this.attributes` is built by merging defaults and parsed data
+5. Getters/setters are generated for each attribute to emit change events
 
-| Param | Type | Description |
-| --- | --- | --- |
-| attributes | <code>object</code> | Object containing model attributes to extend `this.attributes`. Getters and setters are generated for `this.attributes`, in order to emit `change` events. |
+**Extends**: <code>Emitter</code>  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| [attributes] | <code>object</code> | <code>{}</code> | Primary data object containing model attributes |
+| [...args] | <code>\*</code> |  | Additional arguments passed to `preinitialize` and `parse` methods |
 
 **Properties**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| defaults | <code>object</code> \| <code>function</code> | Object containing default attributes for the model. It will extend `this.attributes`. If a function is passed, it will be called to get the defaults. It will be bound to the model instance. |
+| defaults | <code>object</code> \| <code>function</code> | Default attributes for the model. If a function, it's called bound to the model instance to get defaults. |
 | previous | <code>object</code> | Object containing previous attributes when a change occurs. |
+| attributePrefix | <code>string</code> | Static property that defines a prefix for generated getters/setters. Defaults to empty string. |
 
 **Example**  
 ```js
 import { Model } from 'rasti';
-// Product model
-class ProductModel extends Model {
-    preinitialize() {
-        // The Product model has `name` and `price` default attributes.
-        // `defaults` will extend `this.attributes`.
-        // Getters and setters are generated for `this.attributes`,
-        // in order to emit `change` events.
-        this.defaults = {
-            name: '',
-            price: 0
-        };
-    }
 
-    setDiscount(discountPercentage) {
-        // Apply a discount to the price property.
-        // This will call a setter that will update `price` in `this.attributes`,
-        // and emit `change` and `change:price` events.
-        const discount = this.price * (discountPercentage / 100);
-        this.price -= discount;
+// User model
+class User extends Model {
+    preinitialize() {
+        this.defaults = { name : '', email : '', role : 'user' };
     }
 }
-// Create a product instance with a name and price.
-const product = new ProductModel({ name: 'Smartphone', price: 1000 });
-// Listen to the `change:price` event.
-product.on('change:price', () => console.log('New Price:', product.price));
-// Apply a 10% discount to the product.
-product.setDiscount(10); // Output: "New Price: 900"
+// Order model with nested User and custom methods
+class Order extends Model {
+    preinitialize(attributes, options = {}) {
+        this.defaults = {
+            id : null,
+            total : 0,
+            status : 'pending',
+            user : null
+        };
+
+        this.apiUrl = options.apiUrl || '/api/orders';
+    }
+
+    parse(data, options = {}) {
+        const parsed = { ...data };
+        
+        // Convert user object to User model instance
+        if (data.user && !(data.user instanceof User)) {
+            parsed.user = new User(data.user);
+        }
+
+        return parsed;
+    }
+
+    toJSON() {
+        const result = {};
+        for (const [key, value] of Object.entries(this.attributes)) {
+            if (value instanceof Model) {
+                result[key] = value.toJSON();
+            } else {
+                result[key] = value;
+            }
+        }
+        return result;
+    }
+
+    async fetch() {
+        try {
+            const response = await fetch(`${this.apiUrl}/${this.id}`);
+            const data = await response.json();
+            
+            // Parse the fetched data and update model
+            const parsed = this.parse(data);
+            this.set(parsed, { source : 'fetch' });
+
+            return this;
+        } catch (error) {
+            console.error('Failed to fetch order:', error);
+            throw error;
+        }
+    }
+}
+
+// Create order with nested user data
+const order = new Order({
+    id : 123,
+    total : 99.99,
+    user : { name : 'Alice', email : 'alice@example.com' }
+});
+
+console.log(order.user instanceof User); // true
+// Serialize with nested models
+const json = order.toJSON();
+console.log(json); // { id: 123, total: 99.99, status: 'pending', user: { name: 'Alice', email: 'alice@example.com', role: 'user' } }
+
+// Listen to fetch updates
+order.on('change', (model, changed, options) => {
+    if (options?.source === 'fetch') {
+        console.log('Order updated from server:', changed);
+    }
+});
+
+// Fetch latest data from server
+await order.fetch();
 ```
 
-* [Model](#module_model) ⇐ <code>Rasti.Emitter</code>
-    * [.preinitialize(attributes)](#module_model__preinitialize)
+* [Model](#module_model) ⇐ <code>Emitter</code>
+    * [.preinitialize([attributes], [...args])](#module_model__preinitialize)
     * [.defineAttribute(key)](#module_model__defineattribute)
     * [.get(key)](#module_model__get) ⇒ <code>any</code>
-    * [.set(key, [value])](#module_model__set) ⇒ <code>this</code>
+    * [.set(key, [value], [...args])](#module_model__set) ⇒ <code>Model</code>
+    * [.parse([data], [...args])](#module_model__parse) ⇒ <code>object</code>
     * [.toJSON()](#module_model__tojson) ⇒ <code>object</code>
 
 <a name="module_model__preinitialize" id="module_model__preinitialize" class="anchor"></a>
-### model.preinitialize(attributes)
-If you define a preinitialize method, it will be invoked when the Model is first created, before any instantiation logic is run for the Model.
+### model.preinitialize([attributes], [...args])
+Called before any instantiation logic runs for the Model.
+Receives all constructor arguments, allowing for flexible initialization patterns.
+Use this to set up `defaults`, configure the model, or handle custom constructor arguments.
 
 **Kind**: instance method of [<code>Model</code>](#module_model)  
 
-| Param | Type | Description |
-| --- | --- | --- |
-| attributes | <code>object</code> | Object containing model attributes to extend `this.attributes`. |
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| [attributes] | <code>object</code> | <code>{}</code> | Primary data object containing model attributes |
+| [...args] | <code>\*</code> |  | Additional arguments passed from the constructor |
 
+**Example**  
+```js
+class User extends Model {
+    preinitialize(attributes, options = {}) {
+        this.defaults = { name : '', role : options.defaultRole || 'user' };
+        this.apiEndpoint = options.apiEndpoint || '/users';
+    }
+}
+const user = new User({ name : 'Alice' }, { defaultRole : 'admin', apiEndpoint : '/api/users' });
+```
 <a name="module_model__defineattribute" id="module_model__defineattribute" class="anchor"></a>
 ### model.defineAttribute(key)
-Generate getter/setter for the given key. In order to emit `change` events.
-This method is called internally by the constructor
-for `this.attributes`.
+Generate getter/setter for the given attribute key to emit `change` events.
+The property name uses `attributePrefix` + key (e.g., with prefix 'attr_', key 'name' becomes 'attr_name').
+Called internally by the constructor for each key in `this.attributes`.
+Override with an empty method if you don't want automatic getters/setters.
 
 **Kind**: instance method of [<code>Model</code>](#module_model)  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| key | <code>string</code> | Attribute key. |
+| key | <code>string</code> | Attribute key from `this.attributes` |
 
+**Example**  
+```js
+// Custom prefix for all attributes
+class PrefixedModel extends Model {
+    static attributePrefix = 'attr_';
+}
+const model = new PrefixedModel({ name: 'Alice' });
+console.log(model.attr_name); // 'Alice'
+
+// Disable automatic getters/setters
+class ManualModel extends Model {
+    defineAttribute() {
+        // Empty - no getters/setters generated
+    }
+    
+    getName() {
+        return this.get('name'); // Manual getter
+    }
+}
+```
 <a name="module_model__get" id="module_model__get" class="anchor"></a>
 ### model.get(key) ⇒ <code>any</code>
 Get an attribute from `this.attributes`.
@@ -572,31 +961,109 @@ This method is called internally by generated getters.
 | key | <code>string</code> | Attribute key. |
 
 <a name="module_model__set" id="module_model__set" class="anchor"></a>
-### model.set(key, [value]) ⇒ <code>this</code>
-Set an attribute into `this.attributes`.  
-Emit `change` and `change:attribute` if a value changes.  
-Could be called in two forms, `this.set('key', value)` and
-`this.set({ key : value })`.  
-This method is called internally by generated setters.  
-The `change` event listener will receive the model instance, an object containing the changed attributes, and the rest of the arguments passed to `set` method.  
-The `change:attribute` event listener will receive the model instance, the new attribute value, and the rest of the arguments passed to `set` method.
+### model.set(key, [value], [...args]) ⇒ <code>Model</code>
+Set one or more attributes into `this.attributes` and emit change events.
+Supports two call signatures: `set(key, value, ...args)` or `set(object, ...args)`.
+Additional arguments are passed to change event listeners, enabling custom behavior.
 
 **Kind**: instance method of [<code>Model</code>](#module_model)  
-**Returns**: <code>this</code> - This model.  
-**Emits**: <code>event:change</code>, <code>change:attribute</code>  
+**Returns**: <code>Model</code> - This model instance for chaining  
+**Emits**: <code>change Emitted when any attribute changes. Listeners receive &#x60;(model, changedAttributes, ...event:args)&#x60;</code>, <code>change:attribute Emitted for each changed attribute. Listeners receive &#x60;(model, newValue, ...event:args)&#x60;</code>  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| key | <code>string</code> | Attribute key or object containing keys/values. |
-| [value] |  | Attribute value. |
+| key | <code>string</code> \| <code>object</code> | Attribute key (string) or object containing key-value pairs |
+| [value] | <code>\*</code> | Attribute value (when key is string) |
+| [...args] | <code>\*</code> | Additional arguments passed to event listeners |
 
+**Example**  
+```js
+// Basic usage
+model.set('name', 'Alice');
+model.set({ name : 'Alice', age : 30 });
+
+// With options for listeners
+model.set('name', 'Bob', { silent : false, validate : true });
+model.on('change:name', (model, value, options) => {
+    if (options?.validate) {
+        // Custom validation logic
+    }
+});
+```
+<a name="module_model__parse" id="module_model__parse" class="anchor"></a>
+### model.parse([data], [...args]) ⇒ <code>object</code>
+Transforms and validates data before it becomes model attributes.
+Called during construction with all constructor arguments, allowing flexible data processing.
+Override this method to transform incoming data, create nested models, or handle different data formats.
+
+**Kind**: instance method of [<code>Model</code>](#module_model)  
+**Returns**: <code>object</code> - Processed data that will become the model's attributes  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| [data] | <code>object</code> | <code>{}</code> | Primary data object to be parsed into attributes |
+| [...args] | <code>\*</code> |  | Additional arguments from constructor, useful for parsing options |
+
+**Example**  
+```js
+// Transform nested objects into models
+class User extends Model {}
+class Order extends Model {
+    parse(data, options = {}) {
+        // Skip parsing if requested
+        if (options.raw) return data;
+        // Transform user data into User model
+        const parsed = { ...data };
+        if (data.user && !(data.user instanceof User)) {
+            parsed.user = new User(data.user);
+        }
+        return parsed;
+    }
+}
+
+// Usage with parsing options
+const order1 = new Order({ id : 1, user : { name : 'Alice' } }); // user becomes User model
+const order2 = new Order({ id : 2, user : { name : 'Bob' } }, { raw : true }); // user stays plain object
+```
 <a name="module_model__tojson" id="module_model__tojson" class="anchor"></a>
 ### model.toJSON() ⇒ <code>object</code>
 Return object representation of the model to be used for JSON serialization.
 By default returns a copy of `this.attributes`.
+You can override this method to customize serialization behavior, such as calling `toJSON` recursively on nested Model instances.
 
 **Kind**: instance method of [<code>Model</code>](#module_model)  
 **Returns**: <code>object</code> - Object representation of the model to be used for JSON serialization.  
+**Example**  
+```js
+// Basic usage - returns a copy of model attributes:
+const user = new Model({ name : 'Alice', age : 30 });
+const json = user.toJSON();
+console.log(json); // { name : 'Alice', age : 30 }
+
+// Override toJSON for recursive serialization of nested models:
+class User extends Model {}
+class Order extends Model {
+    parse(data) {
+        // Ensure user is always a User model
+        return { ...data, user : data.user instanceof User ? data.user : new User(data.user) };
+    }
+
+    toJSON() {
+        const result = {};
+        for (const [key, value] of Object.entries(this.attributes)) {
+            if (value instanceof Model) {
+                result[key] = value.toJSON();
+            } else {
+                result[key] = value;
+            }
+        }
+        return result;
+    }
+}
+const order = new Order({ id : 1, user : { name : 'Alice' } });
+const json = order.toJSON();
+console.log(json); // { id : 1, user : { name : 'Alice' } }
+```
 <a name="module_view" id="module_view" class="anchor"></a>
 ## View ⇐ <code>Emitter</code>
 - Listens for changes and renders the UI.
@@ -631,7 +1098,7 @@ If `this.el` is not present, an element will be created using `this.tag` (defaul
 
 **Example**  
 ```js
-import { View } from 'rasti';
+import { View, Model } from 'rasti';
 
 class Timer extends View {
     constructor(options) {
@@ -645,7 +1112,14 @@ class Timer extends View {
     }
 
     template(model) {
-        return `Seconds: <span>${model.seconds}</span>`;
+        return `Seconds: <span>${View.sanitize(model.seconds)}</span>`;
+    }
+
+    render() {
+        if (this.template) {
+            this.el.innerHTML = this.template(this.model);
+        }
+        return this;
     }
 }
 // Render view and append view's element into the body.
@@ -654,31 +1128,33 @@ document.body.appendChild(new Timer().render().el);
 
 * [View](#module_view) ⇐ <code>Emitter</code>
     * _instance_
-        * [.preinitialize(attrs)](#module_view__preinitialize)
+        * [.preinitialize(options)](#module_view__preinitialize)
         * [.$(selector)](#module_view__$) ⇒ <code>node</code>
         * [.$$(selector)](#module_view__$$) ⇒ <code>Array.&lt;node&gt;</code>
-        * [.destroy(options)](#module_view__destroy) ⇒ <code>Rasti.View</code>
+        * [.destroy(options)](#module_view__destroy) ⇒ <code>View</code>
         * [.onDestroy(options)](#module_view__ondestroy)
-        * [.addChild(child)](#module_view__addchild) ⇒ <code>Rasti.View</code>
+        * [.addChild(child)](#module_view__addchild) ⇒ <code>View</code>
         * [.destroyChildren()](#module_view__destroychildren)
+        * [.ensureUid()](#module_view__ensureuid)
         * [.ensureElement()](#module_view__ensureelement)
         * [.createElement(tag, attributes)](#module_view__createelement) ⇒ <code>node</code>
-        * [.removeElement()](#module_view__removeelement) ⇒ <code>Rasti.View</code>
-        * [.delegateEvents([events])](#module_view__delegateevents) ⇒ <code>Rasti.View</code>
-        * [.undelegateEvents()](#module_view__undelegateevents) ⇒ <code>Rasti.View</code>
-        * [.render()](#module_view__render) ⇒ <code>Rasti.View</code>
+        * [.removeElement()](#module_view__removeelement) ⇒ <code>View</code>
+        * [.delegateEvents([events])](#module_view__delegateevents) ⇒ <code>View</code>
+        * [.undelegateEvents()](#module_view__undelegateevents) ⇒ <code>View</code>
+        * [.render()](#module_view__render) ⇒ <code>View</code>
     * _static_
-        * [.sanitize(str)](#module_view_sanitize) ⇒ <code>string</code>
+        * [.sanitize(value)](#module_view_sanitize) ⇒ <code>string</code>
+        * [.resetUid()](#module_view_resetuid)
 
 <a name="module_view__preinitialize" id="module_view__preinitialize" class="anchor"></a>
-### view.preinitialize(attrs)
+### view.preinitialize(options)
 If you define a preinitialize method, it will be invoked when the view is first created, before any instantiation logic is run.
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| attrs | <code>object</code> | Object containing model attributes to extend `this.attributes`. |
+| options | <code>object</code> | The view options. |
 
 <a name="module_view__$" id="module_view__$" class="anchor"></a>
 ### view.$(selector) ⇒ <code>node</code>
@@ -705,12 +1181,12 @@ scoped to DOM elements within the current view's root element (`this.el`).
 | selector | <code>string</code> | CSS selector. |
 
 <a name="module_view__destroy" id="module_view__destroy" class="anchor"></a>
-### view.destroy(options) ⇒ <code>Rasti.View</code>
+### view.destroy(options) ⇒ <code>View</code>
 Destroy the view.
 Destroy children views if any, undelegate events, stop listening to events, call `onDestroy` lifecycle method.
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
-**Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
+**Returns**: <code>View</code> - Return `this` for chaining.  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -728,7 +1204,7 @@ Override with your code. Useful to stop listening to model's events.
 | options | <code>object</code> | Options object or any arguments passed to `destroy` method. |
 
 <a name="module_view__addchild" id="module_view__addchild" class="anchor"></a>
-### view.addChild(child) ⇒ <code>Rasti.View</code>
+### view.addChild(child) ⇒ <code>View</code>
 Add a view as a child.
 Children views are stored at `this.children`, and destroyed when the parent is destroyed.
 Returns the child for chaining.
@@ -737,11 +1213,16 @@ Returns the child for chaining.
 
 | Param | Type |
 | --- | --- |
-| child | <code>Rasti.View</code> | 
+| child | <code>View</code> | 
 
 <a name="module_view__destroychildren" id="module_view__destroychildren" class="anchor"></a>
 ### view.destroyChildren()
 Call destroy method on children views.
+
+**Kind**: instance method of [<code>View</code>](#module_view)  
+<a name="module_view__ensureuid" id="module_view__ensureuid" class="anchor"></a>
+### view.ensureUid()
+Ensure that the view has a unique id at `this.uid`.
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
 <a name="module_view__ensureelement" id="module_view__ensureelement" class="anchor"></a>
@@ -767,13 +1248,13 @@ the view has a root element.
 | attributes | <code>object</code> |  | Attributes for the element. |
 
 <a name="module_view__removeelement" id="module_view__removeelement" class="anchor"></a>
-### view.removeElement() ⇒ <code>Rasti.View</code>
+### view.removeElement() ⇒ <code>View</code>
 Remove `this.el` from the DOM.
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
-**Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
+**Returns**: <code>View</code> - Return `this` for chaining.  
 <a name="module_view__delegateevents" id="module_view__delegateevents" class="anchor"></a>
-### view.delegateEvents([events]) ⇒ <code>Rasti.View</code>
+### view.delegateEvents([events]) ⇒ <code>View</code>
 Provide declarative listeners for DOM events within a view. If an events object is not provided, 
 it defaults to using `this.events`. If `this.events` is a function, it will be called to get the events object.
 
@@ -788,10 +1269,16 @@ all of your DOM events will be connected automatically, and you will not need to
 All attached listeners are bound to the view, ensuring that `this` refers to the view object when the listeners are invoked.
 When `delegateEvents` is called again, possibly with a different events object, all previous listeners are removed and delegated afresh.
 
-The listeners will be invoked with the event and the view as arguments.
+**Listener signature:** `(event, view, matched)`
+- `event`:   The native DOM event object.
+- `view`:    The current view instance (`this`).
+- `matched`: The element that satisfies the selector. If no selector is provided, it will be the view's root element (`this.el`).
+
+If more than one ancestor between `event.target` and the view's root element matches the selector, the listener will be
+invoked **once for each matched element** (from inner to outer).
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
-**Returns**: <code>Rasti.View</code> - Returns `this` for chaining.  
+**Returns**: <code>View</code> - Returns `this` for chaining.  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -799,49 +1286,69 @@ The listeners will be invoked with the event and the view as arguments.
 
 **Example**  
 ```js
-// Using a function.
+// Using prototype (recommended for static events)
 class Modal extends View {
+    onClickOk(event, view, matched) {
+        // matched === the button.ok element that was clicked
+        this.close();
+    }
+    
+    onClickCancel() {
+        this.destroy();
+    }
+}
+Modal.prototype.events = {
+    'click button.ok': 'onClickOk',
+    'click button.cancel': 'onClickCancel',
+    'submit form': 'onSubmit'
+};
+
+// Using a function for dynamic events
+class DynamicView extends View {
     events() {
         return {
-            'click button.ok': 'onClickOkButton',
-            'click button.cancel': function() {}
+            [`click .${this.model.buttonClass}`]: 'onButtonClick',
+            'click': 'onRootClick'
         };
     }
 }
-
-// Using an object.
-Modal.prototype.events = {
-    'click button.ok' : 'onClickOkButton',
-    'click button.cancel' : function() {}
-};
 ```
 <a name="module_view__undelegateevents" id="module_view__undelegateevents" class="anchor"></a>
-### view.undelegateEvents() ⇒ <code>Rasti.View</code>
+### view.undelegateEvents() ⇒ <code>View</code>
 Removes all of the view's delegated events. 
 Useful if you want to disable or remove a view from the DOM temporarily. 
 Called automatically when the view is destroyed and when `delegateEvents` is called again.
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
-**Returns**: <code>Rasti.View</code> - Return `this` for chaining.  
+**Returns**: <code>View</code> - Return `this` for chaining.  
 <a name="module_view__render" id="module_view__render" class="anchor"></a>
-### view.render() ⇒ <code>Rasti.View</code>
-Renders the view.  
-This method should be overridden with custom logic.
-The only convention is to manipulate the DOM within the scope of `this.el`,
-and to return `this` for chaining.  
-If you add any child views, you should call `this.destroyChildren` before re-rendering.  
-The default implementation updates `this.el`'s innerHTML with the result
-of calling `this.template`, passing `this.model` as the argument.
-<br><br> &#9888; **Security Notice:** The default implementation utilizes `innerHTML`, which may introduce Cross-Site Scripting (XSS) risks.  
-Ensure that any user-generated content is properly sanitized before inserting it into the DOM. 
-You can use the [View.sanitize](#module_view_sanitize) static method to escape HTML entities in a string.  
-For best practices on secure data handling, refer to the 
-[OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
+### view.render() ⇒ <code>View</code>
+`render` is the core function that your view should override, in order to populate its element (`this.el`), with the appropriate HTML. The convention is for `render` to always return `this`.  
+Views are low-level building blocks for creating user interfaces. For most use cases, we recommend using [Component](#module_component) instead, which provides a more declarative template syntax, automatic DOM updates, and a more efficient render pipeline.  
+If you add any child views, you should call `this.destroyChildren` before re-rendering.
 
 **Kind**: instance method of [<code>View</code>](#module_view)  
-**Returns**: <code>Rasti.View</code> - Returns `this` for chaining.  
+**Returns**: <code>View</code> - Returns `this` for chaining.  
+**Example**  
+```js
+class UserView extends View {
+    render() {
+        if (this.template) {
+            const model = this.model;
+            // Sanitize model attributes to prevent XSS attacks.
+            const safeData = {
+                name : View.sanitize(model.name),
+                email : View.sanitize(model.email),
+                bio : View.sanitize(model.bio)
+            };
+            this.el.innerHTML = this.template(safeData);
+        }
+        return this;
+    }
+}
+```
 <a name="module_view_sanitize" id="module_view_sanitize" class="anchor"></a>
-### View.sanitize(str) ⇒ <code>string</code>
+### View.sanitize(value) ⇒ <code>string</code>
 Escape HTML entities in a string.
 Use this method to sanitize user-generated content before inserting it into the DOM.
 Override this method to provide a custom escape function.
@@ -852,5 +1359,13 @@ This method is inherited by [Component](#module_component) and used to escape te
 
 | Param | Type | Description |
 | --- | --- | --- |
-| str | <code>string</code> | String to escape. |
+| value | <code>string</code> | String to escape. |
 
+<a name="module_view_resetuid" id="module_view_resetuid" class="anchor"></a>
+### View.resetUid()
+Reset the unique ID counter to 0.
+This is useful for server-side rendering scenarios where you want to ensure that
+the generated unique IDs match those on the client, enabling seamless hydration of components.
+This method is inherited by [Component](#module_component).
+
+**Kind**: static method of [<code>View</code>](#module_view)  

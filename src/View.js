@@ -1,5 +1,6 @@
 import Emitter from './Emitter.js';
 import getResult from './utils/getResult.js';
+import validateListener from './utils/validateListener.js';
 
 /*
  * These option keys will be extended on the view instance.
@@ -21,15 +22,15 @@ const viewOptions = ['el', 'tag', 'attributes', 'events', 'model', 'template', '
  * @module
  * @extends Emitter
  * @param {object} options Object containing options. The following keys will be merged into the view instance: `el`, `tag`, `attributes`, `events`, `model`, `template`, `onDestroy`.
- * @property {node|function} el Every view has a root DOM element stored at `this.el`. If not present, it will be created. If `this.el` is a function, it will be called to get the element at `this.ensureElement`, bound to the view instance. See {@link module_view__ensureelement View.ensureElement}.
- * @property {string|function} tag If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. Default is `div`. If it is a function, it will be called to get the tag, bound to the view instance. See {@link module_view__ensureelement View.ensureElement}.
- * @property {object|function} attributes If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. If it is a function, it will be called to get the attributes object, bound to the view instance. See {@link module_view__ensureelement View.ensureElement}.
- * @property {object|function} events Object in the format `{'event selector' : 'listener'}`. It will be used to bind delegated event listeners to the root element. If it is a function, it will be called to get the events object, bound to the view instance. See {@link module_view_delegateevents View.delegateEvents}.
+ * @property {node|Function} el Every view has a root DOM element stored at `this.el`. If not present, it will be created. If `this.el` is a function, it will be called to get the element at `this.ensureElement`, bound to the view instance. See {@link module_view__ensureelement View.ensureElement}.
+ * @property {string|Function} tag If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. Default is `div`. If it is a function, it will be called to get the tag, bound to the view instance. See {@link module_view__ensureelement View.ensureElement}.
+ * @property {object|Function} attributes If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. If it is a function, it will be called to get the attributes object, bound to the view instance. See {@link module_view__ensureelement View.ensureElement}.
+ * @property {object|Function} events Object in the format `{'event selector' : 'listener'}`. It will be used to bind delegated event listeners to the root element. If it is a function, it will be called to get the events object, bound to the view instance. See {@link module_view_delegateevents View.delegateEvents}.
  * @property {object} model A model or any object containing data and business logic.
- * @property {function} template A function that returns a string with the view's inner HTML. See {@link module_view__render View.render}. 
+ * @property {Function} template A function that returns a string with the view's inner HTML. See {@link module_view__render View.render}. 
  * @property {number} uid Unique identifier for the view instance. This can be used to generate unique IDs for elements within the view. It is automatically generated and should not be set manually.
  * @example
- * import { View } from 'rasti';
+ * import { View, Model } from 'rasti';
  * 
  * class Timer extends View {
  *     constructor(options) {
@@ -43,7 +44,14 @@ const viewOptions = ['el', 'tag', 'attributes', 'events', 'model', 'template', '
  *     }
  *
  *     template(model) {
- *         return `Seconds: <span>${model.seconds}</span>`;
+ *         return `Seconds: <span>${View.sanitize(model.seconds)}</span>`;
+ *     }
+ *
+ *     render() {
+ *         if (this.template) {
+ *             this.el.innerHTML = this.template(this.model);
+ *         }
+ *         return this;
  *     }
  * }
  * // Render view and append view's element into the body.
@@ -54,9 +62,6 @@ export default class View extends Emitter {
         super();
         // Call preinitialize.
         this.preinitialize.apply(this, arguments);
-        // Generate unique id.
-        // Useful to generate element ids.
-        this.uid = `rasti-${++View.uid}`;
         // Store delegated event listeners,
         // so they can be unbound later.
         this.delegatedEventListeners = [];
@@ -65,17 +70,23 @@ export default class View extends Emitter {
         this.children = [];
         // Mutable array to store handlers to be called on destroy.
         this.destroyQueue = [];
+        this.viewOptions = [];
         // Extend "this" with options.
         viewOptions.forEach(key => {
-            if (key in options) this[key] = options[key];
+            if (key in options) {
+                this[key] = options[key];
+                this.viewOptions.push(key);
+            }
         });
+        // Ensure that the view has a unique id at `this.uid`.
+        this.ensureUid();
         // Ensure that the view has a root element at `this.el`.
         this.ensureElement();
     }
 
     /**
      * If you define a preinitialize method, it will be invoked when the view is first created, before any instantiation logic is run.
-     * @param {object} attrs Object containing model attributes to extend `this.attributes`.
+     * @param {object} options The view options.
      */
     preinitialize() {}
 
@@ -103,13 +114,15 @@ export default class View extends Emitter {
      * Destroy the view.
      * Destroy children views if any, undelegate events, stop listening to events, call `onDestroy` lifecycle method.
      * @param {object} options Options object or any arguments passed to `destroy` method will be passed to `onDestroy` method.
-     * @return {Rasti.View} Return `this` for chaining.
+     * @return {View} Return `this` for chaining.
      */
     destroy() {
         // Call destroy on children.
         this.destroyChildren();
         // Undelegate `this.el` event listeners
         this.undelegateEvents();
+        // Stop listening to events.
+        this.stopListening();
         // Unbind `this` events.
         this.off();
         // Call destroy queue.
@@ -117,6 +130,8 @@ export default class View extends Emitter {
         this.destroyQueue = [];
         // Call onDestroy lifecycle method
         this.onDestroy.apply(this, arguments);
+        // Set destroyed flag.
+        this.destroyed = true;
         // Return `this` for chaining.
         return this;
     }
@@ -132,8 +147,8 @@ export default class View extends Emitter {
      * Add a view as a child.
      * Children views are stored at `this.children`, and destroyed when the parent is destroyed.
      * Returns the child for chaining.
-     * @param {Rasti.View} child
-     * @return {Rasti.View}
+     * @param {View} child
+     * @return {View}
      */
     addChild(child) {
         this.children.push(child);
@@ -149,11 +164,18 @@ export default class View extends Emitter {
     }
 
     /**
+     * Ensure that the view has a unique id at `this.uid`.
+     */
+    ensureUid() {
+        if (!this.uid) this.uid = `r${++View.uid}`;
+    }
+
+    /**
      * Ensure that the view has a root element at `this.el`.
      * You shouldn't call this method directly. It's called from the constructor.
      * You may override it if you want to use a different logic or to 
      * postpone element creation.
-     */ 
+     */
     ensureElement() {
         // Element is already present.
         if (this.el) {
@@ -191,7 +213,7 @@ export default class View extends Emitter {
 
     /**
      * Remove `this.el` from the DOM.
-     * @return {Rasti.View} Return `this` for chaining.
+     * @return {View} Return `this` for chaining.
      */
     removeElement() {
         this.el.parentNode.removeChild(this.el);
@@ -214,26 +236,43 @@ export default class View extends Emitter {
      * All attached listeners are bound to the view, ensuring that `this` refers to the view object when the listeners are invoked.
      * When `delegateEvents` is called again, possibly with a different events object, all previous listeners are removed and delegated afresh.
      * 
-     * The listeners will be invoked with the event and the view as arguments.
-     * 
+     * **Listener signature:** `(event, view, matched)`
+     * - `event`:   The native DOM event object.
+     * - `view`:    The current view instance (`this`).
+     * - `matched`: The element that satisfies the selector. If no selector is provided, it will be the view's root element (`this.el`).
+     *
+     * If more than one ancestor between `event.target` and the view's root element matches the selector, the listener will be
+     * invoked **once for each matched element** (from inner to outer).
+     *
      * @param {object} [events] Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to the root element.
-     * @return {Rasti.View} Returns `this` for chaining.
+     * @return {View} Returns `this` for chaining.
      * @example
-     * // Using a function.
+     * // Using prototype (recommended for static events)
      * class Modal extends View {
+     *     onClickOk(event, view, matched) {
+     *         // matched === the button.ok element that was clicked
+     *         this.close();
+     *     }
+     *     
+     *     onClickCancel() {
+     *         this.destroy();
+     *     }
+     * }
+     * Modal.prototype.events = {
+     *     'click button.ok': 'onClickOk',
+     *     'click button.cancel': 'onClickCancel',
+     *     'submit form': 'onSubmit'
+     * };
+     * 
+     * // Using a function for dynamic events
+     * class DynamicView extends View {
      *     events() {
      *         return {
-     *             'click button.ok': 'onClickOkButton',
-     *             'click button.cancel': function() {}
+     *             [`click .${this.model.buttonClass}`]: 'onButtonClick',
+     *             'click': 'onRootClick'
      *         };
      *     }
      * }
-     * 
-     * // Using an object.
-     * Modal.prototype.events = {
-     *     'click button.ok' : 'onClickOkButton',
-     *     'click button.cancel' : function() {}
-     * };
      */
     delegateEvents(events) {
         if (!events) events = getResult(this.events, this);
@@ -250,13 +289,10 @@ export default class View extends Emitter {
             const selector = keyParts.join(' ');
 
             let listener = events[key];
-            // Listener may be a string representing a method name on the view,
-            // or a function.
-            listener = (
-                typeof listener === 'string' ?
-                    this[listener] :
-                    listener
-            ).bind(this);
+            // Listener may be a string representing a method name on the view, or a function.
+            if (typeof listener === 'string') listener = this[listener];
+            // Validate listener is a function.
+            validateListener(listener);
 
             if (!eventTypes[type]) eventTypes[type] = [];
 
@@ -268,7 +304,20 @@ export default class View extends Emitter {
             const typeListener = (event) => {
                 // Iterate and run every individual listener if the selector matches.
                 eventTypes[type].forEach(({ selector, listener }) => {
-                    if (!selector || event.target.closest(selector)) listener(event, this);
+                    // No selector provided: invoke listener once with root element.
+                    if (!selector) {
+                        listener.call(this, event, this, this.el);
+                        return;
+                    }
+
+                    let node = event.target;
+                    // Traverse ancestors until reaching the view root (`this.el`).
+                    while (node && node !== this.el) {
+                        if (node.matches && node.matches(selector)) {
+                            listener.call(this, event, this, node);
+                        }
+                        node = node.parentElement;
+                    }
                 });
             };
 
@@ -283,7 +332,7 @@ export default class View extends Emitter {
      * Removes all of the view's delegated events. 
      * Useful if you want to disable or remove a view from the DOM temporarily. 
      * Called automatically when the view is destroyed and when `delegateEvents` is called again.
-     * @return {Rasti.View} Return `this` for chaining.
+     * @return {View} Return `this` for chaining.
      */
     undelegateEvents() {
         this.delegatedEventListeners.forEach(({ type, listener }) => {
@@ -296,23 +345,29 @@ export default class View extends Emitter {
     }
 
     /**
-     * Renders the view.  
-     * This method should be overridden with custom logic.
-     * The only convention is to manipulate the DOM within the scope of `this.el`,
-     * and to return `this` for chaining.  
-     * If you add any child views, you should call `this.destroyChildren` before re-rendering.  
-     * The default implementation updates `this.el`'s innerHTML with the result
-     * of calling `this.template`, passing `this.model` as the argument.
-     * <br><br> &#9888; **Security Notice:** The default implementation utilizes `innerHTML`, which may introduce Cross-Site Scripting (XSS) risks.  
-     * Ensure that any user-generated content is properly sanitized before inserting it into the DOM. 
-     * You can use the {@link #module_view_sanitize View.sanitize} static method to escape HTML entities in a string.  
-     * For best practices on secure data handling, refer to the 
-     * [OWASP's XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).<br><br>
-     * @return {Rasti.View} Returns `this` for chaining.
+     * `render` is the core function that your view should override, in order to populate its element (`this.el`), with the appropriate HTML. The convention is for `render` to always return `this`.  
+     * Views are low-level building blocks for creating user interfaces. For most use cases, we recommend using {@link #module_component Component} instead, which provides a more declarative template syntax, automatic DOM updates, and a more efficient render pipeline.  
+     * If you add any child views, you should call `this.destroyChildren` before re-rendering.
+     * 
+     * @return {View} Returns `this` for chaining.
+     * @example
+     * class UserView extends View {
+     *     render() {
+     *         if (this.template) {
+     *             const model = this.model;
+     *             // Sanitize model attributes to prevent XSS attacks.
+     *             const safeData = {
+     *                 name : View.sanitize(model.name),
+     *                 email : View.sanitize(model.email),
+     *                 bio : View.sanitize(model.bio)
+     *             };
+     *             this.el.innerHTML = this.template(safeData);
+     *         }
+     *         return this;
+     *     }
+     * }
      */
     render() {
-        if (this.template) this.el.innerHTML = this.template(this.model);
-        // Return `this` for chaining.
         return this;
     }
 
@@ -322,7 +377,7 @@ export default class View extends Emitter {
      * Override this method to provide a custom escape function.
      * This method is inherited by {@link #module_component Component} and used to escape template interpolations.
      * @static
-     * @param {string} str String to escape.
+     * @param {string} value String to escape.
      * @return {string} Escaped string.
      */
     static sanitize(value) {
@@ -333,6 +388,17 @@ export default class View extends Emitter {
             '"' : '&quot;',
             '\'' : '&#039;'
         }[match]));
+    }
+
+    /**
+     * Reset the unique ID counter to 0.
+     * This is useful for server-side rendering scenarios where you want to ensure that
+     * the generated unique IDs match those on the client, enabling seamless hydration of components.
+     * This method is inherited by {@link #module_component Component}.
+     * @static
+     */
+    static resetUid() {
+        View.uid = 0;
     }
 }
 

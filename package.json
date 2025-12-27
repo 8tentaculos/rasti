@@ -1,6 +1,6 @@
 {
     "name": "rasti",
-    "version": "3.0.1",
+    "version": "4.0.0-alpha.12",
     "description": "Modern MVC for building user interfaces",
     "type": "module",
     "main": "lib/index.cjs",
@@ -24,12 +24,13 @@
         "src"
     ],
     "scripts": {
-        "clean": "rimraf lib dist es",
+        "clean": "node -e \"const fs=require('fs');['lib','dist','es'].forEach(d=>fs.rmSync(d,{recursive:true,force:true}))\"",
         "build": "rollup -c",
         "prepare": "npm run clean && npm run test && npm run build",
         "posttest": "npm run lint",
         "lint": "eslint src test",
         "test": "mocha --require jsdom-global/register --reporter nyan test/*.js",
+        "version": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const v=require('./package.json').version;const re=/rasti@(v)?\\d+\\.\\d+\\.\\d+(?:-[\\w.-]+)?/g;const files=['README.md', 'docs/AGENTS.md', 'example/todo/index.html'];files.forEach(f=>{const t=fs.readFileSync(f,'utf8');fs.writeFileSync(f,t.replace(re,(m,p)=>'rasti@'+(p||'')+v));});execSync('git add '+files.join(' '),{stdio:'inherit'});\"",
         "docs:api": "jsdoc2md --module-index-format grouped --helper jsdoc2md/helper.cjs --partial jsdoc2md/header.hbs --partial jsdoc2md/sig-link.hbs --partial jsdoc2md/sig-link-html.hbs --partial jsdoc2md/sig-link-parent.hbs --partial jsdoc2md/link.hbs --files 'src/**/*.js' > docs/api.md"
     },
     "repository": {
@@ -53,15 +54,18 @@
     "author": "Alberto Masuelli <alberto.masuelli@gmail.com> (https://github.com/8tentaculos)",
     "license": "MIT",
     "devDependencies": {
+        "@eslint/js": "^9.34.0",
+        "@rollup/plugin-replace": "^6.0.3",
         "@rollup/plugin-terser": "^0.4.4",
-        "chai": "^4.4.1",
-        "eslint": "^8.57.0",
-        "jsdoc-to-markdown": "^8.0.1",
-        "jsdom": "^24.0.0",
+        "chai": "^6.0.1",
+        "eslint": "^9.34.0",
+        "glob": "^11.1.0",
+        "globals": "^16.3.0",
+        "jsdoc-to-markdown": "^9.1.2",
+        "jsdom": "^26.1.0",
         "jsdom-global": "3.0.2",
-        "mocha": "^10.4.0",
-        "rimraf": "^5.0.5",
-        "rollup": "^4.34.1"
+        "mocha": "^11.7.1",
+        "rollup": "^4.48.1"
     },
     "directories": {
         "example": "example",

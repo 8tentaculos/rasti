@@ -1,5 +1,6 @@
 import terser from '@rollup/plugin-terser';
-import glob from 'glob';
+import replace from '@rollup/plugin-replace';
+import { glob } from 'glob';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -23,34 +24,57 @@ const config = [
                 dir : 'lib',
                 format : 'cjs',
                 exports : 'auto',
-                entryFileNames : '[name].cjs'
+                entryFileNames : '[name].cjs',
+                sourcemap : true
             },
             {
                 dir : 'es',
                 format : 'esm',
-                entryFileNames : '[name].js'
+                entryFileNames : '[name].js',
+                sourcemap : true
             }
         ],
-        plugins : []
+        plugins : [
+            replace({
+                'const __DEV__ = true;' : 'const __DEV__ = process.env.NODE_ENV !== \'production\';',
+                preventAssignment : true,
+                sourcemap : true
+            })
+        ]
     },
     {
         input : 'src/index.js',
         output : {
             file : 'dist/rasti.js',
             format : 'umd',
-            name : 'Rasti'
+            name : 'Rasti',
+            sourcemap : true
         },
-        plugins : []
+        plugins : [
+            replace({
+                'const __DEV__ = true;' : 'const __DEV__ = true;',
+                preventAssignment : true,
+                sourcemap : true
+            })
+        ]
     },
     {
         input : 'src/index.js',
         output : {
             file : 'dist/rasti.min.js',
             format : 'umd',
-            name : 'Rasti'
+            name : 'Rasti',
+            sourcemap : true
         },
         plugins : [
-            terser()
+            replace({
+                'const __DEV__ = true;' : 'const __DEV__ = false;',
+                preventAssignment : true,
+                sourcemap : true
+            }),
+            terser({
+                sourceMap : true
+            })
         ]
     }
 ];

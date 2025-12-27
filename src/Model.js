@@ -8,55 +8,113 @@ import getResult from './utils/getResult.js';
  * A `Model` manages an internal table of data attributes and triggers change events when any of its data is modified.  
  * Models may handle syncing data with a persistence layer. To design your models, create atomic, reusable objects 
  * that contain all the necessary functions for manipulating their specific data.  
- * Models should be easily passed throughout your app and used anywhere the corresponding data is needed.  
- * Rasti models store their attributes in `this.attributes`, which is extended from `this.defaults` and the 
- * constructor `attributes` parameter. For every attribute, a getter is generated to retrieve the model property 
- * from `this.attributes`, and a setter is created to set the model property in `this.attributes` and emit `change` 
- * and `change:attribute` events.
+ * Models should be easily passed throughout your app and used anywhere the corresponding data is needed.
+ * 
+ * ## Construction Flow
+ * 1. `preinitialize()` is called with all constructor arguments
+ * 2. `this.defaults` are resolved (if function, it's called and bound to the model)
+ * 3. `parse()` is called with all constructor arguments to process the data
+ * 4. `this.attributes` is built by merging defaults and parsed data
+ * 5. Getters/setters are generated for each attribute to emit change events
+ * 
  * @module
- * @extends Rasti.Emitter
- * @param {object} attributes Object containing model attributes to extend `this.attributes`. Getters and setters are generated for `this.attributes`, in order to emit `change` events.
- * @property {object|function} defaults Object containing default attributes for the model. It will extend `this.attributes`. If a function is passed, it will be called to get the defaults. It will be bound to the model instance.
+ * @extends Emitter
+ * @param {object} [attributes={}] Primary data object containing model attributes
+ * @param {...*} [args] Additional arguments passed to `preinitialize` and `parse` methods
+ * @property {object|Function} defaults Default attributes for the model. If a function, it's called bound to the model instance to get defaults.
  * @property {object} previous Object containing previous attributes when a change occurs.
+ * @property {string} attributePrefix Static property that defines a prefix for generated getters/setters. Defaults to empty string.
  * @example
  * import { Model } from 'rasti';
- * // Product model
- * class ProductModel extends Model {
+ * 
+ * // User model
+ * class User extends Model {
  *     preinitialize() {
- *         // The Product model has `name` and `price` default attributes.
- *         // `defaults` will extend `this.attributes`.
- *         // Getters and setters are generated for `this.attributes`,
- *         // in order to emit `change` events.
- *         this.defaults = {
- *             name: '',
- *             price: 0
- *         };
- *     }
- *
- *     setDiscount(discountPercentage) {
- *         // Apply a discount to the price property.
- *         // This will call a setter that will update `price` in `this.attributes`,
- *         // and emit `change` and `change:price` events.
- *         const discount = this.price * (discountPercentage / 100);
- *         this.price -= discount;
+ *         this.defaults = { name : '', email : '', role : 'user' };
  *     }
  * }
- * // Create a product instance with a name and price.
- * const product = new ProductModel({ name: 'Smartphone', price: 1000 });
- * // Listen to the `change:price` event.
- * product.on('change:price', () => console.log('New Price:', product.price));
- * // Apply a 10% discount to the product.
- * product.setDiscount(10); // Output: "New Price: 900"
+ * // Order model with nested User and custom methods
+ * class Order extends Model {
+ *     preinitialize(attributes, options = {}) {
+ *         this.defaults = {
+ *             id : null,
+ *             total : 0,
+ *             status : 'pending',
+ *             user : null
+ *         };
+ * 
+ *         this.apiUrl = options.apiUrl || '/api/orders';
+ *     }
+ *
+ *     parse(data, options = {}) {
+ *         const parsed = { ...data };
+ *         
+ *         // Convert user object to User model instance
+ *         if (data.user && !(data.user instanceof User)) {
+ *             parsed.user = new User(data.user);
+ *         }
+ * 
+ *         return parsed;
+ *     }
+ * 
+ *     toJSON() {
+ *         const result = {};
+ *         for (const [key, value] of Object.entries(this.attributes)) {
+ *             if (value instanceof Model) {
+ *                 result[key] = value.toJSON();
+ *             } else {
+ *                 result[key] = value;
+ *             }
+ *         }
+ *         return result;
+ *     }
+ * 
+ *     async fetch() {
+ *         try {
+ *             const response = await fetch(`${this.apiUrl}/${this.id}`);
+ *             const data = await response.json();
+ *             
+ *             // Parse the fetched data and update model
+ *             const parsed = this.parse(data);
+ *             this.set(parsed, { source : 'fetch' });
+ * 
+ *             return this;
+ *         } catch (error) {
+ *             console.error('Failed to fetch order:', error);
+ *             throw error;
+ *         }
+ *     }
+ * }
+ * 
+ * // Create order with nested user data
+ * const order = new Order({
+ *     id : 123,
+ *     total : 99.99,
+ *     user : { name : 'Alice', email : 'alice@example.com' }
+ * });
+ * 
+ * console.log(order.user instanceof User); // true
+ * // Serialize with nested models
+ * const json = order.toJSON();
+ * console.log(json); // { id: 123, total: 99.99, status: 'pending', user: { name: 'Alice', email: 'alice@example.com', role: 'user' } }
+ * 
+ * // Listen to fetch updates
+ * order.on('change', (model, changed, options) => {
+ *     if (options?.source === 'fetch') {
+ *         console.log('Order updated from server:', changed);
+ *     }
+ * });
+ * 
+ * // Fetch latest data from server
+ * await order.fetch();
  */
 export default class Model extends Emitter {
-    constructor(attributes = {}) {
+    constructor() {
         super();
         // Call preinitialize.
         this.preinitialize.apply(this, arguments);
-        // Get defaults. If `this.defaults` is a function, call it.
-        const defaults = getResult(this.defaults, this) || {};
         // Set attributes object with defaults and passed attributes.
-        this.attributes = Object.assign({}, defaults, attributes);
+        this.attributes = Object.assign({}, getResult(this.defaults, this), this.parse.apply(this, arguments));
         // Object to store previous attributes when a change occurs.
         this.previous = {};
         // Generate getters/setters for every attribute.
@@ -64,21 +122,53 @@ export default class Model extends Emitter {
     }
 
     /**
-     * If you define a preinitialize method, it will be invoked when the Model is first created, before any instantiation logic is run for the Model.
-     * @param {object} attributes Object containing model attributes to extend `this.attributes`.
+     * Called before any instantiation logic runs for the Model.
+     * Receives all constructor arguments, allowing for flexible initialization patterns.
+     * Use this to set up `defaults`, configure the model, or handle custom constructor arguments.
+     * @param {object} [attributes={}] Primary data object containing model attributes
+     * @param {...*} [args] Additional arguments passed from the constructor
+     * @example
+     * class User extends Model {
+     *     preinitialize(attributes, options = {}) {
+     *         this.defaults = { name : '', role : options.defaultRole || 'user' };
+     *         this.apiEndpoint = options.apiEndpoint || '/users';
+     *     }
+     * }
+     * const user = new User({ name : 'Alice' }, { defaultRole : 'admin', apiEndpoint : '/api/users' });
      */
     preinitialize() {}
 
     /**
-     * Generate getter/setter for the given key. In order to emit `change` events.
-     * This method is called internally by the constructor
-     * for `this.attributes`.
-     * @param {string} key Attribute key.
+     * Generate getter/setter for the given attribute key to emit `change` events.
+     * The property name uses `attributePrefix` + key (e.g., with prefix 'attr_', key 'name' becomes 'attr_name').
+     * Called internally by the constructor for each key in `this.attributes`.
+     * Override with an empty method if you don't want automatic getters/setters.
+     * 
+     * @param {string} key Attribute key from `this.attributes`
+     * @example
+     * // Custom prefix for all attributes
+     * class PrefixedModel extends Model {
+     *     static attributePrefix = 'attr_';
+     * }
+     * const model = new PrefixedModel({ name: 'Alice' });
+     * console.log(model.attr_name); // 'Alice'
+     * 
+     * // Disable automatic getters/setters
+     * class ManualModel extends Model {
+     *     defineAttribute() {
+     *         // Empty - no getters/setters generated
+     *     }
+     *     
+     *     getName() {
+     *         return this.get('name'); // Manual getter
+     *     }
+     * }
      */
     defineAttribute(key) {
         Object.defineProperty(
             this,
-            key, {
+            `${this.constructor.attributePrefix}${key}`,
+            {
                 get : () => this.get(key),
                 set : (value) => { this.set(key, value); }
             }
@@ -96,18 +186,28 @@ export default class Model extends Emitter {
     }
 
     /**
-     * Set an attribute into `this.attributes`.  
-     * Emit `change` and `change:attribute` if a value changes.  
-     * Could be called in two forms, `this.set('key', value)` and
-     * `this.set({ key : value })`.  
-     * This method is called internally by generated setters.  
-     * The `change` event listener will receive the model instance, an object containing the changed attributes, and the rest of the arguments passed to `set` method.  
-     * The `change:attribute` event listener will receive the model instance, the new attribute value, and the rest of the arguments passed to `set` method.
-     * @param {string} key Attribute key or object containing keys/values.
-     * @param [value] Attribute value.
-     * @return {this} This model.
-     * @emits change
-     * @emits change:attribute
+     * Set one or more attributes into `this.attributes` and emit change events.
+     * Supports two call signatures: `set(key, value, ...args)` or `set(object, ...args)`.
+     * Additional arguments are passed to change event listeners, enabling custom behavior.
+     * 
+     * @param {string|object} key Attribute key (string) or object containing key-value pairs
+     * @param {*} [value] Attribute value (when key is string)
+     * @param {...*} [args] Additional arguments passed to event listeners
+     * @return {Model} This model instance for chaining
+     * @emits change Emitted when any attribute changes. Listeners receive `(model, changedAttributes, ...args)`
+     * @emits change:attribute Emitted for each changed attribute. Listeners receive `(model, newValue, ...args)`
+     * @example
+     * // Basic usage
+     * model.set('name', 'Alice');
+     * model.set({ name : 'Alice', age : 30 });
+     * 
+     * // With options for listeners
+     * model.set('name', 'Bob', { silent : false, validate : true });
+     * model.on('change:name', (model, value, options) => {
+     *     if (options?.validate) {
+     *         // Custom validation logic
+     *     }
+     * });
      */
     set(key, value, ...rest) {
         let attrs, args;
@@ -162,11 +262,96 @@ export default class Model extends Emitter {
     }
 
     /**
+     * Transforms and validates data before it becomes model attributes.
+     * Called during construction with all constructor arguments, allowing flexible data processing.
+     * Override this method to transform incoming data, create nested models, or handle different data formats.
+     * 
+     * @param {object} [data={}] Primary data object to be parsed into attributes
+     * @param {...*} [args] Additional arguments from constructor, useful for parsing options
+     * @return {object} Processed data that will become the model's attributes
+     * @example
+     * // Transform nested objects into models
+     * class User extends Model {}
+     * class Order extends Model {
+     *     parse(data, options = {}) {
+     *         // Skip parsing if requested
+     *         if (options.raw) return data;
+     *         // Transform user data into User model
+     *         const parsed = { ...data };
+     *         if (data.user && !(data.user instanceof User)) {
+     *             parsed.user = new User(data.user);
+     *         }
+     *         return parsed;
+     *     }
+     * }
+     * 
+     * // Usage with parsing options
+     * const order1 = new Order({ id : 1, user : { name : 'Alice' } }); // user becomes User model
+     * const order2 = new Order({ id : 2, user : { name : 'Bob' } }, { raw : true }); // user stays plain object
+     */
+    parse(data) {
+        return data;
+    }
+
+    /**
      * Return object representation of the model to be used for JSON serialization.
      * By default returns a copy of `this.attributes`.
+     * You can override this method to customize serialization behavior, such as calling `toJSON` recursively on nested Model instances.
      * @return {object} Object representation of the model to be used for JSON serialization.
+     * @example
+     * // Basic usage - returns a copy of model attributes:
+     * const user = new Model({ name : 'Alice', age : 30 });
+     * const json = user.toJSON();
+     * console.log(json); // { name : 'Alice', age : 30 }
+     * 
+     * // Override toJSON for recursive serialization of nested models:
+     * class User extends Model {}
+     * class Order extends Model {
+     *     parse(data) {
+     *         // Ensure user is always a User model
+     *         return { ...data, user : data.user instanceof User ? data.user : new User(data.user) };
+     *     }
+     * 
+     *     toJSON() {
+     *         const result = {};
+     *         for (const [key, value] of Object.entries(this.attributes)) {
+     *             if (value instanceof Model) {
+     *                 result[key] = value.toJSON();
+     *             } else {
+     *                 result[key] = value;
+     *             }
+     *         }
+     *         return result;
+     *     }
+     * }
+     * const order = new Order({ id : 1, user : { name : 'Alice' } });
+     * const json = order.toJSON();
+     * console.log(json); // { id : 1, user : { name : 'Alice' } }
      */
     toJSON() {
         return Object.assign({}, this.attributes);
     }
 }
+
+/**
+ * Static property that defines a prefix for generated getters/setters.
+ * When set, all attribute properties will be prefixed (e.g., 'attr_name' instead of 'name').
+ * Useful for avoiding naming conflicts or creating a consistent property naming convention.
+ * @type {string}
+ * @default ''
+ * @example
+ * // Set prefix for all models of this class
+ * class ApiModel extends Model {
+ *     static attributePrefix = 'attr_';
+ * }
+ * 
+ * const user = new ApiModel({ name : 'Alice', email : 'alice@example.com' });
+ * console.log(user.attr_name);  // 'Alice'
+ * console.log(user.attr_email); // 'alice@example.com'
+ * 
+ * // Still access via get/set methods without prefix
+ * console.log(user.get('name')); // 'Alice'
+ * user.set('name', 'Bob');
+ * console.log(user.attr_name); // 'Bob'
+ */
+Model.attributePrefix = '';

@@ -1,26 +1,28 @@
 import { Component } from 'rasti';
 
-import { ENTER_KEY } from '../constants.js';
-
+/**
+ * Header component for todo app.
+ * Contains the title and input field for adding new todos.
+ * @class Header
+ */
 const Header = Component.create`
-    <header
-        class="header"
-        onKeyUp=${{
-            'input' : function(ev) {
+    <header class="header">
+        <h1>todos</h1>
+        <input
+            class="new-todo"
+            name="new-todo"
+            placeholder="What needs to be done?"
+            autofocus
+            onKeyUp=${function(ev) {
                 // If ENTER key is pressed. Add todo.
-                if (ev.which === ENTER_KEY && ev.target.value) {
-                    this.model.addTodo({
-                        title : ev.target.value
-                    });
+                if (ev.key === 'Enter' && ev.target.value) {
+                    this.props.handleAddTodo(ev.target.value);
                     // Clear input.
                    ev.target.value = '';
                 }
-            }
-        }}
-    >
-        <h1>todos</h1>
-        <input class="new-todo" placeholder="What needs to be done?" autofocus />
+            }}
+        />
     </header>
-`.extend({ onChange() {} });
+`;
 
 export default Header;

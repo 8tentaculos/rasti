@@ -1,21 +1,22 @@
 import { Component } from 'rasti';
 
+/**
+ * Toggle all todos component.
+ * Checkbox to mark all todos as complete or incomplete.
+ * @class ToggleAll
+ */
 const ToggleAll = Component.create`
-    <span
-        onClick=${{
-            // Click on toggle all.
-            '.toggle-all' : function(ev) {
-                this.model.toggleAll(ev.target.checked);
-            }
-        }}
-    >
+    <span>
         <input 
             class="toggle-all" 
             id="toggle-all" 
             type="checkbox"
-            ${({ model }) => !!model.todos.length && !model.remaining.length ? 'checked' : ''}
+            checked="${({ props }) => props.checked}"
+            onChange=${function(ev) { this.props.handleChange(ev.target.checked); }}
          />
-        <label for="toggle-all">Mark all as complete</label>
+        <label for="toggle-all">
+            Mark all as complete
+        </label>
     </span>
 `;
 

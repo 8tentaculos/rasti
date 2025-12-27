@@ -1,7 +1,7 @@
 <p align="center">
     <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.svg">
-        <img alt="Rasti.js" src="docs/logo.svg" height="120">
+        <source media="(prefers-color-scheme: dark)" srcset="https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/logo-dark.svg">
+        <img alt="Rasti.js" src="https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0-alpha.12/docs/logo.svg" height="120">
     </picture>
 </p>
 
@@ -9,13 +9,15 @@
     <b>Modern MVC for building user interfaces</b>
 </p>
 
-**Rasti** is a lightweight MVC library for building fast, reactive user interfaces. Inspired by **Backbone.js**, it retains a familiar API while removing non-essential features and introducing modern, declarative, and composable components to simplify complex UI development.
+**Rasti is a lightweight MVC library for building fast, reactive user interfaces.**  
+It provides declarative, composable **components** for building state-driven UIs.  
+Its low-level MVC core, inspired by **Backbone.js**’s architecture, provides **models**, **views** and **event emitters** as the fundamental building blocks.
 
-[![Travis (.com)](https://img.shields.io/travis/com/8tentaculos/rasti?style=flat-square)](https://app.travis-ci.com/8tentaculos/rasti)
-[![npm version](https://img.shields.io/npm/v/rasti.svg?style=flat-square)](https://www.npmjs.com/package/rasti)
-[![npm package minimized gzipped size](https://img.shields.io/bundlejs/size/rasti?style=flat-square)](https://unpkg.com/rasti/dist/rasti.min.js)
-[![npm downloads](https://img.shields.io/npm/dm/rasti.svg?style=flat-square)](https://www.npmjs.com/package/rasti)
-[![jsDelivr hits (npm)](https://img.shields.io/jsdelivr/npm/hm/rasti?style=flat-square)](https://www.jsdelivr.com/package/npm/rasti)
+[![Travis (.com)](https://img.shields.io/travis/com/8tentaculos/rasti)](https://app.travis-ci.com/8tentaculos/rasti)
+[![npm version](https://img.shields.io/npm/v/rasti.svg)](https://www.npmjs.com/package/rasti)
+[![npm package minimized gzipped size](https://img.shields.io/bundlejs/size/rasti)](https://unpkg.com/rasti/dist/rasti.min.js)
+[![npm downloads](https://img.shields.io/npm/dm/rasti.svg)](https://www.npmjs.com/package/rasti)
+[![jsDelivr hits (npm)](https://img.shields.io/jsdelivr/npm/hm/rasti)](https://www.jsdelivr.com/package/npm/rasti)
 
 ## Key Features  
 
@@ -30,7 +32,7 @@
 - **Lightweight and Fast** ⚡  
   Minimal overhead with efficient rendering.  
 - **Legacy Compatibility** 🕰️  
-  Seamlessly integrates into existing **Backbone.js** projects.  
+  Seamlessly integrates into existing **Backbone.js** legacy projects.  
 - **Standards-Based** 📐  
   Built on modern web standards, no tooling required.  
 
@@ -46,17 +48,24 @@ $ npm install rasti
 import { Model, Component } from 'rasti';
 ```
 
-### Using ES modules
+### Using ES modules via CDN
 
 ```javascript
 import { Model, Component } from 'https://esm.run/rasti';
 ```
 
-### Using a `<script>` tag
+### Using a UMD build via CDN
+
+Include **Rasti** directly in your HTML using a CDN. Available UMD builds:
+
+- [https://cdn.jsdelivr.net/npm/rasti/dist/rasti.js](https://cdn.jsdelivr.net/npm/rasti/dist/rasti.js)
+- [https://cdn.jsdelivr.net/npm/rasti/dist/rasti.min.js](https://cdn.jsdelivr.net/npm/rasti/dist/rasti.min.js)
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/rasti/dist/rasti.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/rasti"></script>
 ```
+
+The UMD build exposes the `Rasti` global object:
 
 ```javascript
 const { Model, Component } = Rasti;
@@ -73,12 +82,13 @@ const Timer = Component.create`
 `;
 
 // Create a model to store the seconds.
-const model = new Model({ seconds: 0 });
+const model = new Model({ seconds : 0 });
 
 // Mount the Timer component to the body and pass the model as an option.
 Timer.mount({ model }, document.body);
 
 // Increment the `seconds` property of the model every second.
+// Only the text node inside the <span> gets updated on each render.
 setInterval(() => model.seconds++, 1000);
 ```
 
@@ -89,22 +99,22 @@ setInterval(() => model.seconds++, 1000);
 ```javascript
 // Define the routes for the navigation menu.
 const routes = [
-    { label: 'Home', href: '#' },
-    { label: 'Faq', href: '#faq' },
-    { label: 'Contact', href: '#contact' },
+    { label : 'Home', href : '#' },
+    { label : 'Faq', href : '#faq' },
+    { label : 'Contact', href : '#contact' },
 ];
 
 // Create a Link component for navigation items.
 const Link = Component.create`
-    <a href="${({ options }) => options.href}">
-        ${({ options }) => options.renderChildren()}
+    <a href="${({ props }) => props.href}">
+        ${({ props }) => props.renderChildren()}
     </a>
 `;
 
 // Create a Navigation component that renders Link components for each route.
 const Navigation = Component.create`
     <nav>
-        ${({ options, partial }) => options.routes.map(
+        ${({ props, partial }) => props.routes.map(
             ({ label, href }) => partial`<${Link} href="${href}">${label}</${Link}>`
         )}
     </nav>
@@ -113,10 +123,10 @@ const Navigation = Component.create`
 // Create a Main component that includes the Navigation and displays the current route's label as the title.
 const Main = Component.create`
     <main>
-        <${Navigation} routes=${({ options }) => options.routes} />
+        <${Navigation} routes=${({ props }) => props.routes} />
         <section>
             <h1>
-                ${({ model, options }) => options.routes.find(
+                ${({ model, props }) => props.routes.find(
                     ({ href }) => href === (model.location || '#')
                 ).label}
             </h1>
@@ -125,7 +135,7 @@ const Main = Component.create`
 `;
 
 // Initialize a model to store the current location.
-const model = new Model({ location: document.location.hash });
+const model = new Model({ location : document.location.hash });
 
 // Update the model's location state when the browser's history changes.
 window.addEventListener('popstate', () => model.location = document.location.hash);
@@ -135,6 +145,30 @@ Main.mount({ routes, model }, document.body);
 ```
 
 [Try it on CodePen](https://codepen.io/8tentaculos/pen/dyBMNbq?editors=0010)
+
+### Adding event listeners
+
+```javascript
+// Create a model to store the counter value.
+const model = new Model({ count : 0 });
+
+// Create a Counter component with increment and decrement buttons.
+const Counter = Component.create`
+    <div>
+        <div>Counter: ${({ model }) => model.count}</div>
+        <button onClick=${function() { this.model.count++; }}>Increment</button>
+        <button onClick=${function() { this.model.count--; }}>Decrement</button>
+    </div>
+`;
+
+// Mount the Counter component to the body and pass the model as an option.
+Counter.mount({ model }, document.body);
+
+// Event listeners are bound to 'this' and use delegation from the root element.
+// When buttons are clicked, only the text node gets updated, not the entire component.
+```
+
+[Try it on CodePen](https://codepen.io/8tentaculos/pen/XJXVQOR?editors=0010)
 
 ## Why Choose **Rasti**?  
 
@@ -155,16 +189,18 @@ You can find a sample **TODO application** in the [example folder](https://githu
 
 For detailed information on how to use **Rasti**, refer to the [API documentation](/docs/api.md).
 
+## Working with LLMs
 
-## Powered by **Rasti**
+For those working with LLMs, there is an [AI Agents reference guide](/docs/AGENTS.md) that provides API patterns, lifecycle methods, and best practices, optimized for LLM context. You can share this guide with AI assistants to help them understand **Rasti**'s architecture and component APIs.
 
-### [Crypto Babylon](https://cryptobabylon.net)  
+## Version History
 
-A market analytics platform efficiently rendering over 300 dynamic rows, updated in real-time with thousands of messages per second via multiple WebSocket connections.  
+We strive to minimize breaking changes between major versions. However, if you're migrating between major versions, please refer to the release notes below for details on any breaking changes and migration tips.
 
-### [jsPacman](https://pacman.js.org)
-
-A DOM-based remake of the classic Ms. Pac-Man game. **Rasti** powers its custom game engine.  
+- **[v4.0.0](https://github.com/8tentaculos/rasti/releases/tag/v4.0.0)**
+- **[v3.0.0](https://github.com/8tentaculos/rasti/releases/tag/v3.0.0)**
+- **[v2.0.0](https://github.com/8tentaculos/rasti/releases/tag/v2.0.0)**
+- **[v1.0.0](https://github.com/8tentaculos/rasti/releases/tag/v1.0.0)**
 
 ## License
 
