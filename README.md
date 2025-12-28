@@ -123,7 +123,7 @@ const Navigation = Component.create`
 // Create a Main component that includes the Navigation and displays the current route's label as the title.
 const Main = Component.create`
     <main>
-        <${Navigation} routes=${({ props }) => props.routes} />
+        <${Navigation} routes="${({ props }) => props.routes}" />
         <section>
             <h1>
                 ${({ model, props }) => props.routes.find(
