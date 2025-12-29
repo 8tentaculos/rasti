@@ -174,7 +174,7 @@ const Main = Component.create`
 <a name="module_component__tostring" id="module_component__tostring" class="anchor"></a>
 ### component.toString() ⇒ <code>string</code>
 Render the component as a string.
-Used internally on the render process.
+Used internally on the render process.  
 Use it for server-side rendering or static site generation.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
@@ -194,10 +194,10 @@ const App = Component.create`
 const app = new App();
 
 console.log(app.toString());
-// <div data-rasti-el="r1-1"><!--rasti-s-r1-1--><button class="button" data-rasti-el="r2-1">Click me</button><!--rasti-e-r1-1--></div>
+// <div data-rst-el="r1-1"><!--rst-s-r1-1--><button class="button" data-rst-el="r2-1">Click me</button><!--rst-e-r1-1--></div>
 
 console.log(`${app}`);
-// <div data-rasti-el="r1-1"><!--rasti-s-r1-1--><button class="button" data-rasti-el="r2-1">Click me</button><!--rasti-e-r1-1--></div>
+// <div data-rst-el="r1-1"><!--rst-s-r1-1--><button class="button" data-rst-el="r2-1">Click me</button><!--rst-e-r1-1--></div>
 ```
 <a name="module_component__render" id="module_component__render" class="anchor"></a>
 ### component.render() ⇒ <code>Component</code>

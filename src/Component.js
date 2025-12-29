@@ -826,7 +826,7 @@ class Component extends View {
 
     /**
      * Render the component as a string.
-     * Used internally on the render process.
+     * Used internally on the render process.  
      * Use it for server-side rendering or static site generation.
      * @return {string} The rendered component.
      * @example
@@ -843,10 +843,10 @@ class Component extends View {
      * const app = new App();
      * 
      * console.log(app.toString());
-     * // <div data-rasti-el="r1-1"><!--rasti-s-r1-1--><button class="button" data-rasti-el="r2-1">Click me</button><!--rasti-e-r1-1--></div>
+     * // <div data-rst-el="r1-1"><!--rst-s-r1-1--><button class="button" data-rst-el="r2-1">Click me</button><!--rst-e-r1-1--></div>
      * 
      * console.log(`${app}`);
-     * // <div data-rasti-el="r1-1"><!--rasti-s-r1-1--><button class="button" data-rasti-el="r2-1">Click me</button><!--rasti-e-r1-1--></div>
+     * // <div data-rst-el="r1-1"><!--rst-s-r1-1--><button class="button" data-rst-el="r2-1">Click me</button><!--rst-e-r1-1--></div>
      */
     toString() {
         // Normally there won't be any children, but if there are, destroy them.

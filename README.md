@@ -58,8 +58,8 @@ import { Model, Component } from 'https://esm.run/rasti';
 
 Include **Rasti** directly in your HTML using a CDN. Available UMD builds:
 
-- [https://cdn.jsdelivr.net/npm/rasti/dist/rasti.js](https://cdn.jsdelivr.net/npm/rasti/dist/rasti.js)
-- [https://cdn.jsdelivr.net/npm/rasti/dist/rasti.min.js](https://cdn.jsdelivr.net/npm/rasti/dist/rasti.min.js)
+- [rasti.js](https://cdn.jsdelivr.net/npm/rasti/dist/rasti.js)
+- [rasti.min.js](https://cdn.jsdelivr.net/npm/rasti/dist/rasti.min.js)
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/rasti"></script>
@@ -179,7 +179,7 @@ Counter.mount({ model }, document.body);
 - **Lightweight and Efficient**  
   Minimal footprint with optimized performance, ensuring smooth updates.  
 - **Just the Right Abstraction**  
-  Keeps you close to the DOM with no over-engineering. Fully hackable—if you're curious about how something works, just check the source code.  
+  Keeps you close to the DOM with no over-engineering. Fully hackable, if you're curious about how something works, just check the source code.  
 
 ## Example
 
