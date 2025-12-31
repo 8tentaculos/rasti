@@ -1,0 +1,133 @@
+import { Model } from 'rasti';
+
+import TodoModel from './Todo.js';
+
+/**
+ * Main application model for the todo app.
+ * Manages the collection of todos, filtering, and todo operations.
+ * @class App
+ * @extends Model
+ */
+class App extends Model {
+    /**
+     * Create a new App model instance.
+     * @param {Object} attrs Initial attributes for the app.
+     */
+    constructor(attrs) {
+        super(attrs);
+    }
+
+    /**
+     * Get todos filtered by the current filter setting.
+     * @return {Array<Todo>} Filtered todos.
+     */
+    get filtered() {
+        return this[this.filter];
+    }
+
+    /**
+     * Get all todos.
+     * @return {Array<Todo>} All todos.
+     */
+    get all() {
+        return this.todos;
+    }
+
+    /**
+     * Get completed todos.
+     * @return {Array<Todo>} Completed todos.
+     */
+    get completed() {
+        return this.todos.filter(todo => todo.completed);
+    }
+
+    /**
+     * Get remaining (incomplete) todos.
+     * @return {Array<Todo>} Remaining todos.
+     */
+    get remaining() {
+        return this.todos.filter(todo => !todo.completed);
+    }
+
+    /**
+     * Create a new todo model.
+     * @param {Object} attrs Attributes for the new todo.
+     * @return {Todo} The created todo model.
+     */
+    createTodo(attrs) {
+        const todo = new TodoModel(attrs);
+        // Bind event on todo change.
+        this.listenTo(todo, 'change', this.onChangeTodo.bind(this));
+        return todo;
+    }
+
+    /**
+     * Add a new todo to the collection.
+     * @param {Object} attrs Attributes for the new todo.
+     */
+    addTodo(attrs) {
+        const todo = this.createTodo(attrs);
+        // Add todo model to list.
+        this.todos = this.todos.concat(todo);
+    }
+
+    /**
+     * Remove a todo from the collection.
+     * @param {Todo} todo The todo to remove.
+     */
+    removeTodo(todo) {
+        // Remove from array.
+        this.todos = this.todos.filter(current => current !== todo);
+        // Unbind todo model events.
+        this.stopListening(todo);
+    }
+
+    /**
+     * Remove all completed todos.
+     */
+    removeCompleted() {
+        this.todos.filter(todo => todo.completed).forEach((todo) => this.removeTodo(todo));
+    }
+
+    /**
+     * Toggle completion status of all todos.
+     * @param {boolean} completed Whether to mark all todos as completed.
+     */
+    toggleAll(completed) {
+        this.todos.forEach(todo => { 
+            todo.completed = completed;
+        });
+    }
+
+    /**
+     * Parse the data and create the todos.
+     * @param {Object} data The data to parse.
+     * @return {Object} The parsed data.
+     */
+    parse(data) {
+        return data && Object.keys(data).length ? {
+            todos : data.todos ? data.todos.map(attrs => this.createTodo(attrs)) : [],
+            filter : data.filter,
+        } : {};
+    }
+
+    /**
+     * Event handler for todo changes.
+     * Emits 'change' event when a todo changes.
+     * @param {...any} args Additional arguments to pass to the 'change' event.
+     */
+    onChangeTodo(...args) {
+        this.emit('change', ...args);
+    }
+}
+
+/**
+ * Default attributes for the App model.
+ * @type {Object}
+ */
+App.prototype.defaults = {
+    todos : [],
+    filter : 'all',
+};
+
+export default App;
