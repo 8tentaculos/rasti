@@ -293,7 +293,7 @@ export default class View extends Emitter {
                 const message = `Invalid event format: ${key}`;
                 throw new Error(__DEV__ ? createDevelopmentErrorMessage(message) : createProductionErrorMessage(message));
             }
-
+            // Extract type and selector from the event key.
             const [,type, selector] = match;
 
             let listener = events[key];
@@ -313,21 +313,21 @@ export default class View extends Emitter {
                 let node = event.target;
                 // Traverse ancestors until reaching the view root (`this.el`).
                 while (node) {
-                    // Iterate and run every individual listener if the selector matches.
-                    eventTypes[type].forEach(([selector, listener]) => {
-                        if (
-                            node.matches && (
-                                (node === this.el && !selector) ||
-                                (node !== this.el && node.matches(selector))
-                            )
-                        ) listener.call(this, event, this, node);
-                    });
+                    if (node.matches) {
+                        // Iterate and run every individual listener if the selector matches.
+                        eventTypes[type].forEach(([selector, listener]) => {
+                            if ((node === this.el && !selector) || (node !== this.el && node.matches(selector))) {
+                                listener.call(this, event, this, node);
+                            }
+                        });
+                    }
                     // Continue traversing ancestors until reaching the view root (`this.el`) or stopping propagation.
                     node = node === this.el || event.cancelBubble ? null : node.parentElement;
                 }
             };
-
+            // Store the type and listener in the delegated event listeners array.
             this.delegatedEventListeners.push([type, typeListener]);
+            // Add the event listener to the element.
             this.el.addEventListener(type, typeListener);
         });
         // Return `this` for chaining.
