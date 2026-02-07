@@ -1,6 +1,9 @@
 import Emitter from './Emitter.js';
 import getResult from './utils/getResult.js';
 import validateListener from './utils/validateListener.js';
+import createDevelopmentErrorMessage from './utils/createDevelopmentErrorMessage.js';
+import createProductionErrorMessage from './utils/createProductionErrorMessage.js';
+import __DEV__ from './utils/dev.js';
 
 /*
  * These option keys will be extended on the view instance.
@@ -281,12 +284,17 @@ export default class View extends Emitter {
         if (this.delegatedEventListeners.length) this.undelegateEvents();
 
         // Store events by type i.e.: "click", "submit", etc.
-        let eventTypes = {};
+        const eventTypes = {};
 
         Object.keys(events).forEach(key => {
-            const keyParts = key.split(' ');
-            const type = keyParts.shift();
-            const selector = keyParts.join(' ');
+            const match = key.match(/^(\w+)(?:\s+(.+))*$/);
+
+            if (!match) {
+                const message = `Invalid event format: ${key}`;
+                throw new Error(__DEV__ ? createDevelopmentErrorMessage(message) : createProductionErrorMessage(message));
+            }
+
+            const [,type, selector] = match;
 
             let listener = events[key];
             // Listener may be a string representing a method name on the view, or a function.
@@ -296,32 +304,30 @@ export default class View extends Emitter {
 
             if (!eventTypes[type]) eventTypes[type] = [];
 
-            eventTypes[type].push({ selector, listener });
+            eventTypes[type].push([selector, listener]);
         });
 
         Object.keys(eventTypes).forEach(type => {
             // Listener for the type of event.
             const typeListener = (event) => {
-                // Iterate and run every individual listener if the selector matches.
-                eventTypes[type].forEach(({ selector, listener }) => {
-                    // No selector provided: invoke listener once with root element.
-                    if (!selector) {
-                        listener.call(this, event, this, this.el);
-                        return;
-                    }
-
-                    let node = event.target;
-                    // Traverse ancestors until reaching the view root (`this.el`).
-                    while (node && node !== this.el) {
-                        if (node.matches && node.matches(selector)) {
-                            listener.call(this, event, this, node);
-                        }
-                        node = node.parentElement;
-                    }
-                });
+                let node = event.target;
+                // Traverse ancestors until reaching the view root (`this.el`).
+                while (node) {
+                    // Iterate and run every individual listener if the selector matches.
+                    eventTypes[type].forEach(([selector, listener]) => {
+                        if (
+                            node.matches && (
+                                (node === this.el && !selector) ||
+                                (node !== this.el && node.matches(selector))
+                            )
+                        ) listener.call(this, event, this, node);
+                    });
+                    // Continue traversing ancestors until reaching the view root (`this.el`) or stopping propagation.
+                    node = node === this.el || event.cancelBubble ? null : node.parentElement;
+                }
             };
 
-            this.delegatedEventListeners.push({ type, listener : typeListener });
+            this.delegatedEventListeners.push([type, typeListener]);
             this.el.addEventListener(type, typeListener);
         });
         // Return `this` for chaining.
@@ -335,7 +341,7 @@ export default class View extends Emitter {
      * @return {View} Return `this` for chaining.
      */
     undelegateEvents() {
-        this.delegatedEventListeners.forEach(({ type, listener }) => {
+        this.delegatedEventListeners.forEach(([type, listener]) => {
             this.el.removeEventListener(type, listener);
         });
 

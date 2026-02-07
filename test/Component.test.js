@@ -478,6 +478,31 @@ describe('Component', () => {
             }, 0);
         });
 
+        it('must stop propagation when stopPropagation is called', (done) => {
+            let eventsOrder = [];
+
+            const c = Component.create`
+                <div onClick=${() => { eventsOrder.push('parent'); }}>
+                    <span onClick=${(e) => { eventsOrder.push('child'); e.stopPropagation(); }}>
+                        <button onClick=${() => { eventsOrder.push('button'); }}>
+                            click me
+                        </button>
+                    </span>
+                </div>
+            `.mount({}, document.body);
+
+            const button = c.$('button');
+
+            button.dispatchEvent(new MouseEvent('click', { bubbles : true }));
+
+            // Wait for event handling to complete.
+            setTimeout(() => {
+                // Only button and child should be called, parent should not
+                expect(eventsOrder).to.deep.equal(['button', 'child']);
+                done();
+            }, 0);
+        });
+
         it('must handle keyboard events properly', (done) => {
             let keyboardEvents = [];
 
