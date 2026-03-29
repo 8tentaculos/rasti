@@ -1021,6 +1021,25 @@ describe('Component', () => {
             expect(child.el).to.be.equal(c.children[0].el);
             expect(child.children[0].el).to.be.equal(c.children[0].children[0].el);
         });
+
+        it('must delegate events in container with renderChildren content', (done) => {
+            // Child accepts slotted content via renderChildren
+            const Panel = Component.create`<div class="panel">${({ props }) => props.renderChildren()}</div>`;
+
+            // Container wraps Panel and passes a button with an onClick handler as children
+            const PanelWithButton = Component.create`
+                <${Panel}>
+                    <button onClick=${() => done()}>click me</button>
+                </${Panel}>
+            `;
+
+            const c = PanelWithButton.mount({}, document.body);
+
+            // c.el is the panel div (container — no wrapper element)
+            c.el.querySelector('button').dispatchEvent(
+                new MouseEvent('click', { bubbles : true })
+            );
+        });
     });
 
     describe('Lifecycle methods', () => {

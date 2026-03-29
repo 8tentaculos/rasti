@@ -658,12 +658,12 @@ class Component extends View {
                     element.hydrate(this.el);
                 }
             });
-            // Delegate events.
-            this.delegateEvents();
             // Get references for interpolation marker comments
             this.template.interpolations.forEach(interpolation => interpolation.hydrate(this.el));
             this.children.forEach(child => child.hydrate(this.el));
         }
+        // Delegate events.
+        this.delegateEvents();
         // Call `onHydrate` lifecycle method.
         this.onHydrate.call(this);
         // Return `this` for chaining.
@@ -1008,10 +1008,10 @@ class Component extends View {
         } else {
             // Update elements attributes.
             this.template.elements.forEach(element => element.update());
-            // If there are pending event types, delegate events again.
-            if (this.eventsManager.hasPendingTypes()) {
-                this.delegateEvents();
-            }
+        }
+        // If there are pending event types, delegate events again.
+        if (this.eventsManager.hasPendingTypes()) {
+            this.delegateEvents();
         }
         // Call onUpdate lifecycle method.
         this.onUpdate.call(this);
