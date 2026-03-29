@@ -13,15 +13,17 @@ class Todo extends Model {
     toggle() {
         this.completed = !this.completed; 
     }
-}
 
-/**
- * Default attributes for the Todo model.
- * @type {Object}
- */
-Todo.prototype.defaults = {
-    title : '',
-    completed : false
-};
+    /**
+     * Default attributes for the Todo model.
+     * @returns {Object} Default attributes for the Todo model.
+     */
+    defaults() {
+        return {
+            title : '',
+            completed : false
+        };
+    }
+}
 
 export default Todo;
