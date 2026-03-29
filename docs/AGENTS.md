@@ -1,381 +1,332 @@
 # Rasti API Reference for AI Agents
 
-This document provides a comprehensive reference for AI agents working with the Rasti library. It covers the core API patterns, lifecycle methods, and best practices.
+Compact reference for developing with Rasti. Full API: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md)
 
-For detailed API documentation, see: [API Documentation](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md)
+---
 
 ## 🔧 Component API
 
 ### Component Creation
-
-Components are created using `Component.create` with tagged template literals. Use `.extend()` to add methods and lifecycle hooks.
 
 ```js
 import { Component, Model } from 'rasti';
 
 const MyComponent = Component.create`
     <div class="${({ props }) => props.className}">
-        <button onClick=${handleClick}>Click me</button>
-        ${({ props }) => props.renderChildren()}
+        <span>${({ model }) => model.title}</span>
+        <button onClick=${function() { this.model.count++; }}>+</button>
     </div>
 `;
 
-// Add methods and properties with .extend()
-const ExtendedComponent = Component.create`...`.extend({
-    // Lifecycle methods
-    onCreate() { /* ... */ },
-    onChange(model, changed) { /* ... */ },
-    
-    // Custom methods
-    customMethod() {
-        return this.props.value * 2;
+// Add lifecycle hooks and methods
+const MyComponent = Component.create`...`.extend({
+    onCreate() {
+        this.state = new Model({ editing: false });
     },
-    
-    // Helper render methods
-    renderHeader() {
-        return this.partial`<header>...</header>`;
+    onUpdate() {
+        if (this.state.editing) this.$('input.edit').focus();
     }
 });
+
+// Mount to DOM
+MyComponent.mount({ model }, document.getElementById('root'));
 ```
 
 **Key Methods:**
-- [`Component.create`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component_create) - Creates a new component class from a template
-- [`Component.mount`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component_mount) - Creates and mounts a component instance
-- [`Component.extend`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component_extend) - Extends a component with additional methods
+- [`Component.create`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component_create) — creates component class from template
+- [`Component.extend`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component_extend) — adds methods and lifecycle hooks
+- [`Component.mount`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component_mount) — creates and mounts a component instance
+
+---
+
+### Interpolations
+
+All interpolations in templates (content or attribute values) follow the same rule: non-function values are passed directly; functions are called during each render, bound to `this`, with the component instance as argument.
+
+**Quoted vs Unquoted attributes:**
+- **Quoted** `attribute="${fn}"` — function **runs** during render; its return value is used (string, boolean, handler to pass to child, etc.)
+- **Unquoted** `attribute=${fn}` — function reference is passed **as-is** (no execution); use for event handlers and callbacks
+
+```js
+// Content interpolations — function is called, return value renders
+${({ model }) => model.title}
+${({ model, state }) => model.count + state.offset}
+${function() { return this.model.title; }}
+
+// Quoted attribute — executes, passes result (a handler thunk) to child
+handleAddTodo="${({ model }) => (title) => model.addTodo({ title })}"
+
+// Quoted attribute — executes, passes current value
+checked="${({ model }) => !!model.todos.length && !model.remaining.length}"
+currentFilter="${({ model }) => model.filter}"
+
+// Unquoted — passes function reference directly (event handler, callback)
+onClick=${function() { this.model.removeCompleted(); }}
+handleChange=${(checked) => model.toggleAll(checked)}
+```
+
+**Attribute values must be a single interpolation** — mixing literals and interpolations within an attribute is not supported:
+
+```js
+// ❌ Wrong — mixed literal and interpolation
+class="base ${({ state }) => state.active ? 'active' : ''}"
+
+// ✅ Correct — entire value is one interpolation
+class="${({ state }) => state.active ? 'base active' : 'base'}"
+class="${getClassName}"  // helper function
+```
+
+---
 
 ### Event Handling
 
-Events are automatically delegated to the component's root element. Handlers are bound to `this`.
+Component builds event delegation on top of View's delegation system. `on*` attributes in the template are compiled into delegated listeners on the component's root element. Events bubble up from descendants; `stopPropagation()` is supported.
 
 **Handler signature:** `(event, component, matched)`
-- `event`: Native DOM event object
-- `component`: Component instance (same as `this`)
-- `matched`: Element that matched the event
+- `event` — native DOM event
+- `component` — component instance (same as `this`)
+- `matched` — element that matched the event
 
 ```js
-// ✅ Inline function (most common pattern)
-const Counter = Component.create`
-    <div>
-        <span>${({ model }) => model.count}</span>
-        <button onClick=${function(event, component, matched) { 
-            this.model.count++ 
-        }}>+</button>
-        <button onClick=${function() { this.model.count-- }}>-</button>
-    </div>
-`;
+// Inline function (most common)
+<button onClick=${function(ev) { this.model.count++; }}>+</button>
 
-// ✅ String method name (uses this.handleClick)
+// String method name — resolved as this.handleSubmit
 const Form = Component.create`
     <form onSubmit="handleSubmit">
-        <input type="text" onChange="handleInputChange" />
-        <button type="submit">Submit</button>
+        <input onChange="handleChange" />
     </form>
 `.extend({
-    handleSubmit(event, component, matched) {
-        event.preventDefault();
-        // Handle form submission
+    handleSubmit(ev) {
+        ev.preventDefault();
+        // ...
     },
-    handleInputChange(event, component, matched) {
-        this.model.inputValue = event.target.value;
+    handleChange(ev) {
+        this.model.value = ev.target.value;
     }
 });
 
-// ✅ Arrow function with quotes (useful for passing handlers to child components)
-const Parent = Component.create`
-    <div>
-        <${ChildComponent} 
-            onSave="${({ model }) => () => model.save()}"
-            onDelete="${({ model, props }) => () => model.delete(props.itemId)}"
-        />
-    </div>
-`;
+// Arrow function quoted — parent executes, passes handler thunk to child
+handleSave="${({ model, props }) => () => model.delete(props.itemId)}"
+
+// Arrow function unquoted — parent passes function reference directly to child
+handleSelect="${({ props }) => props.handleSelect}"
 ```
+
+**Related:** [`delegateEvents`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_view__delegateevents)
+
+---
 
 ### Component Tags & Props
 
-When using component tags `<${MyComponent} />`, attributes become component options. Non-standard options are automatically converted to `props`.
+When using `<${Component} />`, attributes become component options. Non-standard options are automatically collected into `this.props` (a Model).
 
 ```js
-// ✅ Parent passes values as component options
-const Parent = Component.create`
-    <div>
-        <${ChildComponent} 
-            title="${({ model }) => model.title}"
-            onSave=${handleSave}
-            onSubmit="${({ model }) => () => model.submit()}"
-        />
-    </div>
+// Parent — passes values as component options
+const App = Component.create`
+    <main>
+        <${Header} handleAddTodo="${({ model }) => (title) => model.addTodo({ title })}" />
+        <${Footer} model="${({ model }) => model}" currentFilter="${({ model }) => model.filter}" />
+    </main>
 `;
 
-// ✅ Child receives them as props (auto-generated from options)
-const ChildComponent = Component.create`
+// Child — receives them as props
+const Header = Component.create`
+    <header>
+        <input onKeyUp=${function(ev) {
+            if (ev.key === 'Enter' && ev.target.value) {
+                this.props.handleAddTodo(ev.target.value);
+                ev.target.value = '';
+            }
+        }} />
+    </header>
+`;
+```
+
+**Key properties:**
+- `this.model` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_model) for application data
+- `this.state` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_model) for internal component state
+- `this.props` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_model) auto-created from non-standard options
+
+---
+
+### renderChildren
+
+When a component is rendered with content between tags, Rasti creates `renderChildren` and passes it as a prop. Call `props.renderChildren()` to render that content.
+
+- `<${Child}>content</${Child}>` → `renderChildren` created and passed as prop
+- `<${Child} />` (self-closing) → no `renderChildren`
+
+```js
+const Button = Component.create`
+    <button>${({ props }) => props.renderChildren()}</button>
+`;
+
+// Support both with-content and self-closing (label fallback)
+const FlexButton = Component.create`
+    <button>${({ props }) => props.renderChildren ? props.renderChildren() : props.label}</button>
+`;
+
+// Usage — Rasti creates renderChildren automatically
+const Main = Component.create`
     <div>
-        <h2>${({ props }) => props.title}</h2>
-        <button onClick="${({ props }) => props.onSave}">Save</button>
-        <button onClick="${({ props }) => props.onSubmit}">Submit</button>
+        <${Button}>click me</${Button}>
     </div>
 `;
 ```
 
-**Key Properties:**
-- `this.props` - [Model](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_model) containing props passed from parent
-- `this.model` - [Model](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_model) for application data
-- `this.state` - [Model](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_model) for internal component state
+When using `Component.mount()`, pass `renderChildren` manually: `{ renderChildren : () => value }`.
+
+---
+
+### Partials
+
+[`partial`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component__partial) creates sub-templates for conditional blocks and lists, preserving component recycling by position.
+
+```js
+const App = Component.create`
+    <main>
+        ${({ model, partial }) => !!model.todos.length && partial`
+            <section class="main">
+                <${ToggleAll}
+                    checked="${() => !!model.todos.length && !model.remaining.length}"
+                    handleChange=${(checked) => model.toggleAll(checked)}
+                />
+                <ul class="todo-list">
+                    ${model.filtered.map(todo => partial`
+                        <${Todo}
+                            key="${todo.id}"
+                            model="${todo}"
+                            handleRemove=${() => model.removeTodo(todo)}
+                        />
+                    `)}
+                </ul>
+            </section>
+        `}
+        ${({ model, partial }) => model.completed.length ? partial`
+            <button onClick=${function() { this.model.removeCompleted(); }}>
+                Clear completed
+            </button>
+        ` : null}
+    </main>
+`;
+```
+
+For very large templates, extract named sub-template helpers (use `this.partial` inside them):
+
+```js
+const MyComponent = Component.create`
+    <div>
+        ${(self) => self.renderHeader()}
+    </div>
+`.extend({
+    renderHeader() {
+        return this.partial`<header><h1>${this.model.title}</h1></header>`;
+    }
+});
+```
+
+---
+
+### Component Recycling
+
+Rasti reuses component instances across renders to preserve state and improve performance.
+
+- **Keyed**: matched by `key` attribute — use for arrays
+- **Unkeyed**: matched by type + position in template/partial
+
+**Rendering behavior:**
+- **Recreation** — no match found; constructor runs, `onHydrate` fires
+- **Recycling** — same instance reused: `onBeforeRecycle()` → props updated → `onRecycle()`
+
+```js
+// Use key for list items
+${model.items.map(item => partial`
+    <${Item} key="${item.id}" model="${item}" />
+`)}
+
+// Same type, different identity — use key to force recreation instead of recycling
+${({ props }) => partial`<${TodoForm} key="${props.editingId}" model="${props.editingTodo}" />`}
+```
+
+---
 
 ### Container Components
 
-Components that render a single child component are **containers**. In containers, `this.el` references the child's element directly (not a wrapper).
+A component with a single child component expression is a **container**. `this.el` references the child's element directly (no wrapper).
 
 ```js
-// Container wrapping a Button with preset props
 const PrimaryButton = Component.create`
     <${Button} className="primary" variant="solid" />
 `;
 
-// Container using function form
-const SecondaryButton = Component.create(() => 
+// Function form
+const SecondaryButton = Component.create(() =>
     Button.mount({ className : 'secondary', variant : 'outlined' })
 );
-
-// Note: this.el references the Button's <button> element, not a wrapper div
 ```
 
-### Template Interpolations
-
-Interpolations in templates and partials are evaluated during each render:
-- Non-function values (strings, numbers, booleans) are passed directly
-- Functions are executed, receiving the component instance as argument and bound to `this`, then the returned value is used
-
-```js
-const MyComponent = Component.create`
-    <div>
-        <!-- Arrow function (most common) - implicit return -->
-        ${({ model }) => model.title}
-        
-        <!-- Regular function with explicit return -->
-        ${function() { return this.model.title; }}
-        
-        <!-- Destructure what you need from the instance -->
-        ${({ model, props, state }) => model.count + props.offset}
-        
-        <!-- Or use the full instance as parameter -->
-        ${(self) => self.model.title}
-    </div>
-`;
-```
-
-### Quoted vs Unquoted Attributes
-
-For attribute values, you can use unquoted syntax to pass a function or value reference directly instead of executing it. This is especially useful for event handlers and component options.
-
-```js
-// Standard attributes - evaluated during render
-<button class="${({ props }) => props.className}">Button</button>
-<div id="${({ props }) => `item-${props.id}`}">Content</div>
-
-// Boolean attributes
-<input type="checkbox" checked="${({ props }) => props.isChecked}" />
-<button disabled="${({ model }) => model.loading}">Submit</button>
-// Returns false = attribute not rendered | Returns true = rendered without value
-
-// Event handlers - QUOTED executes the function to get the handler
-<button onClick="${({ props }) => props.onSave}">Save</button>
-<input onChange="${function(e) { this.model.value = e.target.value; }}">
-
-// Event handlers - UNQUOTED passes function reference directly
-<button onClick=${handleClick}>Click</button>
-<input onChange=${function() { this.handleChange(); }}>
-```
-
-**Component Tags**
-
-When using `<${Component} />`, attributes become component options. These options follow the same interpolation rules:
-
-- **Quoted**: Functions execute in the parent's render context, the result is passed to the child as an option
-- **Unquoted**: Function references are passed directly to the child without execution
-
-```js
-const Parent = Component.create`
-    <div>
-        <!-- Quoted = execute in parent context, pass result to child -->
-        <${Child} 
-            title="${({ model }) => model.title}"
-            onSave="${({ model }) => () => model.save()}"
-        />
-        
-        <!-- Unquoted = pass function to child, child can execute it later -->
-        <${Child}
-            title=${({ model }) => model.title}
-            onSave=${handleSave}
-            onDelete=${function(id) { deleteItem(id); }}
-        />
-    </div>
-`;
-
-// Child receives options as props
-const Child = Component.create`
-    <button onClick="${({ props }) => props.onSave}">Save</button>
-`;
-```
-
-### Component Recycling
-
-Rasti recycles components during re-renders to preserve state and improve performance.
-
-**How components are matched for recycling:**
-- **Keyed components**: Recycled if a previous child with the same `key` exists (use for arrays)
-- **Unkeyed components**: Recycled if they have the same type and position in the template or partial
-
-**Rendering behavior:**
-- **Recreation**: New component instance created (constructor runs) when no match is found
-- **Recycling**: Same instance reused. Lifecycle: `onBeforeRecycle()` → props updated → `onRecycle()`
-
-```js
-// Keyed components: recycled by matching key (use for arrays)
-${({ props }) => props.items.map(item => 
-    partial`<${Item} key="${item.id}">${item.name}</${Item}>`
-)}
-
-// Unkeyed components: recycled by type and position
-${({ props }) => props.showHeader ? 
-    partial`<${Header} />` : null
-}
-```
-
-### Using Partial
-
-The [`partial`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component__partial) method creates sub-templates that preserve DOM structure for efficient recycling.
-
-```js
-const MyComponent = Component.create`
-    <div>
-        ${(self) => self.renderContent()}
-    </div>
-`.extend({
-    // Use this.partial within component methods
-    renderContent() {
-        return this.partial`
-            <header>
-                <${Title}>My Title</${Title}>
-            </header>
-            <main>
-                ${this.props.items.map(item => 
-                    this.partial`<${Item} key="${item.id}">${item.name}</${Item}>`
-                )}
-            </main>
-        `;
-    }
-});
-
-// In template interpolations, use destructured `partial` for inline sub-templates
-const Container = Component.create`
-    <div>
-        ${({ props, partial }) => props.showHeader ? partial`
-            <header>
-                <h1>${props.title}</h1>
-            </header>
-        ` : null}
-    </div>
-`;
-```
-
-### Rendering Raw HTML
-
-Use only when absolutely necessary and the HTML is safe:
-
-```js
-${({ props }) => Component.markAsSafeHTML(props.trustedHTML)}
-// ⚠️ Only use with trusted, sanitized HTML
-```
-
-**Related:** [`Component.markAsSafeHTML`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component_markassafehtml)
+---
 
 ### Lifecycle Hooks
 
-Components have a complete lifecycle with hooks for different stages:
+| Hook | Runs | Use for |
+|------|------|---------|
+| `preinitialize()` | Very start of constructor | Instance props needed by constructor itself |
+| `onCreate()` | End of constructor (client + server) | State init, config before render |
+| `onHydrate()` | After first DOM render (client only) | Subscriptions, API calls, browser APIs |
+| `onChange(model, changed)` | On subscribed model change | Conditional render (default calls `render()`) |
+| `onBeforeUpdate()` | Start of update render | Save previous state |
+| `onUpdate()` | After update render | DOM operations (focus, scroll, etc.) |
+| `onBeforeRecycle()` | Before recycling starts | Prepare for prop update |
+| `onRecycle()` | After props updated on recycle | Post-recycle setup |
+| `onDestroy()` | On component destroy | Custom cleanup |
 
 ```js
 const MyComponent = Component.create`...`.extend({
-    onCreate(...args) {
-        // Called at end of constructor, before any render
-        // Receives the same arguments passed to the constructor
-        // Executes both on client and server
-        // Use for: initializing state, subscribing to external events
-        this.destroyQueue.push(
-            this.options.externalModel.on('change', this.onModelChange.bind(this))
-        );
+    onCreate() {
+        // Always runs (client + server). Initialize state here.
+        this.state = new Model({ editing : false });
     },
-    
+
     onHydrate() {
-        // Called after the first render in the DOM
-        // Does NOT run during server-side rendering
-        // Use for: setup that requires the component to be present in the DOM,
-        // making API requests, setting up browser-specific functionality
+        // Client only, first time in DOM.
+        // subscribe/listenTo are auto-cleaned on destroy — no destroyQueue needed.
+        this.subscribe(this.props.externalModel);
+        this.listenTo(this.props.externalModel, 'sync', this.onSync.bind(this));
+        // Use destroyQueue.push for external subscriptions Rasti doesn't manage:
+        const onResize = this.onResize.bind(this);
+        window.addEventListener('resize', onResize);
+        this.destroyQueue.push(() => window.removeEventListener('resize', onResize));
     },
-    
-    onChange(model, changed, ...args) {
-        // Called when subscribed model/state/props emit 'change' event
-        // By default calls render() - override for conditional rendering
-        // Use for: conditional rendering based on specific changes
+
+    onChange(model, changed) {
+        // Override to avoid unnecessary re-renders
         if ('relevantKey' in changed) this.render();
     },
-    
-    onBeforeUpdate() {
-        // Called at the beginning of render() when this.el is present (update render)
-        // Only executes during updates, not during the initial render
-        // Use for: saving previous state or preparing for the update
-    },
-    
+
     onUpdate() {
-        // Called after component re-renders (after onChange triggers render)
-        // Use for: DOM operations after update
+        if (this.state.editing) this.$('input.edit').focus();
     },
-    
-    onBeforeRecycle() {
-        // Called when the component is about to be recycled (reused between renders)
-        // Called at the beginning of the recycle method, before any recycling operations occur
-        // Use for: storing previous state or preparing for the recycling
-    },
-    
-    onRecycle() {
-        // Called when the component is recycled (reused with the same key or position and type)
-        // Called after props are updated
-        // Use for: operations after component is recycled and props are updated
-    },
-    
-    onDestroy(...args) {
-        // Called when component is destroyed
-        // Receives options object or any arguments passed to destroy method
-        // Note: destroyQueue is automatically cleaned, subscriptions are auto-removed
-        // Use for: custom cleanup logic
+
+    onDestroy() {
+        // destroyQueue handlers run automatically — only add manual cleanup here
     }
 });
 ```
 
-**Lifecycle Flow:**
-1. **Creation**: `onCreate()` - called at end of constructor
-2. **First Render**: `onHydrate()` - called after first render in DOM
-3. **Updates**: `onBeforeUpdate()` → render → `onUpdate()` - called on subsequent renders
-4. **Recycling**: `onBeforeRecycle()` → props update → `onRecycle()` - called when component is reused
-5. **Destruction**: `onDestroy()` - called when component is destroyed
+**`destroyQueue`** — array of functions called on destroy. Use for external subscriptions not managed by Rasti (DOM events, timers, third-party libraries). `subscribe()` and `listenTo()` are automatically cleaned up by `View.destroy()` — no need to push those.
 
 **Related API:**
-- [`component.onCreate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component__oncreate)
-- [`component.onChange`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component__onchange)
-- [`component.onHydrate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component__onhydrate)
-- [`component.onBeforeUpdate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component__onbeforeupdate)
-- [`component.onUpdate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component__onupdate)
-- [`component.onBeforeRecycle`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component__onbeforerecycle)
-- [`component.onRecycle`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component__onrecycle)
-- [`component.onDestroy`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component__ondestroy)
+- [`component.onCreate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component__oncreate) · [`component.onHydrate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component__onhydrate) · [`component.onChange`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component__onchange) · [`component.onUpdate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component__onupdate) · [`component.onDestroy`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component__ondestroy)
+
+---
 
 ### Model Integration
 
-Components automatically subscribe to `this.model`, `this.state`, and `this.props` if they exist. Changes trigger `onChange()` which by default calls `render()`.
+Components auto-subscribe to `this.model`, `this.state`, and `this.props`. Changes trigger `onChange()` which by default calls `render()`.
 
 ```js
-const model = new Model({ count : 0 });
-
 const Counter = Component.create`
     <div>
         <span>${({ model }) => model.count}</span>
@@ -383,89 +334,170 @@ const Counter = Component.create`
     </div>
 `;
 
-// Auto-subscribes to model changes and calls onChange()
-Counter.mount({ model }, document.body);
+Counter.mount({ model : new Model({ count : 0 }) }, document.body);
 ```
 
-**Manual subscriptions for additional models:**
+**Additional subscriptions** — use `onHydrate` (client only). `subscribe()` and `listenTo()` are auto-cleaned on destroy:
 
 ```js
 const Dashboard = Component.create`...`.extend({
     onHydrate() {
-        // Runs when first hydrated (after component is in the DOM, does NOT run server-side)
-        
-        // Subscribe to external model's 'change' event → calls onChange()
+        // subscribe() triggers onChange() on model change
         this.subscribe(this.props.externalModel);
-        
-        // Subscribe to custom events → calls specific handler
-        this.listenTo(this.props.externalModel, 'custom_event', this.onExternalCustomEvent);
-        
-        // Both are auto-cleaned on destroy
+        // listenTo() for custom events
+        this.listenTo(this.props.externalModel, 'sync', this.onSync.bind(this));
     },
-    
-    onExternalCustomEvent(model) {
-        // Custom event handler
-        this.render();
-    }
+    onSync() { this.render(); }
 });
 ```
 
 **Related API:**
-- [`component.subscribe`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component__subscribe) - Subscribe to model 'change' events
-- [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_emitter__listento) - Subscribe to custom events
-- [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_model) - Data model class
-
-### Rendering
-
-The [`render()`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component__render) method handles both initial render and updates:
-
-**First render (when `this.el` is not present):**
-- Renders component as string inside a `DocumentFragment` and hydrates it
-- Makes `this.el` available (the root DOM element)
-- Calls `onHydrate()` lifecycle method
-- Typically handled by `Component.mount()` automatically
-
-**Update render (when `this.el` is present):**
-- Updates only attributes of root element and child elements
-- Updates only content of interpolations (dynamic parts)
-- For container components, updates the single interpolation
-- Calls `onBeforeUpdate()` at the beginning, `onUpdate()` at the end
-- Typically called from default `onChange()` lifecycle method that is triggered by model changes
-
-**Child component handling:**
-- Components can be recreated (new instance, constructor runs) or recycled (same instance, props updated)
-- Recycled components call `onBeforeRecycle()` then `onRecycle()` after props update
+- [`component.subscribe`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component__subscribe) · [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_emitter__listento)
 
 ---
 
-## ⚠️ Rasti Best Practices
+### Rendering
+
+[`render()`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component__render) handles both initial hydration and updates:
+
+- **First render** — renders as string inside `DocumentFragment`, hydrates DOM, calls `onHydrate()`
+- **Update render** — patches only changed attributes and interpolation content; calls `onBeforeUpdate()` then `onUpdate()`
+
+Use [`Component.markAsSafeHTML`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_component_markassafehtml) only for pre-sanitized trusted HTML:
+
+```js
+${({ props }) => Component.markAsSafeHTML(props.trustedHTML)}
+```
+
+---
+
+## 📦 Model API
+
+### Model Creation
+
+```js
+import { Model } from 'rasti';
+
+class AppModel extends Model {
+    addTodo(attrs) {
+        const todo = this.createTodo(attrs);
+        this.todos = this.todos.concat(todo);
+    }
+    removeCompleted() {
+        this.completed.forEach(todo => this.removeTodo(todo));
+    }
+}
+
+AppModel.prototype.defaults = {
+    todos: [],
+    filter: 'all'
+};
+```
+
+**Related:** [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_model)
+
+---
+
+### Attributes & Change Events
+
+Each key in `defaults` gets an auto-generated getter/setter. Setting a property emits `change` and `change:key`:
+
+```js
+model.count = 1; // emits 'change' and 'change:count'
+model.set({ a: 1, b : 2 }); // batched, emits one 'change' with { a, b }
+
+// Listen to any change
+model.on('change', (model, changed) => console.log(changed));
+
+// Listen to specific attribute
+model.on('change:filter', (model, value) => console.log(value));
+```
+
+---
+
+### Parsing & Serialization
+
+`parse()` is called during construction to transform raw data (e.g. from localStorage or API):
+
+```js
+class AppModel extends Model {
+    parse(data) {
+        if (!data || !Object.keys(data).length) return {};
+        return {
+            todos : (data.todos || []).map(attrs => this.createTodo(attrs)),
+            filter : data.filter
+        };
+    }
+    toJSON() {
+        return {
+            todos : this.todos.map(t => t.toJSON()),
+            filter : this.filter
+        };
+    }
+}
+
+// Persist to localStorage
+model.on('change', () => {
+    localStorage.setItem('todos', JSON.stringify(model));
+});
+```
+
+---
+
+### Inter-model Subscriptions
+
+Use `listenTo` / `stopListening` to manage subscriptions between models:
+
+```js
+createTodo(attrs) {
+    const todo = new TodoModel(attrs);
+    // Listen to child model — bubbles change up
+    this.listenTo(todo, 'change', (...args) => this.emit('change', ...args));
+    return todo;
+}
+
+removeTodo(todo) {
+    this.todos = this.todos.filter(t => t !== todo);
+    this.stopListening(todo); // clean up listener
+}
+```
+
+**Related:** [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_emitter__listento) · [`Emitter.stopListening`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md#module_emitter__stoplistening)
+
+---
+
+## ⚠️ Best Practices
 
 ### Component Structure
-- Use `Component.create` with valid, semantic HTML
-- Use `props.renderChildren()` for rendering child content
-- Use `partial` for creating subcomponents and sub-templates
-- Use Component tags `<${Component} />` for rendering child components instead of using `Component.mount()`
-- Return `null` in interpolations when nothing should render
-- Use `key` attribute when rendering arrays to enable proper component recycling
-- Document all components and methods with JSDoc
+- Use `Component.create` with semantic HTML. Keep template structure visible — prefer inline `partial` over helper methods.
+- Use `partial` for conditional blocks and lists. Return `null` in interpolations to render nothing.
+- Use `key` attribute when rendering arrays.
+- Extract class/style logic to helper functions (e.g. `getClassName`, `getFilterClass`).
+- Use `props.renderChildren()` when the component accepts slotted content.
 
-### Event Management
-- Use `this.subscribe()` for subscribing to model 'change' events
-- Use `this.listenTo()` for subscribing to custom events
-- Use `this.destroyQueue` for managing custom subscriptions that need manual cleanup
+### Handlers & Props
+- Unquoted for local handlers: `onClick=${function() { this.model.toggle(); }}`
+- Quoted when passing a thunk from parent: `handleAdd="${({ model }) => (v) => model.add(v)}"`
+- Unquoted for simple pass-through callbacks: `handleChange=${(v) => model.set(v)}`
 
-### Lifecycle Usage
-- Subscribe to external models in `onHydrate()` (runs after component is in the DOM)
-- Perform DOM operations in `onHydrate()` (runs after hydration in the DOM)
-- Use `onBeforeUpdate()` to save previous state before updates
-- Use `onUpdate()` for DOM operations after component updates
-- Use `onBeforeRecycle()` to prepare for component recycling
-- Use `onRecycle()` for operations after component is recycled and props are updated
-- Clean up resources in `onDestroy()`
+### Lifecycle
+- Init state in `onCreate()`. Subscribe to external models in `onHydrate()`.
+- Use `destroyQueue.push` to co-locate cleanup with subscriptions.
+- Use `onUpdate()` for DOM side effects (focus, scroll) after re-render.
+- Override `onChange()` to conditionally render only on relevant attribute changes.
 
 ### Performance
-- Use `key` attributes for list items to enable efficient recycling when using arrays of components
-- Avoid unnecessary re-renders by conditionally calling `render()` in `onChange()`
+- Use `key` for list item components. Conditionally call `render()` in `onChange()` to avoid unnecessary work.
+
+---
+
+## Common Pitfalls
+
+1. **Quoted vs unquoted**: most frequent source of errors. Use quoted when you need to execute and pass the result; use unquoted when passing a function reference directly. See [Interpolations](#interpolations).
+
+2. **Unexpected recycling**: two components of the same type at the same position are recycled, not recreated. If you need a fresh instance (e.g. alternating A/B), give each a distinct `key` that changes per case.
+
+3. **Subscriptions in `onCreate` instead of `onHydrate`**: `onCreate` runs on the server too — subscriptions to models, DOM events, and APIs all belong in `onHydrate`.
 
 ---
 
@@ -473,4 +505,3 @@ The [`render()`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.m
 
 - **Full API Documentation**: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.0/docs/api.md)
 - **GitHub Repository**: [8tentaculos/rasti](https://github.com/8tentaculos/rasti)
-- **Examples**: Check the `example/` folder in the repository
