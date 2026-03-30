@@ -73,15 +73,12 @@ const getExpressionResult = (expression, context, meta) => {
 const isComponent = (el) => !!(el && el.dataset && el.dataset[Component.DATASET_ELEMENT] && el.dataset[Component.DATASET_ELEMENT].endsWith('-1'));
 
 /**
- * Check if an element contains a component.
- * It checks if the element is a component root element or if it contains a component.
+ * Check if an element contains (or is) a dynamic element.
  * @param {Element} el The element to check.
- * @return {boolean} True if the element contains a component.
+ * @return {boolean} True if the element contains (or is) a dynamic element.
  * @private
  */
-const containsElement = (el) => !!(
-    el && ((el.dataset && el.dataset[Component.DATASET_ELEMENT]) || (el.querySelector && el.querySelector(`[${Component.ATTRIBUTE_ELEMENT}]`)))
-);
+const containsElement = (el) => !!(el && ((el.dataset && el.dataset[Component.DATASET_ELEMENT]) || (el.querySelector && el.querySelector(`[${Component.ATTRIBUTE_ELEMENT}]`))));
 
 /**
  * Generate string with placeholders for interpolated expressions.
