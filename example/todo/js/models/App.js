@@ -100,7 +100,7 @@ class App extends Model {
     }
 
     /**
-     * Parse the data and create the todos.
+     * Parse the data and create the todo models.
      * @param {Object} data The data to parse.
      * @return {Object} The parsed data.
      */
@@ -119,15 +119,14 @@ class App extends Model {
     onChangeTodo(...args) {
         this.emit('change', ...args);
     }
-}
 
-/**
- * Default attributes for the App model.
- * @type {Object}
- */
-App.prototype.defaults = {
-    todos : [],
-    filter : 'all',
-};
+    /**
+     * Default attributes for the App model.
+     * @returns {Object} Default attributes for the App model.
+     */
+    defaults() {
+        return { todos : [], filter : 'all' };
+    }
+}
 
 export default App;

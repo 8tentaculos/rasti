@@ -258,6 +258,42 @@ describe('View', () => {
             v.$('#btn').dispatchEvent(new MouseEvent('click', { bubbles : true }));
         });
 
+        it('must stop propagation when stopPropagation is called', (done) => {
+            class MyView extends View {
+                render() {
+                    this.el.innerHTML = this.template();
+                    return this;
+                }
+            }
+
+            MyView.prototype.template = () => `
+                <section class="target">
+                    <div class="target"><button id="btn"></button></div>
+                </section>
+            `;
+
+            const matches = [];
+
+            MyView.prototype.events = {
+                'click' : (e, view, el) => {
+                    matches.push(el);
+                },
+                'click .target' : (e, view, el) => {
+                    matches.push(el);
+                    e.stopPropagation();
+                }
+            };
+
+            const v = new MyView();
+            document.body.appendChild(v.render().el);
+            v.$('#btn').dispatchEvent(new MouseEvent('click', { bubbles : true }));
+            setTimeout(() => {
+                expect(matches).to.have.lengthOf(1);
+                expect(matches[0]).to.equal(v.$('div.target'));
+                done();
+            }, 0);
+        });
+
         it('must not match elements outside the view', (done) => {
             class MyView extends View {
                 render() {

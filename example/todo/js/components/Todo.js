@@ -73,10 +73,10 @@ const Todo = Component.create`
     </li>
 `.extend({
     /**
-     * Initialize component before rendering.
-     * Sets up internal state for editing mode.
+     * Called when the component is created, at the end of the constructor.
+     * Add internal component state.
      */
-    preinitialize() {
+    onCreate() {
         // Internal component state.
         this.state = new Model({ editing : false });
     },

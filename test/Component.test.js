@@ -478,6 +478,31 @@ describe('Component', () => {
             }, 0);
         });
 
+        it('must stop propagation when stopPropagation is called', (done) => {
+            let eventsOrder = [];
+
+            const c = Component.create`
+                <div onClick=${() => { eventsOrder.push('parent'); }}>
+                    <span onClick=${(e) => { eventsOrder.push('child'); e.stopPropagation(); }}>
+                        <button onClick=${() => { eventsOrder.push('button'); }}>
+                            click me
+                        </button>
+                    </span>
+                </div>
+            `.mount({}, document.body);
+
+            const button = c.$('button');
+
+            button.dispatchEvent(new MouseEvent('click', { bubbles : true }));
+
+            // Wait for event handling to complete.
+            setTimeout(() => {
+                // Only button and child should be called, parent should not
+                expect(eventsOrder).to.deep.equal(['button', 'child']);
+                done();
+            }, 0);
+        });
+
         it('must handle keyboard events properly', (done) => {
             let keyboardEvents = [];
 
@@ -995,6 +1020,25 @@ describe('Component', () => {
             expect(c.el).to.be.equal(c.children[0].el);
             expect(child.el).to.be.equal(c.children[0].el);
             expect(child.children[0].el).to.be.equal(c.children[0].children[0].el);
+        });
+
+        it('must delegate events in container with renderChildren content', (done) => {
+            // Child accepts slotted content via renderChildren
+            const Panel = Component.create`<div class="panel">${({ props }) => props.renderChildren()}</div>`;
+
+            // Container wraps Panel and passes a button with an onClick handler as children
+            const PanelWithButton = Component.create`
+                <${Panel}>
+                    <button onClick=${() => done()}>click me</button>
+                </${Panel}>
+            `;
+
+            const c = PanelWithButton.mount({}, document.body);
+
+            // c.el is the panel div (container — no wrapper element)
+            c.el.querySelector('button').dispatchEvent(
+                new MouseEvent('click', { bubbles : true })
+            );
         });
     });
 

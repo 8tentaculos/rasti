@@ -56,16 +56,16 @@
     "devDependencies": {
         "@eslint/js": "^9.34.0",
         "@rollup/plugin-replace": "^6.0.3",
-        "@rollup/plugin-terser": "^0.4.4",
+        "@rollup/plugin-terser": "^1.0.0",
         "chai": "^6.0.1",
         "eslint": "^9.34.0",
-        "glob": "^11.1.0",
+        "glob": "^13.0.6",
         "globals": "^16.3.0",
         "jsdoc-to-markdown": "^9.1.2",
-        "jsdom": "^26.1.0",
+        "jsdom": "^29.0.1",
         "jsdom-global": "3.0.2",
-        "mocha": "^11.7.1",
-        "rollup": "^4.48.1"
+        "mocha": "^11.7.5",
+        "rollup": "^4.60.1"
     },
     "directories": {
         "example": "example",

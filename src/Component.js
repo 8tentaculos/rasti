@@ -73,15 +73,12 @@ const getExpressionResult = (expression, context, meta) => {
 const isComponent = (el) => !!(el && el.dataset && el.dataset[Component.DATASET_ELEMENT] && el.dataset[Component.DATASET_ELEMENT].endsWith('-1'));
 
 /**
- * Check if an element contains a component.
- * It checks if the element is a component root element or if it contains a component.
+ * Check if an element contains (or is) a dynamic element.
  * @param {Element} el The element to check.
- * @return {boolean} True if the element contains a component.
+ * @return {boolean} True if the element contains (or is) a dynamic element.
  * @private
  */
-const containsElement = (el) => !!(
-    el && ((el.dataset && el.dataset[Component.DATASET_ELEMENT]) || (el.querySelector && el.querySelector(`[${Component.ATTRIBUTE_ELEMENT}]`)))
-);
+const containsElement = (el) => !!(el && ((el.dataset && el.dataset[Component.DATASET_ELEMENT]) || (el.querySelector && el.querySelector(`[${Component.ATTRIBUTE_ELEMENT}]`))));
 
 /**
  * Generate string with placeholders for interpolated expressions.
@@ -658,12 +655,12 @@ class Component extends View {
                     element.hydrate(this.el);
                 }
             });
-            // Delegate events.
-            this.delegateEvents();
             // Get references for interpolation marker comments
             this.template.interpolations.forEach(interpolation => interpolation.hydrate(this.el));
             this.children.forEach(child => child.hydrate(this.el));
         }
+        // Delegate events.
+        this.delegateEvents();
         // Call `onHydrate` lifecycle method.
         this.onHydrate.call(this);
         // Return `this` for chaining.
@@ -1008,10 +1005,10 @@ class Component extends View {
         } else {
             // Update elements attributes.
             this.template.elements.forEach(element => element.update());
-            // If there are pending event types, delegate events again.
-            if (this.eventsManager.hasPendingTypes()) {
-                this.delegateEvents();
-            }
+        }
+        // If there are pending event types, delegate events again.
+        if (this.eventsManager.hasPendingTypes()) {
+            this.delegateEvents();
         }
         // Call onUpdate lifecycle method.
         this.onUpdate.call(this);
