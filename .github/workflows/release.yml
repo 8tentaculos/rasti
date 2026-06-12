@@ -1,0 +1,161 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build, test and run npm publish --dry-run without publishing'
+        type: boolean
+        default: true
+
+# Least privilege by default; the publish job opts into more below.
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    # Don't run on forks.
+    if: github.repository == '8tentaculos/rasti'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      dist_tag: ${{ steps.meta.outputs.dist_tag }}
+      is_prerelease: ${{ steps.meta.outputs.is_prerelease }}
+      is_dry: ${{ steps.meta.outputs.is_dry }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: '.nvmrc'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+
+      # Trusted publishing (OIDC) needs a recent npm.
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
+      # Runs `prepare`: clean + test (+ lint + types) + build.
+      - name: Install, test and build
+        run: npm ci
+
+      - name: Resolve release metadata
+        id: meta
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          version="$(node -p "require('./package.json').version")"
+
+          # On tag pushes, the tag must match the package version.
+          if [ "$EVENT_NAME" = "push" ] && [ "$REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $REF_NAME does not match package.json version v$version"
+            exit 1
+          fi
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$INPUT_DRY_RUN" = "true" ]; then
+            is_dry=true
+          else
+            is_dry=false
+          fi
+
+          case "$version" in
+            *-*)
+              is_prerelease=true
+              dist_tag="$(printf '%s' "$version" | sed -E 's/^[^-]*-([^.]+).*/\1/')"
+              ;;
+            *)
+              is_prerelease=false
+              dist_tag=latest
+              ;;
+          esac
+
+          {
+            echo "version=$version"
+            echo "dist_tag=$dist_tag"
+            echo "is_prerelease=$is_prerelease"
+            echo "is_dry=$is_dry"
+          } >> "$GITHUB_OUTPUT"
+
+      # Stable releases use the curated CHANGELOG section as release notes.
+      - name: Generate stable release notes
+        if: steps.meta.outputs.is_prerelease == 'false'
+        run: node scripts/extract-changelog.js "${{ steps.meta.outputs.version }}" > release-notes.md
+
+      # Pack the already-built tree (prepare ran during npm ci).
+      - name: Pack tarball
+        run: |
+          npm pack --ignore-scripts
+          echo "TARBALL=$(ls rasti-*.tgz)" >> "$GITHUB_ENV"
+
+      - name: Publish dry-run
+        run: npm publish "$TARBALL" --dry-run --access public --tag "${{ steps.meta.outputs.dist_tag }}"
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release
+          path: |
+            rasti-*.tgz
+            release-notes.md
+          if-no-files-found: ignore
+          retention-days: 5
+
+  publish:
+    needs: verify
+    # Skips on dry-run dispatch; runs for tag pushes (and manual non-dry dispatch).
+    if: needs.verify.outputs.is_dry == 'false'
+    runs-on: ubuntu-latest
+    # Manual approval gate (Required reviewers on this environment).
+    environment: npm-publish
+    permissions:
+      contents: write # create the GitHub Release
+      id-token: write # OIDC for npm provenance / trusted publishing
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: '.nvmrc'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release
+
+      - name: Publish to npm
+        run: |
+          TARBALL="$(ls rasti-*.tgz)"
+          npm publish "$TARBALL" --provenance --access public --tag "${{ needs.verify.outputs.dist_tag }}"
+
+      - name: Create GitHub Release
+        # Only meaningful for tag pushes.
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          IS_PRERELEASE: ${{ needs.verify.outputs.is_prerelease }}
+        run: |
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            gh release create "$TAG" --title "$TAG" --generate-notes --prerelease --verify-tag
+          else
+            gh release create "$TAG" --title "$TAG" --notes-file release-notes.md --verify-tag --latest
+          fi

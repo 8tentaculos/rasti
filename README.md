@@ -13,11 +13,12 @@
 It provides declarative, composable **components** for building state-driven UIs.  
 Its low-level MVC core, inspired by **Backbone.js**’s architecture, provides **models**, **views** and **event emitters** as the fundamental building blocks.
 
-[![Travis (.com)](https://img.shields.io/travis/com/8tentaculos/rasti)](https://app.travis-ci.com/8tentaculos/rasti)
+[![CI](https://github.com/8tentaculos/rasti/actions/workflows/ci.yml/badge.svg)](https://github.com/8tentaculos/rasti/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/rasti.svg)](https://www.npmjs.com/package/rasti)
 [![npm package minimized gzipped size](https://img.shields.io/bundlejs/size/rasti)](https://unpkg.com/rasti/dist/rasti.min.js)
 [![npm downloads](https://img.shields.io/npm/dm/rasti.svg)](https://www.npmjs.com/package/rasti)
 [![jsDelivr hits (npm)](https://img.shields.io/jsdelivr/npm/hm/rasti)](https://www.jsdelivr.com/package/npm/rasti)
+[![license](https://img.shields.io/npm/l/rasti.svg)](https://github.com/8tentaculos/rasti/blob/master/LICENSE)
 
 ## Key Features  
 
