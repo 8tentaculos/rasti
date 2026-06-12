@@ -23,7 +23,6 @@ import getResult from './utils/getResult.js';
  * @param {...*} [args] Additional arguments passed to `preinitialize` and `parse` methods
  * @property {object|Function} defaults Default attributes for the model. If a function, it's called bound to the model instance to get defaults.
  * @property {object} previous Object containing previous attributes when a change occurs.
- * @property {string} attributePrefix Static property that defines a prefix for generated getters/setters. Defaults to empty string.
  * @example
  * import { Model } from 'rasti';
  * 
@@ -337,6 +336,9 @@ export default class Model extends Emitter {
  * Static property that defines a prefix for generated getters/setters.
  * When set, all attribute properties will be prefixed (e.g., 'attr_name' instead of 'name').
  * Useful for avoiding naming conflicts or creating a consistent property naming convention.
+ * @static
+ * @memberof module:Model
+ * @name attributePrefix
  * @type {string}
  * @default ''
  * @example
