@@ -205,7 +205,7 @@ const Header = Component.create<{ handleAddTodo: (title: string) => void }>`
     <header>...</header>
 `;
 
-new Header({ handleAddTodo: (t) => console.log(t) });    // ✅
+new Header({ handleAddTodo: (t) => console.log(t) }); // ✅
 
 // With a typed model:
 const App = Component.create<{}, any, AppModel>`<main>...</main>`;
@@ -216,7 +216,7 @@ Without generics, `Component.create` stays permissive (parity with JS):
 
 ```ts
 const Plain = Component.create`<div></div>`;
-new Plain({ anything: 'goes' });                         // ✅
+new Plain({ anything: 'goes' }); // ✅
 ```
 
 ### Models
@@ -229,13 +229,13 @@ import { Model } from 'rasti';
 interface TodoAttrs { title: string; completed: boolean; }
 
 class Todo extends Model<TodoAttrs> {
-    defaults = { title: '', completed: false };   // object or `() => ({ ... })`
+    defaults = { title: '', completed: false }; // object or `() => ({ ... })`
     toggle() { this.completed = !this.completed; }
 }
-interface Todo extends TodoAttrs {}                      // exposes this.title, this.completed
+interface Todo extends TodoAttrs {} // Exposes this.title, this.completed
 
 const t = new Todo({ title: 'x' });
-t.title.toUpperCase();                                   // ✅
+t.title.toUpperCase(); // ✅
 t.on('change:completed', (m, value) => value && /* boolean */ console.log('done'));
 ```
 
@@ -260,9 +260,9 @@ const onClick: EventHandler<Counter, MouseEvent> = function(ev) {
 const renderLabel: RenderExpression<Counter> = ({ props }) => props.label;
 
 // Extract types from existing classes
-type T = Attrs<Todo>;          // TodoAttrs
-type P = Props<Counter>;       // CounterProps
-type S = State<Counter>;       // CounterState
+type T = Attrs<Todo>;    // TodoAttrs
+type P = Props<Counter>; // CounterProps
+type S = State<Counter>; // CounterState
 ```
 
 ### Known limitations
@@ -293,4 +293,3 @@ We strive to minimize breaking changes between major versions. However, if you'r
 ## Contributing
 
 Contributions are welcome! Share feature ideas or report bugs on our [GitHub Issues page](https://github.com/8tentaculos/rasti/issues).
-
