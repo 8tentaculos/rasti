@@ -1580,8 +1580,8 @@ describe('Component', () => {
     describe('Recycling behaviors', () => {
         it('must recycle single component without moving', () => {
             let recycleCalls = 0;
-            let originalElement = null;
-            let originalParent = null;
+            let originalElement;
+            let originalParent;
 
             const Child = Component.create`<div>${({ props }) => props.text}</div>`.extend({
                 onRecycle() {
@@ -1611,8 +1611,8 @@ describe('Component', () => {
 
         it('must recycle component with movement when using partial', () => {
             let recycleCalls = 0;
-            let originalChildElement = null;
-            let originalInnerSpan = null;
+            let originalChildElement;
+            let originalInnerSpan;
 
             const Child = Component.create`<div>${({ props }) => props.text}</div>`.extend({
                 onRecycle() {
