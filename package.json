@@ -5,23 +5,31 @@
     "type": "module",
     "main": "lib/index.cjs",
     "module": "es/index.js",
-    "browser": "dist/rasti.min.js",
+    "types": "types/index.d.ts",
     "exports": {
         ".": {
+            "types": "./types/index.d.ts",
             "import": "./es/index.js",
             "require": "./lib/index.cjs",
             "default": "./es/index.js"
         },
         "./*": {
-            "import": "./es/*",
-            "require": "./lib/*"
+            "types": "./types/*.d.ts",
+            "import": "./es/*.js",
+            "require": "./lib/*.cjs"
+        },
+        "./*.js": {
+            "types": "./types/*.d.ts",
+            "import": "./es/*.js",
+            "require": "./lib/*.cjs"
         }
     },
     "files": [
         "dist",
         "es",
         "lib",
-        "src"
+        "src",
+        "types"
     ],
     "directories": {
         "example": "example",
@@ -29,11 +37,7 @@
         "doc": "docs"
     },
     "scripts": {
-        "clean": "node -e \"const fs=require('fs');['lib','dist','es'].forEach(d=>fs.rmSync(d,{recursive:true,force:true}))\"",
-        "build": "rollup -c",
         "prepare": "npm run clean && npm run test && npm run build",
-        "posttest": "npm run lint",
-        "lint": "eslint src test",
         "test": "mocha --require jsdom-global/register --reporter nyan test/*.js",
         "test:types": "tsd",
         "posttest": "npm run lint && npm run test:types",

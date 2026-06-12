@@ -35,6 +35,8 @@ Its low-level MVC core, inspired by **Backbone.js**’s architecture, provides *
   Seamlessly integrates into existing **Backbone.js** legacy projects.  
 - **Standards-Based** 📐  
   Built on modern web standards, no tooling required.  
+- **TypeScript Support** 🧩  
+  Ships with type definitions for strict typing of models, views, components, props, and events.  
 
 ## Getting Started
 
@@ -179,7 +181,7 @@ Counter.mount({ model }, document.body);
 - **Lightweight and Efficient**  
   Minimal footprint with optimized performance, ensuring smooth updates.  
 - **Just the Right Abstraction**  
-  Keeps you close to the DOM with no over-engineering. Fully hackable, if you're curious about how something works, just check the source code.  
+  Keeps you close to the DOM with no over-engineering. Fully hackable — if you're curious about how something works, just check the source code.  
 
 ## Example
 
@@ -188,6 +190,87 @@ You can find a sample **TODO application** in the [example folder](https://githu
 ## API Documentation
 
 For detailed information on how to use **Rasti**, refer to the [API documentation](/docs/api.md).
+
+## TypeScript
+
+**Rasti** ships with type definitions out of the box. No extra install — `import` from `rasti` and TS picks them up.
+
+### Components
+
+Pass generics explicitly to type the resulting class:
+
+```ts
+const Header = Component.create<{ handleAddTodo: (title: string) => void }>`
+    <header>...</header>
+`;
+
+new Header({ handleAddTodo: (t) => console.log(t) });    // ✅
+
+// With a typed model:
+const App = Component.create<{}, any, AppModel>`<main>...</main>`;
+App.mount({ model: new AppModel() }, document.body);
+```
+
+Without generics, `Component.create` stays permissive (parity with JS):
+
+```ts
+const Plain = Component.create`<div></div>`;
+new Plain({ anything: 'goes' });                         // ✅
+```
+
+### Models
+
+Type the attributes with `Model<Attrs>`. Use **declaration merging** to surface the auto-generated getters/setters as instance properties:
+
+```ts
+import { Model } from 'rasti';
+
+interface TodoAttrs { title: string; completed: boolean; }
+
+class Todo extends Model<TodoAttrs> {
+    defaults = { title: '', completed: false };   // object or `() => ({ ... })`
+    toggle() { this.completed = !this.completed; }
+}
+interface Todo extends TodoAttrs {}                      // exposes this.title, this.completed
+
+const t = new Todo({ title: 'x' });
+t.title.toUpperCase();                                   // ✅
+t.on('change:completed', (m, value) => value && /* boolean */ console.log('done'));
+```
+
+### Helper types
+
+```ts
+import {
+    EventHandler,
+    RenderExpression,
+    Attrs,
+    Props,
+    State,
+    ComponentModel,
+} from 'rasti';
+
+// Typed event handler with `this` bound to the component
+const onClick: EventHandler<Counter, MouseEvent> = function(ev) {
+    this.props.label;
+};
+
+// Typed render expression (`(component) => any`)
+const renderLabel: RenderExpression<Counter> = ({ props }) => props.label;
+
+// Extract types from existing classes
+type T = Attrs<Todo>;          // TodoAttrs
+type P = Props<Counter>;       // CounterProps
+type S = State<Counter>;       // CounterState
+```
+
+### Known limitations
+
+- **Template interpolation callbacks are `any`**. Functions inside `Component.create\`...\`` template literals (`${({ model }) => ...}`, `onClick=${function() { this.x }}`) cannot be inferred from the surrounding template. To type them, annotate explicitly: `function(this: MyComponent, ev) { ... }` or `({ model }: MyComponent) => ...`.
+- **`Model<A>` instance keys require declaration merging**. TypeScript can't add `A`'s keys to a `class extends Model<A>` automatically — see the `interface Todo extends TodoAttrs {}` pattern above.
+- **`this.$()` can return `null`**. It mirrors `querySelector`, so handle the empty case (`?.`) and pass a type argument to narrow the element: `this.$<HTMLInputElement>('input.edit')?.focus()`. `this.$$()` returns a `NodeListOf<HTMLElement>` (also narrowable).
+- **`this.model` / `this.state` are optional**. Both are `undefined` unless provided, so guard (`this.model?.foo`) or assert (`this.model!`) when you know one was passed. Both accept a Rasti `Model` or a model from another library (e.g. Backbone); Components subscribe to `change` events automatically when the object exposes `on`/`off`.
+- **`Model.defaults` is typed as a field**. Use `defaults = { ... }` or `defaults = () => ({ ... })`; the `defaults() { ... }` method syntax conflicts with the typed property (TS2425). Both field forms behave identically at runtime.
 
 ## Working with LLMs
 

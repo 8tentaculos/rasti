@@ -504,4 +504,5 @@ removeTodo(todo) {
 ## Additional Resources
 
 - **Full API Documentation**: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.1/docs/api.md)
+- **TypeScript usage** (generics, helpers, declaration merging, known limitations): see the [TypeScript section in the README](https://github.com/8tentaculos/rasti#typescript)
 - **GitHub Repository**: [8tentaculos/rasti](https://github.com/8tentaculos/rasti)
