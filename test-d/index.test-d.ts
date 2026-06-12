@@ -12,8 +12,9 @@ import {
     ComponentModel,
 } from '../types/index.js';
 
-// Emitter ---------------------------------------------------------------
-
+/*
+ * Emitter: typed events via the event map
+ */
 type Events = {
     greet: (name: string) => void;
     count: (n: number, meta: { source: string }) => void;
@@ -35,8 +36,9 @@ any.emit('whatever', 1, 2, 3);
 
 expectType<Array<{ emitter: Emitter<any>; type: string; listener: (...args: any[]) => void }> | undefined>(any.listeningTo);
 
-// Model -----------------------------------------------------------------
-
+/*
+ * Model: typed attributes, get/set, change events and defaults
+ */
 interface UserAttrs {
     name: string;
     age: number;
@@ -73,8 +75,9 @@ new WithFnDefaults();
 // Assigning on the prototype / inside preinitialize is allowed too
 WithObjectDefaults.prototype.defaults = { name: '', age: 0 };
 
-// View ------------------------------------------------------------------
-
+/*
+ * View: model, root element and merged options
+ */
 const v = new View<Model<UserAttrs>>({ model: new Model<UserAttrs>({ name: 'Alice', age: 1 }) });
 // `model` is optional
 expectType<Model<UserAttrs> | undefined>(v.model);
@@ -102,8 +105,9 @@ new View<Model<UserAttrs>>({
 
 expectError(new View<Model<UserAttrs>>({ model: 'not-a-model' }));
 
-// Component (class extends pattern) -------------------------------------
-
+/*
+ * Component: class extends pattern (props and state)
+ */
 interface CounterProps { initial: number; label: string; }
 interface CounterState { count: number; }
 
@@ -118,8 +122,9 @@ class Counter extends Component<CounterProps, CounterState> {
 new Counter({ initial: 5, label: 'hello', tag: 'span', onDestroy: () => {} });
 expectError(new Counter({ initial: 'not-a-number', label: 'x' }));
 
-// Component.create<P, S, M> overload -----------------------------------
-
+/*
+ * Component.create<P, S, M>
+ */
 interface AppAttrs { todos: string[]; filter: string; }
 class AppModel extends Model<AppAttrs> {}
 interface AppModel extends AppAttrs {}
@@ -141,8 +146,9 @@ new Plain({ anything: 'goes', other: 123 });
 const CounterExt = Counter.extend({ extra() {} });
 expectType<typeof Counter>(CounterExt);
 
-// Helpers --------------------------------------------------------------
-
+/*
+ * Helper types: EventHandler, RenderExpression, Attrs, Props, State, ComponentModel
+ */
 const onClick: EventHandler<Counter, MouseEvent> = function(ev) {
     expectType<Counter>(this);
     expectType<MouseEvent>(ev);
@@ -170,8 +176,9 @@ class WithModel extends Component<{}, any, AppModel> {}
 const model: ComponentModel<WithModel> = new AppModel({ todos: [], filter: 'all' });
 expectType<AppModel>(model);
 
-// Declaration merging pattern: direct attribute access on Model subclass
-
+/*
+ * Declaration merging: direct attribute access on a Model subclass
+ */
 class TodoAttrsModel extends Model<{ title: string; completed: boolean }> {}
 interface TodoAttrsModel { title: string; completed: boolean; }
 const todo = new TodoAttrsModel({ title: 'x', completed: false });
