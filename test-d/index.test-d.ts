@@ -63,16 +63,20 @@ u.on('change:age', (m, value) => expectType<number>(value));
 
 // `defaults` accepts both runtime forms: a plain object, or a function returning the defaults
 class WithObjectDefaults extends Model<UserAttrs> {
-    defaults = { name: '', age: 0 };
+    preinitialize() {
+        this.defaults = { name: '', age: 0 };
+    }
 }
 new WithObjectDefaults();
 
 class WithFnDefaults extends Model<UserAttrs> {
-    defaults = () => ({ name: '', age: 0 });
+    preinitialize() {
+        this.defaults = () => ({ name: '', age: 0 });
+    }
 }
 new WithFnDefaults();
 
-// Assigning on the prototype / inside preinitialize is allowed too
+// Prototype assignment is allowed too
 WithObjectDefaults.prototype.defaults = { name: '', age: 0 };
 
 /*
