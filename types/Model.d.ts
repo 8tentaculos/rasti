@@ -43,11 +43,10 @@ export default class Model<A = any> extends Emitter<ModelEvents<A>> {
     static attributePrefix: string;
 
     /**
-     * Default attributes for the model. Merged into `this.attributes` during construction.
+     * Default attributes for the model, merged into `this.attributes` during construction.
      * Can be a plain object, or a function (called bound to the instance) that returns the
-     * defaults. Assign it as a class field, on the prototype, or via `this.defaults` inside
-     * `preinitialize`. In TypeScript, use the field/object form (`defaults = { ... }` or
-     * `defaults = () => ({ ... })`) rather than `defaults() { ... }` method syntax.
+     * defaults. Assign it on the prototype, or via `this.defaults` inside
+     * `preinitialize`.
      */
     defaults?: Partial<A> | (() => Partial<A>);
 

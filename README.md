@@ -194,7 +194,7 @@ For detailed information on how to use **Rasti**, refer to the [API documentatio
 
 ## TypeScript
 
-**Rasti** ships with type definitions out of the box. No extra install — `import` from `rasti` and TS picks them up.
+**Rasti** ships with TypeScript declarations out of the box. The types are bundled in the package and resolved automatically.
 
 ### Components
 
@@ -229,7 +229,9 @@ import { Model } from 'rasti';
 interface TodoAttrs { title: string; completed: boolean; }
 
 class Todo extends Model<TodoAttrs> {
-    defaults = { title: '', completed: false }; // object or `() => ({ ... })`
+    preinitialize() {
+        this.defaults = { title: '', completed: false };
+    }
     toggle() { this.completed = !this.completed; }
 }
 interface Todo extends TodoAttrs {} // Exposes this.title, this.completed
@@ -271,7 +273,6 @@ type S = State<Counter>; // CounterState
 - **`Model<A>` instance keys require declaration merging**. TypeScript can't add `A`'s keys to a `class extends Model<A>` automatically — see the `interface Todo extends TodoAttrs {}` pattern above.
 - **`this.$()` can return `null`**. It mirrors `querySelector`, so handle the empty case (`?.`) and pass a type argument to narrow the element: `this.$<HTMLInputElement>('input.edit')?.focus()`. `this.$$()` returns a `NodeListOf<HTMLElement>` (also narrowable).
 - **`this.model` / `this.state` are optional**. Both are `undefined` unless provided, so guard (`this.model?.foo`) or assert (`this.model!`) when you know one was passed. Both accept a Rasti `Model` or a model from another library (e.g. Backbone); Components subscribe to `change` events automatically when the object exposes `on`/`off`.
-- **`Model.defaults` is typed as a field**. Use `defaults = { ... }` or `defaults = () => ({ ... })`; the `defaults() { ... }` method syntax conflicts with the typed property (TS2425). Both field forms behave identically at runtime.
 
 ## Working with LLMs
 
