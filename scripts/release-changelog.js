@@ -39,9 +39,12 @@ changelog = changelog.replace(
 const links = changelog.match(/^\[unreleased\]:\s*(\S+?)\/compare\/(\S+?)\.\.\.HEAD\s*$/im);
 if (links) {
     const [, base, previous] = links;
+    const versionLink = previous === 'HEAD'
+        ? `${base}/releases/tag/${tag}`
+        : `${base}/compare/${previous}...${tag}`;
     changelog = changelog.replace(
         /^\[unreleased\]:.*$/im,
-        `[unreleased]: ${base}/compare/${tag}...HEAD\n[${version}]: ${base}/compare/${previous}...${tag}`
+        `[unreleased]: ${base}/compare/${tag}...HEAD\n[${version}]: ${versionLink}`
     );
 }
 
