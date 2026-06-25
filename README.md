@@ -184,9 +184,35 @@ Counter.mount({ model }, document.body);
 - **Just the Right Abstraction**  
   Keeps you close to the DOM with no over-engineering. Fully hackable — if you're curious about how something works, just check the source code.  
 
+## Scaffolding a New Project
+
+The fastest way to start a real-world **Rasti** project is [`create-rasti`](https://github.com/8tentaculos/create-rasti), the official scaffolding tool. It generates a ready-to-use **Rasti** + **Vite** setup with optional server-side rendering, routing, styling, and icon components.
+
+```bash
+# Interactive setup
+npm create rasti
+
+# Non-interactive single-page app
+npm create rasti my-app
+
+# Server-side rendering with routing and Tailwind CSS
+npm create rasti my-app --ssr --router --tailwind
+```
+
+Available options include:
+
+- **Rendering** — Single-page app (default), server-side rendering (`--ssr`), or static pre-rendering (`--static`).
+- **Styling** — Plain CSS (default), Tailwind CSS (`--tailwind`), or CSSFUN with light/dark theme support (`--cssfun`).
+- **Routing** (`--router`) — A small universal router built on `path-to-regexp`.
+- **Icons** (`--icons`) — Generate **Rasti** components from popular SVG icon sets (heroicons, akar-icons, feathericon, pixelarticons, and more).
+
+See the [`create-rasti` repository](https://github.com/8tentaculos/create-rasti) for the full list of templates and options.
+
 ## Example
 
-You can find a sample **TODO application** in the [example folder](https://github.com/8tentaculos/rasti/tree/master/example/todo) of the **Rasti** [GitHub repository](https://github.com/8tentaculos/rasti). This example serves as a great starting point for your own projects. Try it live [here](https://rasti.js.org/example/todo/index.html).
+To see how **Rasti**'s API and architecture come together in a small app, explore the sample **TODO application** in the [example folder](https://github.com/8tentaculos/rasti/tree/master/example/todo) of the **Rasti** [GitHub repository](https://github.com/8tentaculos/rasti). It's a concise, self-contained reference for understanding how models, views, and components fit together in a simple application. Try it live [here](https://rasti.js.org/example/todo/index.html).
+
+To scaffold a real-world project, use [`create-rasti`](#scaffolding-a-new-project).
 
 ## API Documentation
 
