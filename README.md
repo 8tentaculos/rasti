@@ -320,14 +320,9 @@ type S = State<Counter>; // CounterState
 
 For those working with LLMs, there is an [AI Agents reference guide](/docs/AGENTS.md) that provides API patterns, lifecycle methods, and best practices, optimized for LLM context. You can share this guide with AI assistants to help them understand **Rasti**'s architecture and component APIs.
 
-## Version History
+## Changelog
 
-We strive to minimize breaking changes between major versions. However, if you're migrating between major versions, please refer to the release notes below for details on any breaking changes and migration tips.
-
-- **[v4.0.0](https://github.com/8tentaculos/rasti/releases/tag/v4.0.0)**
-- **[v3.0.0](https://github.com/8tentaculos/rasti/releases/tag/v3.0.0)**
-- **[v2.0.0](https://github.com/8tentaculos/rasti/releases/tag/v2.0.0)**
-- **[v1.0.0](https://github.com/8tentaculos/rasti/releases/tag/v1.0.0)**
+Release history and migration notes for major versions are in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
