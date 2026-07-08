@@ -38,6 +38,14 @@ export interface ViewOptions<M = any> {
  */
 export default class View<M = any> extends Emitter {
     /**
+     * Counter for generating unique IDs for view instances.
+     * For server-side rendering, reset it to `0` on every request (see `resetUid`) so the
+     * generated IDs match those on the client, enabling seamless hydration of components.
+     * @default 0
+     */
+    static uid: number;
+
+    /**
      * Escape HTML entities in a string.
      * Use this method to sanitize user-generated content before inserting it into the DOM.
      */
@@ -74,8 +82,8 @@ export default class View<M = any> extends Emitter {
     /** Child views. Destroyed automatically when the parent is destroyed. */
     children: View[];
 
-    /** Whether `destroy()` has been called on this view. */
-    destroyed: boolean;
+    /** Whether `destroy()` has been called on this view. `undefined` until then. */
+    destroyed?: boolean;
 
     /**
      * Functions run on `destroy()`. Push cleanup callbacks here for external subscriptions
@@ -124,7 +132,7 @@ export default class View<M = any> extends Emitter {
      * Add a view as a child. Children are stored in `this.children` and destroyed when the parent is destroyed.
      * @return The child view for chaining.
      */
-    addChild(child: View): View;
+    addChild<C extends View>(child: C): C;
 
     /** Call `destroy()` on children views. */
     destroyChildren(): void;

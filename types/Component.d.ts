@@ -38,7 +38,7 @@ export interface SafeHTML {
 }
 
 /** A partial template produced by `this.partial` — preserves structure for position-based recycling. */
-export interface Partial {
+export interface ComponentPartial {
     strings: TemplateStringsArray;
     expressions: any[];
 }
@@ -75,7 +75,40 @@ export type Props<C> = C extends Component<infer P, any, any> ? P : never;
 /** Extracts the state type `S` from a Component subclass. */
 export type State<C> = C extends Component<any, infer S, any> ? S : never;
 /** Extracts the model type `M` from a Component / View subclass. */
-export type ComponentModel<C> = C extends Component<any, any, infer M> ? M : never;
+export type ComponentModel<C> =
+    C extends Component<any, any, infer M> ? M :
+    C extends View<infer M> ? M :
+    never;
+
+/**
+ * Lifecycle methods, with their real signatures, made available for contextual typing
+ * inside `Component.extend({ ... })` so overrides don't need parameter annotations.
+ */
+export interface ComponentLifecycle {
+    /** Lifecycle. Called at the end of the constructor. Runs on both client and server. */
+    onCreate?(...args: any[]): void;
+    /** Lifecycle. Called when model/state/props emit `change`. Default: triggers `render`. */
+    onChange?(model: object, changed: Record<string, any>, ...args: any[]): void;
+    /** Lifecycle. Called after the first render hydrates the DOM. Client only. */
+    onHydrate?(): void;
+    /** Lifecycle. Called at the start of `recycle`, before any recycling happens. */
+    onBeforeRecycle?(): void;
+    /** Lifecycle. Called when the component is recycled and its props are updated. */
+    onRecycle?(): void;
+    /** Lifecycle. Called at the start of `render` on update. */
+    onBeforeUpdate?(): void;
+    /** Lifecycle. Called at the end of `render` on update. */
+    onUpdate?(): void;
+    /** Lifecycle. Called when the component is destroyed. */
+    onDestroy?(...args: any[]): void;
+}
+
+/**
+ * Class returned by `Component.extend`: keeps the statics and constructor signature of the
+ * parent class `T`, and adds the members of `O` to the instance type.
+ */
+export type ExtendedComponent<T extends new (...args: any[]) => any, O> =
+    Omit<T, never> & (new (...args: ConstructorParameters<T>) => InstanceType<T> & O);
 
 /**
  * Components are a special kind of `View` designed to be easily composable. Unlike views,
@@ -104,14 +137,23 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
 
     /**
      * Helper method used to extend a `Component`, creating a subclass.
+     *
+     * The members of `object` are added to the resulting instance type, and `this` inside
+     * its methods is typed as the extended component. Lifecycle overrides (`onCreate`,
+     * `onChange`, ...) get their parameters typed automatically.
+     *
      * @param object Object with methods to add to the subclass, or a function that receives
      * the parent prototype and returns such an object.
      * @return The newly created Component subclass.
      */
-    static extend<T extends new (...args: any[]) => Component<any, any, any>>(
+    static extend<T extends new (...args: any[]) => Component<any, any, any>, O extends object>(
         this: T,
-        object: object | ((proto: InstanceType<T>) => object),
-    ): T;
+        object: (proto: InstanceType<T>) => O & ThisType<InstanceType<T> & O>,
+    ): ExtendedComponent<T, O>;
+    static extend<T extends new (...args: any[]) => Component<any, any, any>, O extends object>(
+        this: T,
+        object: O & ComponentLifecycle & ThisType<InstanceType<T> & O>,
+    ): ExtendedComponent<T, O>;
 
     /**
      * Mount the component into the DOM.
@@ -158,6 +200,12 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
     ): typeof Component<P, S, M>;
 
     /**
+     * A unique key to identify the component, merged from options.
+     * Components with keys are recycled when the same key is found in the previous render.
+     */
+    key?: string;
+
+    /**
      * Props passed from the parent component, stored as a `Model` for reactive updates.
      * Accessible directly (`this.props.foo`) or via `Model` API (`this.props.get('foo')`).
      */
@@ -184,7 +232,7 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
 
     /**
      * Tagged template helper bound to the component instance.
-     * Returns a `Partial` that preserves structure for position-based recycling.
+     * Returns a `ComponentPartial` that preserves structure for position-based recycling.
      * String literals are marked as safe HTML automatically.
      *
      * @example
@@ -192,7 +240,7 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
      *     return this.partial`<header><${Title}>${this.model.title}</${Title}></header>`;
      * }
      */
-    partial(strings: TemplateStringsArray, ...expressions: any[]): Partial;
+    partial(strings: TemplateStringsArray, ...expressions: any[]): ComponentPartial;
 
     /**
      * Subscribes to a `change` event on a model or emitter and invokes `onChange`.

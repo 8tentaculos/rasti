@@ -10,6 +10,7 @@ import {
     Props,
     State,
     ComponentModel,
+    ComponentPartial,
 } from '../types/index.js';
 
 /*
@@ -101,6 +102,14 @@ expectType<HTMLInputElement | null>(v.$<HTMLInputElement>('input'));
 expectType<NodeListOf<HTMLElement>>(v.$$('div'));
 expectType<NodeListOf<HTMLInputElement>>(v.$$<HTMLInputElement>('input'));
 
+// addChild preserves the child subtype; static uid is exposed for SSR
+class SubView extends View {
+    subMethod() {}
+}
+v.addChild(new SubView()).subMethod();
+expectType<number>(View.uid);
+expectType<boolean | undefined>(v.destroyed);
+
 new View<Model<UserAttrs>>({
     model: new Model<UserAttrs>({ name: 'x', age: 0 }),
     tag: 'section',
@@ -126,6 +135,9 @@ class Counter extends Component<CounterProps, CounterState> {
 new Counter({ initial: 5, label: 'hello', tag: 'span', onDestroy: () => {} });
 expectError(new Counter({ initial: 'not-a-number', label: 'x' }));
 
+// `key` is merged from options onto the instance
+expectType<string | undefined>(new Counter({ initial: 1, label: 'x', key: 'k' }).key);
+
 /*
  * Component.create<P, S, M>
  */
@@ -146,9 +158,44 @@ expectError(new Header({ handleAddTodo: 'not-a-fn' }));
 const Plain = Component.create`<div></div>`;
 new Plain({ anything: 'goes', other: 123 });
 
-// Component.extend preserves subclass identity
-const CounterExt = Counter.extend({ extra() {} });
-expectType<typeof Counter>(CounterExt);
+// Component.extend adds the object members to the instance type,
+// types `this` inside its methods, and contextually types lifecycle overrides
+const CounterExt = Counter.extend({
+    extra() {
+        expectType<number>(this.props.initial);
+        return this.props.label;
+    },
+    onChange(model, changed) {
+        expectType<object>(model);
+        expectType<Record<string, any>>(changed);
+    },
+});
+const counterExt = new CounterExt({ initial: 5, label: 'hello' });
+expectType<string>(counterExt.extra());
+expectType<ComponentPartial>(counterExt.partial`<div></div>`);
+expectType<number>(counterExt.props.initial);
+expectError(new CounterExt({ initial: 'not-a-number', label: 'x' }));
+
+// mount() on an extended class returns the extended instance
+const mountedExt = CounterExt.mount({ initial: 1, label: 'x' });
+expectType<string>(mountedExt.extra());
+
+// Chained extend and function form (receives parent prototype)
+const CounterExt2 = CounterExt.extend((proto) => ({
+    another() {
+        expectType<string>(this.extra());
+        void proto;
+    },
+}));
+new CounterExt2({ initial: 1, label: 'x' }).another();
+
+// create().extend() — the common pattern from the examples
+const HeaderExt = Component.create<HeaderProps>`<header></header>`.extend({
+    helper() {
+        expectType<(title: string) => void>(this.props.handleAddTodo);
+    },
+});
+new HeaderExt({ handleAddTodo: (t) => t }).helper();
 
 /*
  * Helper types: EventHandler, RenderExpression, Attrs, Props, State, ComponentModel

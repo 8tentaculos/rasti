@@ -245,6 +245,22 @@ const Plain = Component.create`<div></div>`;
 new Plain({ anything: 'goes' }); // ✅
 ```
 
+`Component.extend` adds the object members to the instance type. Inside its methods, `this` is the extended component, and lifecycle overrides get their parameters typed automatically:
+
+```ts
+const Counter = Component.create<{ initial: number }>`<div>...</div>`.extend({
+    onCreate() {
+        this.state = new Model({ count: this.props.initial }); // `this` is typed
+    },
+    onChange(model, changed) { // parameters typed automatically
+        if ('count' in changed) this.render();
+    },
+    increment() { this.state.count++; },
+});
+
+Counter.mount({ initial: 0 }, document.body).increment(); // ✅ increment is typed
+```
+
 ### Models
 
 Type the attributes with `Model<Attrs>`. Use **declaration merging** to surface the auto-generated getters/setters as instance properties:

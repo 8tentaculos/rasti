@@ -6,10 +6,12 @@ export {
     ComponentOptions,
     ComponentReservedOptions,
     SafeHTML,
-    Partial,
+    ComponentPartial,
     EventHandler,
     RenderExpression,
     Props,
     State,
     ComponentModel,
+    ComponentLifecycle,
+    ExtendedComponent,
 } from './Component.js';
