@@ -37,6 +37,19 @@ any.emit('whatever', 1, 2, 3);
 
 expectType<Array<{ emitter: Emitter<any>; type: string; listener: (...args: any[]) => void }> | undefined>(any.listeningTo);
 
+// `listenTo` / `listenToOnce` / `stopListening` are typed against the target emitter's event map
+const listener = new Emitter<Events>();
+const source = new Emitter<Events>();
+listener.listenTo(source, 'greet', (name) => expectType<string>(name));
+listener.listenToOnce(source, 'count', (n, meta) => {
+    expectType<number>(n);
+    expectType<{ source: string }>(meta);
+});
+listener.stopListening(source, 'greet');
+listener.stopListening(source);
+listener.stopListening();
+expectError(listener.listenTo(source, 'greet', (name: number) => {}));
+
 /*
  * Model: typed attributes, get/set, change events and defaults
  */
@@ -61,6 +74,12 @@ expectError(u.set({ name: 123 }));
 // `change:<key>` events typed
 u.on('change:name', (m, value) => expectType<string>(value));
 u.on('change:age', (m, value) => expectType<number>(value));
+
+// `listenTo` against a Model infers the synthesized `change` / `change:<key>` events
+const u2 = new Model<UserAttrs>({ name: 'x', age: 0 });
+u.listenTo(u2, 'change', (m, changed) => expectType<Partial<UserAttrs>>(changed));
+u.listenTo(u2, 'change:name', (m, value) => expectType<string>(value));
+u.stopListening(u2, 'change');
 
 // `defaults` accepts both runtime forms: a plain object, or a function returning the defaults
 class WithObjectDefaults extends Model<UserAttrs> {
@@ -157,6 +176,15 @@ expectError(new Header({ handleAddTodo: 'not-a-fn' }));
 // `Component.create` without generics — permissive (parity with JS)
 const Plain = Component.create`<div></div>`;
 new Plain({ anything: 'goes', other: 123 });
+
+// A component that receives inner content declares `renderChildren` in its props
+class Card extends Component<{ title: string; renderChildren?: () => any }> {
+    body() {
+        return this.props.renderChildren?.();
+    }
+}
+new Card({ title: 'x', renderChildren: () => 'hello' });
+Card.mount({ title: 'x', renderChildren: () => 'hello' });
 
 // Component.extend adds the object members to the instance type,
 // types `this` inside its methods, and contextually types lifecycle overrides
