@@ -245,6 +245,17 @@ const Plain = Component.create`<div></div>`;
 new Plain({ anything: 'goes' }); // ✅
 ```
 
+When a component is used with inner content (`<${Card}>...</${Card}>`), rasti injects a `renderChildren` function into its props at runtime. Declare it in `P` to use it:
+
+```ts
+const Card = Component.create<{ title: string; renderChildren?: () => any }>`
+    <div class="card">
+        <h2>${({ props }) => props.title}</h2>
+        ${({ props }) => props.renderChildren?.()}
+    </div>
+`;
+```
+
 `Component.extend` adds the object members to the instance type. Inside its methods, `this` is the extended component, and lifecycle overrides get their parameters typed automatically:
 
 ```ts
@@ -259,6 +270,20 @@ const Counter = Component.create<{ initial: number }>`<div>...</div>`.extend({
 });
 
 Counter.mount({ initial: 0 }, document.body).increment(); // ✅ increment is typed
+```
+
+To read attributes off a typed `state` (or `model`) directly, define it as a named `Model` subclass with declaration merging and pass it as the `S` (or `M`) generic — then there are no casts anywhere:
+
+```ts
+class ScoreState extends Model<{ points: number }> {}
+interface ScoreState { points: number } // exposes this.points
+
+class Scoreboard extends Component<{}, ScoreState> {
+    onCreate() {
+        this.state = new ScoreState({ points: 0 });
+        this.state.points++; // ✅ typed, no cast
+    }
+}
 ```
 
 ### Models
@@ -315,6 +340,9 @@ type S = State<Counter>; // CounterState
 - **`Model<A>` instance keys require declaration merging**. TypeScript can't add `A`'s keys to a `class extends Model<A>` automatically — see the `interface Todo extends TodoAttrs {}` pattern above.
 - **`this.$()` can return `null`**. It mirrors `querySelector`, so handle the empty case (`?.`) and pass a type argument to narrow the element: `this.$<HTMLInputElement>('input.edit')?.focus()`. `this.$$()` returns a `NodeListOf<HTMLElement>` (also narrowable).
 - **`this.model` / `this.state` are optional**. Both are `undefined` unless provided, so guard (`this.model?.foo`) or assert (`this.model!`) when you know one was passed. Both accept a Rasti `Model` or a model from another library (e.g. Backbone); Components subscribe to `change` events automatically when the object exposes `on`/`off`.
+- **`state` / `model` are raw generics, `props` is not**. `this.props` is *always* a `Model` built by rasti, so it's typed `Model<P> & P` (direct access to `P`'s keys). But `state` and `model` can be anything you provide — a Rasti `Model`, a Backbone model, a store, or a plain object — so they stay the raw generic. To read a typed `Model` state/model directly, define it as a named subclass with declaration merging and pass it as the `S`/`M` generic (see the `Scoreboard` example above) — no casts needed.
+- **Weak-type error on narrow props**. If a component's `P` has no required keys and you pass only options not declared in it, TypeScript reports *"has no properties in common"* (weak-type check). Fix: declare those options in `P` — non-reserved options become props at runtime.
+- **Instance fields set in `.extend` hooks need predeclaration**. `.extend` infers the instance type from the object's members only, so a field first assigned in `onCreate` (`this.router = ...`) isn't known. Predeclare it in the object: `router: null as unknown as Router`. For components with many instance fields, `class MyComponent extends Component<P, S>` is usually cleaner than `.extend`.
 
 ## Working with LLMs
 
