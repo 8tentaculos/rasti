@@ -263,7 +263,7 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
     onCreate(...args: any[]): void;
 
     /** Lifecycle. Called when model/state/props emit `change`. Default: triggers `render`. */
-    onChange(model: object, changed: object, ...args: any[]): void;
+    onChange(model: object, changed: Record<string, any>, ...args: any[]): void;
 
     /** Lifecycle. Called after the first render hydrates the DOM. Client only. */
     onHydrate(): void;
