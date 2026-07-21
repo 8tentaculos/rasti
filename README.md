@@ -334,9 +334,42 @@ type P = Props<Counter>; // CounterProps
 type S = State<Counter>; // CounterState
 ```
 
+### Typing template interpolations
+
+Functions inside a template are `any` — rasti can't infer them from the surrounding string. Typing is **opt-in**: annotate where you want safety, leave the rest as `any`. Which type to use depends on how rasti treats the function (quoted attribute or content → run on render; unquoted attribute → passed as-is):
+
+| Interpolation | What it is | Type to use |
+|---|---|---|
+| Content `${fn}` or quoted attr `attr="${fn}"` | Run on render; `this` and the argument are the component | `RenderExpression<C>` |
+| Unquoted `onX=${fn}` | DOM handler, called `(event, component, matched)` | `EventHandler<C, E>` |
+| Function passed to a child (`handler=${fn}`) | Becomes the child's prop; typed by the child, not this component | the child's prop signature |
+
+Three ways to apply them:
+
+```ts
+// 1. Named const — cleanest for non-trivial handlers
+const onClick: EventHandler<Home, MouseEvent> = function(ev, self) {
+    ev.preventDefault();
+    self.close();
+};
+
+// 2. Inline with `satisfies` — checks + types the params without widening
+${(({ state }) => state.location) satisfies RenderExpression<Home>}
+
+// 3. Bare annotation — lightest, just types the argument
+${({ state }: Home) => state.location}
+```
+
+For a function passed to a child, neither helper fits — its type comes from the child's prop. Type it against that prop's declared type (rasti can't connect the attribute to the child, since both live inside the template string):
+
+```ts
+// where the child was created with Component.create<ToggleAllProps>`...`
+handleChange=${((checked) => model.toggleAll(checked)) satisfies ToggleAllProps['handleChange']}
+```
+
 ### Known limitations
 
-- **Template interpolation callbacks are `any`**. Functions inside `Component.create\`...\`` template literals (`${({ model }) => ...}`, `onClick=${function() { this.x }}`) cannot be inferred from the surrounding template. To type them, annotate explicitly: `function(this: MyComponent, ev) { ... }` or `({ model }: MyComponent) => ...`.
+- **Template interpolation callbacks are `any`**. Functions in `Component.create\`...\`` templates can't be inferred from the surrounding string — type them opt-in (see [Typing template interpolations](#typing-template-interpolations)).
 - **`Model<A>` instance keys require declaration merging**. TypeScript can't add `A`'s keys to a `class extends Model<A>` automatically — see the `interface Todo extends TodoAttrs {}` pattern above.
 - **`this.$()` can return `null`**. It mirrors `querySelector`, so handle the empty case (`?.`) and pass a type argument to narrow the element: `this.$<HTMLInputElement>('input.edit')?.focus()`. `this.$$()` returns a `NodeListOf<HTMLElement>` (also narrowable).
 - **`this.model` / `this.state` are optional**. Both are `undefined` unless provided, so guard (`this.model?.foo`) or assert (`this.model!`) when you know one was passed. Both accept a Rasti `Model` or a model from another library (e.g. Backbone); Components subscribe to `change` events automatically when the object exposes `on`/`off`.
