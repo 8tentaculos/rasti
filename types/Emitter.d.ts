@@ -87,7 +87,7 @@ export default class Emitter<E extends EventMap = EventMap> {
      * @example
      * this.listenTo(otherModel, 'change', this.render.bind(this));
      */
-    listenTo(emitter: Emitter<any>, type: string, listener: (...args: any[]) => void): () => void;
+    listenTo<E2 extends EventMap, K extends keyof E2>(emitter: Emitter<E2>, type: K, listener: E2[K]): () => void;
 
     /**
      * Listen to an event of another emitter and remove the listener after it is called.
@@ -97,7 +97,7 @@ export default class Emitter<E extends EventMap = EventMap> {
      * @param listener The listener to call when the event is emitted.
      * @return A function to stop listening to the event.
      */
-    listenToOnce(emitter: Emitter<any>, type: string, listener: (...args: any[]) => void): () => void;
+    listenToOnce<E2 extends EventMap, K extends keyof E2>(emitter: Emitter<E2>, type: K, listener: E2[K]): () => void;
 
     /**
      * Stop listening to events from other emitters.
@@ -107,5 +107,6 @@ export default class Emitter<E extends EventMap = EventMap> {
      * - `stopListening(emitter, type)` - Stops listening to the specified event type from the specified emitter
      * - `stopListening(emitter, type, listener)` - Stops the specific listener for the specific event
      */
-    stopListening(emitter?: Emitter<any>, type?: string, listener?: (...args: any[]) => void): void;
+    stopListening(): void;
+    stopListening<E2 extends EventMap, K extends keyof E2>(emitter: Emitter<E2>, type?: K, listener?: E2[K]): void;
 }
