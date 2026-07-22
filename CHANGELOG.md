@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **TypeScript support**: shipped type definitions for `Emitter`, `Model`, `View` and `Component` (props, state and model generics, typed events, and helper types like `EventHandler`, `RenderExpression`, `Attrs`, `Props`, `State`, `ComponentModel`). Exposed via the `types` field and the `exports` map — no extra install needed.
+- **TypeScript support**: shipped type definitions for `Emitter`, `Model`, `View` and `Component` (props, state and model generics, typed events, and helper types like `EventHandler`, `RenderExpression`, `ModelAttrs`, `ComponentProps`, `ComponentState`, `ComponentModel`). Exposed via the `types` field and the `exports` map — no extra install needed.
 - Type tests with `tsd` (`npm run test:types`), wired into the `posttest` hook.
 
 ### Changed

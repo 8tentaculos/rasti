@@ -1,5 +1,5 @@
 export { default as Emitter, EventMap } from './Emitter.js';
-export { default as Model, ModelEvents, Attrs } from './Model.js';
+export { default as Model, ModelEvents, ModelAttrs } from './Model.js';
 export { default as View, ViewOptions } from './View.js';
 export {
     default as Component,
@@ -9,8 +9,8 @@ export {
     ComponentPartial,
     EventHandler,
     RenderExpression,
-    Props,
-    State,
+    ComponentProps,
+    ComponentState,
     ComponentModel,
     ComponentLifecycle,
     ExtendedComponent,

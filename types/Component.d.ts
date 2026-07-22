@@ -71,9 +71,9 @@ export type EventHandler<C, E extends Event = Event> = (
 export type RenderExpression<C> = (this: C, component: C) => any;
 
 /** Extracts the props type `P` from a Component subclass. */
-export type Props<C> = C extends Component<infer P, any, any> ? P : never;
+export type ComponentProps<C> = C extends Component<infer P, any, any> ? P : never;
 /** Extracts the state type `S` from a Component subclass. */
-export type State<C> = C extends Component<any, infer S, any> ? S : never;
+export type ComponentState<C> = C extends Component<any, infer S, any> ? S : never;
 /** Extracts the model type `M` from a Component / View subclass. */
 export type ComponentModel<C> =
     C extends Component<any, any, infer M> ? M :

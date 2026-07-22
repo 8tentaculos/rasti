@@ -6,9 +6,9 @@ import {
     Component,
     EventHandler,
     RenderExpression,
-    Attrs,
-    Props,
-    State,
+    ModelAttrs,
+    ComponentProps,
+    ComponentState,
     ComponentModel,
     ComponentPartial,
 } from '../types/index.js';
@@ -226,7 +226,7 @@ const HeaderExt = Component.create<HeaderProps>`<header></header>`.extend({
 new HeaderExt({ handleAddTodo: (t) => t }).helper();
 
 /*
- * Helper types: EventHandler, RenderExpression, Attrs, Props, State, ComponentModel
+ * Helper types: EventHandler, RenderExpression, ModelAttrs, ComponentProps, ComponentState, ComponentModel
  */
 const onClick: EventHandler<Counter, MouseEvent> = function(ev) {
     expectType<Counter>(this);
@@ -242,13 +242,13 @@ const renderLabelFn: RenderExpression<Counter> = function() {
 void renderLabelArrow;
 void renderLabelFn;
 
-const attrs: Attrs<AppModel> = { todos: [] as string[], filter: 'all' };
+const attrs: ModelAttrs<AppModel> = { todos: [] as string[], filter: 'all' };
 expectType<AppAttrs>(attrs);
 
-const props: Props<Counter> = { initial: 1, label: 'a' };
+const props: ComponentProps<Counter> = { initial: 1, label: 'a' };
 expectType<CounterProps>(props);
 
-const state: State<Counter> = { count: 0 };
+const state: ComponentState<Counter> = { count: 0 };
 expectType<CounterState>(state);
 
 class WithModel extends Component<{}, any, AppModel> {}

@@ -1,7 +1,7 @@
 import Emitter from './Emitter.js';
 
 /** Extracts the attribute type `A` from a Model subclass. */
-export type Attrs<M> = M extends Model<infer A> ? A : never;
+export type ModelAttrs<M> = M extends Model<infer A> ? A : never;
 
 export type ModelEvents<A> =
     & {
