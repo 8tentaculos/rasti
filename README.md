@@ -288,7 +288,7 @@ class Scoreboard extends Component<{}, ScoreState> {
 
 ### Models
 
-Type the attributes with `Model<Attrs>`. Use **declaration merging** to surface the auto-generated getters/setters as instance properties:
+Type the attributes with `Model<YourAttrs>`. Use **declaration merging** to surface the auto-generated getters/setters as instance properties:
 
 ```ts
 import { Model } from 'rasti';
@@ -314,29 +314,37 @@ t.on('change:completed', (m, value) => value && /* boolean */ console.log('done'
 import {
     EventHandler,
     RenderExpression,
-    Attrs,
-    Props,
-    State,
+    ModelAttrs,
+    ComponentProps,
+    ComponentState,
     ComponentModel,
 } from 'rasti';
 
+// `Counter` (defined above with Component.create) is a *value*. To use the name in
+// type position, alias it once — now `Counter` is both a value and a type:
+type Counter = InstanceType<typeof Counter>;
+
 // Typed event handler with `this` bound to the component
 const onClick: EventHandler<Counter, MouseEvent> = function(ev) {
-    this.props.label;
+    this.props.initial;
 };
 
 // Typed render expression (`(component) => any`)
-const renderLabel: RenderExpression<Counter> = ({ props }) => props.label;
+const renderLabel: RenderExpression<Counter> = ({ props }) => props.initial;
 
 // Extract types from existing classes
-type T = Attrs<Todo>;    // TodoAttrs
-type P = Props<Counter>; // CounterProps
-type S = State<Counter>; // CounterState
+type A = ModelAttrs<Todo>;        // Todo extends Model → already a type, no alias
+type P = ComponentProps<Counter>; // pass the instance; `ComponentProps<typeof Counter>` is `never`
+type S = ComponentState<Counter>;
 ```
+
+> Components made with `Component.create` are **values**, not types. To use one as a type — as with `Counter` above — add `type X = InstanceType<typeof X>` next to the definition, or write `InstanceType<typeof X>` inline. A `Model` subclass needs no alias, since `class` already declares both a value and a type.
 
 ### Typing template interpolations
 
-Functions inside a template are `any` — rasti can't infer them from the surrounding string. Typing is **opt-in**: annotate where you want safety, leave the rest as `any`. Which type to use depends on how rasti treats the function (quoted attribute or content → run on render; unquoted attribute → passed as-is):
+Functions inside a template are `any` — rasti can't infer them from the surrounding string. Which type to use depends on how rasti treats the function (quoted attribute or content → run on render; unquoted attribute → passed as-is):
+
+> Under `strict` / `noImplicitAny`, every interpolation callback **must** be annotated — an untyped parameter is an error (TS7031/TS7006), not a silent `any`. In non-strict mode typing is opt-in: annotate where you want safety and leave trivial ones as `any`.
 
 | Interpolation | What it is | Type to use |
 |---|---|---|
@@ -347,6 +355,12 @@ Functions inside a template are `any` — rasti can't infer them from the surrou
 Three ways to apply them:
 
 ```ts
+// `Home` is a value (made with Component.create), so alias it to use the name as a type:
+const Home = Component.create<{}, { location: string }>`<div></div>`.extend({
+    close() { /* ... */ },
+});
+type Home = InstanceType<typeof Home>;
+
 // 1. Named const — cleanest for non-trivial handlers
 const onClick: EventHandler<Home, MouseEvent> = function(ev, self) {
     ev.preventDefault();
@@ -354,10 +368,10 @@ const onClick: EventHandler<Home, MouseEvent> = function(ev, self) {
 };
 
 // 2. Inline with `satisfies` — checks + types the params without widening
-${(({ state }) => state.location) satisfies RenderExpression<Home>}
+${(({ state }) => state?.location) satisfies RenderExpression<Home>}
 
 // 3. Bare annotation — lightest, just types the argument
-${({ state }: Home) => state.location}
+${({ state }: Home) => state?.location}
 ```
 
 For a function passed to a child, neither helper fits — its type comes from the child's prop. Type it against that prop's declared type (rasti can't connect the attribute to the child, since both live inside the template string):
