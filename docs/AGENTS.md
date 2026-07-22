@@ -1,6 +1,6 @@
 # Rasti API Reference for AI Agents
 
-Compact reference for developing with Rasti. Full API: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md)
+Compact reference for developing with Rasti. Full API: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md)
 
 ---
 
@@ -33,9 +33,9 @@ MyComponent.mount({ model }, document.getElementById('root'));
 ```
 
 **Key Methods:**
-- [`Component.create`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_component_create) — creates component class from template
-- [`Component.extend`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_component_extend) — adds methods and lifecycle hooks
-- [`Component.mount`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_component_mount) — creates and mounts a component instance
+- [`Component.create`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_component_create) — creates component class from template
+- [`Component.extend`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_component_extend) — adds methods and lifecycle hooks
+- [`Component.mount`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_component_mount) — creates and mounts a component instance
 
 ---
 
@@ -113,7 +113,7 @@ handleSave="${({ model, props }) => () => model.delete(props.itemId)}"
 handleSelect="${({ props }) => props.handleSelect}"
 ```
 
-**Related:** [`delegateEvents`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_view__delegateevents)
+**Related:** [`delegateEvents`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_view__delegateevents)
 
 ---
 
@@ -144,9 +144,9 @@ const Header = Component.create`
 ```
 
 **Key properties:**
-- `this.model` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_model) for application data
-- `this.state` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_model) for internal component state
-- `this.props` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_model) auto-created from non-standard options
+- `this.model` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_model) for application data
+- `this.state` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_model) for internal component state
+- `this.props` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_model) auto-created from non-standard options
 
 ---
 
@@ -181,7 +181,7 @@ When using `Component.mount()`, pass `renderChildren` manually: `{ renderChildre
 
 ### Partials
 
-[`partial`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_component__partial) creates sub-templates for conditional blocks and lists, preserving component recycling by position.
+[`partial`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_component__partial) creates sub-templates for conditional blocks and lists, preserving component recycling by position.
 
 ```js
 const App = Component.create`
@@ -318,7 +318,7 @@ const MyComponent = Component.create`...`.extend({
 **`destroyQueue`** — array of functions called on destroy. Use for external subscriptions not managed by Rasti (DOM events, timers, third-party libraries). `subscribe()` and `listenTo()` are automatically cleaned up by `View.destroy()` — no need to push those.
 
 **Related API:**
-- [`component.onCreate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_component__oncreate) · [`component.onHydrate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_component__onhydrate) · [`component.onChange`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_component__onchange) · [`component.onUpdate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_component__onupdate) · [`component.onDestroy`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_component__ondestroy)
+- [`component.onCreate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_component__oncreate) · [`component.onHydrate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_component__onhydrate) · [`component.onChange`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_component__onchange) · [`component.onUpdate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_component__onupdate) · [`component.onDestroy`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_component__ondestroy)
 
 ---
 
@@ -352,18 +352,18 @@ const Dashboard = Component.create`...`.extend({
 ```
 
 **Related API:**
-- [`component.subscribe`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_component__subscribe) · [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_emitter__listento)
+- [`component.subscribe`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_component__subscribe) · [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_emitter__listento)
 
 ---
 
 ### Rendering
 
-[`render()`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_component__render) handles both initial hydration and updates:
+[`render()`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_component__render) handles both initial hydration and updates:
 
 - **First render** — renders as string inside `DocumentFragment`, hydrates DOM, calls `onHydrate()`
 - **Update render** — patches only changed attributes and interpolation content; calls `onBeforeUpdate()` then `onUpdate()`
 
-Use [`Component.markAsSafeHTML`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_component_markassafehtml) only for pre-sanitized trusted HTML:
+Use [`Component.markAsSafeHTML`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_component_markassafehtml) only for pre-sanitized trusted HTML:
 
 ```js
 ${({ props }) => Component.markAsSafeHTML(props.trustedHTML)}
@@ -394,7 +394,7 @@ AppModel.prototype.defaults = {
 };
 ```
 
-**Related:** [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_model)
+**Related:** [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_model)
 
 ---
 
@@ -462,7 +462,7 @@ removeTodo(todo) {
 }
 ```
 
-**Related:** [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_emitter__listento) · [`Emitter.stopListening`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md#module_emitter__stoplistening)
+**Related:** [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_emitter__listento) · [`Emitter.stopListening`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md#module_emitter__stoplistening)
 
 ---
 
@@ -503,6 +503,6 @@ removeTodo(todo) {
 
 ## Additional Resources
 
-- **Full API Documentation**: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.1/docs/api.md)
+- **Full API Documentation**: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.2/docs/api.md)
 - **TypeScript usage** (generics, helpers, declaration merging, known limitations): see the [TypeScript section in the README](https://github.com/8tentaculos/rasti#typescript)
 - **GitHub Repository**: [8tentaculos/rasti](https://github.com/8tentaculos/rasti)
