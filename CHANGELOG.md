@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-07-25
+
 ### Added
 
 - **TypeScript support**: shipped type definitions for `Emitter`, `Model`, `View` and `Component` (props, state and model generics, typed events, and helper types like `EventHandler`, `RenderExpression`, `ModelAttrs`, `ComponentProps`, `ComponentState`, `ComponentModel`). Exposed via the `types` field and the `exports` map — no extra install needed.
@@ -366,7 +368,8 @@ Unlike views, which are render-agnostic, components have a specific set of rende
 
 * **BREAKING:** Removed emitter.emitAsync method.
 
-[unreleased]: https://github.com/8tentaculos/rasti/compare/v4.0.1...HEAD
+[unreleased]: https://github.com/8tentaculos/rasti/compare/v4.1.0...HEAD
+[4.1.0]: https://github.com/8tentaculos/rasti/compare/v4.0.1...v4.1.0
 [4.0.1]: https://github.com/8tentaculos/rasti/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/8tentaculos/rasti/compare/v3.0.1...v4.0.0
 [3.0.1]: https://github.com/8tentaculos/rasti/compare/v3.0.0...v3.0.1
