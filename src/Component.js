@@ -933,7 +933,7 @@ class Component extends View {
             // In this case, where the component updates, it handles children recycling.
             const addChild = (component) => {
                 let out = component;
-                let found = null;
+                let found;
                 // Check if child already exists by key.
                 if (component.key) {
                     found = previousChildren.find(prev => prev.key === component.key);

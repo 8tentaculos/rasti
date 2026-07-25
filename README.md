@@ -1,7 +1,7 @@
 <p align="center">
     <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.1/docs/logo-dark.svg">
-        <img alt="Rasti.js" src="https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.0.1/docs/logo.svg" height="120">
+        <source media="(prefers-color-scheme: dark)" srcset="https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.3/docs/logo-dark.svg">
+        <img alt="Rasti.js" src="https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.0-alpha.3/docs/logo.svg" height="120">
     </picture>
 </p>
 
@@ -13,11 +13,12 @@
 It provides declarative, composable **components** for building state-driven UIs.  
 Its low-level MVC core, inspired by **Backbone.js**’s architecture, provides **models**, **views** and **event emitters** as the fundamental building blocks.
 
-[![Travis (.com)](https://img.shields.io/travis/com/8tentaculos/rasti)](https://app.travis-ci.com/8tentaculos/rasti)
+[![CI](https://github.com/8tentaculos/rasti/actions/workflows/ci.yml/badge.svg)](https://github.com/8tentaculos/rasti/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/rasti.svg)](https://www.npmjs.com/package/rasti)
 [![npm package minimized gzipped size](https://img.shields.io/bundlejs/size/rasti)](https://unpkg.com/rasti/dist/rasti.min.js)
 [![npm downloads](https://img.shields.io/npm/dm/rasti.svg)](https://www.npmjs.com/package/rasti)
 [![jsDelivr hits (npm)](https://img.shields.io/jsdelivr/npm/hm/rasti)](https://www.jsdelivr.com/package/npm/rasti)
+[![license](https://img.shields.io/npm/l/rasti.svg)](https://github.com/8tentaculos/rasti/blob/master/LICENSE)
 
 ## Key Features  
 
@@ -35,6 +36,8 @@ Its low-level MVC core, inspired by **Backbone.js**’s architecture, provides *
   Seamlessly integrates into existing **Backbone.js** legacy projects.  
 - **Standards-Based** 📐  
   Built on modern web standards, no tooling required.  
+- **TypeScript Support** 🧩  
+  Ships with type definitions for strict typing of models, views, components, props, and events.  
 
 ## Getting Started
 
@@ -179,28 +182,222 @@ Counter.mount({ model }, document.body);
 - **Lightweight and Efficient**  
   Minimal footprint with optimized performance, ensuring smooth updates.  
 - **Just the Right Abstraction**  
-  Keeps you close to the DOM with no over-engineering. Fully hackable, if you're curious about how something works, just check the source code.  
+  Keeps you close to the DOM with no over-engineering. Fully hackable — if you're curious about how something works, just check the source code.  
+
+## Scaffolding a New Project
+
+The fastest way to start a real-world **Rasti** project is [`create-rasti`](https://github.com/8tentaculos/create-rasti), the official scaffolding tool. It generates a ready-to-use **Rasti** + **Vite** setup with optional server-side rendering, routing, styling, and icon components.
+
+```bash
+# Interactive setup
+npm create rasti
+
+# Non-interactive single-page app
+npm create rasti my-app
+
+# Server-side rendering with routing and Tailwind CSS
+npm create rasti my-app --ssr --router --tailwind
+```
+
+Available options include:
+
+- **Rendering** — Single-page app (default), server-side rendering (`--ssr`), or static pre-rendering (`--static`).
+- **Styling** — Plain CSS (default), Tailwind CSS (`--tailwind`), or CSSFUN with light/dark theme support (`--cssfun`).
+- **Routing** (`--router`) — A small universal router built on `path-to-regexp`.
+- **Icons** (`--icons`) — Generate **Rasti** components from popular SVG icon sets (heroicons, akar-icons, feathericon, pixelarticons, and more).
+
+See the [`create-rasti` repository](https://github.com/8tentaculos/create-rasti) for the full list of templates and options.
 
 ## Example
 
-You can find a sample **TODO application** in the [example folder](https://github.com/8tentaculos/rasti/tree/master/example/todo) of the **Rasti** [GitHub repository](https://github.com/8tentaculos/rasti). This example serves as a great starting point for your own projects. Try it live [here](https://rasti.js.org/example/todo/index.html).
+To see how **Rasti**'s API and architecture come together in a small app, explore the sample **TODO application** in the [example folder](https://github.com/8tentaculos/rasti/tree/master/example/todo) of the **Rasti** [GitHub repository](https://github.com/8tentaculos/rasti). It's a concise, self-contained reference for understanding how models, views, and components fit together in a simple application. Try it live [here](https://rasti.js.org/example/todo/index.html).
+
+To scaffold a real-world project, use [`create-rasti`](#scaffolding-a-new-project).
 
 ## API Documentation
 
 For detailed information on how to use **Rasti**, refer to the [API documentation](/docs/api.md).
 
+## TypeScript
+
+**Rasti** ships with TypeScript declarations out of the box. The types are bundled in the package and resolved automatically.
+
+### Components
+
+Pass generics explicitly to type the resulting class:
+
+```ts
+const Header = Component.create<{ handleAddTodo: (title: string) => void }>`
+    <header>...</header>
+`;
+
+new Header({ handleAddTodo: (t) => console.log(t) }); // ✅
+
+// With a typed model:
+const App = Component.create<{}, any, AppModel>`<main>...</main>`;
+App.mount({ model: new AppModel() }, document.body);
+```
+
+Without generics, `Component.create` stays permissive (parity with JS):
+
+```ts
+const Plain = Component.create`<div></div>`;
+new Plain({ anything: 'goes' }); // ✅
+```
+
+When a component is used with inner content (`<${Card}>...</${Card}>`), rasti injects a `renderChildren` function into its props at runtime. Declare it in `P` to use it:
+
+```ts
+const Card = Component.create<{ title: string; renderChildren?: () => any }>`
+    <div class="card">
+        <h2>${({ props }) => props.title}</h2>
+        ${({ props }) => props.renderChildren?.()}
+    </div>
+`;
+```
+
+`Component.extend` adds the object members to the instance type. Inside its methods, `this` is the extended component, and lifecycle overrides get their parameters typed automatically:
+
+```ts
+const Counter = Component.create<{ initial: number }>`<div>...</div>`.extend({
+    onCreate() {
+        this.state = new Model({ count: this.props.initial }); // `this` is typed
+    },
+    onChange(model, changed) { // parameters typed automatically
+        if ('count' in changed) this.render();
+    },
+    increment() { this.state.count++; },
+});
+
+Counter.mount({ initial: 0 }, document.body).increment(); // ✅ increment is typed
+```
+
+To read attributes off a typed `state` (or `model`) directly, define it as a named `Model` subclass with declaration merging and pass it as the `S` (or `M`) generic — then there are no casts anywhere:
+
+```ts
+class ScoreState extends Model<{ points: number }> {}
+interface ScoreState { points: number } // exposes this.points
+
+class Scoreboard extends Component<{}, ScoreState> {
+    onCreate() {
+        this.state = new ScoreState({ points: 0 });
+        this.state.points++; // ✅ typed, no cast
+    }
+}
+```
+
+### Models
+
+Type the attributes with `Model<YourAttrs>`. Use **declaration merging** to surface the auto-generated getters/setters as instance properties:
+
+```ts
+import { Model } from 'rasti';
+
+interface TodoAttrs { title: string; completed: boolean; }
+
+class Todo extends Model<TodoAttrs> {
+    preinitialize() {
+        this.defaults = { title: '', completed: false };
+    }
+    toggle() { this.completed = !this.completed; }
+}
+interface Todo extends TodoAttrs {} // Exposes this.title, this.completed
+
+const t = new Todo({ title: 'x' });
+t.title.toUpperCase(); // ✅
+t.on('change:completed', (m, value) => value && /* boolean */ console.log('done'));
+```
+
+### Helper types
+
+```ts
+import {
+    EventHandler,
+    RenderExpression,
+    ModelAttrs,
+    ComponentProps,
+    ComponentState,
+    ComponentModel,
+} from 'rasti';
+
+// `Counter` (defined above with Component.create) is a *value*. To use the name in
+// type position, alias it once — now `Counter` is both a value and a type:
+type Counter = InstanceType<typeof Counter>;
+
+// Typed event handler with `this` bound to the component
+const onClick: EventHandler<Counter, MouseEvent> = function(ev) {
+    this.props.initial;
+};
+
+// Typed render expression (`(component) => any`)
+const renderLabel: RenderExpression<Counter> = ({ props }) => props.initial;
+
+// Extract types from existing classes
+type A = ModelAttrs<Todo>;        // Todo extends Model → already a type, no alias
+type P = ComponentProps<Counter>; // pass the instance; `ComponentProps<typeof Counter>` is `never`
+type S = ComponentState<Counter>;
+```
+
+> Components made with `Component.create` are **values**, not types. To use one as a type — as with `Counter` above — add `type X = InstanceType<typeof X>` next to the definition, or write `InstanceType<typeof X>` inline. A `Model` subclass needs no alias, since `class` already declares both a value and a type.
+
+### Typing template interpolations
+
+Functions inside a template are `any` — rasti can't infer them from the surrounding string. Which type to use depends on how rasti treats the function (quoted attribute or content → run on render; unquoted attribute → passed as-is):
+
+> Under `strict` / `noImplicitAny`, every interpolation callback **must** be annotated — an untyped parameter is an error (TS7031/TS7006), not a silent `any`. In non-strict mode typing is opt-in: annotate where you want safety and leave trivial ones as `any`.
+
+| Interpolation | What it is | Type to use |
+|---|---|---|
+| Content `${fn}` or quoted attr `attr="${fn}"` | Run on render; `this` and the argument are the component | `RenderExpression<C>` |
+| Unquoted `onX=${fn}` | DOM handler, called `(event, component, matched)` | `EventHandler<C, E>` |
+| Function passed to a child (`handler=${fn}`) | Becomes the child's prop; typed by the child, not this component | the child's prop signature |
+
+Three ways to apply them:
+
+```ts
+// `Home` is a value (made with Component.create), so alias it to use the name as a type:
+const Home = Component.create<{}, { location: string }>`<div></div>`.extend({
+    close() { /* ... */ },
+});
+type Home = InstanceType<typeof Home>;
+
+// 1. Named const — cleanest for non-trivial handlers
+const onClick: EventHandler<Home, MouseEvent> = function(ev, self) {
+    ev.preventDefault();
+    self.close();
+};
+
+// 2. Inline with `satisfies` — checks + types the params without widening
+${(({ state }) => state?.location) satisfies RenderExpression<Home>}
+
+// 3. Bare annotation — lightest, just types the argument
+${({ state }: Home) => state?.location}
+```
+
+For a function passed to a child, neither helper fits — its type comes from the child's prop. Type it against that prop's declared type (rasti can't connect the attribute to the child, since both live inside the template string):
+
+```ts
+// where the child was created with Component.create<ToggleAllProps>`...`
+handleChange=${((checked) => model.toggleAll(checked)) satisfies ToggleAllProps['handleChange']}
+```
+
+### Known limitations
+
+- **Template interpolation callbacks are `any`**. Functions in `Component.create\`...\`` templates can't be inferred from the surrounding string — type them opt-in (see [Typing template interpolations](#typing-template-interpolations)).
+- **`Model<A>` instance keys require declaration merging**. TypeScript can't add `A`'s keys to a `class extends Model<A>` automatically — see the `interface Todo extends TodoAttrs {}` pattern above.
+- **`this.$()` can return `null`**. It mirrors `querySelector`, so handle the empty case (`?.`) and pass a type argument to narrow the element: `this.$<HTMLInputElement>('input.edit')?.focus()`. `this.$$()` returns a `NodeListOf<HTMLElement>` (also narrowable).
+- **`this.model` / `this.state` are optional**. Both are `undefined` unless provided, so guard (`this.model?.foo`) or assert (`this.model!`) when you know one was passed. Both accept a Rasti `Model` or a model from another library (e.g. Backbone); Components subscribe to `change` events automatically when the object exposes `on`/`off`.
+- **`state` / `model` are raw generics, `props` is not**. `this.props` is *always* a `Model` built by rasti, so it's typed `Model<P> & P` (direct access to `P`'s keys). But `state` and `model` can be anything you provide — a Rasti `Model`, a Backbone model, a store, or a plain object — so they stay the raw generic. To read a typed `Model` state/model directly, define it as a named subclass with declaration merging and pass it as the `S`/`M` generic (see the `Scoreboard` example above) — no casts needed.
+- **Weak-type error on narrow props**. If a component's `P` has no required keys and you pass only options not declared in it, TypeScript reports *"has no properties in common"* (weak-type check). Fix: declare those options in `P` — non-reserved options become props at runtime.
+- **Instance fields set in `.extend` hooks need predeclaration**. `.extend` infers the instance type from the object's members only, so a field first assigned in `onCreate` (`this.router = ...`) isn't known. Predeclare it in the object: `router: null as unknown as Router`. For components with many instance fields, `class MyComponent extends Component<P, S>` is usually cleaner than `.extend`.
+
 ## Working with LLMs
 
 For those working with LLMs, there is an [AI Agents reference guide](/docs/AGENTS.md) that provides API patterns, lifecycle methods, and best practices, optimized for LLM context. You can share this guide with AI assistants to help them understand **Rasti**'s architecture and component APIs.
 
-## Version History
+## Changelog
 
-We strive to minimize breaking changes between major versions. However, if you're migrating between major versions, please refer to the release notes below for details on any breaking changes and migration tips.
-
-- **[v4.0.0](https://github.com/8tentaculos/rasti/releases/tag/v4.0.0)**
-- **[v3.0.0](https://github.com/8tentaculos/rasti/releases/tag/v3.0.0)**
-- **[v2.0.0](https://github.com/8tentaculos/rasti/releases/tag/v2.0.0)**
-- **[v1.0.0](https://github.com/8tentaculos/rasti/releases/tag/v1.0.0)**
+Release history and migration notes for major versions are in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
@@ -209,4 +406,3 @@ We strive to minimize breaking changes between major versions. However, if you'r
 ## Contributing
 
 Contributions are welcome! Share feature ideas or report bugs on our [GitHub Issues page](https://github.com/8tentaculos/rasti/issues).
-

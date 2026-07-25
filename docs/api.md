@@ -28,12 +28,15 @@
     * [.listenToOnce(emitter, type, listener)](#module_emitter__listentoonce) ⇒ <code>function</code>
     * [.stopListening([emitter], [type], [listener])](#module_emitter__stoplistening)
 * [Model](#module_model) ⇐ <code>Emitter</code>
-    * [.preinitialize([attributes], [...args])](#module_model__preinitialize)
-    * [.defineAttribute(key)](#module_model__defineattribute)
-    * [.get(key)](#module_model__get) ⇒ <code>any</code>
-    * [.set(key, [value], [...args])](#module_model__set) ⇒ <code>Model</code>
-    * [.parse([data], [...args])](#module_model__parse) ⇒ <code>object</code>
-    * [.toJSON()](#module_model__tojson) ⇒ <code>object</code>
+    * _instance_
+        * [.preinitialize([attributes], [...args])](#module_model__preinitialize)
+        * [.defineAttribute(key)](#module_model__defineattribute)
+        * [.get(key)](#module_model__get) ⇒ <code>any</code>
+        * [.set(key, [value], [...args])](#module_model__set) ⇒ <code>Model</code>
+        * [.parse([data], [...args])](#module_model__parse) ⇒ <code>object</code>
+        * [.toJSON()](#module_model__tojson) ⇒ <code>object</code>
+    * _static_
+        * [.attributePrefix](#module_model_attributeprefix) : <code>string</code>
 * [View](#module_view) ⇐ <code>Emitter</code>
     * _instance_
         * [.preinitialize(options)](#module_view__preinitialize)
@@ -51,6 +54,7 @@
         * [.undelegateEvents()](#module_view__undelegateevents) ⇒ <code>View</code>
         * [.render()](#module_view__render) ⇒ <code>View</code>
     * _static_
+        * [.uid](#module_view_uid) : <code>number</code>
         * [.sanitize(value)](#module_view_sanitize) ⇒ <code>string</code>
         * [.resetUid()](#module_view_resetuid)
 
@@ -796,7 +800,6 @@ Models should be easily passed throughout your app and used anywhere the corresp
 | --- | --- | --- |
 | defaults | <code>object</code> \| <code>function</code> | Default attributes for the model. If a function, it's called bound to the model instance to get defaults. |
 | previous | <code>object</code> | Object containing previous attributes when a change occurs. |
-| attributePrefix | <code>string</code> | Static property that defines a prefix for generated getters/setters. Defaults to empty string. |
 
 **Example**  
 ```js
@@ -885,12 +888,15 @@ await order.fetch();
 ```
 
 * [Model](#module_model) ⇐ <code>Emitter</code>
-    * [.preinitialize([attributes], [...args])](#module_model__preinitialize)
-    * [.defineAttribute(key)](#module_model__defineattribute)
-    * [.get(key)](#module_model__get) ⇒ <code>any</code>
-    * [.set(key, [value], [...args])](#module_model__set) ⇒ <code>Model</code>
-    * [.parse([data], [...args])](#module_model__parse) ⇒ <code>object</code>
-    * [.toJSON()](#module_model__tojson) ⇒ <code>object</code>
+    * _instance_
+        * [.preinitialize([attributes], [...args])](#module_model__preinitialize)
+        * [.defineAttribute(key)](#module_model__defineattribute)
+        * [.get(key)](#module_model__get) ⇒ <code>any</code>
+        * [.set(key, [value], [...args])](#module_model__set) ⇒ <code>Model</code>
+        * [.parse([data], [...args])](#module_model__parse) ⇒ <code>object</code>
+        * [.toJSON()](#module_model__tojson) ⇒ <code>object</code>
+    * _static_
+        * [.attributePrefix](#module_model_attributeprefix) : <code>string</code>
 
 <a name="module_model__preinitialize" id="module_model__preinitialize" class="anchor"></a>
 ### model.preinitialize([attributes], [...args])
@@ -1064,6 +1070,30 @@ const order = new Order({ id : 1, user : { name : 'Alice' } });
 const json = order.toJSON();
 console.log(json); // { id : 1, user : { name : 'Alice' } }
 ```
+<a name="module_model_attributeprefix" id="module_model_attributeprefix" class="anchor"></a>
+### Model.attributePrefix : <code>string</code>
+Static property that defines a prefix for generated getters/setters.
+When set, all attribute properties will be prefixed (e.g., 'attr_name' instead of 'name').
+Useful for avoiding naming conflicts or creating a consistent property naming convention.
+
+**Kind**: static property of [<code>Model</code>](#module_model)  
+**Default**: <code>&quot;&#x27;&#x27;&quot;</code>  
+**Example**  
+```js
+// Set prefix for all models of this class
+class ApiModel extends Model {
+    static attributePrefix = 'attr_';
+}
+
+const user = new ApiModel({ name : 'Alice', email : 'alice@example.com' });
+console.log(user.attr_name);  // 'Alice'
+console.log(user.attr_email); // 'alice@example.com'
+
+// Still access via get/set methods without prefix
+console.log(user.get('name')); // 'Alice'
+user.set('name', 'Bob');
+console.log(user.attr_name); // 'Bob'
+```
 <a name="module_view" id="module_view" class="anchor"></a>
 ## View ⇐ <code>Emitter</code>
 - Listens for changes and renders the UI.
@@ -1094,7 +1124,7 @@ If `this.el` is not present, an element will be created using `this.tag` (defaul
 | events | <code>object</code> \| <code>function</code> | Object in the format `{'event selector' : 'listener'}`. It will be used to bind delegated event listeners to the root element. If it is a function, it will be called to get the events object, bound to the view instance. See [View.delegateEvents](module_view_delegateevents). |
 | model | <code>object</code> | A model or any object containing data and business logic. |
 | template | <code>function</code> | A function that returns a string with the view's inner HTML. See [View.render](module_view__render). |
-| uid | <code>number</code> | Unique identifier for the view instance. This can be used to generate unique IDs for elements within the view. It is automatically generated and should not be set manually. |
+| uid | <code>string</code> | Unique identifier for the view instance. This can be used to generate unique IDs for elements within the view. It is automatically generated and should not be set manually. |
 
 **Example**  
 ```js
@@ -1143,6 +1173,7 @@ document.body.appendChild(new Timer().render().el);
         * [.undelegateEvents()](#module_view__undelegateevents) ⇒ <code>View</code>
         * [.render()](#module_view__render) ⇒ <code>View</code>
     * _static_
+        * [.uid](#module_view_uid) : <code>number</code>
         * [.sanitize(value)](#module_view_sanitize) ⇒ <code>string</code>
         * [.resetUid()](#module_view_resetuid)
 
@@ -1347,6 +1378,17 @@ class UserView extends View {
     }
 }
 ```
+<a name="module_view_uid" id="module_view_uid" class="anchor"></a>
+### View.uid : <code>number</code>
+Counter for generating unique IDs for view instances.  
+This is primarily used to assign unique identifiers to each view instance (`this.uid`), which can be helpful for tasks like 
+generating element IDs.  
+[Component](#module_component)s use `this.uid` to generate data attributes for their elements, to be looked up on hydration.  
+For server-side rendering, this counter should be reset to `0` on every request to ensure that the generated 
+unique IDs match those on the client, enabling seamless hydration of components.
+
+**Kind**: static property of [<code>View</code>](#module_view)  
+**Default**: <code>0</code>  
 <a name="module_view_sanitize" id="module_view_sanitize" class="anchor"></a>
 ### View.sanitize(value) ⇒ <code>string</code>
 Escape HTML entities in a string.
