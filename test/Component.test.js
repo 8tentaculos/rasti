@@ -1641,4 +1641,241 @@ describe('Component', () => {
             expect(recycleCalls).to.be.equal(1); // onRecycle was called.
         });
     });
+
+    // Characterization of the observable DOM patching and hydration behavior. These lock
+    // the current behavior of the render engine so any change is caught. A few tests assert
+    // node identity that reflects how partials update today (they regenerate their markup);
+    // they document current behavior rather than a guarantee.
+    describe('DOM patching and hydration behavior', () => {
+        // A component's own-template attributes are patched with an attribute diff, so the
+        // DOM node is kept in place. User state on that node (focus, typed value, caret
+        // position) therefore survives a re-render.
+        it('must preserve focus, value and selection on own-template input update', () => {
+            const Main = Component.create`
+                <div id="test-node">
+                    <input class="${({ model }) => model.cls}" />
+                    <span>${({ model }) => model.text}</span>
+                </div>
+            `.mount({ model : new Model({ cls : 'a', text : 'Hello' }) }, document.body);
+
+            const input = document.querySelector('input');
+            input.focus();
+            input.value = 'typed';
+            input.setSelectionRange(2, 4);
+
+            expect(document.activeElement).to.be.equal(input);
+            // Trigger a re-render that only changes the class attribute.
+            Main.model.cls = 'b';
+            Main.model.text = 'World';
+
+            const inputAfter = document.querySelector('input');
+            // Same node → user state survives the diff.
+            expect(inputAfter).to.be.equal(input);
+            expect(document.activeElement).to.be.equal(inputAfter);
+            expect(inputAfter.value).to.be.equal('typed');
+            expect(inputAfter.selectionStart).to.be.equal(2);
+            expect(inputAfter.selectionEnd).to.be.equal(4);
+            // The bound attribute did update.
+            expect(inputAfter.className).to.be.equal('b');
+            expect(document.querySelector('span').textContent.trim()).to.be.equal('World');
+        });
+
+        // A partial regenerates its markup on update, so nodes inside it are replaced
+        // rather than patched: an input inside a partial becomes a new node and loses its
+        // focus and typed value. The rendered output stays correct.
+        it('must replace input node inside a partial on update', () => {
+            const Main = Component.create`
+                <div id="test-node">
+                    ${({ model, partial }) => partial`<div><input class="${model.cls}" /><span>${model.text}</span></div>`}
+                </div>
+            `.mount({ model : new Model({ cls : 'a', text : 'Hello' }) }, document.body);
+
+            const input = document.querySelector('input');
+            input.focus();
+            input.value = 'typed';
+
+            Main.model.cls = 'b';
+            Main.model.text = 'World';
+
+            const inputAfter = document.querySelector('input');
+            // The partial regenerates its markup, so the input is a brand new node.
+            expect(inputAfter).not.to.be.equal(input);
+            expect(inputAfter.value).to.be.equal('');
+            expect(document.activeElement).not.to.be.equal(inputAfter);
+            // Rendered output is still correct.
+            expect(inputAfter.className).to.be.equal('b');
+            expect(document.querySelector('span').textContent.trim()).to.be.equal('World');
+        });
+
+        // A partial with several sibling dynamic regions regenerates its markup on update:
+        // the outer container node is kept, but its inner children are replaced. The
+        // rendered content is correct regardless of node identity.
+        it('must update a partial with multiple dynamic regions', () => {
+            const Main = Component.create`
+                <div id="test-node">
+                    ${({ model, partial }) => partial`<ul><li class="${model.c1}">${model.t1}</li><li class="${model.c2}">${model.t2}</li></ul>`}
+                </div>
+            `.mount({ model : new Model({ c1 : 'x', t1 : 'A', c2 : 'y', t2 : 'B' }) }, document.body);
+
+            const ul = document.querySelector('ul');
+            const li0 = ul.children[0];
+            const li1 = ul.children[1];
+
+            Main.model.t1 = 'A2';
+            Main.model.c2 = 'y2';
+
+            const ulAfter = document.querySelector('ul');
+            // Container node preserved, inner children replaced.
+            expect(ulAfter).to.be.equal(ul);
+            expect(ulAfter.children[0]).not.to.be.equal(li0);
+            expect(ulAfter.children[1]).not.to.be.equal(li1);
+            // Content is correct regardless of node identity.
+            expect(ulAfter.children[0].textContent.trim()).to.be.equal('A2');
+            expect(ulAfter.children[0].className).to.be.equal('x');
+            expect(ulAfter.children[1].textContent.trim()).to.be.equal('B');
+            expect(ulAfter.children[1].className).to.be.equal('y2');
+        });
+
+        // Server-side rendering: toString() produces deterministic uids. After resetUid()
+        // the client rebuilds the same uids and hydrates over the live document, matching
+        // each element (root and child) by its data-rst-el attribute.
+        it('must hydrate server-rendered markup with matching uids', () => {
+            const Button = Component.create`<button>click me</button>`;
+            const Main = Component.create`<div>${() => Button.mount()}</div>`;
+
+            // Server side: render to string with a known uid sequence.
+            Component.resetUid();
+            const serverHtml = Main.mount({}).toString();
+            expect(serverHtml).to.be.equal(
+                `<div ${Component.ATTRIBUTE_ELEMENT}="r1-1">` +
+                `<!--${Component.MARKER_START('r1-1')}-->` +
+                `<button ${Component.ATTRIBUTE_ELEMENT}="r2-1">click me</button>` +
+                `<!--${Component.MARKER_END('r1-1')}-->` +
+                '</div>'
+            );
+
+            // Client side: same markup in the live document, reset uids, hydrate in place.
+            document.body.innerHTML = serverHtml;
+            Component.resetUid();
+            const client = Main.mount({}, document.body, true);
+
+            expect(client.uid).to.be.equal('r1');
+            expect(client.el).to.be.equal(document.querySelector('div'));
+            expect(client.children[0].el).to.be.equal(document.querySelector('button'));
+        });
+
+        // The default mount renders to string, parses a fragment and hydrates it on a host
+        // element that is still detached from the document. Element lookups must resolve
+        // inside that fragment before it is appended to the live DOM.
+        it('must hydrate in a detached host before being appended', () => {
+            const Button = Component.create`<button>click me</button>`;
+            const Main = Component.create`<div>${({ partial }) => partial`<section><${Button} /></section>`}</div>`;
+
+            const host = document.createElement('div');
+            const c = Main.mount({}, host);
+            // Hydrated while detached: child element resolved inside the fragment.
+            expect(c.children.length).to.be.equal(1);
+            expect(c.children[0].el).to.be.equal(host.querySelector('button'));
+
+            document.body.appendChild(host);
+            expect(document.querySelector('section button')).to.be.equal(c.children[0].el);
+        });
+
+        // A keyed component wrapped in a single-component partial (form A) must recycle by
+        // key exactly like the same component mounted directly (form B): the array
+        // reconciler descends through the wrapping partial to resolve the key.
+        it('must recycle keyed components identically via wrapping partial and direct mount', () => {
+            const Todo = Component.create`<li>${({ props }) => props.text}</li>`;
+
+            const items = [{ id : '1', text : 'A' }, { id : '2', text : 'B' }, { id : '3', text : 'C' }];
+            const reordered = [
+                { id : '3', text : 'C2' },
+                { id : '1', text : 'A2' },
+                { id : '2', text : 'B2' }
+            ];
+
+            // Form A: single-component partial wrapping one keyed component.
+            // Form B: the same keyed component mounted directly.
+            const makeA = Component.create`
+                <ul id="list-a">${({ model, partial }) => model.items.map(item => partial`<${Todo} key="${item.id}" text="${item.text}" />`)}</ul>
+            `;
+            const makeB = Component.create`
+                <ul id="list-b">${({ model }) => model.items.map(item => Todo.mount({ key : item.id, text : item.text }))}</ul>
+            `;
+
+            const a = makeA.mount({ model : new Model({ items }) }, document.body);
+            const b = makeB.mount({ model : new Model({ items }) }, document.body);
+
+            const aBefore = Array.from(a.el.querySelectorAll('li'));
+            const bBefore = Array.from(b.el.querySelectorAll('li'));
+
+            a.model.items = reordered;
+            b.model.items = reordered;
+
+            const aAfter = Array.from(a.el.querySelectorAll('li'));
+            const bAfter = Array.from(b.el.querySelectorAll('li'));
+
+            // Both forms recycle by key: new[0]=old[2], new[1]=old[0], new[2]=old[1].
+            const recyclePattern = [2, 0, 1];
+            recyclePattern.forEach((oldIdx, newIdx) => {
+                expect(aAfter[newIdx]).to.be.equal(aBefore[oldIdx]);
+                expect(bAfter[newIdx]).to.be.equal(bBefore[oldIdx]);
+            });
+            // And content converges identically.
+            expect(aAfter.map(li => li.textContent.trim())).to.deep.equal(['C2', 'A2', 'B2']);
+            expect(bAfter.map(li => li.textContent.trim())).to.deep.equal(['C2', 'A2', 'B2']);
+        });
+
+        // Keyed components are matched globally across the parent's interpolations, so a
+        // keyed component moved from one interpolation to another is recycled as the same
+        // instance rather than recreated.
+        it('must recycle keyed component across different interpolations', () => {
+            const Card = Component.create`<div class="card">${({ props }) => props.label}</div>`;
+            const Main = Component.create`
+                <div id="test-node">
+                    <div class="colA">${({ model }) => model.inA ? Card.mount({ key : 'k1', label : 'card' }) : null}</div>
+                    <div class="colB">${({ model }) => model.inA ? null : Card.mount({ key : 'k1', label : 'card' })}</div>
+                </div>
+            `.mount({ model : new Model({ inA : true }) }, document.body);
+
+            const cardBefore = document.querySelector('.card');
+            expect(document.querySelector('.colA .card')).to.be.equal(cardBefore);
+            expect(document.querySelector('.colB .card')).to.be.null;
+
+            // Move the keyed card from column A's interpolation to column B's.
+            Main.model.inA = false;
+
+            const cardAfter = document.querySelector('.card');
+            expect(document.querySelector('.colB .card')).to.be.equal(cardAfter);
+            expect(document.querySelector('.colA .card')).to.be.null;
+            // Global key matching: same instance recycled across interpolations.
+            expect(cardAfter).to.be.equal(cardBefore);
+        });
+
+        // Events on slotted content (passed through renderChildren) are delegated on the
+        // owner component that provides the content, and keep working after that owner
+        // re-renders.
+        it('must keep slotted (renderChildren) events working after a parent re-render', () => {
+            let clicks = 0;
+            const Panel = Component.create`<div class="panel">${({ props }) => props.renderChildren()}</div>`;
+            const Main = Component.create`
+                <div id="test-node">
+                    <span>${({ model }) => model.label}</span>
+                    <${Panel}>
+                        <button onClick=${() => clicks++}>click me</button>
+                    </${Panel}>
+                </div>
+            `.mount({ model : new Model({ label : 'before' }) }, document.body);
+
+            document.querySelector('button').dispatchEvent(new MouseEvent('click', { bubbles : true }));
+            expect(clicks).to.be.equal(1);
+
+            // Re-render the parent; the slotted handler must survive.
+            Main.model.label = 'after';
+            expect(document.querySelector('span').textContent.trim()).to.be.equal('after');
+
+            document.querySelector('button').dispatchEvent(new MouseEvent('click', { bubbles : true }));
+            expect(clicks).to.be.equal(2);
+        });
+    });
 });
