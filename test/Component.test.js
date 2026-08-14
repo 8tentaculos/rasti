@@ -347,15 +347,24 @@ describe('Component', () => {
         });
 
         it('must skip attributes with invalid names', () => {
+            const attrs = {
+                'data-valid' : 'yes',
+                'x" onload="attack()' : 'no',
+                '' : 'empty',
+                [`data-control${String.fromCharCode(1)}`] : 'control'
+            };
+
             const c = Component.create`
                 <div id="test-node" ${({ model }) => model.attrs}></div>
-            `.mount({ model : new Model({ attrs : { 'data-valid' : 'yes', 'x" onload="attack()' : 'no' } }) }, document.body);
+            `.mount({ model : new Model({ attrs }) }, document.body);
 
             const node = document.getElementById('test-node');
-
+            // Only the valid name is serialized.
             expect(node.getAttribute('data-valid')).to.be.equal('yes');
             expect(node.hasAttribute('onload')).to.be.false;
             expect(c.el.outerHTML).to.not.contain('onload');
+            expect(c.el.outerHTML).to.not.contain('empty');
+            expect(c.el.outerHTML).to.not.contain('data-control');
         });
 
         it('must remove true and false placeholders', () => {

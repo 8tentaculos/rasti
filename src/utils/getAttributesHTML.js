@@ -1,10 +1,13 @@
 /**
- * Characters that terminate an attribute name. A name containing any of them
- * would let the rest of the value be parsed as markup instead of as a name.
+ * Match a name that is legal for an HTML attribute. Excludes whitespace, quotes,
+ * `>`, `/`, `=` and control characters, which would otherwise end the attribute
+ * or the tag when the name is interpolated into markup. An empty name is excluded
+ * as well, since it can't be serialized as a name.
  * @type {RegExp}
  * @private
  */
-const INVALID_ATTRIBUTE_NAME = /[\s"'>/=]/;
+// eslint-disable-next-line no-control-regex
+const VALID_ATTRIBUTE_NAME = /^[^\s"'>/=\u0000-\u001F\u007F-\u009F]+$/;
 
 /**
  * Escape an attribute value. Values are serialized inside double quotes,
@@ -28,7 +31,7 @@ export default function getAttributesHTML(attributes) {
     Object.keys(attributes).forEach(key => {
         let value = attributes[key];
         // Skip invalid names, they can't be serialized as an attribute.
-        if (INVALID_ATTRIBUTE_NAME.test(key)) return;
+        if (!VALID_ATTRIBUTE_NAME.test(key)) return;
 
         if (value === true) {
             html.push(key);
