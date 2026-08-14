@@ -312,6 +312,52 @@ describe('Component', () => {
             ).to.be.equal(`<input id="test-node" disabled ${Component.ATTRIBUTE_ELEMENT}="r2-1">`);
         });
 
+        it('must escape attribute values', () => {
+            const value = '" onload="attack()';
+
+            const c = Component.create`
+                <div id="test-node">
+                    <img src="x" alt="${({ model }) => model.alt}" />
+                </div>
+            `.mount({ model : new Model({ alt : value }) }, document.body);
+
+            const img = document.getElementById('test-node').querySelector('img');
+            // The value is kept as text, no extra attribute is created.
+            expect(img.getAttribute('alt')).to.be.equal(value);
+            expect(img.hasAttribute('onload')).to.be.false;
+            // Updates keep the same value.
+            c.model.alt = `${value} again`;
+            expect(img.getAttribute('alt')).to.be.equal(`${value} again`);
+            expect(img.hasAttribute('onload')).to.be.false;
+        });
+
+        it('must escape attribute values on partials', () => {
+            const value = '" onload="attack()';
+
+            Component.create`<div id="test-node">${self => self.renderImage()}</div>`.extend({
+                renderImage() {
+                    return this.partial`<img src="x" alt="${({ model }) => model.alt}" />`;
+                }
+            }).mount({ model : new Model({ alt : value }) }, document.body);
+
+            const img = document.getElementById('test-node').querySelector('img');
+
+            expect(img.getAttribute('alt')).to.be.equal(value);
+            expect(img.hasAttribute('onload')).to.be.false;
+        });
+
+        it('must skip attributes with invalid names', () => {
+            const c = Component.create`
+                <div id="test-node" ${({ model }) => model.attrs}></div>
+            `.mount({ model : new Model({ attrs : { 'data-valid' : 'yes', 'x" onload="attack()' : 'no' } }) }, document.body);
+
+            const node = document.getElementById('test-node');
+
+            expect(node.getAttribute('data-valid')).to.be.equal('yes');
+            expect(node.hasAttribute('onload')).to.be.false;
+            expect(c.el.outerHTML).to.not.contain('onload');
+        });
+
         it('must remove true and false placeholders', () => {
             expect(
                 Component.create`<div id="test-node">${() => true}</div>`.mount().toString()

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Attribute serialization**: attribute values are now escaped when a component is serialized to string (first render and server-side rendering), so a double quote in an interpolated value stays part of the value instead of terminating the attribute. Attribute names that can't be serialized are skipped. Attribute updates already went through `setAttribute` and were not affected.
+
 ## [4.1.0] - 2026-07-25
 
 ### Added
