@@ -73,42 +73,6 @@ class Partial {
     }
 
     /**
-     * Return a cached `Partial` subclass for this call site, with the skeleton
-     * baked as statics. Analogous to `Component.create`.
-     * @param {Array<string>} strings Template string literals.
-     * @param {Array<any>} expressions Template expressions.
-     * @param {Function} [isComponentClass] Predicate telling whether an expression is a component class.
-     * @return {Function} A `Partial` subclass.
-     */
-    static create(strings, expressions, isComponentClass) {
-        let PartialClass = this.cache.get(strings);
-        if (!PartialClass) {
-            PartialClass = this.fromSkeleton(parseTemplate(strings, expressions, isComponentClass));
-            this.cache.set(strings, PartialClass);
-        }
-        return PartialClass;
-    }
-
-    /**
-     * Return a cached `Partial` subclass for a skeleton, baking it as statics.
-     * Cached by the skeleton's identity so a component tag's inner content (a
-     * nested skeleton, stable across renders) always yields the same subclass and
-     * therefore reconciles by `constructor` when re-rendered through
-     * `renderChildren`.
-     * @param {{ parts: Array, elements: Array, interpolations: Array }} skeleton Skeleton data.
-     * @return {Function} A `Partial` subclass.
-     */
-    static fromSkeleton(skeleton) {
-        let PartialClass = this.skeletonCache.get(skeleton);
-        if (!PartialClass) {
-            PartialClass = class extends Partial {};
-            Object.assign(PartialClass, skeleton);
-            this.skeletonCache.set(skeleton, PartialClass);
-        }
-        return PartialClass;
-    }
-
-    /**
      * Tell whether this partial is a container: the whole template is a single
      * interpolation with no surrounding markup (expected to resolve to one
      * component / partial). A container renders without markers and borrows its
@@ -675,6 +639,42 @@ class Partial {
                 state.ref[attr] = attr === 'value' ? value : value !== false && value !== 'false';
             }
         });
+    }
+
+    /**
+     * Return a cached `Partial` subclass for this call site, with the skeleton
+     * baked as statics. Analogous to `Component.create`.
+     * @param {Array<string>} strings Template string literals.
+     * @param {Array<any>} expressions Template expressions.
+     * @param {Function} [isComponentClass] Predicate telling whether an expression is a component class.
+     * @return {Function} A `Partial` subclass.
+     */
+    static create(strings, expressions, isComponentClass) {
+        let PartialClass = this.cache.get(strings);
+        if (!PartialClass) {
+            PartialClass = this.fromSkeleton(parseTemplate(strings, expressions, isComponentClass));
+            this.cache.set(strings, PartialClass);
+        }
+        return PartialClass;
+    }
+
+    /**
+     * Return a cached `Partial` subclass for a skeleton, baking it as statics.
+     * Cached by the skeleton's identity so a component tag's inner content (a
+     * nested skeleton, stable across renders) always yields the same subclass and
+     * therefore reconciles by `constructor` when re-rendered through
+     * `renderChildren`.
+     * @param {{ parts: Array, elements: Array, interpolations: Array }} skeleton Skeleton data.
+     * @return {Function} A `Partial` subclass.
+     */
+    static fromSkeleton(skeleton) {
+        let PartialClass = this.skeletonCache.get(skeleton);
+        if (!PartialClass) {
+            PartialClass = class extends Partial {};
+            Object.assign(PartialClass, skeleton);
+            this.skeletonCache.set(skeleton, PartialClass);
+        }
+        return PartialClass;
     }
 }
 
