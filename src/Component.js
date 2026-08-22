@@ -1,16 +1,12 @@
 import View from './View.js';
 import Model from './Model.js';
 import SafeHTML from './core/SafeHTML.js';
-import Partial from './core/Partial.js';
+import Partial from './core/template/Partial.js';
 import EventsManager from './core/EventsManager.js';
-import Element from './core/Element.js';
-import Interpolation from './core/Interpolation.js';
 import validateListener from './utils/validateListener.js';
 import getResult from './utils/getResult.js';
-import deepFlat  from './utils/deepFlat.js';
 import parseHTML from './utils/parseHTML.js';
 import findComment from './utils/findComment.js';
-import getAttributesHTML from './utils/getAttributesHTML.js';
 import replaceNode from './utils/replaceNode.js';
 import createDevelopmentErrorMessage from './utils/createDevelopmentErrorMessage.js';
 import createProductionErrorMessage from './utils/createProductionErrorMessage.js';
@@ -73,425 +69,51 @@ const getExpressionResult = (expression, context, meta) => {
 const isComponent = (el) => !!(el && el.dataset && el.dataset[Component.DATASET_ELEMENT] && el.dataset[Component.DATASET_ELEMENT].endsWith('-1'));
 
 /**
- * Check if an element contains (or is) a dynamic element.
- * @param {Element} el The element to check.
- * @return {boolean} True if the element contains (or is) a dynamic element.
+ * Tell whether an expression is a component class (used by the template engine to
+ * detect component tags).
+ * @param {any} expression The expression to check.
+ * @return {boolean} True if it is a `Component` subclass.
  * @private
  */
-const containsElement = (el) => !!(el && ((el.dataset && el.dataset[Component.DATASET_ELEMENT]) || (el.querySelector && el.querySelector(`[${Component.ATTRIBUTE_ELEMENT}]`))));
+const isComponentClass = (expression) => !!(expression && expression.prototype instanceof Component);
 
 /**
- * Generate string with placeholders for interpolated expressions.
- * @param {Array<string>} strings Array of strings.
- * @param {Array<any>} expressions Array of expressions.
- * @return {string} String with placeholders.
+ * Build the handlers bag a component hands to its template engine. It is created
+ * once per component (in `ensureElement`) and shared by the root partial and every
+ * nested partial, so the emission counters (and therefore element / marker ids)
+ * are consistent across the whole component. Every component-specific concern the
+ * engine needs — evaluating expressions in the component's context, registering
+ * events, minting ids, and each step of a child component's lifecycle — is exposed
+ * here, so the engine never has to name `Component`.
+ * @param {Component} component The owning component.
+ * @return {object} The partial handlers bag.
  * @private
  */
-const addPlaceholders = (strings, expressions) =>
-    strings.reduce((out, string, i) => {
-        // Add string part.
-        out.push(string);
-        // Add expression placeholders.
-        if (typeof expressions[i] !== 'undefined') {
-            out.push(Component.PLACEHOLDER(i));
-        }
-        return out;
-    }, []).join('');
-
-/**
- * Generate one dimensional array with strings and expressions.
- * @param main {string} The main template containing placeholders.
- * @param {Array<any>} expressions Array of expressions to replace placeholders.
- * @return {array} Array containing strings and expressions.
- * @private
- */
-const splitPlaceholders = (main, expressions) => {
-    const PH = Component.PLACEHOLDER('(\\d+)');
-    const matchSinglePlaceholder = main.match(new RegExp(`^${PH}$`));
-    if (matchSinglePlaceholder) return [expressions[parseInt(matchSinglePlaceholder[1], 10)]];
-
-    const regExp = new RegExp(`${PH}`, 'g');
-    const out = [];
-    let lastIndex = 0;
-    let match;
-    // Generate one dimensional array with strings and expressions, 
-    // so all the components are added as children by the parent component.
-    while ((match = regExp.exec(main)) !== null) {
-        const before = main.slice(lastIndex, match.index);
-        out.push(Component.markAsSafeHTML(before), expressions[parseInt(match[1], 10)]);
-        lastIndex = match.index + match[0].length;
-    }
-    out.push(Component.markAsSafeHTML(main.slice(lastIndex)));
-
-    return out;
-};
-
-/**
- * Expand attributes.
- * @param {Array<Array<any>>} attributes Array of attributes as key, value pairs.
- * @param {Function} getExpressionResult Function to render expressions.
- * @return {object}
- * @property {object} all All attributes.
- * @property {object} events Event listeners.
- * @property {object} attributes Attributes.
- * @private
- */
-const expandAttributes = (attributes, getExpressionResult) => attributes.reduce((out, pair) => {
-    const attribute = getExpressionResult(pair[0]);
-    // Attribute without value. 
-    if (pair.length === 1) {
-        if (typeof attribute === 'object') {
-            // Expand objects as attributes.
-            out = Object.assign(out, attribute);
-        } else if (typeof attribute === 'string') {
-            // Treat as boolean.
-            out[attribute] = true;
-        }
-    } else {
-        // Attribute with value.
-        const value = pair[2] ? getExpressionResult(pair[1]) : pair[1];
-        out[attribute] = value;
-    }
-
-    return out;
-}, {});
-
-/**
- * Expand events.
- * @param {object} attributes Attributes object.
- * @param {EventsManager} eventsManager Events manager.
- * @param {Function} getDataAttribute Function to get data attribute name with uid.
- * @return {object} Attributes object.
- * @private
- */
-const expandEvents = (attributes, eventsManager, getDataAttribute) => {
-    const out = {};
-    Object.keys(attributes).forEach(key => {
-        // Check if key is an event listener.
-        const match = key.match(/on(([A-Z]{1}[a-z]+)+)/);
-
-        if (match && match[1]) {
-            const type = match[1].toLowerCase();
-            const listener = attributes[key];
-            if (listener) {
-                const index = eventsManager.addListener(listener, type);
-                // Add event listener index.
-                out[getDataAttribute(type)] = index;
-            }
-        } else {
-            // Add attribute.
-            out[key] = attributes[key];
-        }
-    });
-    return out;
-};
-
-/**
- * Replace component tags with expressions.
- * `<${Component} />` or `<${Component}></${Component}>` will be replaced 
- * by a function that mounts the component.
- * Returns the template with component tags replaced by expressions placeholders 
- * modifies the expressions array adding the mount functions.
- * @param main {string} The main template.
- * @param {Array<any>} expressions Array of expressions.
- * @param {boolean} skipNormalization Skip placeholder normalization (for recursive calls).
- * @return {string} The template with components tags replaced by expressions
- * placeholders.
- * @private
- */
-const expandComponents = (main, expressions, skipNormalization = false) => {
-    const PH = Component.PLACEHOLDER('(\\d+)');
-    const componentRefMap = new Map();
-    // Normalize component references to use first placeholder index.
-    // Only on first call, not on recursive calls.
-    if (!skipNormalization) {
-        main = main.replace(
-            new RegExp(PH, 'g'),
-            (match, idx) => {
-                const expression = expressions[idx];
-                if (expression && expression.prototype instanceof Component) {
-                    if (componentRefMap.has(expression)) {
-                        return componentRefMap.get(expression);
-                    }
-                    componentRefMap.set(expression, match);
-                }
-                return match;
-            }
-        );
-    }
-    // Match component tags with backreference to ensure correct pairing.
-    return main.replace(
-        new RegExp(`<(${PH})([^>]*)/>|<(${PH})([^>]*)>([\\s\\S]*?)</\\4>`,'g'),
-        (match, selfClosingTag, selfClosingIdx, selfClosingAttrs, openTag, openIdx, nonVoidAttrs, inner) => {
-            let tag, attributesStr, innerList;
-
-            if (openTag) {
-                tag = expressions[openIdx];
-                attributesStr = nonVoidAttrs;
-            } else {
-                tag = typeof selfClosingIdx !== 'undefined' ? expressions[selfClosingIdx] : selfClosingTag;
-                attributesStr = selfClosingAttrs;
-            }
-            // No component found.
-            if (!(tag.prototype instanceof Component)) return match;
-            // Non void component.
-            if (openTag) {
-                // Process inner content same way as partial().
-                // Recursively expand inner components.
-                const innerTemplate = expandComponents(inner, expressions, true);
-                // Parse partial elements to handle dynamic attributes and events.
-                const parsedInner = parsePartialElements(innerTemplate, expressions);
-                // Split into items.
-                innerList = splitPlaceholders(parsedInner, expressions);
-            }
-            // Parse attributes.
-            const attributes = parseAttributes(attributesStr, expressions);
-            // Create mount function.
-            const mount = function() {
-                const options = expandAttributes(attributes, value => getExpressionResult(value, this, 'children options'));
-                // Add `renderChildren` function to options.
-                if (innerList) {
-                    // Evaluate items in parent context and create Partial.
-                    options.renderChildren = () => new Partial(innerList.map(item => getExpressionResult(item, this, 'children')));
-                }
-                // Mount component.
-                return tag.mount(options);
-            };
-            // Add mount function to expression.
-            expressions.push(mount);
-            // Replace whole string with expression placeholder.
-            return Component.PLACEHOLDER(expressions.length - 1);
-        }
-    );
-};
-
-/**
- * Replace elements in template.
- * @param {string} template Template string.
- * @param {Function} replacer Replacer function.
- * @return {string} Template string with replaced elements.
- * @private
- */
-const replaceElements = (template, replacer) => {
-    const PH = Component.PLACEHOLDER('(?:\\d+)');
-    return template.replace(
-        new RegExp(`<(${PH}|[a-z]+[1-6]?)(?:\\s*)((?:"[^"]*"|'[^']*'|[^>])*)(/?>)`, 'gi'),
-        replacer
-    );
-};
-
-/**
- * Parse all HTML elements in template and extract their attributes.
- * @param {string} template Template string with placeholders.
- * @param {Array} expressions Array of expressions.
- * @param {Array} elements Array to store element references.
- * @return {string} Template with parsed attributes.
- * @throws {SyntaxError} If the template does not have a single root element or is a container component.
- * @private
- */
-const parseElements = (template, expressions, elements) => {
-    const PH = Component.PLACEHOLDER('(?:\\d+)');
-    // Check if template is a container (single placeholder, no tag).
-    const containerMatch = template.match(new RegExp(`^\\s*${PH}\\s*$`));
-    if (containerMatch) return template;
-
-    // Validate that template has a root element.
-    const rootElementMatch = template.match(new RegExp(`^\\s*<([a-z]+[1-6]?|${PH})([^>]*)>([\\s\\S]*?)</(\\1|${PH})>\\s*$|^\\s*<([a-z]+[1-6]?|${PH})([^>]*)/>\\s*$`));
-
-    if (!rootElementMatch) {
-        const message = __DEV__ ?
-            createDevelopmentErrorMessage(
-                'Invalid component template structure.\n' +
-                'The template must have a single root element or render a single component.\n\n' +
-                'Valid examples:\n' +
-                '- `<div>content</div>`\n' +
-                '- `<${MyComponent} />`\n\n' +
-                'Invalid examples:\n' +
-                '- `<div></div><div></div>`  (multiple root elements)\n' +
-                '- `text <div></div>`  (text outside root element)'
-            ) :
-            createProductionErrorMessage('Invalid component template');
-        throw new Error(message);
-    }
-
-    let elementUid = 0;
-    // Match all HTML elements including placeholders and self-closed elements.
-    return replaceElements(rootElementMatch[0], (match, tag, attributesStr, ending) => {
-        const isRoot = elementUid === 0;
-        const currentElementUid = ++elementUid;
-        // If there are no dynamic attributes, return original match.
-        if (!isRoot && !attributesStr.match(new RegExp(PH))) {
-            return match;
-        }
-        // Parse attributes.
-        const parsedAttributes = parseAttributes(attributesStr, expressions);
-        // Create element reference.
-        const generateElementUid = componentUid => `${componentUid}-${currentElementUid}`;
-        // Create function that returns attributes object.
-        const getAttributes = function() {
-            // Expand attributes and events.
-            const attributes = expandEvents(
-                expandAttributes(parsedAttributes, value => getExpressionResult(value, this, 'element attribute')),
-                this.eventsManager,
-                type => Component.ATTRIBUTE_EVENT(type, this.uid)
-            );
-            // Extend template attributes with `options.attributes`.
-            if (isRoot && this.attributes) {
-                Object.assign(attributes, getResult(this.attributes, this));
-            }
-            // Add data attribute for element identification.
-            // First element gets the component uid, others get element uid.
-            attributes[Component.ATTRIBUTE_ELEMENT] = generateElementUid(this.uid);
-
-            return attributes;
-        };
-
-        const getSelector = function() {
-            return `[${Component.ATTRIBUTE_ELEMENT}="${generateElementUid(this.uid)}"]`;
-        };
-        const elementIndex = elements.length;
-        // Add element reference to elements array.
-        elements.push({
-            getSelector,
-            getAttributes,
-        });
-        // Add new expression to expressions array.
-        expressions.push(function() {
-            const element = this.template.elements[elementIndex];
-            const attributes = element.getAttributes.call(this);
-            element.previousAttributes = attributes;
-            return Component.markAsSafeHTML(getAttributesHTML(attributes));
-        });
-        // Replace attributes with placeholder.
-        const placeholder = Component.PLACEHOLDER(expressions.length - 1);
-        // Preserve original tag ending (> or />)
-        return `<${tag} ${placeholder}${ending}`;
-    });
-};
-
-/**
- * Parse elements in partial template.
- * @param {string} template Template string with placeholders.
- * @param {Array} expressions Array of expressions.
- * @return {string} Template with parsed attributes.
- * @private
- */
-const parsePartialElements = (template, expressions) => {
-    const PH = Component.PLACEHOLDER('(?:\\d+)');
-    // Match all HTML elements including placeholders and self-closed elements.
-    return replaceElements(template, (match, tag, attributesStr, ending) => {
-        // If there are no dynamic attributes, return original match.
-        if (!attributesStr.match(new RegExp(PH))) {
-            return match;
-        }
-        // Parse attributes.
-        const parsedAttributes = parseAttributes(attributesStr, expressions);
-        // Create function that returns attributes object.
-        const getAttributes = function() {
-            const attributes = expandEvents(
-                expandAttributes(parsedAttributes, value => getExpressionResult(value, this, 'partial element attribute')),
-                this.eventsManager,
-                type => Component.ATTRIBUTE_EVENT(type, this.uid)
-            );
-
-            return attributes;
-        };
-        // Add new expression to expressions array.
-        expressions.push(function() {
-            const attributes = getAttributes.call(this);
-            return Component.markAsSafeHTML(getAttributesHTML(attributes));
-        });
-        // Replace attributes with placeholder.
-        const placeholder = Component.PLACEHOLDER(expressions.length - 1);
-        // Preserve original tag ending (> or />)
-        return `<${tag} ${placeholder}${ending}`;
-    });
-};
-
-/**
- * Parse all interpolations in template text content.
- * @param {string} template Template string with placeholders.
- * @param {Array} expressions Array of expressions.
- * @param {Array} interpolations Array to store interpolation references.
- * @return {string} Template with interpolation markers.
- * @private
- */
-const parseInterpolations = (template, expressions, interpolations) => {
-    const PH = Component.PLACEHOLDER('(\\d+)');
-    let interpolationUid = 0;
-    // Match all expression placeholders.
-    return template.replace(
-        new RegExp(PH, 'g'),
-        function(match, expressionIndex, offset) {
-            // Check if this placeholder is inside an element tag (attribute).
-            // `offset` is the index of the match in the original string.
-            const beforeMatch = template.substring(0, offset);
-            const lastOpenTag = beforeMatch.lastIndexOf('<');
-            const lastCloseTag = beforeMatch.lastIndexOf('>');
-            // If we're inside an element tag, don't process as interpolation.
-            if (lastOpenTag > lastCloseTag) {
-                return match;
-            }
-
-            const currentInterpolationUid = ++interpolationUid;
-
-            function getStart() {
-                return Component.MARKER_START(`${this.uid}-${currentInterpolationUid}`);
-            }
-            function getEnd() {
-                return Component.MARKER_END(`${this.uid}-${currentInterpolationUid}`);
-            }
-            const interpolationIndex = interpolations.length;
-            // Add interpolation reference to interpolations array.
-            interpolations.push({
-                getStart,
-                getEnd,
-                expression : expressions[expressionIndex]
-            });
-            // Add new expression to expressions array.
-            expressions.push(function() {
-                return this.template.interpolations[interpolationIndex];
-            });
-            // Replace with new placeholder.
-            return Component.PLACEHOLDER(expressions.length - 1);
-        }
-    );
-};
-
-/**
- * Parse attributes string to extract dynamic attributes.
- * @param {string} attributesStr Attributes string from HTML element.
- * @param {Array} expressions Array of expressions.
- * @return {Array} Array of attribute pairs [key, value] or [key, value, hasQuotes].
- * @private
- */
-const parseAttributes = (attributesStr, expressions) => {
-    const PH = Component.PLACEHOLDER('(\\d+)');
-    const attributes = [];
-    // Parse attributes string with support for placeholders in both names and values.
-    const regExp = new RegExp(`(?:${PH}|([\\w-]+))(?:=(["']?)(?:${PH}|((?:.?(?!["']?\\s+(?:\\S+)=|\\s*/>|\\s*[>"']))+.))?\\3)?`, 'g');
-
-    let attributeMatch;
-    while ((attributeMatch = regExp.exec(attributesStr)) !== null) {
-        const [, attributeIdx, attribute, quotes, valueIdx, value] = attributeMatch;
-
-        const hasQuotes = !!quotes;
-
-        let attr = typeof attributeIdx !== 'undefined' ? expressions[parseInt(attributeIdx, 10)] : attribute;
-        let val = typeof valueIdx !== 'undefined' ? expressions[parseInt(valueIdx, 10)] : value;
-
-        if (hasQuotes && typeof val === 'undefined') {
-            val = '';
-        }
-
-        if (typeof val !== 'undefined') {
-            attributes.push([attr, val, hasQuotes]);
-        } else {
-            attributes.push([attr]);
-        }
-    }
-
-    return attributes;
+const buildPartialHandlers = (component) => {
+    let elementId = 0;
+    let markerId = 0;
+    // Recycled children whose props are reconciled after the render's destroy sweep,
+    // so a prop change cannot re-enter render while the tree is still being patched.
+    const propsQueue = [];
+    return {
+        propsQueue,
+        evaluate : (expression, meta) => getExpressionResult(expression, component, meta),
+        registerListener : (listener, type) => ({
+            attr : Component.ATTRIBUTE_EVENT(type, component.uid),
+            index : component.eventsManager.addListener(listener, type)
+        }),
+        nextElementId : () => `${component.uid}-${++elementId}`,
+        nextMarkerId : () => `${component.uid}-${++markerId}`,
+        isChild : (value) => value instanceof Component,
+        addChild : (child) => component.addChild(child),
+        sanitize : (value) => Component.sanitize(value),
+        recycleMarker : (child) => Component.MARKER_RECYCLED(child.uid),
+        moveChild : (child, parent) => child.recycle(parent),
+        hydrateChild : (child, parent) => child.hydrate(parent),
+        updateChild : (child, props) => propsQueue.push([child, props]),
+        childProps : (child) => child.props.toJSON(),
+        destroyChild : (child) => child.destroy()
+    };
 };
 
 /*
@@ -573,8 +195,14 @@ class Component extends View {
     ensureElement() {
         // Store data event listeners.
         this.eventsManager = new EventsManager();
-        // Call template function.
-        this.template = getResult(this.template, this);
+        // Build the handlers bag shared by the root partial and every nested partial.
+        this.partialHandlers = buildPartialHandlers(this);
+        // Call template function to get the root partial.
+        this.rootPartial = getResult(this.template, this);
+        // The root element merges the component's `attributes` (root treatment).
+        if (this.attributes) this.rootPartial.rootAttributes = () => getResult(this.attributes, this);
+        // Expose the template source for expression error messages (dev only).
+        if (__DEV__) this.source = this.rootPartial.constructor.source;
         // If el is provided, delegate events.
         if (this.el) {
             // If "this.el" is a function, call it to get the element.
@@ -606,14 +234,14 @@ class Component extends View {
      * @private
      */
     isContainer() {
-        return this.template.elements.length === 0 && this.template.interpolations.length === 1;
+        return this.rootPartial.isContainer();
     }
 
     /**
      * Subscribes to a `change` event on a model or emitter object and invokes the `onChange` lifecycle method.
      * The subscription is automatically cleaned up when the component is destroyed.
      * By default, the component subscribes to changes on `this.model`, `this.state`, and `this.props`.
-     * 
+     *
      * @param {Object} model - The model or emitter object to listen to.
      * @param {string} [type='change'] - The event type to listen for.
      * @param {Function} [listener=this.onChange] - The callback to invoke when the event is emitted.
@@ -627,7 +255,7 @@ class Component extends View {
 
     /**
      * Used internally on the render process.
-     * Attach the `Component` to the dom element providing `this.el`, delegate events, 
+     * Attach the `Component` to the dom element providing `this.el`, delegate events,
      * subscribe to model changes and call `onHydrate` lifecycle method.
      * @param parent {node} The parent node.
      * @return {Component} The component instance.
@@ -638,27 +266,12 @@ class Component extends View {
             if (this[key]) this.subscribe(this[key]);
         });
 
-        if (this.isContainer()) {
-            // Don't hydrate interpolation markers for container components as we know they will have only one child.
-            // Call hydrate on children.
-            this.children[0].hydrate(parent);
-            // Set the first element as the component's element.
-            this.el = this.children[0].el;
-        } else {
-            // Search for every element in template using getSelector
-            this.template.elements.forEach((element, index) => {
-                if (index === 0) {
-                    element.hydrate(parent);
-                    this.el = element.ref;
-                }
-                else {
-                    element.hydrate(this.el);
-                }
-            });
-            // Get references for interpolation marker comments
-            this.template.interpolations.forEach(interpolation => interpolation.hydrate(this.el));
-            this.children.forEach(child => child.hydrate(this.el));
-        }
+        // Hydrate the root partial: it recursively hydrates its structure, the nested
+        // partials and the child components in its slots, so the whole subtree hydrates
+        // from this one call. Then adopt its resolved root element — for a container,
+        // the wrapped child's element, already hydrated during the walk.
+        this.rootPartial.hydrate(parent);
+        this.el = this.rootPartial.rootElement();
         // Delegate events.
         this.delegateEvents();
         // Call `onHydrate` lifecycle method.
@@ -716,9 +329,9 @@ class Component extends View {
 
     /**
      * Tagged template helper method.
-     * Used to create a partial template.  
+     * Used to create a partial template.
      * It will return a Partial object that preserves structure for position-based recycling.
-     * Components will be added as children by the parent component. Template strings literals 
+     * Components will be added as children by the parent component. Template strings literals
      * will be marked as safe HTML to be rendered.
      * This method is bound to the component instance by default.
      * @param {TemplateStringsArray} strings - Template strings.
@@ -748,82 +361,13 @@ class Component extends View {
      * });
      */
     partial(strings, ...expressions) {
-        const items = splitPlaceholders(
-            parsePartialElements(
-                expandComponents(
-                    addPlaceholders(
-                        strings,
-                        expressions
-                    ).trim(),
-                    expressions
-                ),
-                expressions
-            ),
-            expressions
-        ).map(item => getExpressionResult(item, this, 'partial'));
-
-        return new Partial(items);
-    }
-
-    /**
-     * Render a template part.
-     * @param {any} part - The template part.
-     * @param {function} addChild - The addChild function. It should handle children and return a HTML string.
-     * @param {Array} items - The items array. It is used to store the items that are parsed.
-     * @return {string} The rendered template part.
-     * @private
-     */
-    renderTemplatePart(part, addChild, tracker) {
-        const item = getExpressionResult(part, this, 'template part');
-
-        if (typeof item === 'undefined' || item === null || item === false || item === true) {
-            return '';
-        }
-
-        if (item instanceof SafeHTML) {
-            return `${item}`;
-        }
-
-        if (item instanceof Component) {
-            return `${addChild(item, tracker)}`;
-        }
-
-        if (item instanceof Partial) {
-            // Single item.
-            if (item.items.length === 1) return this.renderTemplatePart(item.items[0], addChild, tracker);
-            // Several items.
-            tracker.push();
-            const out = item.items.map(subItem => {
-                tracker.increment();
-                return this.renderTemplatePart(subItem, addChild, tracker);
-            }).join('');
-            tracker.pop();
-            return out;
-        }
-        // Handle arrays (user loops) - disable tracking.
-        if (Array.isArray(item)) {
-            tracker.pause();
-            const out = deepFlat(item).map(subItem => this.renderTemplatePart(subItem, addChild, tracker)).join('');
-            tracker.resume();
-            return out;
-        }
-        // Interpolation: add markers and process maintaining tracking.
-        if (item instanceof Interpolation) {
-            // Reset the tracker.
-            const tracker = item.tracker;
-            tracker.reset();
-            // Add Interpolation markers.
-            const startMarker = this.isContainer() ? '' : `<!--${item.getStart()}-->`;
-            const endMarker = this.isContainer() ? '' : `<!--${item.getEnd()}-->`;
-            return `${startMarker}${this.renderTemplatePart(item.expression, addChild, tracker)}${endMarker}`;
-        }
-
-        return `${Component.sanitize(item)}`;
+        const PartialClass = Partial.create(strings, expressions, isComponentClass);
+        return new PartialClass(expressions, this.partialHandlers);
     }
 
     /**
      * Render the component as a string.
-     * Used internally on the render process.  
+     * Used internally on the render process.
      * Use it for server-side rendering or static site generation.
      * @return {string} The rendered component.
      * @example
@@ -836,12 +380,12 @@ class Component extends View {
      *         <${Button}>Click me</${Button}>
      *     </div>
      * `;
-     * 
+     *
      * const app = new App();
-     * 
+     *
      * console.log(app.toString());
      * // <div data-rst-el="r1-1"><!--rst-s-r1-1--><button class="button" data-rst-el="r2-1">Click me</button><!--rst-e-r1-1--></div>
-     * 
+     *
      * console.log(`${app}`);
      * // <div data-rst-el="r1-1"><!--rst-s-r1-1--><button class="button" data-rst-el="r2-1">Click me</button><!--rst-e-r1-1--></div>
      */
@@ -850,54 +394,47 @@ class Component extends View {
         this.destroyChildren();
         // Normally there won't be any data event listeners, but if there are, clear them.
         this.eventsManager.reset();
-        // Bind addChild method.
-        const addChild = (component, tracker) => {
-            tracker.track(component);
-            return this.addChild(component);
-        };
-        // Render the template parts.
-        return this.template.parts
-            .map(part => this.renderTemplatePart(part, addChild))
-            .join('');
+        // Delegate the render to the root partial, hosting its children on this component.
+        return this.rootPartial.toString(this.partialHandlers);
     }
 
     /**
      * Render the `Component`.
-     * 
+     *
      * **First render (when `this.el` is not present):**
-     * This is the initial render call. The component will be rendered as a string inside a `DocumentFragment` and hydrated, 
-     * making `this.el` available. `this.el` is the root DOM element of the component that can be applied to the DOM. 
-     * The `onHydrate` lifecycle method will be called. 
-     * 
-     * **Note:** Typically, you don't need to call `render()` directly for the first render. The static method `Component.mount()` 
+     * This is the initial render call. The component will be rendered as a string inside a `DocumentFragment` and hydrated,
+     * making `this.el` available. `this.el` is the root DOM element of the component that can be applied to the DOM.
+     * The `onHydrate` lifecycle method will be called.
+     *
+     * **Note:** Typically, you don't need to call `render()` directly for the first render. The static method `Component.mount()`
      * handles this process automatically, creating the component instance, rendering it, and appending it to the DOM.
-     * 
+     *
      * **Update render (when `this.el` is present):**
      * This indicates the component is being updated. The method will:
      * - Update only the attributes of the root element and child elements
      * - Update only the content of interpolations (the dynamic parts of the template)
      * - For container components (components that render a single child component), update the single interpolation
-     * 
+     *
      * The `onBeforeUpdate` lifecycle method will be called at the beginning, followed by the `onUpdate` lifecycle method at the end.
-     * 
+     *
      * **Child component handling:**
      * When rendering child components, they can be either recreated or recycled:
-     * 
-     * - **Recreation:** A new component instance is created, running the constructor again. This happens when no matching component 
+     *
+     * - **Recreation:** A new component instance is created, running the constructor again. This happens when no matching component
      *   is found for recycling.
-     * 
+     *
      * - **Recycling:** The same component instance is reused. Recycling happens in two ways:
-     *   - Components with a `key` are recycled if a previous child with the same key exists
+     *   - Components with a `key` are recycled if a previous child with the same key exists in the same interpolation
      *   - Unkeyed components are recycled if they have the same type and position in the template or partial
-     * 
+     *
      *   When a component is recycled:
      *   - The `onBeforeRecycle` lifecycle method is called when recycling starts
      *   - The component's `this.props` is updated with the new props from the parent
      *   - The `onRecycle` lifecycle method is called after props are updated
-     * 
-     *   A recycled component may not use props at all and remain unchanged, or it may be subscribed to a different model 
+     *
+     *   A recycled component may not use props at all and remain unchanged, or it may be subscribed to a different model
      *   (or even the same model as the parent) and update independently in subsequent render cycles.
-     * 
+     *
      * @return {Component} The component instance.
      */
     render() {
@@ -917,95 +454,20 @@ class Component extends View {
         const previousChildren = this.children;
         // Clear current children.
         this.children = [];
-        // Store props to update.
-        const propsQueue = [];
-        // Update interpolations.
-        this.template.interpolations.forEach(interpolation => {
-            // Reset the tracker.
-            const tracker = interpolation.tracker;
-            tracker.reset();
-
-            const nextChildren = [];
-            const recycledChildren = [];
-
-            // `addChild` handler is called from `renderTemplatePart` for every component.
-            // It should handle children and return a HTML string.
-            // In this case, where the component updates, it handles children recycling.
-            const addChild = (component) => {
-                let out = component;
-                let found;
-                // Check if child already exists by key.
-                if (component.key) {
-                    found = previousChildren.find(prev => prev.key === component.key);
-                } else {
-                    // Find by position and type using tracker.
-                    found = tracker.findRecyclable(component);
-                }
-
-                if (found) {
-                    // If child already exists, replace it html by its root element.
-                    out = found.getRecycledMarker();
-                    // Add child to recycled children.
-                    recycledChildren.push([found, component]);
-                    // Track the component.
-                    tracker.track(found);
-                } else {
-                    // Add new component.
-                    nextChildren.push(component);
-                    // Track the component.
-                    tracker.track(component);
-                }
-                // Return the component or placeholder.
-                return out;
-            };
-            // Render the interpolation content.
-            const rendered = this.renderTemplatePart(interpolation.expression, addChild, tracker);
-
-            const recycle = ([recycled, discarded], fragment) => {
-                // Store props to update.
-                propsQueue.push([recycled, discarded.props.toJSON()]);
-                // Add child and recycle (move to new position if needed).
-                this.addChild(recycled).recycle(fragment);
-                // Destroy discarded component.
-                discarded.destroy();
-            };
-            // Same single component in the same position. Don't move it.
-            if (tracker.hasSingleComponent()) {
-                recycle(recycledChildren[0], null);
-                return;
-            }
-            // Parse the rendered content and get the fragment.
-            const fragment = parseHTML(rendered);
-
-            const handleComponents = (parent) => () => {
-                // Add recycled components to children and move them to the new template in the fragment.
-                recycledChildren.forEach(recycled => recycle(recycled, parent));
-                // Add new children. Hydrate them and update the interpolation.
-                nextChildren.forEach(child => this.addChild(child).hydrate(parent));
-            };
-
-            if (this.isContainer()) {
-                interpolation.updateElement(this.el, fragment, handleComponents(this.el.parentNode));
-            } else {
-                interpolation.update(fragment, handleComponents(this.el));
-            }
-        });
-        // Destroy unused children.
+        // Clear the queue of recycled children props.
+        this.partialHandlers.propsQueue.length = 0;
+        // Patch the DOM in place: reconcile interpolations (children / nested partials) and
+        // diff element attributes. Expressions are re-evaluated in the component's context.
+        this.rootPartial.update(this.rootPartial.expressions, this.partialHandlers);
+        // A container may now point to a different child element.
+        if (this.isContainer()) this.el = this.rootPartial.rootElement();
+        // Destroy unused children: those not re-added to `children` during the reconcile.
+        const liveChildren = new Set(this.children);
         previousChildren.forEach(prev => {
-            if (this.children.indexOf(prev) < 0) prev.destroy();
+            if (!liveChildren.has(prev)) prev.destroy();
         });
         // Update recycled children props.
-        propsQueue.forEach(([recycled, props]) => {
-            recycled.updateProps(props);
-        });
-        // If this component is a container, set el to the child element.
-        // Otherwise, update elements attributes and delegate events.
-        if (this.isContainer()) {
-            this.el = this.children[0].el;
-        } else {
-            // Update elements attributes.
-            this.template.elements.forEach(element => element.update());
-        }
+        this.partialHandlers.propsQueue.forEach(([child, props]) => child.updateProps(props));
         // If there are pending event types, delegate events again.
         if (this.eventsManager.hasPendingTypes()) {
             this.delegateEvents();
@@ -1049,11 +511,11 @@ class Component extends View {
     /**
      * Lifecycle method. Called before the component is recycled and reused between renders.
      * This method is called at the beginning of the `recycle` method, before any recycling operations occur.
-     * 
+     *
      * A component is recycled when:
      * - It has a `key` and a previous child with the same key exists
      * - It doesn't have a `key` but has the same type and position in the template or partial
-     * 
+     *
      * Use this method to perform operations that need to happen before the component is recycled,
      * such as storing previous state or preparing for the recycling.
      */
@@ -1061,11 +523,11 @@ class Component extends View {
 
     /**
      * Lifecycle method. Called when the component is recycled and reused between renders.
-     * 
+     *
      * A component is recycled when:
      * - It has a `key` and a previous child with the same key exists
      * - It doesn't have a `key` but has the same type and position in the template or partial
-     * 
+     *
      * During recycling, the component instance is reused and its props are updated with new values.
      * The component's element may be moved in the DOM if the new template structure differs from the previous one.
      */
@@ -1094,13 +556,13 @@ class Component extends View {
     onDestroy() {}
 
     /**
-     * Mark a string as safe HTML to be rendered.  
-     * Normally you don't need to use this method, as Rasti will automatically mark string literals 
-     * as safe HTML when the component is {@link #module_component_create created} and when 
-     * using the {@link #module_component__partial Component.partial} method.  
+     * Mark a string as safe HTML to be rendered.
+     * Normally you don't need to use this method, as Rasti will automatically mark string literals
+     * as safe HTML when the component is {@link #module_component_create created} and when
+     * using the {@link #module_component__partial Component.partial} method.
      * Be sure that the string is safe to be rendered, as it will be inserted into the DOM without any sanitization.
      * @static
-     * @param {string} value 
+     * @param {string} value
      * @return {SafeHTML} A safe HTML object.
      */
     static markAsSafeHTML(value) {
@@ -1128,41 +590,41 @@ class Component extends View {
     /**
      * Mount the component into the DOM.
      * Creates a new component instance with the provided options and optionally mounts it into the DOM.
-     * 
+     *
      * **Mounting modes:**
      * - **Normal mount** (default): Renders the component as HTML and appends it to the provided element. Use this for client-side rendering.
-     * - **Hydration mode**: Assumes the DOM already contains the component's HTML (from server-side rendering). 
-     * 
+     * - **Hydration mode**: Assumes the DOM already contains the component's HTML (from server-side rendering).
+     *
      * If `el` is not provided, the component is instantiated but not mounted (the same as using `new Component(options)`). You can mount it later by calling `render()` and appending the element (`this.el`) to the DOM.
-     * 
+     *
      * @static
-     * @param {object} [options={}] The component options. These will be passed to the constructor and can include 
+     * @param {object} [options={}] The component options. These will be passed to the constructor and can include
      *                              `model`, `state`, `props`, lifecycle methods, and any other component-specific options.
-     * @param {node} [el] The DOM element where the component will be mounted. If provided, the component will be 
+     * @param {node} [el] The DOM element where the component will be mounted. If provided, the component will be
      *                    rendered and appended to this element. If not provided, the component is created but not mounted.
-     * @param {boolean} [hydrate=false] If `true`, enables hydration mode for server-side rendering. The component will 
+     * @param {boolean} [hydrate=false] If `true`, enables hydration mode for server-side rendering. The component will
      *                                  assume the DOM already contains its HTML structure and will only hydrate it.
      *                                  If `false` (default), the component will be rendered from scratch and appended to `el`.
      * @return {Component} The component instance.
      * @example
      * import { Component, Model } from 'rasti';
-     * 
+     *
      * const Button = Component.create`
      *     <button class="${({ props }) => props.className}">
      *         ${({ props }) => props.label}
      *     </button>
      * `;
-     * 
+     *
      * // Normal mount: render and append to DOM.
      * const button = Button.mount({
      *     label: 'Click me'
      * }, document.body);
-     * 
+     *
      * // Create without mounting (mount later).
      * const button2 = Button.mount({ className : 'secondary', label : 'Save' });
      * // Later, render and append it to the DOM.
      * document.body.appendChild(button2.render().el);
-     * 
+     *
      * // Hydration mode: hydrate existing server-rendered HTML
      * // Assuming document.body already contains the HTML structure of the button.
      * const hydratedButton = Button.mount({
@@ -1207,19 +669,19 @@ class Component extends View {
      * - Attach DOM event handlers per element using camel-cased attributes.
      *   Event handlers are automatically bound to the component instance (`this`).
      *   Internally, Rasti uses event delegation to the component's root element for performance.
-     *   
+     *
      *   **Attribute Quoting:**
      *   - **Quoted attributes** (`onClick="${handler}"`) evaluate the expression first, useful for dynamic values
      *   - **Unquoted attributes** (`onClick=${handler}`) pass the function reference directly
-     *   
+     *
      *   **Listener Signature:** `(event, component, matched)`
      *   - `event`: The native DOM event object
      *   - `component`: The component instance (same as `this`)
      *   - `matched`: The element that matched the event (useful for delegation)
-     *   
+     *
      *   ```javascript
      *   const Button = Component.create`
-     *       <button 
+     *       <button
      *           onClick=${function(event, component, matched) {
      *               // this === component
      *               console.log('Button clicked:', matched);
@@ -1231,8 +693,8 @@ class Component extends View {
      *       </button>
      *   `;
      *   ```
-     *   
-     *   If you need custom delegation (e.g., `{'click .selector': 'handler'}`), 
+     *
+     *   If you need custom delegation (e.g., `{'click .selector': 'handler'}`),
      *   you may override the `events` property as described in {@link #module_view__delegateevents View.delegateEvents}.
      * - Boolean attributes should be passed in the format `attribute="${() => true}"`. `false` attributes won't be rendered. `true` attributes will be rendered without a value.
      *   ```javascript
@@ -1311,51 +773,17 @@ class Component extends View {
      * @return {Component} The newly created component class.
      */
     static create(strings, ...expressions) {
-        // Containers can be created using create as a functions instead of a tagged template.
+        // Containers can be created using create as a function instead of a tagged template.
         if (typeof strings === 'function') {
             expressions = [strings];
             strings = ['', ''];
         }
-        // Store original template source for debugging (only in dev mode).
-        const source = __DEV__ ? { strings, expressions : [...expressions] } : null;
-        // Create elements, interpolations and parts arrays.
-        const elements = [], interpolations = [];
-        const parts = splitPlaceholders(
-            parseInterpolations(
-                parseElements(
-                    expandComponents(
-                        addPlaceholders(
-                            strings,
-                            expressions
-                        ).trim(),
-                        expressions
-                    ),
-                    expressions,
-                    elements
-                ),
-                expressions,
-                interpolations
-            ),
-            expressions
-        );
-        // Create subclass for this component.
+        // `create` is sugar: the subclass's `template()` returns a root partial from the
+        // captured template. `strings` keeps its identity across instances, so the skeleton
+        // is compiled once and cached; the expressions are re-evaluated per render.
         return this.extend({
-            source,
             template() {
-                return {
-                    elements : elements.map(element => new Element({
-                        getSelector : element.getSelector.bind(this),
-                        getAttributes : element.getAttributes.bind(this)
-                    })),
-                    interpolations : interpolations.map(interpolation => new Interpolation({
-                        getStart : interpolation.getStart.bind(this),
-                        getEnd : interpolation.getEnd.bind(this),
-                        expression : interpolation.expression,
-                        shouldSkipFind : isComponent,
-                        shouldSkipSync : containsElement
-                    })),
-                    parts,
-                };
+                return this.partial(strings, ...expressions);
             }
         });
     }
@@ -1385,10 +813,10 @@ Component.MARKER_START = (uid) => `rst-s-${uid}`;
 Component.MARKER_END = (uid) => `rst-e-${uid}`;
 
 /**
- * Components are a special kind of `View` that is designed to be easily composable, 
- * making it simple to add child views and build complex user interfaces.  
- * Unlike views, which are render-agnostic, components have a specific set of rendering 
- * guidelines that allow for a more declarative development style.  
+ * Components are a special kind of `View` that is designed to be easily composable,
+ * making it simple to add child views and build complex user interfaces.
+ * Unlike views, which are render-agnostic, components have a specific set of rendering
+ * guidelines that allow for a more declarative development style.
  * Components are defined with the {@link #module_component_create Component.create} static method, which takes a tagged template string or a function that returns another component.
  * @module
  * @extends View

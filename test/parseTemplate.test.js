@@ -67,15 +67,17 @@ describe('parseTemplate', () => {
             expect(interpolations[0].exprIndex).to.equal(1);
         });
 
-        it('must produce no descriptors for a fully static template', () => {
+        it('must give the root element a descriptor even when otherwise static', () => {
             const { strings, expressions } = tag`<div>hello</div>`;
             const { parts, elements, interpolations } = parseTemplate(strings, expressions);
 
-            expect(elements).to.be.empty;
+            // The first (root) element always gets a descriptor so it can be
+            // adopted as a component's element and located on hydration.
+            expect(elements).to.have.lengthOf(1);
+            expect(elements[0].attrs).to.be.empty;
             expect(interpolations).to.be.empty;
-            expect(parts).to.have.lengthOf(1);
-            expect(parts[0]).to.be.instanceOf(SafeHTML);
-            expect(`${parts[0]}`).to.equal('<div>hello</div>');
+            expect(parts).to.have.lengthOf(3);
+            expect(parts[1]).to.equal(elements[0]);
         });
     });
 
@@ -130,7 +132,8 @@ describe('parseTemplate', () => {
             const { strings, expressions } = tag`<div><${Comp} className=${'x'}/></div>`;
             const { parts, elements, interpolations } = parseTemplate(strings, expressions, isComponentClass);
 
-            expect(elements).to.be.empty;
+            // The wrapping `<div>` is the forced root element.
+            expect(elements).to.have.lengthOf(1);
             expect(interpolations).to.have.lengthOf(1);
 
             const desc = interpolations[0];
@@ -141,8 +144,8 @@ describe('parseTemplate', () => {
             expect(desc.inner).to.be.null;
             expectAttr(desc.attrs[0], 'className', 1);
 
-            expect(parts).to.have.lengthOf(3);
-            expect(parts[1]).to.equal(desc);
+            expect(parts).to.have.lengthOf(5);
+            expect(parts[3]).to.equal(desc);
         });
 
         it('must parse inner content as a nested fragment skeleton sharing parent expressions', () => {

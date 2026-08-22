@@ -1199,7 +1199,7 @@ describe('Component', () => {
                 <div id="test-node-1">${self => self.partial`<div>${({ options }) => options && Button.mount()}</div>`}</div>
             `.mount({}, document.body);
 
-            expect(document.getElementById('test-node-1').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r1-1')}--><div><button ${Component.ATTRIBUTE_ELEMENT}="r2-1">click me</button></div><!--${Component.MARKER_END('r1-1')}-->`);
+            expect(document.getElementById('test-node-1').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r1-1')}--><div ${Component.ATTRIBUTE_ELEMENT}="r1-2"><!--${Component.MARKER_START('r1-2')}--><button ${Component.ATTRIBUTE_ELEMENT}="r2-1">click me</button><!--${Component.MARKER_END('r1-2')}--></div><!--${Component.MARKER_END('r1-1')}-->`);
             expect(c1.children[0].el).to.be.equal(document.querySelector('button'));
 
             const c2 = Component.create`
@@ -1512,6 +1512,30 @@ describe('Component', () => {
             expect(newButtons[2].textContent.trim()).to.be.equal('B-updated');
         });
 
+        it('must recycle keyed components in arrays across multiple reorders', () => {
+            const Button = Component.create`<button>${({ props }) => props.text}</button>`;
+            const ParentComponent = Component.create`
+                <div id="test-node">
+                    ${({ model }) => model.items.map(item => Button.mount({ key : item.id, text : item.text }))}
+                </div>
+            `.mount({ model : new Model({ items : [{ id : '1', text : 'A' }, { id : '2', text : 'B' }, { id : '3', text : 'C' }] }) }, document.body);
+
+            // Map each keyed element by its stable text so we can track it across renders.
+            const byText = {};
+            Array.from(document.querySelectorAll('button')).forEach(el => { byText[el.textContent.trim()] = el; });
+
+            // Reorder, then reorder again: the previous render's occupants must be the live
+            // recycled instances, so keyed components keep recycling rather than being recreated.
+            ParentComponent.model.items = [{ id : '3', text : 'C' }, { id : '1', text : 'A' }, { id : '2', text : 'B' }];
+            ParentComponent.model.items = [{ id : '2', text : 'B' }, { id : '3', text : 'C' }, { id : '1', text : 'A' }];
+
+            const finalButtons = Array.from(document.querySelectorAll('button'));
+            expect(finalButtons.map(el => el.textContent.trim())).to.deep.equal(['B', 'C', 'A']);
+            expect(finalButtons[0]).to.be.equal(byText['B']);
+            expect(finalButtons[1]).to.be.equal(byText['C']);
+            expect(finalButtons[2]).to.be.equal(byText['A']);
+        });
+
         it('must recycle components in partial with array map using keys', () => {
             const Button = Component.create`<button>${({ props }) => props.text}</button>`;
             const ParentComponent = Component.create`
@@ -1664,7 +1688,7 @@ describe('Component', () => {
             expect(recycleCalls).to.be.equal(1); // onRecycle was called.
         });
 
-        it('must recycle component with movement when using partial', () => {
+        it('must recycle component in place when using partial', () => {
             let recycleCalls = 0;
             let originalChildElement;
             let originalInnerSpan;
@@ -1684,14 +1708,14 @@ describe('Component', () => {
             originalChildElement = document.querySelector('#test-node .inner div');
             originalInnerSpan = document.querySelector('#test-node .inner');
             expect(originalChildElement.textContent.trim()).to.be.equal('Hello');
-            // Re-render with same component (should recycle with movement due to partial).
+            // Re-render: the retained partial patches in place, so its structure is kept.
             Main.model.text = 'World';
-            // Verify child element is reused (same reference) and inner span is new (recreated).
+            // Verify both the child element and the inner span are reused (patched in place).
             const updatedChildElement = document.querySelector('#test-node .inner div');
             const updatedInnerSpan = document.querySelector('#test-node .inner');
 
             expect(updatedChildElement).to.be.equal(originalChildElement); // Same child element object.
-            expect(updatedInnerSpan).not.to.be.equal(originalInnerSpan); // New inner span element (recreated).
+            expect(updatedInnerSpan).to.be.equal(originalInnerSpan); // Inner span preserved (partial patched in place).
             expect(updatedChildElement.textContent.trim()).to.be.equal('World');
             expect(recycleCalls).to.be.equal(1); // onRecycle was called.
         });
@@ -1735,10 +1759,10 @@ describe('Component', () => {
             expect(document.querySelector('span').textContent.trim()).to.be.equal('World');
         });
 
-        // A partial regenerates its markup on update, so nodes inside it are replaced
-        // rather than patched: an input inside a partial becomes a new node and loses its
-        // focus and typed value. The rendered output stays correct.
-        it('must replace input node inside a partial on update', () => {
+        // A partial is retained and patched in place on update (same call site → same
+        // skeleton), so nodes inside it are diffed rather than replaced: an input inside a
+        // partial keeps its identity, focus and typed value across a re-render.
+        it('must preserve input node inside a partial on update', () => {
             const Main = Component.create`
                 <div id="test-node">
                     ${({ model, partial }) => partial`<div><input class="${model.cls}" /><span>${model.text}</span></div>`}
@@ -1753,18 +1777,18 @@ describe('Component', () => {
             Main.model.text = 'World';
 
             const inputAfter = document.querySelector('input');
-            // The partial regenerates its markup, so the input is a brand new node.
-            expect(inputAfter).not.to.be.equal(input);
-            expect(inputAfter.value).to.be.equal('');
-            expect(document.activeElement).not.to.be.equal(inputAfter);
-            // Rendered output is still correct.
+            // The partial patches in place, so the input is the same node and keeps its state.
+            expect(inputAfter).to.be.equal(input);
+            expect(inputAfter.value).to.be.equal('typed');
+            expect(document.activeElement).to.be.equal(inputAfter);
+            // The bound attribute did update.
             expect(inputAfter.className).to.be.equal('b');
             expect(document.querySelector('span').textContent.trim()).to.be.equal('World');
         });
 
-        // A partial with several sibling dynamic regions regenerates its markup on update:
-        // the outer container node is kept, but its inner children are replaced. The
-        // rendered content is correct regardless of node identity.
+        // A partial with several sibling dynamic regions patches each region in place: the
+        // container and its inner element nodes are all kept, only their bound attributes
+        // and text content change.
         it('must update a partial with multiple dynamic regions', () => {
             const Main = Component.create`
                 <div id="test-node">
@@ -1780,11 +1804,11 @@ describe('Component', () => {
             Main.model.c2 = 'y2';
 
             const ulAfter = document.querySelector('ul');
-            // Container node preserved, inner children replaced.
+            // Container and inner element nodes all preserved, patched in place.
             expect(ulAfter).to.be.equal(ul);
-            expect(ulAfter.children[0]).not.to.be.equal(li0);
-            expect(ulAfter.children[1]).not.to.be.equal(li1);
-            // Content is correct regardless of node identity.
+            expect(ulAfter.children[0]).to.be.equal(li0);
+            expect(ulAfter.children[1]).to.be.equal(li1);
+            // Content is correct.
             expect(ulAfter.children[0].textContent.trim()).to.be.equal('A2');
             expect(ulAfter.children[0].className).to.be.equal('x');
             expect(ulAfter.children[1].textContent.trim()).to.be.equal('B');
@@ -1881,10 +1905,11 @@ describe('Component', () => {
             expect(bAfter.map(li => li.textContent.trim())).to.deep.equal(['C2', 'A2', 'B2']);
         });
 
-        // Keyed components are matched globally across the parent's interpolations, so a
-        // keyed component moved from one interpolation to another is recycled as the same
-        // instance rather than recreated.
-        it('must recycle keyed component across different interpolations', () => {
+        // Keys are matched slot-locally: each interpolation only recycles against its own
+        // previous occupants. A keyed component that moves from one interpolation to another
+        // is therefore recreated, not recycled, since the target interpolation has no
+        // previous child with that key.
+        it('must recreate keyed component across different interpolations', () => {
             const Card = Component.create`<div class="card">${({ props }) => props.label}</div>`;
             const Main = Component.create`
                 <div id="test-node">
@@ -1903,8 +1928,8 @@ describe('Component', () => {
             const cardAfter = document.querySelector('.card');
             expect(document.querySelector('.colB .card')).to.be.equal(cardAfter);
             expect(document.querySelector('.colA .card')).to.be.null;
-            // Global key matching: same instance recycled across interpolations.
-            expect(cardAfter).to.be.equal(cardBefore);
+            // Slot-local key matching: a different instance is created in the other interpolation.
+            expect(cardAfter).not.to.be.equal(cardBefore);
         });
 
         // Events on slotted content (passed through renderChildren) are delegated on the

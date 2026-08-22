@@ -3,6 +3,7 @@ import Constants from './Constants.js';
 import ElementDescriptor from './ElementDescriptor.js';
 import InterpolationDescriptor from './InterpolationDescriptor.js';
 import ComponentDescriptor from './ComponentDescriptor.js';
+import RawExpression from './RawExpression.js';
 import Attribute from './Attribute.js';
 import __DEV__ from '../../utils/dev.js';
 
@@ -176,10 +177,15 @@ const replaceElements = (template, replacer) => {
  */
 const parseElements = (template, elements) => {
     const PH = Constants.PLACEHOLDER('(?:\\d+)');
+    let first = true;
     // Match all HTML elements including placeholders and self-closed elements.
     return replaceElements(template, (match, tag, attributesStr, ending) => {
-        // If there are no dynamic attributes, return original match.
-        if (!attributesStr.match(new RegExp(PH))) {
+        const isFirst = first;
+        first = false;
+        // Elements with dynamic attributes always get a descriptor. The first
+        // (root) element also gets one even without dynamic attributes, so a
+        // component can adopt it as `this.el` and hydration can locate it by id.
+        if (!isFirst && !attributesStr.match(new RegExp(PH))) {
             return match;
         }
         // Add element descriptor to elements array.
@@ -231,11 +237,15 @@ const parseInterpolations = (template, interpolations) => {
  * @private
  */
 const splitPlaceholders = (main, elements, interpolations) => {
-    const SLOT = `${Constants.SLOT_ELEMENT('(\\d+)')}|${Constants.SLOT_INTERPOLATION('(\\d+)')}`;
-    // Resolve a matched structural placeholder to its descriptor instance.
-    const resolve = match => typeof match[1] !== 'undefined' ?
-        elements[parseInt(match[1], 10)] :
-        interpolations[parseInt(match[2], 10)];
+    const SLOT = `${Constants.SLOT_ELEMENT('(\\d+)')}|${Constants.SLOT_INTERPOLATION('(\\d+)')}|${Constants.PLACEHOLDER('(\\d+)')}`;
+    // Resolve a matched placeholder to its part: an element / interpolation descriptor
+    // for a structural slot, or a `RawExpression` for an original expression that
+    // survived outside a slot (a dynamic tag name).
+    const resolve = match => {
+        if (typeof match[1] !== 'undefined') return elements[parseInt(match[1], 10)];
+        if (typeof match[2] !== 'undefined') return interpolations[parseInt(match[2], 10)];
+        return new RawExpression(parseInt(match[3], 10));
+    };
 
     const matchSinglePlaceholder = main.match(new RegExp(`^(?:${SLOT})$`));
     if (matchSinglePlaceholder) return [resolve(matchSinglePlaceholder)];

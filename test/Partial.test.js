@@ -18,7 +18,9 @@ const makeOptions = (uid = 'r1') => {
         },
         nextElementId : () => `${uid}-${++elId}`,
         nextMarkerId : () => `${uid}-${++mkId}`,
-        renderChild : value => `${value}`
+        isChild : () => false,
+        addChild : child => child,
+        sanitize : value => `${value}`
     };
 };
 
@@ -78,8 +80,8 @@ describe('Partial', () => {
             const outer = makePartial(tag`<div>${inner}</div>`, options);
 
             expect(outer.toString()).to.equal(
-                '<div><!--rst-s-r1-1-->' +
-                    '<span class="i" data-rst-el="r1-1"><!--rst-s-r1-2-->x<!--rst-e-r1-2--></span>' +
+                '<div data-rst-el="r1-1"><!--rst-s-r1-1-->' +
+                    '<span class="i" data-rst-el="r1-2"><!--rst-s-r1-2-->x<!--rst-e-r1-2--></span>' +
                 '<!--rst-e-r1-1--></div>'
             );
         });
@@ -87,14 +89,14 @@ describe('Partial', () => {
         it('must render arrays by flattening each item', () => {
             const partial = makePartial(tag`<ul>${['a', 'b']}</ul>`);
 
-            expect(partial.toString()).to.equal('<ul><!--rst-s-r1-1-->ab<!--rst-e-r1-1--></ul>');
+            expect(partial.toString()).to.equal('<ul data-rst-el="r1-1"><!--rst-s-r1-1-->ab<!--rst-e-r1-1--></ul>');
         });
 
         it('must skip null and boolean values, keeping their markers empty', () => {
             const partial = makePartial(tag`<div>${null}${false}${true}</div>`);
 
             expect(partial.toString()).to.equal(
-                '<div>' +
+                '<div data-rst-el="r1-1">' +
                     '<!--rst-s-r1-1--><!--rst-e-r1-1-->' +
                     '<!--rst-s-r1-2--><!--rst-e-r1-2-->' +
                     '<!--rst-s-r1-3--><!--rst-e-r1-3-->' +
@@ -117,6 +119,8 @@ describe('Partial', () => {
             const partial = makePartial(tag`<div class="${'btn'}">${'hi'}</div>`);
             document.body.innerHTML = partial.toString();
 
+            // Elements are located by unique id anywhere under the parent (including
+            // the root); markers are then located within the root.
             partial.hydrate(document.body);
 
             expect(partial.elementState[0].ref).to.equal(document.querySelector('[data-rst-el="r1-1"]'));
