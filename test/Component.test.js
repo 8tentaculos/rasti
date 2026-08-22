@@ -64,6 +64,71 @@ describe('Component', () => {
         });
     });
 
+    describe('Value style templates', () => {
+        it('must recompute plain interpolated values on each render', () => {
+            const Timer = Component.extend({
+                template() {
+                    return this.partial`<div id="test-node">Seconds: <span>${this.model.seconds}</span></div>`;
+                }
+            });
+
+            const model = new Model({ seconds : 0 });
+            Timer.mount({ model }, document.body);
+
+            const span = document.getElementById('test-node').querySelector('span');
+            expect(span.textContent).to.be.equal('0');
+
+            model.seconds = 5;
+            expect(span.textContent).to.be.equal('5');
+        });
+
+        it('must see state and props in the template on the first render', () => {
+            const Greeting = Component.extend({
+                template() {
+                    return this.partial`<div id="test-node"><span>${this.props.greeting}</span> <b>${this.state.name}</b></div>`;
+                }
+            });
+
+            Greeting.mount({ state : new Model({ name : 'world' }), greeting : 'Hello' }, document.body);
+
+            const node = document.getElementById('test-node');
+            expect(node.querySelector('span').textContent).to.be.equal('Hello');
+            expect(node.querySelector('b').textContent).to.be.equal('world');
+        });
+
+        it('must support a native subclass defining template()', () => {
+            class Timer extends Component {
+                template() {
+                    return this.partial`<div id="test-node">Seconds: <span>${this.model.seconds}</span></div>`;
+                }
+            }
+
+            const model = new Model({ seconds : 1 });
+            Timer.mount({ model }, document.body);
+
+            const span = document.getElementById('test-node').querySelector('span');
+            expect(span.textContent).to.be.equal('1');
+
+            model.seconds = 2;
+            expect(span.textContent).to.be.equal('2');
+        });
+
+        it('must throw when the root template changes between renders', () => {
+            const Toggle = Component.extend({
+                template() {
+                    return this.model.wide ?
+                        this.partial`<section id="test-node"></section>` :
+                        this.partial`<div id="test-node"></div>`;
+                }
+            });
+
+            const model = new Model({ wide : false });
+            Toggle.mount({ model }, document.body);
+
+            expect(() => { model.wide = true; }).to.throw(/Root template changed/);
+        });
+    });
+
     describe('Child components', () => {
         it('must mount child component', () => {
             const Button = Component.create`<button>click me</button>`;

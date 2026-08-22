@@ -122,9 +122,35 @@ const buildPartialHandlers = (component) => {
 const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', 'onBeforeRecycle', 'onRecycle', 'onBeforeUpdate', 'onUpdate'];
 
 /**
- * @lends module:Component
+ * Components are a special kind of `View` that is designed to be easily composable,
+ * making it simple to add child views and build complex user interfaces.
+ * Unlike views, which are render-agnostic, components have a specific set of rendering
+ * guidelines that allow for a more declarative development style.
+ * Components are defined with the {@link #module_component_create Component.create} static method, which takes a tagged template string or a function that returns another component.
+ * @module
+ * @extends View
+ * @param {object} options Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onHydrate, onBeforeRecycle, onRecycle, onBeforeUpdate, onUpdate, onCreate, onChange. Any additional options not in the component or view options list will be automatically extracted as props and stored as `this.props`.
+ * @property {string} [key] A unique key to identify the component. Components with keys are recycled when the same key is found in the previous render. Unkeyed components are recycled based on type and position.
+ * @property {Model} [model] A `Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method.
+ * @property {Model} [state] A `Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method.
+ * @property {Model} [props] Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When a component with a `key` is recycled during parent re-render, new props are automatically updated and any changes trigger a re-render.
+ * @see {@link #module_component_create Component.create}
+ * @example
+ * import { Component, Model } from 'rasti';
+ * // Create Timer component.
+ * const Timer = Component.create`
+ *     <div>
+ *         Seconds: <span>${({ model }) => model.seconds}</span>
+ *     </div>
+ * `;
+ * // Create model to store seconds.
+ * const model = new Model({ seconds : 0 });
+ * // Mount timer on body.
+ * Timer.mount({ model }, document.body);
+ * // Increment `model.seconds` every second.
+ * setInterval(() => model.seconds++, 1000);
  */
-class Component extends View {
+export default class Component extends View {
     constructor(options = {}) {
         super(...arguments);
         this.componentOptions = [];
@@ -188,8 +214,11 @@ class Component extends View {
     }
 
     /**
-     * Override super method. We don't want to ensure an element on instantiation.
-     * We will provide it later.
+     * Override super method. A component's root element is produced by its template,
+     * which runs on the first render rather than on instantiation (so it sees `state`,
+     * `props` and anything set up in the constructor). The element is therefore created
+     * later, in `render`; only the render-time collaborators that every render relies on
+     * are set up here.
      * @private
      */
     ensureElement() {
@@ -197,32 +226,22 @@ class Component extends View {
         this.eventsManager = new EventsManager();
         // Build the handlers bag shared by the root partial and every nested partial.
         this.partialHandlers = buildPartialHandlers(this);
+    }
+
+    /**
+     * Build the root partial from the template on first use and adopt it: the root
+     * element merges the component's `attributes`, and the template source is exposed
+     * for expression error messages. Runs once; later renders reconcile against it.
+     * @private
+     */
+    ensureRootPartial() {
+        if (this.rootPartial) return;
         // Call template function to get the root partial.
         this.rootPartial = getResult(this.template, this);
         // The root element merges the component's `attributes` (root treatment).
         if (this.attributes) this.rootPartial.rootAttributes = () => getResult(this.attributes, this);
         // Expose the template source for expression error messages (dev only).
         if (__DEV__) this.source = this.rootPartial.constructor.source;
-        // If el is provided, delegate events.
-        if (this.el) {
-            // If "this.el" is a function, call it to get the element.
-            this.el = getResult(this.el, this);
-            // Check if the element has a parent node.
-            if (!this.el.parentNode) {
-                const message = __DEV__ ?
-                    createDevelopmentErrorMessage(
-                        `Hydration failed in ${this.constructor.name}#${this.uid}\n` +
-                        'The element must have a parent node for hydration to work.\n' +
-                        'Make sure the element is mounted in the DOM before hydrating.'
-                    ) :
-                    createProductionErrorMessage(`Hydration failed in ${this.constructor.name}#${this.uid}`);
-                throw new Error(message);
-            }
-            // Render the component as a string to generate children components.
-            this.toString();
-            // Hydrate the component.
-            this.hydrate(this.el.parentNode);
-        }
     }
 
     /**
@@ -272,6 +291,8 @@ class Component extends View {
         // the wrapped child's element, already hydrated during the walk.
         this.rootPartial.hydrate(parent);
         this.el = this.rootPartial.rootElement();
+        // Mark as hydrated so later renders take the update path.
+        this.hydrated = true;
         // Delegate events.
         this.delegateEvents();
         // Call `onHydrate` lifecycle method.
@@ -366,6 +387,16 @@ class Component extends View {
     }
 
     /**
+     * Return the component's root partial. Called on every render, so interpolated
+     * values are recomputed. The base implementation renders an empty `<div>`;
+     * override it (directly, via `extend`, or through `create`) to define the markup.
+     * @return {Partial} The root partial.
+     */
+    template() {
+        return this.partial`<div></div>`;
+    }
+
+    /**
      * Render the component as a string.
      * Used internally on the render process.
      * Use it for server-side rendering or static site generation.
@@ -390,6 +421,8 @@ class Component extends View {
      * // <div data-rst-el="r1-1"><!--rst-s-r1-1--><button class="button" data-rst-el="r2-1">Click me</button><!--rst-e-r1-1--></div>
      */
     toString() {
+        // Build the root partial from the template on first render.
+        this.ensureRootPartial();
         // Normally there won't be any children, but if there are, destroy them.
         this.destroyChildren();
         // Normally there won't be any data event listeners, but if there are, clear them.
@@ -440,10 +473,32 @@ class Component extends View {
     render() {
         // Prevent a last re render if view is already destroyed.
         if (this.destroyed) return this;
-        // If `this.el` is not present, render the view as a string and hydrate it.
-        if (!this.el) {
-            const fragment = parseHTML(this);
-            this.hydrate(fragment);
+        // First render: build the root from the template and hydrate it. When an element
+        // is provided, hydrate onto it (server-rendered DOM); otherwise render to a
+        // fragment. `template()` runs here, after construction, so it sees `state`/`props`.
+        if (!this.hydrated) {
+            if (this.el) {
+                // If `this.el` is a function, call it to get the element.
+                this.el = getResult(this.el, this);
+                // The element must be in the DOM to hydrate onto it.
+                if (!this.el.parentNode) {
+                    const message = __DEV__ ?
+                        createDevelopmentErrorMessage(
+                            `Hydration failed in ${this.constructor.name}#${this.uid}\n` +
+                            'The element must have a parent node for hydration to work.\n' +
+                            'Make sure the element is mounted in the DOM before hydrating.'
+                        ) :
+                        createProductionErrorMessage(`Hydration failed in ${this.constructor.name}#${this.uid}`);
+                    throw new Error(message);
+                }
+                // Render the component as a string to generate children components.
+                this.toString();
+                // Hydrate onto the provided element.
+                this.hydrate(this.el.parentNode);
+            } else {
+                // Render to a fragment and hydrate.
+                this.hydrate(parseHTML(this));
+            }
             return this;
         }
         // Call `onBeforeUpdate` lifecycle method.
@@ -456,9 +511,24 @@ class Component extends View {
         this.children = [];
         // Clear the queue of recycled children props.
         this.partialHandlers.propsQueue.length = 0;
+        // Re-run `template()` to get a fresh carrier holding this render's expressions, so
+        // templates that interpolate plain values (recomputed on each call) stay reactive.
+        const carrier = getResult(this.template, this);
+        // The root partial is retained across renders and reconciled by structure, so the
+        // carrier must come from the same template. A changed root can't be patched in place.
+        if (carrier.constructor !== this.rootPartial.constructor) {
+            const message = __DEV__ ?
+                createDevelopmentErrorMessage(
+                    `Root template changed in ${this.constructor.name}#${this.uid}\n` +
+                    'A component\'s `template()` must return the same template on every render.\n' +
+                    'Branch inside interpolations instead of switching the root template itself.'
+                ) :
+                createProductionErrorMessage(`Root template changed in ${this.constructor.name}#${this.uid}`);
+            throw new Error(message);
+        }
         // Patch the DOM in place: reconcile interpolations (children / nested partials) and
         // diff element attributes. Expressions are re-evaluated in the component's context.
-        this.rootPartial.update(this.rootPartial.expressions, this.partialHandlers);
+        this.rootPartial.update(carrier.expressions, this.partialHandlers);
         // A container may now point to a different child element.
         if (this.isContainer()) this.el = this.rootPartial.rootElement();
         // Destroy unused children: those not re-added to `children` during the reconcile.
@@ -811,34 +881,3 @@ Component.PLACEHOLDER = (idx) => `__RASTI_PLACEHOLDER_${idx}__`;
 Component.MARKER_RECYCLED = (uid) => `rst-r-${uid}`;
 Component.MARKER_START = (uid) => `rst-s-${uid}`;
 Component.MARKER_END = (uid) => `rst-e-${uid}`;
-
-/**
- * Components are a special kind of `View` that is designed to be easily composable,
- * making it simple to add child views and build complex user interfaces.
- * Unlike views, which are render-agnostic, components have a specific set of rendering
- * guidelines that allow for a more declarative development style.
- * Components are defined with the {@link #module_component_create Component.create} static method, which takes a tagged template string or a function that returns another component.
- * @module
- * @extends View
- * @param {object} options Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onHydrate, onBeforeRecycle, onRecycle, onBeforeUpdate, onUpdate, onCreate, onChange. Any additional options not in the component or view options list will be automatically extracted as props and stored as `this.props`.
- * @property {string} [key] A unique key to identify the component. Components with keys are recycled when the same key is found in the previous render. Unkeyed components are recycled based on type and position.
- * @property {Model} [model] A `Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method.
- * @property {Model} [state] A `Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method.
- * @property {Model} [props] Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When a component with a `key` is recycled during parent re-render, new props are automatically updated and any changes trigger a re-render.
- * @see {@link #module_component_create Component.create}
- * @example
- * import { Component, Model } from 'rasti';
- * // Create Timer component.
- * const Timer = Component.create`
- *     <div>
- *         Seconds: <span>${({ model }) => model.seconds}</span>
- *     </div>
- * `;
- * // Create model to store seconds.
- * const model = new Model({ seconds : 0 });
- * // Mount timer on body.
- * Timer.mount({ model }, document.body);
- * // Increment `model.seconds` every second.
- * setInterval(() => model.seconds++, 1000);
- */
-export default Component.create`<div></div>`;
