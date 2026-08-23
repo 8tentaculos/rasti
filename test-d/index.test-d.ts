@@ -226,6 +226,33 @@ expectAssignable<ComponentPartial | InstanceType<typeof Component>>(
 const FnContainer = Component.create(() => Card.mount({ title: 'x' }));
 new FnContainer();
 
+// Subclass form: `template()` is defined as a method, alongside typed fields and helpers
+class Panel extends Component<CounterProps, CounterState> {
+    timer: number | null = null;
+
+    template() {
+        return this.partial`<section>${this.props.label}${this.renderRows()}</section>`;
+    }
+
+    renderRows() {
+        return this.partial`<ul>${this.props.initial}</ul>`;
+    }
+}
+const panel = new Panel({ initial: 1, label: 'x' });
+expectType<number>(panel.props.initial);
+expectType<number | null>(panel.timer);
+expectType<ComponentPartial>(panel.renderRows());
+expectType<Panel>(Panel.mount({ initial: 1, label: 'x' }));
+expectError(new Panel({ initial: 'not-a-number', label: 'x' }));
+
+// Subclass form as a container: `template()` returns a child component
+class CardContainer extends Component {
+    template() {
+        return Card.mount({ title: 'x' });
+    }
+}
+new CardContainer();
+
 // create().extend() — the common pattern from the examples
 const HeaderExt = Component.create<HeaderProps>`<header></header>`.extend({
     helper() {

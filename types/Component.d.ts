@@ -4,8 +4,9 @@ import Model from './Model.js';
 export interface ComponentReservedOptions<S = any, M = any> extends ViewOptions<M> {
     /**
      * A unique key to identify the component.
-     * Components with keys are recycled when the same key is found in the previous render.
-     * Unkeyed components are recycled based on type and position.
+     * Components with keys are recycled when the same key is found in the previous render
+     * of the same interpolation. Unkeyed components are recycled based on type and position,
+     * and are never recycled inside an array.
      */
     key?: string;
     /**
@@ -39,9 +40,9 @@ export interface SafeHTML {
 
 /**
  * A partial template produced by `this.partial`. Return it from `template()` as the
- * component's root, or from a render expression to nest structure that recycles by
- * position. Treat it as an opaque token: it carries the template's structure and this
- * render's expressions for the reconciler, and is not meant to be inspected.
+ * component's root, or from a render expression to nest structure that is patched in
+ * place across renders. Treat it as an opaque token: it carries the template's structure
+ * and this render's expressions for the reconciler, and is not meant to be inspected.
  */
 export interface ComponentPartial {
     readonly __rastiPartial: true;
@@ -119,8 +120,11 @@ export type ExtendedComponent<T extends new (...args: any[]) => any, O> =
  * which are render-agnostic, components have a specific set of rendering guidelines that
  * allow for a more declarative development style.
  *
- * Components are defined with the {@link Component.create} static method, which takes a
- * tagged template string or a function that returns another component.
+ * A component renders from its `template()` method. Define it by subclassing, or let the
+ * {@link Component.create} static method write it for you from a tagged template string or
+ * a template function. In TypeScript the subclass form types best: `props` and `state` come
+ * from the generics, the interpolations are ordinary expressions checked by the compiler,
+ * and the class name is both a value and a type.
  *
  * @example
  * import { Component, Model } from 'rasti';
@@ -130,6 +134,13 @@ export type ExtendedComponent<T extends new (...args: any[]) => any, O> =
  * const model = new Model({ seconds: 0 });
  * Timer.mount({ model }, document.body);
  * setInterval(() => model.seconds++, 1000);
+ *
+ * @example
+ * class Timer extends Component<{ label: string }, Model<{ seconds: number }>> {
+ *     template() {
+ *         return this.partial`<div>${this.props.label}: <span>${this.state?.seconds}</span></div>`;
+ *     }
+ * }
  */
 declare class Component<P = {}, S = any, M = any> extends View<M> {
     /**
@@ -182,7 +193,8 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
     /**
      * Takes a tagged template string (or a function that returns a partial or a component)
      * and returns a new `Component` class. The function form is sugar for defining
-     * `template()` directly.
+     * `template()` directly; in the tagged form the expressions are captured once, so
+     * anything dynamic must be a function.
      *
      * - The template outer tag and attributes define the view's root element.
      * - Inner HTML becomes the view's template.
@@ -206,7 +218,8 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
 
     /**
      * A unique key to identify the component, merged from options.
-     * Components with keys are recycled when the same key is found in the previous render.
+     * Components with keys are recycled when the same key is found in the previous render
+     * of the same interpolation.
      */
     key?: string;
 
@@ -231,8 +244,12 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
      * borrows). Called on every render, so interpolated values are recomputed. The base
      * implementation returns an empty `<div>`; override it directly, via `extend`, or
      * through `create`.
+     *
+     * The root partial must have a single root element — it becomes `this.el` — and must be
+     * built from the same template on every render, since the root is patched in place.
+     * Neither restriction applies to the partials rendered inside an interpolation.
      */
-    template: () => ComponentPartial | Component<any, any, any>;
+    template(): ComponentPartial | Component<any, any, any>;
 
     /**
      * @param options Component options. Keys `model`, `state`, `key`, `onCreate`, `onChange`,
@@ -243,8 +260,8 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
 
     /**
      * Tagged template helper bound to the component instance.
-     * Returns a `ComponentPartial` that preserves structure for position-based recycling.
-     * String literals are marked as safe HTML automatically.
+     * Returns a `ComponentPartial`, which is rendered once and then patched in place on
+     * later renders. String literals are marked as safe HTML automatically.
      *
      * @example
      * renderHeader() {
@@ -263,10 +280,10 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
     /**
      * Render the component.
      *
-     * - **First render** (`this.el` absent): renders as a string inside a `DocumentFragment`
-     *   and hydrates it. `onHydrate` is called.
-     * - **Update render** (`this.el` present): updates root attributes and interpolation content.
-     *   `onBeforeUpdate` and `onUpdate` are called.
+     * - **First render** (before hydration): renders as a string inside a `DocumentFragment`
+     *   and hydrates it, or hydrates onto the element given as an option. `onHydrate` is called.
+     * - **Update render** (once hydrated): runs `template()` again and patches the DOM in place,
+     *   diffing attributes and reconciling interpolations. `onBeforeUpdate` and `onUpdate` are called.
      */
     render(): this;
 

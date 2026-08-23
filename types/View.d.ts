@@ -81,8 +81,9 @@ export default class View<M = any> extends Emitter {
     /**
      * Function returning the view's inner HTML, used by `render`. A plain view returns a
      * string assigned to `innerHTML`; `Component` narrows this to return a partial.
+     * Declared as a method so subclasses can define it as one.
      */
-    template?: (...args: any[]) => any;
+    template?(...args: any[]): any;
 
     /** Unique identifier for the view instance. */
     uid: string;
