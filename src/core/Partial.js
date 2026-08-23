@@ -44,6 +44,21 @@ const expandEvents = (attributes, owner) => {
 };
 
 /**
+ * Tell whether a previous child can be recycled for a candidate: keyed children
+ * match by key, unkeyed children by constructor (type).
+ * @param {object} prev The previous child.
+ * @param {object} candidate The candidate child.
+ * @param {boolean} [allowUnkeyed=true] Whether unkeyed children may match. False for
+ *     the children of a user array, where position carries no identity.
+ * @return {boolean} True if `prev` can be recycled.
+ * @private
+ */
+const canRecycle = (prev, candidate, allowUnkeyed = true) => {
+    if (candidate.key != null || prev.key != null) return prev.key === candidate.key;
+    return allowUnkeyed && prev.constructor === candidate.constructor;
+};
+
+/**
  * The handlers through which a partial reaches the component world. The engine never
  * imports `Component`: everything component-specific arrives here, so the same code
  * drives real components in the app and fakes in tests.
@@ -134,8 +149,7 @@ class Partial {
      *     first render.
      * @return {string} The rendered HTML.
      */
-    toString(host, pass) {
-        if (!host) host = this.owner;
+    toString(host = this.owner, pass) {
         if (!this.elementState) this.materialize();
         return this.constructor.parts.map(part => this.renderPart(part, host, pass)).join('');
     }
@@ -266,7 +280,7 @@ class Partial {
     renderChild(value, host, pass) {
         if (!this.owner.isChild(value)) return this.owner.sanitize(value);
         if (pass) {
-            const found = this.matchChild(value, pass);
+            const found = this.claimRecyclable(value, pass);
             if (found) {
                 host.addChild(found);
                 pass.recycled.push([found, value]);
@@ -278,21 +292,20 @@ class Partial {
     }
 
     /**
-     * Find a recyclable previous occupant for a candidate child. Keyed children
-     * match by key; unkeyed children match by constructor (type) only when allowed
-     * (single-value slots, not user arrays). Matching is slot-local: it only
-     * considers this slot's own previous occupants.
+     * Claim a recyclable previous occupant for a candidate child: the first one the
+     * pass has not handed out yet (see `canRecycle`), marked as used so no other
+     * candidate takes it. Claiming is slot-local: it only considers this slot's own
+     * previous occupants.
      * @param {object} candidate The candidate child component.
      * @param {object} pass Reconcile pass holding `previous`, `used` and `allowUnkeyed`.
-     * @return {object|null} The matched previous child, or `null`.
+     * @return {object|null} The claimed previous child, or `null`.
      * @private
      */
-    matchChild(candidate, pass) {
+    claimRecyclable(candidate, pass) {
         for (let i = 0; i < pass.previous.length; i++) {
             const prev = pass.previous[i];
             if (pass.used.has(prev)) continue;
-            const keyed = candidate.key != null || prev.key != null;
-            if (keyed ? prev.key === candidate.key : pass.allowUnkeyed && prev.constructor === candidate.constructor) {
+            if (canRecycle(prev, candidate, pass.allowUnkeyed)) {
                 pass.used.add(prev);
                 return prev;
             }
@@ -396,8 +409,7 @@ class Partial {
      * @param {PartialHandlers} [host] Handlers of the component rendering (see
      *     `toString`). Defaults to this partial's own owner.
      */
-    update(expressions, host) {
-        if (!host) host = this.owner;
+    update(expressions, host = this.owner) {
         this.expressions = expressions;
         this.constructor.interpolations.forEach(descriptor => this.updateInterpolation(descriptor, host));
         this.constructor.elements.forEach(descriptor => this.updateElement(descriptor));
@@ -422,7 +434,7 @@ class Partial {
             return;
         }
         // Retained single child: same key/type → recycle in place, without moving the DOM.
-        if (this.owner.isChild(value) && this.owner.isChild(prev) && this.childMatches(prev, value)) {
+        if (this.owner.isChild(value) && this.owner.isChild(prev) && canRecycle(prev, value)) {
             this.recycleInPlace(prev, value, host);
             return;
         }
@@ -430,19 +442,6 @@ class Partial {
         // has no markers, so its content is anchored to its current element instead.
         if (this.isContainer()) this.replaceContainer(state, value, host);
         else this.replaceSlot(state, value, host);
-    }
-
-    /**
-     * Tell whether a previous child can host a candidate child (same key, or same
-     * type when unkeyed).
-     * @param {object} prev The previous child.
-     * @param {object} next The candidate child.
-     * @return {boolean} True if they match.
-     * @private
-     */
-    childMatches(prev, next) {
-        if (next.key != null || prev.key != null) return prev.key === next.key;
-        return prev.constructor === next.constructor;
     }
 
     /**
