@@ -1,10 +1,10 @@
 import { expect } from 'chai';
-import parseTemplate from '../src/core/template/parseTemplate.js';
+import parseTemplate from '../src/core/parseTemplate.js';
 import SafeHTML from '../src/core/SafeHTML.js';
-import ElementDescriptor from '../src/core/template/ElementDescriptor.js';
-import InterpolationDescriptor from '../src/core/template/InterpolationDescriptor.js';
-import ComponentDescriptor from '../src/core/template/ComponentDescriptor.js';
-import Attribute from '../src/core/template/Attribute.js';
+import ElementDescriptor from '../src/core/ElementDescriptor.js';
+import InterpolationDescriptor from '../src/core/InterpolationDescriptor.js';
+import ComponentDescriptor from '../src/core/ComponentDescriptor.js';
+import Attribute from '../src/core/Attribute.js';
 
 // Capture a real tagged-template `strings` array (frozen, stable identity per
 // call site) alongside its expressions.

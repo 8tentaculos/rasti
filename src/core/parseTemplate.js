@@ -1,14 +1,14 @@
-import SafeHTML from '../SafeHTML.js';
+import SafeHTML from './SafeHTML.js';
 import Constants from './Constants.js';
 import ElementDescriptor from './ElementDescriptor.js';
 import InterpolationDescriptor from './InterpolationDescriptor.js';
 import ComponentDescriptor from './ComponentDescriptor.js';
 import RawExpression from './RawExpression.js';
 import Attribute from './Attribute.js';
-import __DEV__ from '../../utils/dev.js';
+import __DEV__ from '../utils/dev.js';
 
 /**
- * @module core/template/parseTemplate
+ * @module core/parseTemplate
  * Role-agnostic template parser. Turns a tagged template (`strings`,
  * `expressions`) into skeleton data (`parts`, `elements`, `interpolations`) that
  * is independent of the expression values: dynamic parts become descriptors that

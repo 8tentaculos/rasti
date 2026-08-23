@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import Partial from '../src/core/template/Partial.js';
+import Partial from '../src/core/Partial.js';
 
 // Capture a real tagged-template `strings` array plus its expressions.
 const tag = (strings, ...expressions) => ({ strings, expressions });
