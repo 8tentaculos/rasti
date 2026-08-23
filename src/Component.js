@@ -876,20 +876,17 @@ export default class Component extends View {
      * @return {Component} The newly created component class.
      */
     static create(strings, ...expressions) {
-        // The function form authors the template directly: `create(fn)` is the same as
-        // defining `template` as `fn`. It may return a partial (the component's root) or
-        // a component instance (rendered as a container).
-        if (typeof strings === 'function') {
-            return this.extend({ template : strings });
-        }
-        // `create` is sugar: the subclass's `template()` returns a root partial from the
-        // captured template. `strings` keeps its identity across instances, so the skeleton
-        // is compiled once and cached; the expressions are re-evaluated per render.
-        return this.extend({
-            template() {
-                return this.partial(strings, ...expressions);
-            }
-        });
+        // Both forms end up as the subclass's `template()`. A function authors it
+        // directly, and may return a partial (the component's root) or a component
+        // instance (rendered as a container). A tagged template builds the root partial
+        // from the captured template: `strings` keeps its identity across instances, so
+        // the skeleton is compiled once and cached, while the expressions are captured
+        // here and re-evaluated on every render.
+        const template = typeof strings === 'function' ? strings : function() {
+            return this.partial(strings, ...expressions);
+        };
+
+        return this.extend({ template });
     }
 }
 
