@@ -140,7 +140,7 @@ const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', '
  * @module
  * @extends View
  * @param {object} options Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onHydrate, onBeforeRecycle, onRecycle, onBeforeUpdate, onUpdate, onCreate, onChange. Any additional options not in the component or view options list will be automatically extracted as props and stored as `this.props`.
- * @property {string} [key] A unique key to identify the component. Components with keys are recycled when the same key is found in the previous render. Unkeyed components are recycled based on type and position.
+ * @property {string} [key] A unique key to identify the component. Components with keys are recycled when the same key is found in the previous render of the same interpolation. Unkeyed components are recycled based on type and position.
  * @property {Model} [model] A `Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method.
  * @property {Model} [state] A `Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method.
  * @property {Model} [props] Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When a component with a `key` is recycled during parent re-render, new props are automatically updated and any changes trigger a re-render.
@@ -384,13 +384,19 @@ export default class Component extends View {
     /**
      * Tagged template helper method.
      * Used to create a partial template.
-     * It will return a Partial object that preserves structure for position-based recycling.
-     * Components will be added as children by the parent component. Template strings literals
-     * will be marked as safe HTML to be rendered.
+     * It will return a `Partial`: the template's structure paired with this render's
+     * expressions, which the component renders and then patches in place on later renders.
+     * Components interpolated in it will be added as children by the parent component.
+     * Template strings literals will be marked as safe HTML to be rendered.
      * This method is bound to the component instance by default.
+     *
+     * A partial used inside an interpolation may render any number of nodes, and may be
+     * swapped for a different template between renders. The partial returned by
+     * {@link #module_component__template template} is the component's root and is
+     * restricted on both counts.
      * @param {TemplateStringsArray} strings - Template strings.
      * @param  {...any} expressions - Template expressions.
-     * @return {Partial} Partial object containing strings and expressions.
+     * @return {Partial} The partial to render.
      * @example
      * import { Component } from 'rasti';
      * // Create a Title component.
@@ -423,7 +429,17 @@ export default class Component extends View {
      * Return the component's root partial. Called on every render, so interpolated
      * values are recomputed. The base implementation renders an empty `<div>`;
      * override it (directly, via `extend`, or through `create`) to define the markup.
-     * @return {Partial} The root partial.
+     * It may also return a child component instance, in which case the component is
+     * rendered as a <b>container</b> around it.
+     *
+     * Two restrictions apply to the root partial, and only to it — the partials rendered
+     * inside an interpolation are free of both:
+     *
+     * - It must have a <b>single root element</b>, which becomes the component's `this.el`.
+     * - It must be built from the <b>same template</b> on every render, since the root is
+     *   patched in place; returning a different one throws. Branch inside the interpolations
+     *   instead of switching the root itself.
+     * @return {Partial|Component} The root partial, or a child component to contain.
      */
     template() {
         return this.partial`<div></div>`;
@@ -467,18 +483,20 @@ export default class Component extends View {
     /**
      * Render the `Component`.
      *
-     * **First render (when `this.el` is not present):**
-     * This is the initial render call. The component will be rendered as a string inside a `DocumentFragment` and hydrated,
-     * making `this.el` available. `this.el` is the root DOM element of the component that can be applied to the DOM.
+     * **First render (before the component is hydrated):**
+     * This is the initial render call, where `template()` runs for the first time. The component will be rendered
+     * as a string inside a `DocumentFragment` and hydrated, making `this.el` available. `this.el` is the root DOM
+     * element of the component that can be applied to the DOM. If an element was provided as an option, the component
+     * hydrates onto that existing DOM instead (server-side rendered markup).
      * The `onHydrate` lifecycle method will be called.
      *
      * **Note:** Typically, you don't need to call `render()` directly for the first render. The static method `Component.mount()`
      * handles this process automatically, creating the component instance, rendering it, and appending it to the DOM.
      *
-     * **Update render (when `this.el` is present):**
-     * This indicates the component is being updated. The method will:
-     * - Update only the attributes of the root element and child elements
-     * - Update only the content of interpolations (the dynamic parts of the template)
+     * **Update render (once the component is hydrated):**
+     * This indicates the component is being updated. The DOM is patched in place, never regenerated. The method will:
+     * - Diff and update the attributes of every element in the template and in its partials
+     * - Reconcile the content of each interpolation (the dynamic parts of the template), updating nested partials in place
      * - For container components (components that render a single child component), update the single interpolation
      *
      * The `onBeforeUpdate` lifecycle method will be called at the beginning, followed by the `onUpdate` lifecycle method at the end.

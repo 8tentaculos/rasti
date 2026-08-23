@@ -236,6 +236,25 @@ const ButtonCancel = Component.create(() => Button.mount({
 }));
 ```
 
+#### The root partial
+
+The partial returned by `template()` becomes the component's root element, so it carries two restrictions that the partials rendered inside an interpolation don't have:
+
+- **A single root element.** Its outer element becomes `this.el`; anything next to it at the top level is dropped. A partial rendered in an interpolation lives between the slot's markers, so it may render as many nodes as it needs.
+- **The same template on every render.** The root is created once and then patched in place, so returning a different template throws (*Root template changed*). Branch inside the interpolations instead:
+
+```javascript
+class Panel extends Component {
+    template() {
+        return this.partial`
+            <section>${this.props.loading ? 'Loading…' : this.renderRows()}</section>
+        `;
+    }
+}
+```
+
+Containers follow the same rule: returning the mounted child and returning a component tag are equivalent ways to write one, but they count as different root templates, so a component must keep to one of them across renders.
+
 #### `template` as an option
 
 Because `template` is a regular view option, you can also pass one when mounting, without defining a class:
@@ -298,7 +317,31 @@ For detailed information on how to use **Rasti**, refer to the [API documentatio
 
 ### Components
 
-Pass generics explicitly to type the resulting class:
+In TypeScript the **subclass form types best**. The generics type `props` and `state`, the interpolations are ordinary expressions the compiler already checks, handlers are arrows that close over a typed `this`, and the class name is a value *and* a type — so no `InstanceType` alias and no annotated callbacks:
+
+```ts
+interface CounterProps { initial: number; label: string }
+
+class Counter extends Component<CounterProps> {
+    timer: number | null = null; // instance fields declared normally
+
+    template() {
+        return this.partial`
+            <div>
+                <span>${this.props.label}: ${this.props.initial}</span>
+                <button onClick=${() => this.increment()}>+</button>
+            </div>
+        `;
+    }
+
+    increment() { /* `this` and `this.props` are typed */ }
+}
+
+const counter: Counter = new Counter({ initial: 0, label: 'Clicks' }); // ✅ `Counter` is also a type
+Counter.mount({ initial: 0, label: 'Clicks' }, document.body).increment(); // ✅ options and methods typed
+```
+
+With `Component.create`, pass generics explicitly to type the resulting class:
 
 ```ts
 const Header = Component.create<{ handleAddTodo: (title: string) => void }>`
@@ -412,11 +455,13 @@ type P = ComponentProps<Counter>; // pass the instance; `ComponentProps<typeof C
 type S = ComponentState<Counter>;
 ```
 
-> Components made with `Component.create` are **values**, not types. To use one as a type — as with `Counter` above — add `type X = InstanceType<typeof X>` next to the definition, or write `InstanceType<typeof X>` inline. A `Model` subclass needs no alias, since `class` already declares both a value and a type.
+> Components made with `Component.create` are **values**, not types. To use one as a type — as with `Counter` above — add `type X = InstanceType<typeof X>` next to the definition, or write `InstanceType<typeof X>` inline. Neither a `Model` subclass nor a component authored as a subclass needs an alias, since `class` already declares both a value and a type.
 
 ### Typing template interpolations
 
-Functions inside a template are `any` — rasti can't infer them from the surrounding string. Which type to use depends on how rasti treats the function (quoted attribute or content → run on render; unquoted attribute → passed as-is):
+This section applies to the **tagged `Component.create` form**. In the subclass and `create(fn)` forms the template body is ordinary code inside a typed method, so its interpolations are checked without helpers — that is the simplest way to get full typing.
+
+Functions inside a tagged template are `any` — rasti can't infer them from the surrounding string. Which type to use depends on how rasti treats the function (quoted attribute or content → run on render; unquoted attribute → passed as-is):
 
 > Under `strict` / `noImplicitAny`, every interpolation callback **must** be annotated — an untyped parameter is an error (TS7031/TS7006), not a silent `any`. In non-strict mode typing is opt-in: annotate where you want safety and leave trivial ones as `any`.
 
@@ -457,7 +502,7 @@ handleChange=${((checked) => model.toggleAll(checked)) satisfies ToggleAllProps[
 
 ### Known limitations
 
-- **Template interpolation callbacks are `any`**. Functions in `Component.create\`...\`` templates can't be inferred from the surrounding string — type them opt-in (see [Typing template interpolations](#typing-template-interpolations)).
+- **Template interpolation callbacks are `any`** *(tagged form only)*. Functions in ``Component.create`...` `` templates can't be inferred from the surrounding string — type them opt-in (see [Typing template interpolations](#typing-template-interpolations)), or author the component as a subclass, where the template body is checked like any other method.
 - **`Model<A>` instance keys require declaration merging**. TypeScript can't add `A`'s keys to a `class extends Model<A>` automatically — see the `interface Todo extends TodoAttrs {}` pattern above.
 - **`this.$()` can return `null`**. It mirrors `querySelector`, so handle the empty case (`?.`) and pass a type argument to narrow the element: `this.$<HTMLInputElement>('input.edit')?.focus()`. `this.$$()` returns a `NodeListOf<HTMLElement>` (also narrowable).
 - **`this.model` / `this.state` are optional**. Both are `undefined` unless provided, so guard (`this.model?.foo`) or assert (`this.model!`) when you know one was passed. Both accept a Rasti `Model` or a model from another library (e.g. Backbone); Components subscribe to `change` events automatically when the object exposes `on`/`off`.

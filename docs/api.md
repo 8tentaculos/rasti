@@ -4,7 +4,7 @@
     * _instance_
         * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>Partial</code>](#new_partial_new)
-        * [.template()](#module_component__template) ⇒ [<code>Partial</code>](#new_partial_new)
+        * [.template()](#module_component__template) ⇒ [<code>Partial</code>](#new_partial_new) \| <code>Component</code>
         * [.toString()](#module_component__tostring) ⇒ <code>string</code>
         * [.render()](#module_component__render) ⇒ <code>Component</code>
         * [.onCreate(...args)](#module_component__oncreate)
@@ -78,7 +78,7 @@ A component renders from its [template](#module_component__template) method, whi
 
 | Name | Type | Description |
 | --- | --- | --- |
-| [key] | <code>string</code> | A unique key to identify the component. Components with keys are recycled when the same key is found in the previous render. Unkeyed components are recycled based on type and position. |
+| [key] | <code>string</code> | A unique key to identify the component. Components with keys are recycled when the same key is found in the previous render of the same interpolation. Unkeyed components are recycled based on type and position. |
 | [model] | <code>Model</code> | A `Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method. |
 | [state] | <code>Model</code> | A `Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method. |
 | [props] | <code>Model</code> | Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When a component with a `key` is recycled during parent re-render, new props are automatically updated and any changes trigger a re-render. |
@@ -104,7 +104,7 @@ setInterval(() => model.seconds++, 1000);
     * _instance_
         * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>Partial</code>](#new_partial_new)
-        * [.template()](#module_component__template) ⇒ [<code>Partial</code>](#new_partial_new)
+        * [.template()](#module_component__template) ⇒ [<code>Partial</code>](#new_partial_new) \| <code>Component</code>
         * [.toString()](#module_component__tostring) ⇒ <code>string</code>
         * [.render()](#module_component__render) ⇒ <code>Component</code>
         * [.onCreate(...args)](#module_component__oncreate)
@@ -140,13 +140,19 @@ By default, the component subscribes to changes on `this.model`, `this.state`, a
 ### component.partial(strings, ...expressions) ⇒ [<code>Partial</code>](#new_partial_new)
 Tagged template helper method.
 Used to create a partial template.
-It will return a Partial object that preserves structure for position-based recycling.
-Components will be added as children by the parent component. Template strings literals
-will be marked as safe HTML to be rendered.
+It will return a `Partial`: the template's structure paired with this render's
+expressions, which the component renders and then patches in place on later renders.
+Components interpolated in it will be added as children by the parent component.
+Template strings literals will be marked as safe HTML to be rendered.
 This method is bound to the component instance by default.
 
+A partial used inside an interpolation may render any number of nodes, and may be
+swapped for a different template between renders. The partial returned by
+[template](#module_component__template) is the component's root and is
+restricted on both counts.
+
 **Kind**: instance method of [<code>Component</code>](#module_component)  
-**Returns**: [<code>Partial</code>](#new_partial_new) - Partial object containing strings and expressions.  
+**Returns**: [<code>Partial</code>](#new_partial_new) - The partial to render.  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -178,13 +184,23 @@ const Main = Component.create`
 });
 ```
 <a name="module_component__template" id="module_component__template" class="anchor"></a>
-### component.template() ⇒ [<code>Partial</code>](#new_partial_new)
+### component.template() ⇒ [<code>Partial</code>](#new_partial_new) \| <code>Component</code>
 Return the component's root partial. Called on every render, so interpolated
 values are recomputed. The base implementation renders an empty `<div>`;
 override it (directly, via `extend`, or through `create`) to define the markup.
+It may also return a child component instance, in which case the component is
+rendered as a <b>container</b> around it.
+
+Two restrictions apply to the root partial, and only to it — the partials rendered
+inside an interpolation are free of both:
+
+- It must have a <b>single root element</b>, which becomes the component's `this.el`.
+- It must be built from the <b>same template</b> on every render, since the root is
+  patched in place; returning a different one throws. Branch inside the interpolations
+  instead of switching the root itself.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
-**Returns**: [<code>Partial</code>](#new_partial_new) - The root partial.  
+**Returns**: [<code>Partial</code>](#new_partial_new) \| <code>Component</code> - The root partial, or a child component to contain.  
 <a name="module_component__tostring" id="module_component__tostring" class="anchor"></a>
 ### component.toString() ⇒ <code>string</code>
 Render the component as a string.
@@ -217,18 +233,20 @@ console.log(`${app}`);
 ### component.render() ⇒ <code>Component</code>
 Render the `Component`.
 
-**First render (when `this.el` is not present):**
-This is the initial render call. The component will be rendered as a string inside a `DocumentFragment` and hydrated,
-making `this.el` available. `this.el` is the root DOM element of the component that can be applied to the DOM.
+**First render (before the component is hydrated):**
+This is the initial render call, where `template()` runs for the first time. The component will be rendered
+as a string inside a `DocumentFragment` and hydrated, making `this.el` available. `this.el` is the root DOM
+element of the component that can be applied to the DOM. If an element was provided as an option, the component
+hydrates onto that existing DOM instead (server-side rendered markup).
 The `onHydrate` lifecycle method will be called.
 
 **Note:** Typically, you don't need to call `render()` directly for the first render. The static method `Component.mount()`
 handles this process automatically, creating the component instance, rendering it, and appending it to the DOM.
 
-**Update render (when `this.el` is present):**
-This indicates the component is being updated. The method will:
-- Update only the attributes of the root element and child elements
-- Update only the content of interpolations (the dynamic parts of the template)
+**Update render (once the component is hydrated):**
+This indicates the component is being updated. The DOM is patched in place, never regenerated. The method will:
+- Diff and update the attributes of every element in the template and in its partials
+- Reconcile the content of each interpolation (the dynamic parts of the template), updating nested partials in place
 - For container components (components that render a single child component), update the single interpolation
 
 The `onBeforeUpdate` lifecycle method will be called at the beginning, followed by the `onUpdate` lifecycle method at the end.
