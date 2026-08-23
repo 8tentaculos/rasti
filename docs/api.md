@@ -4,6 +4,7 @@
     * _instance_
         * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>Partial</code>](#new_partial_new)
+        * [.template()](#module_component__template) ⇒ [<code>Partial</code>](#new_partial_new)
         * [.toString()](#module_component__tostring) ⇒ <code>string</code>
         * [.render()](#module_component__render) ⇒ <code>Component</code>
         * [.onCreate(...args)](#module_component__oncreate)
@@ -60,11 +61,11 @@
 
 <a name="module_component" id="module_component" class="anchor"></a>
 ## Component ⇐ <code>View</code>
-Components are a special kind of `View` that is designed to be easily composable, 
-making it simple to add child views and build complex user interfaces.  
-Unlike views, which are render-agnostic, components have a specific set of rendering 
-guidelines that allow for a more declarative development style.  
-Components are defined with the [Component.create](#module_component_create) static method, which takes a tagged template string or a function that returns another component.
+Components are a special kind of `View` that is designed to be easily composable,
+making it simple to add child views and build complex user interfaces.
+Unlike views, which are render-agnostic, components have a specific set of rendering
+guidelines that allow for a more declarative development style.
+A component renders from its [template](#module_component__template) method, which returns a partial (built with [partial](#module_component__partial)) or a child component. The [Component.create](#module_component_create) static method is a factory that writes this method from a tagged template string or a template function.
 
 **Extends**: <code>View</code>  
 **See**: [Component.create](#module_component_create)  
@@ -103,6 +104,7 @@ setInterval(() => model.seconds++, 1000);
     * _instance_
         * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>Partial</code>](#new_partial_new)
+        * [.template()](#module_component__template) ⇒ [<code>Partial</code>](#new_partial_new)
         * [.toString()](#module_component__tostring) ⇒ <code>string</code>
         * [.render()](#module_component__render) ⇒ <code>Component</code>
         * [.onCreate(...args)](#module_component__oncreate)
@@ -137,9 +139,9 @@ By default, the component subscribes to changes on `this.model`, `this.state`, a
 <a name="module_component__partial" id="module_component__partial" class="anchor"></a>
 ### component.partial(strings, ...expressions) ⇒ [<code>Partial</code>](#new_partial_new)
 Tagged template helper method.
-Used to create a partial template.  
+Used to create a partial template.
 It will return a Partial object that preserves structure for position-based recycling.
-Components will be added as children by the parent component. Template strings literals 
+Components will be added as children by the parent component. Template strings literals
 will be marked as safe HTML to be rendered.
 This method is bound to the component instance by default.
 
@@ -175,10 +177,18 @@ const Main = Component.create`
     }
 });
 ```
+<a name="module_component__template" id="module_component__template" class="anchor"></a>
+### component.template() ⇒ [<code>Partial</code>](#new_partial_new)
+Return the component's root partial. Called on every render, so interpolated
+values are recomputed. The base implementation renders an empty `<div>`;
+override it (directly, via `extend`, or through `create`) to define the markup.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+**Returns**: [<code>Partial</code>](#new_partial_new) - The root partial.  
 <a name="module_component__tostring" id="module_component__tostring" class="anchor"></a>
 ### component.toString() ⇒ <code>string</code>
 Render the component as a string.
-Used internally on the render process.  
+Used internally on the render process.
 Use it for server-side rendering or static site generation.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
@@ -208,11 +218,11 @@ console.log(`${app}`);
 Render the `Component`.
 
 **First render (when `this.el` is not present):**
-This is the initial render call. The component will be rendered as a string inside a `DocumentFragment` and hydrated, 
-making `this.el` available. `this.el` is the root DOM element of the component that can be applied to the DOM. 
-The `onHydrate` lifecycle method will be called. 
+This is the initial render call. The component will be rendered as a string inside a `DocumentFragment` and hydrated,
+making `this.el` available. `this.el` is the root DOM element of the component that can be applied to the DOM.
+The `onHydrate` lifecycle method will be called.
 
-**Note:** Typically, you don't need to call `render()` directly for the first render. The static method `Component.mount()` 
+**Note:** Typically, you don't need to call `render()` directly for the first render. The static method `Component.mount()`
 handles this process automatically, creating the component instance, rendering it, and appending it to the DOM.
 
 **Update render (when `this.el` is present):**
@@ -226,11 +236,11 @@ The `onBeforeUpdate` lifecycle method will be called at the beginning, followed 
 **Child component handling:**
 When rendering child components, they can be either recreated or recycled:
 
-- **Recreation:** A new component instance is created, running the constructor again. This happens when no matching component 
+- **Recreation:** A new component instance is created, running the constructor again. This happens when no matching component
   is found for recycling.
 
 - **Recycling:** The same component instance is reused. Recycling happens in two ways:
-  - Components with a `key` are recycled if a previous child with the same key exists
+  - Components with a `key` are recycled if a previous child with the same key exists in the same interpolation
   - Unkeyed components are recycled if they have the same type and position in the template or partial
 
   When a component is recycled:
@@ -238,7 +248,7 @@ When rendering child components, they can be either recreated or recycled:
   - The component's `this.props` is updated with the new props from the parent
   - The `onRecycle` lifecycle method is called after props are updated
 
-  A recycled component may not use props at all and remain unchanged, or it may be subscribed to a different model 
+  A recycled component may not use props at all and remain unchanged, or it may be subscribed to a different model
   (or even the same model as the parent) and update independently in subsequent render cycles.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
@@ -332,10 +342,10 @@ Use this method to clean up resources, cancel timers, remove event listeners, et
 
 <a name="module_component_markassafehtml" id="module_component_markassafehtml" class="anchor"></a>
 ### Component.markAsSafeHTML(value) ⇒ [<code>SafeHTML</code>](#new_safehtml_new)
-Mark a string as safe HTML to be rendered.  
-Normally you don't need to use this method, as Rasti will automatically mark string literals 
-as safe HTML when the component is [created](#module_component_create) and when 
-using the [Component.partial](#module_component__partial) method.  
+Mark a string as safe HTML to be rendered.
+Normally you don't need to use this method, as Rasti will automatically mark string literals
+as safe HTML when the component is [created](#module_component_create) and when
+using the [Component.partial](#module_component__partial) method.
 Be sure that the string is safe to be rendered, as it will be inserted into the DOM without any sanitization.
 
 **Kind**: static method of [<code>Component</code>](#module_component)  
@@ -362,7 +372,7 @@ Creates a new component instance with the provided options and optionally mounts
 
 **Mounting modes:**
 - **Normal mount** (default): Renders the component as HTML and appends it to the provided element. Use this for client-side rendering.
-- **Hydration mode**: Assumes the DOM already contains the component's HTML (from server-side rendering). 
+- **Hydration mode**: Assumes the DOM already contains the component's HTML (from server-side rendering).
 
 If `el` is not provided, the component is instantiated but not mounted (the same as using `new Component(options)`). You can mount it later by calling `render()` and appending the element (`this.el`) to the DOM.
 
@@ -371,9 +381,9 @@ If `el` is not provided, the component is instantiated but not mounted (the same
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
-| [options] | <code>object</code> | <code>{}</code> | The component options. These will be passed to the constructor and can include                               `model`, `state`, `props`, lifecycle methods, and any other component-specific options. |
-| [el] | <code>node</code> |  | The DOM element where the component will be mounted. If provided, the component will be                     rendered and appended to this element. If not provided, the component is created but not mounted. |
-| [hydrate] | <code>boolean</code> | <code>false</code> | If `true`, enables hydration mode for server-side rendering. The component will                                   assume the DOM already contains its HTML structure and will only hydrate it.                                  If `false` (default), the component will be rendered from scratch and appended to `el`. |
+| [options] | <code>object</code> | <code>{}</code> | The component options. These will be passed to the constructor and can include                              `model`, `state`, `props`, lifecycle methods, and any other component-specific options. |
+| [el] | <code>node</code> |  | The DOM element where the component will be mounted. If provided, the component will be                    rendered and appended to this element. If not provided, the component is created but not mounted. |
+| [hydrate] | <code>boolean</code> | <code>false</code> | If `true`, enables hydration mode for server-side rendering. The component will                                  assume the DOM already contains its HTML structure and will only hydrate it.                                  If `false` (default), the component will be rendered from scratch and appended to `el`. |
 
 **Example**  
 ```js
@@ -404,7 +414,7 @@ const hydratedButton = Button.mount({
 ```
 <a name="module_component_create" id="module_component_create" class="anchor"></a>
 ### Component.create(strings, ...expressions) ⇒ <code>Component</code>
-Takes a tagged template string or a function that returns another component, and returns a new `Component` class.
+Takes a tagged template string, or a template function that returns a partial or a component, and returns a new `Component` class. It is sugar for defining the component's [template](#module_component__template) method: the tagged form captures its expressions once, while the function form is used as `template()` itself and re-runs on every render (so it may interpolate plain values, not only functions).
 - The template outer tag and attributes will be used to create the view's root element.
 - The template inner HTML will be used as the view's template.
   ```javascript
@@ -421,19 +431,19 @@ Takes a tagged template string or a function that returns another component, and
 - Attach DOM event handlers per element using camel-cased attributes.
   Event handlers are automatically bound to the component instance (`this`).
   Internally, Rasti uses event delegation to the component's root element for performance.
-  
+
   **Attribute Quoting:**
   - **Quoted attributes** (`onClick="${handler}"`) evaluate the expression first, useful for dynamic values
   - **Unquoted attributes** (`onClick=${handler}`) pass the function reference directly
-  
+
   **Listener Signature:** `(event, component, matched)`
   - `event`: The native DOM event object
   - `component`: The component instance (same as `this`)
   - `matched`: The element that matched the event (useful for delegation)
-  
+
   ```javascript
   const Button = Component.create`
-      <button 
+      <button
           onClick=${function(event, component, matched) {
               // this === component
               console.log('Button clicked:', matched);
@@ -445,8 +455,8 @@ Takes a tagged template string or a function that returns another component, and
       </button>
   `;
   ```
-  
-  If you need custom delegation (e.g., `{'click .selector': 'handler'}`), 
+
+  If you need custom delegation (e.g., `{'click .selector': 'handler'}`),
   you may override the `events` property as described in [View.delegateEvents](#module_view__delegateevents).
 - Boolean attributes should be passed in the format `attribute="${() => true}"`. `false` attributes won't be rendered. `true` attributes will be rendered without a value.
   ```javascript
@@ -525,7 +535,7 @@ Takes a tagged template string or a function that returns another component, and
 
 | Param | Type | Description |
 | --- | --- | --- |
-| strings | <code>string</code> \| <code>function</code> | HTML template for the component or a function that mounts a sub component. |
+| strings | <code>string</code> \| <code>function</code> | A tagged template string for the component, or a template function that returns a partial or a child component. |
 | ...expressions | <code>\*</code> | The expressions to be interpolated within the template. |
 
 <a name="module_emitter" id="module_emitter" class="anchor"></a>

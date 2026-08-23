@@ -136,7 +136,7 @@ const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', '
  * making it simple to add child views and build complex user interfaces.
  * Unlike views, which are render-agnostic, components have a specific set of rendering
  * guidelines that allow for a more declarative development style.
- * Components are defined with the {@link #module_component_create Component.create} static method, which takes a tagged template string or a function that returns another component.
+ * A component renders from its {@link #module_component__template template} method, which returns a partial (built with {@link #module_component__partial partial}) or a child component. The {@link #module_component_create Component.create} static method is a factory that writes this method from a tagged template string or a template function.
  * @module
  * @extends View
  * @param {object} options Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onHydrate, onBeforeRecycle, onRecycle, onBeforeUpdate, onUpdate, onCreate, onChange. Any additional options not in the component or view options list will be automatically extracted as props and stored as `this.props`.
@@ -755,7 +755,7 @@ export default class Component extends View {
     }
 
     /**
-     * Takes a tagged template string or a function that returns another component, and returns a new `Component` class.
+     * Takes a tagged template string, or a template function that returns a partial or a component, and returns a new `Component` class. It is sugar for defining the component's {@link #module_component__template template} method: the tagged form captures its expressions once, while the function form is used as `template()` itself and re-runs on every render (so it may interpolate plain values, not only functions).
      * - The template outer tag and attributes will be used to create the view's root element.
      * - The template inner HTML will be used as the view's template.
      *   ```javascript
@@ -871,7 +871,7 @@ export default class Component extends View {
      *   }));
      *   ```
      * @static
-     * @param {string|Function} strings - HTML template for the component or a function that mounts a sub component.
+     * @param {string|Function} strings - A tagged template string for the component, or a template function that returns a partial or a child component.
      * @param {...*} expressions - The expressions to be interpolated within the template.
      * @return {Component} The newly created component class.
      */

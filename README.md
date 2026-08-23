@@ -173,6 +173,80 @@ Counter.mount({ model }, document.body);
 
 [Try it on CodePen](https://codepen.io/8tentaculos/pen/XJXVQOR?editors=0010)
 
+### Defining a component's template
+
+Every component renders from its **`template()` method**, which returns a **partial**: a tagged template built with `this.partial` that describes the root element and its dynamic content. `Component.create` is a factory that writes this method for you, so the following are equivalent ways to author the same component:
+
+```javascript
+// 1. Tagged template — the shortest form.
+const Timer = Component.create`
+    <div>Seconds: <span>${({ model }) => model.seconds}</span></div>
+`;
+
+// 2. A template function passed to `create`.
+const Timer = Component.create(function() {
+    return this.partial`<div>Seconds: <span>${this.model.seconds}</span></div>`;
+});
+
+// 3. A subclass defining `template()` directly, next to other methods.
+class Timer extends Component {
+    template() {
+        return this.partial`<div>Seconds: <span>${this.model.seconds}</span></div>`;
+    }
+}
+```
+
+`template()` runs on **every render**.
+
+#### Function vs. value interpolations
+
+The forms differ in one important way. In the **tagged `Component.create` form**, the interpolations are captured once, so anything dynamic must be a **function** — it is re-evaluated on each render, bound to the component and receiving it as its argument:
+
+```javascript
+Component.create`<span>${({ model }) => model.seconds}</span>`;
+```
+
+In the **function and subclass forms**, the body of `template()` re-runs on every render, so you can interpolate **plain values** as well — they are read fresh each time:
+
+```javascript
+class Greeting extends Component {
+    template() {
+        // Read on every render, so it stays in sync with the props.
+        return this.partial`<h1>Hello ${this.props.name}</h1>`;
+    }
+}
+```
+
+Reach for a function when the value should be read lazily from a nested object (`({ model }) => model.count`); use a plain value when you already have it in scope.
+
+#### Containers: returning a component
+
+If `template()` returns a **component instance** instead of a partial, the component becomes a *container*: it renders that child and adopts the child's root element as its own `this.el`. This is convenient for wrapping or picking a component:
+
+```javascript
+// Given a `Button` component:
+
+// As sugar, with a component tag.
+const ButtonOk = Component.create`<${Button} className="ok">Ok</${Button}>`;
+
+// Or explicitly, by returning the mounted child.
+const ButtonCancel = Component.create(() => Button.mount({
+    className : 'cancel',
+    renderChildren : () => 'Cancel',
+}));
+```
+
+#### `template` as an option
+
+Because `template` is a regular view option, you can also pass one when mounting, without defining a class:
+
+```javascript
+Component.mount(
+    { template() { return this.partial`<p>Hello</p>`; } },
+    document.body,
+);
+```
+
 ## Why Choose **Rasti**?  
 
 **Rasti** is built for developers who want a simple yet powerful way to create UI components without the complexity of heavy frameworks. Whether you're building a high-performance dashboard, or embedding a lightweight widget, **Rasti** lets you:  
