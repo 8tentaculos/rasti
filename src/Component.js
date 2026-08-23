@@ -1,8 +1,10 @@
 import View from './View.js';
 import Model from './Model.js';
 import SafeHTML from './core/SafeHTML.js';
+import Constants from './core/Constants.js';
 import Partial from './core/Partial.js';
 import EventsManager from './core/EventsManager.js';
+import isComponent from './core/isComponent.js';
 import validateListener from './utils/validateListener.js';
 import getResult from './utils/getResult.js';
 import parseHTML from './utils/parseHTML.js';
@@ -60,15 +62,6 @@ const getExpressionResult = (expression, context, meta) => {
 };
 
 /**
- * Check if an element is a component root element.
- * Component root elements have the data attribute ending with '-1'.
- * @param {Element} el The element to check.
- * @return {boolean} True if the element is a component root element.
- * @private
- */
-const isComponent = (el) => !!(el && el.dataset && el.dataset[Component.DATASET_ELEMENT] && el.dataset[Component.DATASET_ELEMENT].endsWith('-1'));
-
-/**
  * Tell whether an expression is a component class (used by the template engine to
  * detect component tags).
  * @param {any} expression The expression to check.
@@ -97,7 +90,7 @@ const containerStrings = new WeakMap();
 const childHandlers = {
     isChild : (value) => value instanceof Component,
     sanitize : (value) => Component.sanitize(value),
-    recycleMarker : (child) => Component.MARKER_RECYCLED(child.uid),
+    recycleMarker : (child) => Constants.MARKER_RECYCLED(child.uid),
     moveChild : (child, parent) => child.recycle(parent),
     hydrateChild : (child, parent) => child.hydrate(parent),
     childProps : (child) => child.props.toJSON(),
@@ -122,7 +115,7 @@ const buildPartialHandlers = (component) => {
     return Object.assign({}, childHandlers, {
         evaluate : (expression, meta) => getExpressionResult(expression, component, meta),
         registerListener : (listener, type) => ({
-            attr : Component.ATTRIBUTE_EVENT(type, component.uid),
+            attr : Constants.ATTRIBUTE_EVENT(type, component.uid),
             index : component.eventsManager.addListener(listener, type)
         }),
         nextElementId : () => `${component.uid}-${++elementId}`,
@@ -205,7 +198,7 @@ export default class Component extends View {
         const events = {};
         // Create events object.
         this.eventsManager.types.forEach(type => {
-            const dataAttribute = Component.ATTRIBUTE_EVENT(type, this.uid);
+            const dataAttribute = Constants.ATTRIBUTE_EVENT(type, this.uid);
             // Create a listener function that gets the listener index from the data attribute and calls the listener.
             const listener = function(event, component, matched) {
                 // Get the listener index from the data attribute.
@@ -357,7 +350,7 @@ export default class Component extends View {
         // No parent means the node is already in the correct position. So we don't need to replace it.
         if (parent) {
             // Locate the placeholder comment and replace it with the real nodes
-            const placeholder = findComment(parent, Component.MARKER_RECYCLED(this.uid), isComponent);
+            const placeholder = findComment(parent, Constants.MARKER_RECYCLED(this.uid), isComponent);
             replaceNode(placeholder, this.el);
         }
         // Return `this` for chaining.
@@ -378,16 +371,6 @@ export default class Component extends View {
         this.onRecycle.call(this);
         // Return `this` for chaining.
         return this;
-    }
-
-    /**
-     * Get a `comment` marker with same data attribute as this component.
-     * Used to replace the component when it is recycled.
-     * @return {string} The recycle placeholder.
-     * @private
-     */
-    getRecycledMarker() {
-        return `<!--${Component.MARKER_RECYCLED(this.uid)}-->`;
     }
 
     /**
@@ -916,26 +899,3 @@ export default class Component extends View {
         return this.extend({ template });
     }
 }
-
-/*
- * Attributes used to identify elements and events.
- */
-Component.ATTRIBUTE_ELEMENT = 'data-rst-el';
-Component.ATTRIBUTE_EVENT = (type, uid) => `data-rst-on-${type}-${uid}`;
-
-/*
- * Dataset attribute used to identify elements.
- */
-Component.DATASET_ELEMENT = 'rstEl';
-
-/*
- * Placeholders used to temporarily replace expressions in the template.
- */
-Component.PLACEHOLDER = (idx) => `__RASTI_PLACEHOLDER_${idx}__`;
-
-/*
- * Markers used to identify interpolation and recycled components.
- */
-Component.MARKER_RECYCLED = (uid) => `rst-r-${uid}`;
-Component.MARKER_START = (uid) => `rst-s-${uid}`;
-Component.MARKER_END = (uid) => `rst-e-${uid}`;

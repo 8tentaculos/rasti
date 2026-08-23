@@ -1,8 +1,11 @@
 /**
- * Wire-format strings and template tokens used by the render engine.
- * This is a plain mutable object: any value can be overridden (for example
- * `Constants.ATTRIBUTE_ELEMENT = 'data-x'`) as long as it is done identically on
- * server and client, so hydration keeps matching.
+ * Wire-format strings and template tokens used by the render engine. Every attribute,
+ * dataset key and marker a component writes to the DOM comes from here, so this object
+ * describes the whole wire format in one place.
+ *
+ * It is a plain mutable object: any value can be overridden (for example
+ * `Constants.ATTRIBUTE_ELEMENT = 'data-x'`) before anything renders, and as long as it
+ * is done identically on server and client, so hydration keeps matching.
  * @property {string} ATTRIBUTE_ELEMENT Data-attribute carrying an element's emission id.
  * @property {Function} ATTRIBUTE_EVENT Event data-attribute, given event type and component uid.
  * @property {string} DATASET_ELEMENT Dataset key matching `ATTRIBUTE_ELEMENT` (component-root detection).

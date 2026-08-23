@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import Model from '../src/Model.js';
 import View from '../src/View.js';
 import Component from '../src/Component.js';
+import Constants from '../src/core/Constants.js';
 
 describe('Component', () => {
     beforeEach(() => {
@@ -20,7 +21,7 @@ describe('Component', () => {
         });
 
         it('must be instantiated with new on existing element', () => {
-            document.body.innerHTML = `<div id="test-node" ${Component.ATTRIBUTE_ELEMENT}="r1-1"></div>`;
+            document.body.innerHTML = `<div id="test-node" ${Constants.ATTRIBUTE_ELEMENT}="r1-1"></div>`;
             const c = new Component({ el : document.getElementById('test-node') });
             expect(c.render().el.id).to.be.equal('test-node');
         });
@@ -42,19 +43,19 @@ describe('Component', () => {
     describe('Template creation', () => {
         it('must be created with a self enclosed tag', () => {
             const c = Component.create`<input id="test-node" type="text" />`.mount({}, document.body);
-            expect(c.toString()).to.be.equal(`<input id="test-node" type="text" ${Component.ATTRIBUTE_ELEMENT}="r1-1">`);
+            expect(c.toString()).to.be.equal(`<input id="test-node" type="text" ${Constants.ATTRIBUTE_ELEMENT}="r1-1">`);
             expect(document.getElementById('test-node')).to.exist;
         });
 
         it('must be created with a function tag', () => {
             const c = Component.create`<${() => 'div'} id="test-node"><span></span></${() => 'div'}>`.mount({}, document.body);
-            expect(c.toString()).to.be.equal(`<div id="test-node" ${Component.ATTRIBUTE_ELEMENT}="r1-1"><span></span></div>`);
+            expect(c.toString()).to.be.equal(`<div id="test-node" ${Constants.ATTRIBUTE_ELEMENT}="r1-1"><span></span></div>`);
             expect(document.getElementById('test-node')).to.exist;
         });
 
         it('must be created with a function tag with self enclosed tag', () => {
             const c = Component.create`<${() => 'input'} id="test-node" type="text" />`.mount({}, document.body);
-            expect(c.toString()).to.be.equal(`<input id="test-node" type="text" ${Component.ATTRIBUTE_ELEMENT}="r1-1">`);
+            expect(c.toString()).to.be.equal(`<input id="test-node" type="text" ${Constants.ATTRIBUTE_ELEMENT}="r1-1">`);
             expect(document.getElementById('test-node')).to.exist;
         });
 
@@ -169,7 +170,7 @@ describe('Component', () => {
             const c = Main.mount({}, document.body);
 
             expect(c.children[0].options.color).to.be.equal('primary');
-            expect(document.querySelector('button').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r2-1')}-->click me<!--${Component.MARKER_END('r2-1')}-->`);
+            expect(document.querySelector('button').innerHTML).to.be.equal(`<!--${Constants.MARKER_START('r2-1')}-->click me<!--${Constants.MARKER_END('r2-1')}-->`);
         });
 
         it('must mount nested component tags with opening and closing tags', () => {
@@ -285,11 +286,11 @@ describe('Component', () => {
                 model : new Model({ count : 0 }),
             }, document.body);
 
-            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r1-1')}-->0<!--${Component.MARKER_END('r1-1')}-->`);
+            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Constants.MARKER_START('r1-1')}-->0<!--${Constants.MARKER_END('r1-1')}-->`);
 
             c.model.count = 1;
 
-            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r1-1')}-->1<!--${Component.MARKER_END('r1-1')}-->`);
+            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Constants.MARKER_START('r1-1')}-->1<!--${Constants.MARKER_END('r1-1')}-->`);
         });
 
         it('must handle attributes', () => {
@@ -370,11 +371,11 @@ describe('Component', () => {
         it('must render true and false attributes', () => {
             expect(
                 Component.create`<input id="test-node" disabled="${() => false}" />`.mount().toString()
-            ).to.be.equal(`<input id="test-node" ${Component.ATTRIBUTE_ELEMENT}="r1-1">`);
+            ).to.be.equal(`<input id="test-node" ${Constants.ATTRIBUTE_ELEMENT}="r1-1">`);
 
             expect(
                 Component.create`<input id="test-node" disabled="${() => true}" />`.mount().toString()
-            ).to.be.equal(`<input id="test-node" disabled ${Component.ATTRIBUTE_ELEMENT}="r2-1">`);
+            ).to.be.equal(`<input id="test-node" disabled ${Constants.ATTRIBUTE_ELEMENT}="r2-1">`);
         });
 
         it('must escape attribute values', () => {
@@ -435,11 +436,11 @@ describe('Component', () => {
         it('must remove true and false placeholders', () => {
             expect(
                 Component.create`<div id="test-node">${() => true}</div>`.mount().toString()
-            ).to.be.equal(`<div id="test-node" ${Component.ATTRIBUTE_ELEMENT}="r1-1"><!--${Component.MARKER_START('r1-1')}--><!--${Component.MARKER_END('r1-1')}--></div>`);
+            ).to.be.equal(`<div id="test-node" ${Constants.ATTRIBUTE_ELEMENT}="r1-1"><!--${Constants.MARKER_START('r1-1')}--><!--${Constants.MARKER_END('r1-1')}--></div>`);
 
             expect(
                 Component.create`<div id="test-node">${() => false}</div>`.mount().toString()
-            ).to.be.equal(`<div id="test-node" ${Component.ATTRIBUTE_ELEMENT}="r2-1"><!--${Component.MARKER_START('r2-1')}--><!--${Component.MARKER_END('r2-1')}--></div>`);
+            ).to.be.equal(`<div id="test-node" ${Constants.ATTRIBUTE_ELEMENT}="r2-1"><!--${Constants.MARKER_START('r2-1')}--><!--${Constants.MARKER_END('r2-1')}--></div>`);
         });
     });
 
@@ -465,16 +466,16 @@ describe('Component', () => {
                 <div id="test-node">${({ model }) => model.count}${({ state }) => state.count}</div>
             `.mount({ model : new Model({ count : 0 }), state : new CustomModel({ count : 0 }) }, document.body);
 
-            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r1-1')}-->0<!--${Component.MARKER_END('r1-1')}--><!--${Component.MARKER_START('r1-2')}-->0<!--${Component.MARKER_END('r1-2')}-->`);
+            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Constants.MARKER_START('r1-1')}-->0<!--${Constants.MARKER_END('r1-1')}--><!--${Constants.MARKER_START('r1-2')}-->0<!--${Constants.MARKER_END('r1-2')}-->`);
 
             c.model.count = 1;
             c.state.count = 1;
-            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r1-1')}-->1<!--${Component.MARKER_END('r1-1')}--><!--${Component.MARKER_START('r1-2')}-->1<!--${Component.MARKER_END('r1-2')}-->`);
+            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Constants.MARKER_START('r1-1')}-->1<!--${Constants.MARKER_END('r1-1')}--><!--${Constants.MARKER_START('r1-2')}-->1<!--${Constants.MARKER_END('r1-2')}-->`);
 
             c.destroy();
             c.model.count = 2;
             c.state.count = 2;
-            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r1-1')}-->1<!--${Component.MARKER_END('r1-1')}--><!--${Component.MARKER_START('r1-2')}-->1<!--${Component.MARKER_END('r1-2')}-->`);
+            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Constants.MARKER_START('r1-1')}-->1<!--${Constants.MARKER_END('r1-1')}--><!--${Constants.MARKER_START('r1-2')}-->1<!--${Constants.MARKER_END('r1-2')}-->`);
         });
 
         it('must re render and destroy children', () => {
@@ -485,13 +486,13 @@ describe('Component', () => {
 
             const child = c.children[0];
             expect(document.querySelector('button')).to.be.equal(c.children[0].el);
-            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r1-1')}--><button ${Component.ATTRIBUTE_ELEMENT}="r2-1">click me</button><!--${Component.MARKER_END('r1-1')}-->`);
+            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Constants.MARKER_START('r1-1')}--><button ${Constants.ATTRIBUTE_ELEMENT}="r2-1">click me</button><!--${Constants.MARKER_END('r1-1')}-->`);
 
             c.model.count = 1;
 
             expect(c.children[0]).not.to.be.equal(child);
             expect(document.querySelector('button')).to.be.equal(c.children[0].el);
-            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r1-1')}--><button ${Component.ATTRIBUTE_ELEMENT}="r3-1">click me</button><!--${Component.MARKER_END('r1-1')}-->`);
+            expect(document.getElementById('test-node').innerHTML).to.be.equal(`<!--${Constants.MARKER_START('r1-1')}--><button ${Constants.ATTRIBUTE_ELEMENT}="r3-1">click me</button><!--${Constants.MARKER_END('r1-1')}-->`);
         });
 
         it('must re render and recycle children with key', () => {
@@ -509,7 +510,7 @@ describe('Component', () => {
         });
 
         it('must hydrate existing dom', () => {
-            document.body.innerHTML = `<div ${Component.ATTRIBUTE_ELEMENT}="r1-1"><button ${Component.ATTRIBUTE_ELEMENT}="r2-1">click me</button></div>`;
+            document.body.innerHTML = `<div ${Constants.ATTRIBUTE_ELEMENT}="r1-1"><button ${Constants.ATTRIBUTE_ELEMENT}="r2-1">click me</button></div>`;
 
             const Button = Component.create`<button>click me</button>`;
             const Main = Component.create`<div>${() => Button.mount()}</div>`;
@@ -1088,21 +1089,21 @@ describe('Component', () => {
             const c1 = OkButton.mount({}, document.body);
             const c2 = CancelButton.mount({ cancel : true }, document.body);
 
-            expect(document.querySelectorAll('button')[0].innerHTML).to.be.equal(`<!--${Component.MARKER_START('r2-1')}-->ok<!--${Component.MARKER_END('r2-1')}-->`);
+            expect(document.querySelectorAll('button')[0].innerHTML).to.be.equal(`<!--${Constants.MARKER_START('r2-1')}-->ok<!--${Constants.MARKER_END('r2-1')}-->`);
             expect(c1.el).to.be.equal(c1.children[0].el);
             expect(c1.children[0].options.color).to.be.equal('primary');
 
-            expect(document.querySelectorAll('button')[1].innerHTML).to.be.equal(`<!--${Component.MARKER_START('r4-1')}-->cancel<!--${Component.MARKER_END('r4-1')}-->`);
+            expect(document.querySelectorAll('button')[1].innerHTML).to.be.equal(`<!--${Constants.MARKER_START('r4-1')}-->cancel<!--${Constants.MARKER_END('r4-1')}-->`);
             expect(c2.el).to.be.equal(c2.children[0].el);
             expect(c2.children[0].options.color).to.be.equal('secondary');
 
             c1.render();
             c2.render();
 
-            expect(document.querySelectorAll('button')[0].innerHTML).to.be.equal(`<!--${Component.MARKER_START('r2-1')}-->ok<!--${Component.MARKER_END('r2-1')}-->`);
+            expect(document.querySelectorAll('button')[0].innerHTML).to.be.equal(`<!--${Constants.MARKER_START('r2-1')}-->ok<!--${Constants.MARKER_END('r2-1')}-->`);
             expect(c1.el).to.be.equal(c1.children[0].el);
 
-            expect(document.querySelectorAll('button')[1].innerHTML).to.be.equal(`<!--${Component.MARKER_START('r4-1')}-->cancel<!--${Component.MARKER_END('r4-1')}-->`);
+            expect(document.querySelectorAll('button')[1].innerHTML).to.be.equal(`<!--${Constants.MARKER_START('r4-1')}-->cancel<!--${Constants.MARKER_END('r4-1')}-->`);
             expect(c2.el).to.be.equal(c2.children[0].el);
         });
 
@@ -1325,7 +1326,7 @@ describe('Component', () => {
                 <div id="test-node-1">${self => self.partial`<div>${({ options }) => options && Button.mount()}</div>`}</div>
             `.mount({}, document.body);
 
-            expect(document.getElementById('test-node-1').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r1-1')}--><div ${Component.ATTRIBUTE_ELEMENT}="r1-2"><!--${Component.MARKER_START('r1-2')}--><button ${Component.ATTRIBUTE_ELEMENT}="r2-1">click me</button><!--${Component.MARKER_END('r1-2')}--></div><!--${Component.MARKER_END('r1-1')}-->`);
+            expect(document.getElementById('test-node-1').innerHTML).to.be.equal(`<!--${Constants.MARKER_START('r1-1')}--><div ${Constants.ATTRIBUTE_ELEMENT}="r1-2"><!--${Constants.MARKER_START('r1-2')}--><button ${Constants.ATTRIBUTE_ELEMENT}="r2-1">click me</button><!--${Constants.MARKER_END('r1-2')}--></div><!--${Constants.MARKER_END('r1-1')}-->`);
             expect(c1.children[0].el).to.be.equal(document.querySelector('button'));
 
             const c2 = Component.create`
@@ -1352,7 +1353,7 @@ describe('Component', () => {
 
             expect(c4.children.length).to.be.equal(1);
             expect(c4.children[0].el).to.be.equal(document.querySelector('#test-node-4 div button'));
-            expect(document.querySelector('#test-node-4 div button').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r10-1')}-->ok<!--${Component.MARKER_END('r10-1')}-->`);
+            expect(document.querySelector('#test-node-4 div button').innerHTML).to.be.equal(`<!--${Constants.MARKER_START('r10-1')}-->ok<!--${Constants.MARKER_END('r10-1')}-->`);
         });
 
         it('must render partial with nested component tags with opening and closing tags', () => {
@@ -1952,10 +1953,10 @@ describe('Component', () => {
             Component.resetUid();
             const serverHtml = Main.mount({}).toString();
             expect(serverHtml).to.be.equal(
-                `<div ${Component.ATTRIBUTE_ELEMENT}="r1-1">` +
-                `<!--${Component.MARKER_START('r1-1')}-->` +
-                `<button ${Component.ATTRIBUTE_ELEMENT}="r2-1">click me</button>` +
-                `<!--${Component.MARKER_END('r1-1')}-->` +
+                `<div ${Constants.ATTRIBUTE_ELEMENT}="r1-1">` +
+                `<!--${Constants.MARKER_START('r1-1')}-->` +
+                `<button ${Constants.ATTRIBUTE_ELEMENT}="r2-1">click me</button>` +
+                `<!--${Constants.MARKER_END('r1-1')}-->` +
                 '</div>'
             );
 
