@@ -6,7 +6,12 @@ export interface ViewOptions<M = any> {
     attributes?: Record<string, any> | (() => Record<string, any>);
     events?: Record<string, string | Function> | (() => Record<string, string | Function>);
     model?: M;
-    template?: (...args: any[]) => string;
+    /**
+     * Function returning the view's inner HTML. `View.render` assigns its result to
+     * `innerHTML`, so a plain view returns a string; `Component` narrows this to return
+     * a partial (or a component instance) instead.
+     */
+    template?: (...args: any[]) => any;
     onDestroy?: (...args: any[]) => void;
 }
 
@@ -73,8 +78,11 @@ export default class View<M = any> extends Emitter {
     /** Declarative DOM event listeners in the form `{'event selector': listener}`. */
     events?: Record<string, string | Function> | (() => Record<string, string | Function>);
 
-    /** Function returning the view's inner HTML, used by `render`. */
-    template?: (...args: any[]) => string;
+    /**
+     * Function returning the view's inner HTML, used by `render`. A plain view returns a
+     * string assigned to `innerHTML`; `Component` narrows this to return a partial.
+     */
+    template?: (...args: any[]) => any;
 
     /** Unique identifier for the view instance. */
     uid: string;

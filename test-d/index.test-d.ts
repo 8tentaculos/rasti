@@ -1,4 +1,4 @@
-import { expectType, expectError } from 'tsd';
+import { expectType, expectError, expectAssignable } from 'tsd';
 import {
     Emitter,
     Model,
@@ -216,6 +216,15 @@ const CounterExt2 = CounterExt.extend((proto) => ({
     },
 }));
 new CounterExt2({ initial: 1, label: 'x' }).another();
+
+// `template()` returns a partial or a component instance (container) by default
+expectAssignable<ComponentPartial | InstanceType<typeof Component>>(
+    new Counter({ initial: 1, label: 'x' }).template(),
+);
+
+// `create` function form: returns a partial or a component instance (container)
+const FnContainer = Component.create(() => Card.mount({ title: 'x' }));
+new FnContainer();
 
 // create().extend() — the common pattern from the examples
 const HeaderExt = Component.create<HeaderProps>`<header></header>`.extend({

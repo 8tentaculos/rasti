@@ -37,10 +37,14 @@ export interface SafeHTML {
     toString(): string;
 }
 
-/** A partial template produced by `this.partial` — preserves structure for position-based recycling. */
+/**
+ * A partial template produced by `this.partial`. Return it from `template()` as the
+ * component's root, or from a render expression to nest structure that recycles by
+ * position. Treat it as an opaque token: it carries the template's structure and this
+ * render's expressions for the reconciler, and is not meant to be inspected.
+ */
 export interface ComponentPartial {
-    strings: TemplateStringsArray;
-    expressions: any[];
+    readonly __rastiPartial: true;
 }
 
 /**
@@ -176,8 +180,9 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
     ): InstanceType<T>;
 
     /**
-     * Takes a tagged template string (or a function returning another component) and returns
-     * a new `Component` class.
+     * Takes a tagged template string (or a function that returns a partial or a component)
+     * and returns a new `Component` class. The function form is sugar for defining
+     * `template()` directly.
      *
      * - The template outer tag and attributes define the view's root element.
      * - Inner HTML becomes the view's template.
@@ -195,7 +200,7 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
      * `;
      */
     static create<P = Record<string, any>, S = any, M = any>(
-        strings: string | TemplateStringsArray | ((...args: any[]) => any),
+        strings: TemplateStringsArray | ((...args: any[]) => ComponentPartial | Component<any, any, any>),
         ...expressions: any[]
     ): typeof Component<P, S, M>;
 
@@ -220,8 +225,14 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
     /** The original options object passed to the constructor. */
     options: ComponentOptions<P, S, M>;
 
-    /** Template function returning the view's inner HTML. */
-    template: (...args: any[]) => string;
+    /**
+     * Returns the component's root for this render: a partial built with `this.partial`,
+     * or a component instance to render as a container (whose element this component
+     * borrows). Called on every render, so interpolated values are recomputed. The base
+     * implementation returns an empty `<div>`; override it directly, via `extend`, or
+     * through `create`.
+     */
+    template: () => ComponentPartial | Component<any, any, any>;
 
     /**
      * @param options Component options. Keys `model`, `state`, `key`, `onCreate`, `onChange`,
