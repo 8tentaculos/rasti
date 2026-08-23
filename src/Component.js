@@ -88,13 +88,30 @@ const isComponentClass = (expression) => !!(expression && expression.prototype i
 const containerStrings = new WeakMap();
 
 /**
- * Build the handlers bag a component hands to its template engine. It is created
- * once per component (in `ensureElement`) and shared by the root partial and every
- * nested partial, so the emission counters (and therefore element / marker ids)
- * are consistent across the whole component. Every component-specific concern the
- * engine needs — evaluating expressions in the component's context, registering
- * events, minting ids, and each step of a child component's lifecycle — is exposed
- * here, so the engine never has to name `Component`.
+ * The handlers that do not depend on which component is rendering: telling a child
+ * component apart from a plain value, escaping that plain value, and driving a child
+ * through its lifecycle. Shared by every component, so they are built once.
+ * @type {object}
+ * @private
+ */
+const childHandlers = {
+    isChild : (value) => value instanceof Component,
+    sanitize : (value) => Component.sanitize(value),
+    recycleMarker : (child) => Component.MARKER_RECYCLED(child.uid),
+    moveChild : (child, parent) => child.recycle(parent),
+    hydrateChild : (child, parent) => child.hydrate(parent),
+    childProps : (child) => child.props.toJSON(),
+    destroyChild : (child) => child.destroy()
+};
+
+/**
+ * Build the handlers bag a component hands to its template engine, where it is the
+ * partial's owner and, while it renders, its host. It is created once per component
+ * (in `ensureElement`) and shared by the root partial and every nested partial, so the
+ * emission counters (and therefore element / marker ids) are consistent across the
+ * whole component. Every component-specific concern the engine needs is exposed here,
+ * so the engine never has to name `Component`: what is bound to this component is built
+ * below, and the rest is shared (see `childHandlers`).
  * @param {Component} component The owning component.
  * @return {object} The partial handlers bag.
  * @private
@@ -102,11 +119,7 @@ const containerStrings = new WeakMap();
 const buildPartialHandlers = (component) => {
     let elementId = 0;
     let markerId = 0;
-    // Recycled children whose props are reconciled after the render's destroy sweep,
-    // so a prop change cannot re-enter render while the tree is still being patched.
-    const propsQueue = [];
-    return {
-        propsQueue,
+    return Object.assign({}, childHandlers, {
         evaluate : (expression, meta) => getExpressionResult(expression, component, meta),
         registerListener : (listener, type) => ({
             attr : Component.ATTRIBUTE_EVENT(type, component.uid),
@@ -114,16 +127,9 @@ const buildPartialHandlers = (component) => {
         }),
         nextElementId : () => `${component.uid}-${++elementId}`,
         nextMarkerId : () => `${component.uid}-${++markerId}`,
-        isChild : (value) => value instanceof Component,
         addChild : (child) => component.addChild(child),
-        sanitize : (value) => Component.sanitize(value),
-        recycleMarker : (child) => Component.MARKER_RECYCLED(child.uid),
-        moveChild : (child, parent) => child.recycle(parent),
-        hydrateChild : (child, parent) => child.hydrate(parent),
-        updateChild : (child, props) => propsQueue.push([child, props]),
-        childProps : (child) => child.props.toJSON(),
-        destroyChild : (child) => child.destroy()
-    };
+        updateChild : (child, props) => component.propsQueue.push([child, props])
+    });
 };
 
 /*
@@ -234,6 +240,9 @@ export default class Component extends View {
     ensureElement() {
         // Store data event listeners.
         this.eventsManager = new EventsManager();
+        // Recycled children whose props are reconciled after the render's destroy sweep,
+        // so a prop change cannot re-enter render while the tree is still being patched.
+        this.propsQueue = [];
         // Build the handlers bag shared by the root partial and every nested partial.
         this.partialHandlers = buildPartialHandlers(this);
     }
@@ -561,7 +570,7 @@ export default class Component extends View {
         // Clear current children.
         this.children = [];
         // Clear the queue of recycled children props.
-        this.partialHandlers.propsQueue.length = 0;
+        this.propsQueue = [];
         // Re-run `template()` to get a fresh carrier holding this render's expressions, so
         // templates that interpolate plain values (recomputed on each call) stay reactive.
         const carrier = this.buildRootPartial();
@@ -588,7 +597,7 @@ export default class Component extends View {
             if (!liveChildren.has(prev)) prev.destroy();
         });
         // Update recycled children props.
-        this.partialHandlers.propsQueue.forEach(([child, props]) => child.updateProps(props));
+        this.propsQueue.forEach(([child, props]) => child.updateProps(props));
         // If there are pending event types, delegate events again.
         if (this.eventsManager.hasPendingTypes()) {
             this.delegateEvents();
