@@ -31,10 +31,10 @@ class Attribute {
      * evaluated and an unquoted one is passed as its raw expression.
      * @param {object} attributes The attributes object to add to.
      * @param {Array<any>} expressions The current render expressions.
-     * @param {object} options The owner's handlers (for `evaluate`).
+     * @param {PartialHandlers} owner The partial's owner (for `evaluate`).
      */
-    applyTo(attributes, expressions, options) {
-        const key = options.evaluate(resolveSlot(this.key, expressions), 'element attribute');
+    applyTo(attributes, expressions, owner) {
+        const key = owner.evaluate(resolveSlot(this.key, expressions), 'element attribute');
 
         if (typeof this.value === 'undefined') {
             // Value-less attribute: object spread or boolean.
@@ -44,7 +44,7 @@ class Attribute {
         }
 
         attributes[key] = this.quoted ?
-            options.evaluate(resolveSlot(this.value, expressions), 'element attribute') :
+            owner.evaluate(resolveSlot(this.value, expressions), 'element attribute') :
             resolveSlot(this.value, expressions);
     }
 }

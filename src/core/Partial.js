@@ -15,13 +15,13 @@ const SYNC_PROPS = ['value', 'checked', 'selected'];
 
 /**
  * Expand events. Delegates listener registration and the event data-attribute to
- * the owner through `options.registerListener`.
+ * the owner through `registerListener`.
  * @param {object} attributes Attributes object.
- * @param {object} options Owner handlers.
+ * @param {PartialHandlers} owner The partial's owner.
  * @return {object} Attributes object.
  * @private
  */
-const expandEvents = (attributes, options) => {
+const expandEvents = (attributes, owner) => {
     const out = {};
     Object.keys(attributes).forEach(key => {
         // Check if key is an event listener.
@@ -31,7 +31,7 @@ const expandEvents = (attributes, options) => {
             const type = match[1].toLowerCase();
             const listener = attributes[key];
             if (listener) {
-                const { attr, index } = options.registerListener(listener, type);
+                const { attr, index } = owner.registerListener(listener, type);
                 // Add event listener index under its data-attribute.
                 out[attr] = index;
             }
@@ -44,9 +44,39 @@ const expandEvents = (attributes, options) => {
 };
 
 /**
- * A bound instance of a parsed template. Pairs the render's `expressions` with
- * the owner's `options` (the handlers through which it evaluates expressions,
- * registers events, mints ids and manages child components).
+ * The handlers through which a partial reaches the component world. The engine never
+ * imports `Component`: everything component-specific arrives here, so the same code
+ * drives real components in the app and fakes in tests.
+ *
+ * A partial sees them in two roles. Its <b>owner</b> is the component whose template it
+ * comes from: expressions are evaluated in that component's context, and its ids and
+ * event listeners belong to it. Its <b>host</b> is the component currently rendering,
+ * whose `children` the rendered child components join. They are the same component
+ * except for slotted content, which a parent writes but a host renders.
+ *
+ * The child-lifecycle handlers are the same for every component, so reaching them
+ * through the owner or through the host is equivalent; each call site uses whichever
+ * role it has at hand.
+ * @typedef {object} PartialHandlers
+ * @property {Function} evaluate Evaluate an expression in the owner's context, `(expression, meta) => value`.
+ * @property {Function} registerListener Register an event listener, `(listener, type) => ({ attr, index })`.
+ * @property {Function} nextElementId Mint the owner's next element id.
+ * @property {Function} nextMarkerId Mint the owner's next interpolation marker id.
+ * @property {Function} isChild Tell whether a value is a child component.
+ * @property {Function} sanitize Escape a plain value for HTML.
+ * @property {Function} addChild Adopt a child component into the host, returning it to render.
+ * @property {Function} recycleMarker The placeholder marker emitted in place of a recycled child.
+ * @property {Function} moveChild Move a recycled child onto its placeholder, `(child, parent)`.
+ * @property {Function} hydrateChild Hydrate a freshly rendered child, `(child, parent)`.
+ * @property {Function} updateChild Queue a recycled child's new props, `(child, props)`.
+ * @property {Function} childProps Read the props a discarded candidate carried.
+ * @property {Function} destroyChild Destroy a discarded child.
+ * @private
+ */
+
+/**
+ * A bound instance of a parsed template. Pairs the render's `expressions` with its
+ * owner's handlers.
  *
  * `Partial` itself is the base engine: `Partial.create` returns a cached subclass
  * per call site with the skeleton (`parts`, `elements`, `interpolations`) baked
@@ -58,18 +88,14 @@ const expandEvents = (attributes, options) => {
  * refs, previous attributes, slot occupants) is kept as plain objects on the
  * instance, materialized lazily on the first `toString`.
  *
- * The engine never imports `Component`. Everything component-specific — whether a
- * value is a child, and every step of a child's lifecycle — arrives through
- * `options`, so the same code drives real components in the app and fakes in
- * tests.
  * @param {Array<any>} expressions The current render expressions.
- * @param {object} options The owner's handlers.
+ * @param {PartialHandlers} owner The handlers of the component this template belongs to.
  * @private
  */
 class Partial {
-    constructor(expressions, options) {
+    constructor(expressions, owner) {
         this.expressions = expressions;
-        this.options = options;
+        this.owner = owner;
     }
 
     /**
@@ -98,10 +124,10 @@ class Partial {
      * Render the partial to an HTML string, materializing its state on first call
      * and assigning each element/interpolation an emission id as it is emitted (so
      * DOM order matches emission order).
-     * @param {object} [host] Child-management handlers of the component currently
-     *     rendering (the one whose `children` the rendered child components join).
-     *     Defaults to this partial's own `options`; propagated unchanged into nested
-     *     partials, so slotted content adds its children to the host that renders it.
+     * @param {PartialHandlers} [host] Handlers of the component currently rendering (the
+     *     one whose `children` the rendered child components join). Defaults to this
+     *     partial's own owner; propagated unchanged into nested partials, so slotted
+     *     content adds its children to the host that renders it.
      * @param {object} [pass] Reconcile pass threaded through nested partials during
      *     an update, so child components rendered anywhere in the subtree are
      *     matched against the owning slot's previous occupants. Absent on a plain
@@ -109,7 +135,7 @@ class Partial {
      * @return {string} The rendered HTML.
      */
     toString(host, pass) {
-        if (!host) host = this.options;
+        if (!host) host = this.owner;
         if (!this.elementState) this.materialize();
         return this.constructor.parts.map(part => this.renderPart(part, host, pass)).join('');
     }
@@ -117,7 +143,7 @@ class Partial {
     /**
      * Render a single skeleton part (literal, element or interpolation).
      * @param {SafeHTML|ElementDescriptor|InterpolationDescriptor} part The part.
-     * @param {object} host Child-management handlers (see `toString`).
+     * @param {PartialHandlers} host Handlers of the component rendering (see `toString`).
      * @param {object} [pass] Reconcile pass (see `toString`).
      * @return {string} The rendered HTML.
      * @private
@@ -125,7 +151,7 @@ class Partial {
     renderPart(part, host, pass) {
         if (part instanceof SafeHTML) return `${part}`;
         if (part instanceof ElementDescriptor) return this.renderElement(part);
-        if (part instanceof RawExpression) return this.options.sanitize(this.options.evaluate(this.expressions[part.exprIndex], 'dynamic tag'));
+        if (part instanceof RawExpression) return this.owner.sanitize(this.owner.evaluate(this.expressions[part.exprIndex], 'dynamic tag'));
         return this.renderInterpolation(part, host, pass);
     }
 
@@ -138,7 +164,7 @@ class Partial {
      */
     renderElement(descriptor) {
         const state = this.elementState[descriptor.slotIndex];
-        if (state.id == null) state.id = this.options.nextElementId();
+        if (state.id == null) state.id = this.owner.nextElementId();
         const attributes = this.buildAttributes(descriptor.attrs);
         // Root treatment: the component's root element (emitted first, id ending
         // in `-1`) merges the owner's `attributes`. Only the root partial carries
@@ -154,13 +180,14 @@ class Partial {
      * in a container, which is marker-less and anchored to its element. Records
      * the value as the slot's occupant for the next render's reconciliation.
      * @param {InterpolationDescriptor} descriptor The interpolation descriptor.
+     * @param {PartialHandlers} host Handlers of the component rendering (see `toString`).
      * @param {object} [pass] Reconcile pass (see `toString`).
      * @return {string} The rendered HTML.
      * @private
      */
     renderInterpolation(descriptor, host, pass) {
         const state = this.interpolationState[descriptor.slotIndex];
-        if (state.id == null) state.id = this.options.nextMarkerId();
+        if (state.id == null) state.id = this.owner.nextMarkerId();
         const value = this.evaluate(descriptor);
         state.previous = value;
         const rendered = this.renderValue(value, host, pass);
@@ -178,15 +205,14 @@ class Partial {
      */
     evaluate(descriptor) {
         if (descriptor instanceof ComponentDescriptor) return this.mountComponent(descriptor);
-        return this.options.evaluate(this.expressions[descriptor.exprIndex], 'interpolation');
+        return this.owner.evaluate(this.expressions[descriptor.exprIndex], 'interpolation');
     }
 
     /**
      * Synthesize a child component from a component-tag descriptor. Attributes and
-     * slotted inner content are evaluated in this owner's context: the inner
-     * content is wrapped as a nested partial that shares this partial's
-     * expressions and `options`, so its events and children belong to this owner,
-     * not the mounted child.
+     * slotted inner content are evaluated in this partial's own context: the inner
+     * content is wrapped as a nested partial that shares this partial's expressions
+     * and owner, so its events belong to that owner, not to the mounted child.
      * @param {ComponentDescriptor} descriptor The component-tag descriptor.
      * @return {object} The mounted child component.
      * @private
@@ -194,24 +220,25 @@ class Partial {
     mountComponent(descriptor) {
         const tag = this.expressions[descriptor.tagIndex];
         const childOptions = {};
-        descriptor.attrs.forEach(attr => attr.applyTo(childOptions, this.expressions, this.options));
+        descriptor.attrs.forEach(attr => attr.applyTo(childOptions, this.expressions, this.owner));
         if (descriptor.inner) {
             const InnerPartial = Partial.fromSkeleton(descriptor.inner);
-            // Slotted content is evaluated in this owner's context (its expressions and
-            // events belong to this owner), so the inner partial shares this owner's
-            // `options`. Its child components, however, become children of whichever
-            // component renders it (the host), threaded as `host` at render time.
-            childOptions.renderChildren = () => new InnerPartial(this.expressions, this.options);
+            // Slotted content is evaluated in this partial's context (its expressions and
+            // events belong to this owner), so the inner partial shares the same owner.
+            // Its child components, however, become children of whichever component
+            // renders it (the host), threaded as `host` at render time.
+            childOptions.renderChildren = () => new InnerPartial(this.expressions, this.owner);
         }
         return tag.mount(childOptions);
     }
 
     /**
      * Render a dynamic value to a string. Handles the engine's own types
-     * (`SafeHTML`, nested `Partial`, arrays); a child component is added through
-     * `options` (matched against the pass's previous occupants during an update);
-     * any other value is sanitized.
+     * (`SafeHTML`, nested `Partial`, arrays); a child component is added to the host
+     * (matched against the pass's previous occupants during an update); any other
+     * value is sanitized.
      * @param {any} value The value to render.
+     * @param {PartialHandlers} host Handlers of the component rendering (see `toString`).
      * @param {object} [pass] Reconcile pass (see `toString`).
      * @return {string} The rendered HTML.
      * @private
@@ -231,12 +258,13 @@ class Partial {
      * and its real nodes are moved into place later), otherwise it is a new child.
      * A primitive is sanitized.
      * @param {any} value The leaf value.
+     * @param {PartialHandlers} host Handlers of the component rendering (see `toString`).
      * @param {object} [pass] Reconcile pass (see `toString`).
      * @return {string} The rendered HTML.
      * @private
      */
     renderChild(value, host, pass) {
-        if (!this.options.isChild(value)) return this.options.sanitize(value);
+        if (!this.owner.isChild(value)) return this.owner.sanitize(value);
         if (pass) {
             const found = this.matchChild(value, pass);
             if (found) {
@@ -281,8 +309,8 @@ class Partial {
      */
     buildAttributes(attrs) {
         const attributes = {};
-        attrs.forEach(attr => attr.applyTo(attributes, this.expressions, this.options));
-        return expandEvents(attributes, this.options);
+        attrs.forEach(attr => attr.applyTo(attributes, this.expressions, this.owner));
+        return expandEvents(attributes, this.owner);
     }
 
     /**
@@ -332,7 +360,7 @@ class Partial {
     hydrateValue(value, parent, root, fresh = true) {
         if (value instanceof Partial) value.hydrate(parent, root, fresh);
         else if (Array.isArray(value)) value.forEach(item => this.hydrateValue(item, parent, root, fresh));
-        else if (fresh && this.options.isChild(value)) this.options.hydrateChild(value, parent);
+        else if (fresh && this.owner.isChild(value)) this.owner.hydrateChild(value, parent);
     }
 
     /**
@@ -365,11 +393,11 @@ class Partial {
      * interpolation (child recycle / nested-partial update / content replace) and
      * diff every element's attributes.
      * @param {Array<any>} expressions The new render expressions.
-     * @param {object} [host] Child-management handlers of the component rendering
-     *     (see `toString`). Defaults to this partial's own `options`.
+     * @param {PartialHandlers} [host] Handlers of the component rendering (see
+     *     `toString`). Defaults to this partial's own owner.
      */
     update(expressions, host) {
-        if (!host) host = this.options;
+        if (!host) host = this.owner;
         this.expressions = expressions;
         this.constructor.interpolations.forEach(descriptor => this.updateInterpolation(descriptor, host));
         this.constructor.elements.forEach(descriptor => this.updateElement(descriptor));
@@ -378,7 +406,7 @@ class Partial {
     /**
      * Reconcile one interpolation against its previous occupant.
      * @param {InterpolationDescriptor} descriptor The interpolation descriptor.
-     * @param {object} host Child-management handlers (see `toString`).
+     * @param {PartialHandlers} host Handlers of the component rendering (see `toString`).
      * @private
      */
     updateInterpolation(descriptor, host) {
@@ -394,7 +422,7 @@ class Partial {
             return;
         }
         // Retained single child: same key/type → recycle in place, without moving the DOM.
-        if (this.options.isChild(value) && this.options.isChild(prev) && this.childMatches(prev, value)) {
+        if (this.owner.isChild(value) && this.owner.isChild(prev) && this.childMatches(prev, value)) {
             this.recycleInPlace(prev, value, host);
             return;
         }
@@ -423,6 +451,7 @@ class Partial {
      * synthesized candidate.
      * @param {object} prev The retained child (kept).
      * @param {object} next The candidate child (discarded).
+     * @param {PartialHandlers} host Handlers of the component rendering (see `toString`).
      * @private
      */
     recycleInPlace(prev, next, host) {
@@ -439,6 +468,7 @@ class Partial {
      * and nested partials, and reconcile props.
      * @param {object} state The interpolation's per-render state.
      * @param {any} value The new value.
+     * @param {PartialHandlers} host Handlers of the component rendering (see `toString`).
      * @private
      */
     replaceSlot(state, value, host) {
@@ -458,6 +488,7 @@ class Partial {
      * can be moved around the DOM by hand); the new content replaces it in place.
      * @param {object} state The interpolation's per-render state.
      * @param {any} value The new value.
+     * @param {PartialHandlers} host Handlers of the component rendering (see `toString`).
      * @private
      */
     replaceContainer(state, value, host) {
@@ -503,6 +534,7 @@ class Partial {
      * @param {object} pass The reconcile pass.
      * @param {any} value The rendered value.
      * @param {Node} parent The node the content was inserted into.
+     * @param {PartialHandlers} host Handlers of the component rendering (see `toString`).
      * @private
      */
     placeChildren(pass, value, parent, host) {
@@ -517,6 +549,7 @@ class Partial {
      * Reconcile props of recycled children and discard the candidates they
      * replaced.
      * @param {object} pass The reconcile pass.
+     * @param {PartialHandlers} host Handlers of the component rendering (see `toString`).
      * @private
      */
     finishPass(pass, host) {
@@ -540,7 +573,7 @@ class Partial {
             if (value.isContainer()) return this.collectChildren(value.interpolationState[0].previous);
             return [];
         }
-        if (this.options.isChild(value)) return [value];
+        if (this.owner.isChild(value)) return [value];
         return [];
     }
 
@@ -576,7 +609,7 @@ class Partial {
             if (value.isContainer()) return this.resolveOccupant(value.interpolationState[0].previous, retained);
             return value;
         }
-        if (this.options.isChild(value)) return retained.get(value) || value;
+        if (this.owner.isChild(value)) return retained.get(value) || value;
         return value;
     }
 

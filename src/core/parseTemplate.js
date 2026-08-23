@@ -12,14 +12,14 @@ import __DEV__ from '../utils/dev.js';
  * Role-agnostic template parser. Turns a tagged template (`strings`,
  * `expressions`) into skeleton data (`parts`, `elements`, `interpolations`) that
  * is independent of the expression values: dynamic parts become descriptors that
- * carry the original expression *indices* (`ExpressionIndex`), never the resolved
- * values. The same shape is produced for a component's own template and for a
- * `partial`; root treatment (single-root validation, `options.attributes` merge,
- * `this.el`) is handled by the component when it adopts its root partial.
+ * carry the original expression *indices*, never the resolved values. The same
+ * shape is produced for a component's own template and for a `partial`; root
+ * treatment (merging the component's `attributes`, resolving `this.el`) is handled
+ * by the component when it adopts its root partial.
  *
  * The parser never imports `Component`. Component-tag detection is injected
  * through the `isComponentClass` predicate; the per-component wire values (ids,
- * event data-attributes) are provided through `options` at render time.
+ * event data-attributes) come from the partial's owner at render time.
  *
  * Two placeholder namespaces keep the user's `expressions` array pure:
  * - `Constants.PLACEHOLDER(i)` marks an original expression at index `i`. After

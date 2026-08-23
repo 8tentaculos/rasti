@@ -5,7 +5,7 @@ import Partial from '../src/core/Partial.js';
 const tag = (strings, ...expressions) => ({ strings, expressions });
 
 // Owner handlers with real emission counters, so ids in the output are deterministic.
-const makeOptions = (uid = 'r1') => {
+const makeOwner = (uid = 'r1') => {
     let elId = 0;
     let mkId = 0;
     const listeners = [];
@@ -24,8 +24,8 @@ const makeOptions = (uid = 'r1') => {
     };
 };
 
-const makePartial = ({ strings, expressions }, options = makeOptions()) =>
-    new (Partial.create(strings, expressions))(expressions, options);
+const makePartial = ({ strings, expressions }, owner = makeOwner()) =>
+    new (Partial.create(strings, expressions))(expressions, owner);
 
 describe('Partial', () => {
     describe('create', () => {
@@ -75,9 +75,9 @@ describe('Partial', () => {
         });
 
         it('must render a nested partial recursively, sharing the owner emission counters', () => {
-            const options = makeOptions();
-            const inner = makePartial(tag`<span class="${'i'}">${'x'}</span>`, options);
-            const outer = makePartial(tag`<div>${inner}</div>`, options);
+            const owner = makeOwner();
+            const inner = makePartial(tag`<span class="${'i'}">${'x'}</span>`, owner);
+            const outer = makePartial(tag`<div>${inner}</div>`, owner);
 
             expect(outer.toString()).to.equal(
                 '<div data-rst-el="r1-1"><!--rst-s-r1-1-->' +
