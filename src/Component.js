@@ -78,6 +78,16 @@ const isComponent = (el) => !!(el && el.dataset && el.dataset[Component.DATASET_
 const isComponentClass = (expression) => !!(expression && expression.prototype instanceof Component);
 
 /**
+ * Stable template strings per component class for the container wrapper. A component
+ * whose `template()` returns another component is rendered as a container built from
+ * these; keeping them per class gives the container a stable root-partial identity
+ * across renders.
+ * @type {WeakMap<Function, Array<string>>}
+ * @private
+ */
+const containerStrings = new WeakMap();
+
+/**
  * Build the handlers bag a component hands to its template engine. It is created
  * once per component (in `ensureElement`) and shared by the root partial and every
  * nested partial, so the emission counters (and therefore element / marker ids)
@@ -236,12 +246,35 @@ export default class Component extends View {
      */
     ensureRootPartial() {
         if (this.rootPartial) return;
-        // Call template function to get the root partial.
-        this.rootPartial = getResult(this.template, this);
+        this.rootPartial = this.buildRootPartial();
         // The root element merges the component's `attributes` (root treatment).
         if (this.attributes) this.rootPartial.rootAttributes = () => getResult(this.attributes, this);
         // Expose the template source for expression error messages (dev only).
         if (__DEV__) this.source = this.rootPartial.constructor.source;
+    }
+
+    /**
+     * Resolve the component's root partial for this render. `template()` may return a
+     * partial, used as the root directly, or a component instance, rendered as a
+     * container: a single-slot partial that borrows the child's element.
+     * @return {Partial} The root partial for this render.
+     * @private
+     */
+    buildRootPartial() {
+        const result = getResult(this.template, this, this);
+        if (result instanceof Partial) return result;
+        if (result instanceof Component) {
+            let strings = containerStrings.get(this.constructor);
+            if (!strings) containerStrings.set(this.constructor, strings = ['', '']);
+            return this.partial(strings, result);
+        }
+        const message = __DEV__ ?
+            createDevelopmentErrorMessage(
+                `Invalid template in ${this.constructor.name}#${this.uid}\n` +
+                '`template()` must return a partial (this.partial`...`) or a component instance.'
+            ) :
+            createProductionErrorMessage(`Invalid template in ${this.constructor.name}#${this.uid}`);
+        throw new Error(message);
     }
 
     /**
@@ -513,7 +546,7 @@ export default class Component extends View {
         this.partialHandlers.propsQueue.length = 0;
         // Re-run `template()` to get a fresh carrier holding this render's expressions, so
         // templates that interpolate plain values (recomputed on each call) stay reactive.
-        const carrier = getResult(this.template, this);
+        const carrier = this.buildRootPartial();
         // The root partial is retained across renders and reconciled by structure, so the
         // carrier must come from the same template. A changed root can't be patched in place.
         if (carrier.constructor !== this.rootPartial.constructor) {
@@ -843,10 +876,11 @@ export default class Component extends View {
      * @return {Component} The newly created component class.
      */
     static create(strings, ...expressions) {
-        // Containers can be created using create as a function instead of a tagged template.
+        // The function form authors the template directly: `create(fn)` is the same as
+        // defining `template` as `fn`. It may return a partial (the component's root) or
+        // a component instance (rendered as a container).
         if (typeof strings === 'function') {
-            expressions = [strings];
-            strings = ['', ''];
+            return this.extend({ template : strings });
         }
         // `create` is sugar: the subclass's `template()` returns a root partial from the
         // captured template. `strings` keeps its identity across instances, so the skeleton

@@ -1162,6 +1162,67 @@ describe('Component', () => {
         });
     });
 
+    describe('create with a template function', () => {
+        it('renders a component instance as a container', () => {
+            const Btn = Component.create`<button class="btn">${({ props }) => props.label}</button>`;
+            const model = new Model({ label : 'a' });
+            const Wrap = Component.create(() => Btn.mount({ label : model.label }));
+
+            const c = Wrap.mount({ model }, document.body);
+            const btn = document.querySelector('.btn');
+            expect(c.el).to.be.equal(btn);
+            expect(btn.textContent).to.contain('a');
+
+            model.label = 'b';
+            expect(document.querySelector('.btn')).to.be.equal(btn);
+            expect(btn.textContent).to.contain('b');
+        });
+
+        it('renders a partial with a single component tag as a container', () => {
+            const Btn = Component.create`<button class="btn">${({ props }) => props.label}</button>`;
+            const model = new Model({ label : 'a' });
+            const Wrap = Component.create(function() {
+                return this.partial`<${Btn} label="${() => model.label}" />`;
+            });
+
+            const c = Wrap.mount({ model }, document.body);
+            const btn = document.querySelector('.btn');
+            expect(c.el).to.be.equal(btn);
+            expect(btn.textContent).to.contain('a');
+
+            model.label = 'b';
+            expect(document.querySelector('.btn')).to.be.equal(btn);
+            expect(btn.textContent).to.contain('b');
+        });
+
+        it('renders a partial with markup as the component root', () => {
+            const model = new Model({ txt : 'a' });
+            const Wrap = Component.create(function() {
+                return this.partial`<section id="s">Val: <span>${() => model.txt}</span></section>`;
+            });
+
+            const c = Wrap.mount({ model }, document.body);
+            const section = document.getElementById('s');
+            expect(c.el).to.be.equal(section);
+            const span = section.querySelector('span');
+            expect(span.textContent).to.be.equal('a');
+
+            model.txt = 'b';
+            expect(document.getElementById('s')).to.be.equal(section);
+            expect(section.querySelector('span')).to.be.equal(span);
+            expect(section.querySelector('span').textContent).to.be.equal('b');
+        });
+
+        it('passes the component instance to the template function', () => {
+            const Wrap = Component.create(self =>
+                self.partial`<div id="d">${() => self.model.n}</div>`
+            );
+            const model = new Model({ n : 1 });
+            Wrap.mount({ model }, document.body);
+            expect(document.getElementById('d').textContent).to.be.equal('1');
+        });
+    });
+
     describe('Lifecycle methods', () => {
         it('must call onHydrate lifecycle method', () => {
             let calls = 0;
