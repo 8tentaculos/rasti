@@ -14,7 +14,7 @@ const makeOwner = (uid = 'r1') => {
         evaluate : expr => typeof expr === 'function' ? expr() : expr,
         registerListener : (fn, type) => {
             listeners.push({ fn, type });
-            return { attr : `data-rst-on-${type}-${uid}`, index : listeners.length - 1 };
+            return { attribute : `data-rst-on-${type}-${uid}`, index : listeners.length - 1 };
         },
         nextElementId : () => `${uid}-${++elId}`,
         nextMarkerId : () => `${uid}-${++mkId}`,
@@ -62,16 +62,15 @@ describe('Partial', () => {
             );
         });
 
-        it('must materialize per-render state lazily on first render', () => {
+        it('must create slot state lazily on first render', () => {
             const partial = makePartial(tag`<div class="${'btn'}">${'hi'}</div>`);
 
-            expect(partial.elementState).to.be.undefined;
-            expect(partial.interpolationState).to.be.undefined;
+            expect(partial.slots).to.be.undefined;
 
             partial.toString();
 
-            expect(partial.elementState).to.have.lengthOf(1);
-            expect(partial.interpolationState).to.have.lengthOf(1);
+            expect(partial.slots.elements).to.have.lengthOf(1);
+            expect(partial.slots.interpolations).to.have.lengthOf(1);
         });
 
         it('must render a nested partial recursively, sharing the owner emission counters', () => {
@@ -123,8 +122,8 @@ describe('Partial', () => {
             // the root); markers are then located within the root.
             partial.hydrate(document.body);
 
-            expect(partial.elementState[0].ref).to.equal(document.querySelector('[data-rst-el="r1-1"]'));
-            const [start, end] = partial.interpolationState[0].ref;
+            expect(partial.slots.elements[0].ref).to.equal(document.querySelector('[data-rst-el="r1-1"]'));
+            const [start, end] = partial.slots.interpolations[0].ref;
             expect(start.data).to.equal('rst-s-r1-1');
             expect(end.data).to.equal('rst-e-r1-1');
         });
@@ -136,10 +135,10 @@ describe('Partial', () => {
             document.body.innerHTML = partial.toString();
             partial.hydrate(document.body);
 
-            expect(partial.elementState[0].ref.getAttribute('class')).to.equal('a');
+            expect(partial.slots.elements[0].ref.getAttribute('class')).to.equal('a');
 
             partial.update(['b']);
-            expect(partial.elementState[0].ref.getAttribute('class')).to.equal('b');
+            expect(partial.slots.elements[0].ref.getAttribute('class')).to.equal('b');
         });
     });
 });

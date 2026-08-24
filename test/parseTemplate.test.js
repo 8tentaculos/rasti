@@ -60,11 +60,11 @@ describe('parseTemplate', () => {
             const { elements, interpolations } = parseTemplate(strings, expressions);
 
             expect(elements[0].slotIndex).to.equal(0);
-            expect(elements[0].attrs).to.have.lengthOf(1);
-            expectAttr(elements[0].attrs[0], 'class', 0, false);
+            expect(elements[0].attributes).to.have.lengthOf(1);
+            expectAttr(elements[0].attributes[0], 'class', 0, false);
 
             expect(interpolations[0].slotIndex).to.equal(0);
-            expect(interpolations[0].exprIndex).to.equal(1);
+            expect(interpolations[0].expressionIndex).to.equal(1);
         });
 
         it('must give the root element a descriptor even when otherwise static', () => {
@@ -74,7 +74,7 @@ describe('parseTemplate', () => {
             // The first (root) element always gets a descriptor so it can be
             // adopted as a component's element and located on hydration.
             expect(elements).to.have.lengthOf(1);
-            expect(elements[0].attrs).to.be.empty;
+            expect(elements[0].attributes).to.be.empty;
             expect(interpolations).to.be.empty;
             expect(parts).to.have.lengthOf(3);
             expect(parts[1]).to.equal(elements[0]);
@@ -87,21 +87,21 @@ describe('parseTemplate', () => {
             const { elements } = parseTemplate(strings, expressions);
 
             expect(elements).to.have.lengthOf(1);
-            const attrs = elements[0].attrs;
-            expect(attrs).to.have.lengthOf(4);
+            const attributes = elements[0].attributes;
+            expect(attributes).to.have.lengthOf(4);
 
-            expectAttr(attrs[0], 'href', 0, false);
-            expectAttr(attrs[1], 'title', 1, true);
-            expectAttr(attrs[2], 'hidden', 2, false);
-            expectAttr(attrs[3], 'data-static', 'z', true);
+            expectAttr(attributes[0], 'href', 0, false);
+            expectAttr(attributes[1], 'title', 1, true);
+            expectAttr(attributes[2], 'hidden', 2, false);
+            expectAttr(attributes[3], 'data-static', 'z', true);
         });
 
         it('must parse a value-less placeholder attribute (object spread / boolean)', () => {
             const { strings, expressions } = tag`<input ${{ type : 'text' }}/>`;
             const { elements } = parseTemplate(strings, expressions);
 
-            expect(elements[0].attrs).to.have.lengthOf(1);
-            expectAttr(elements[0].attrs[0], 0, undefined, false);
+            expect(elements[0].attributes).to.have.lengthOf(1);
+            expectAttr(elements[0].attributes[0], 0, undefined, false);
         });
     });
 
@@ -111,10 +111,10 @@ describe('parseTemplate', () => {
             const { elements, interpolations } = parseTemplate(strings, expressions);
 
             expect(elements.map(e => e.slotIndex)).to.deep.equal([0, 1]);
-            expectAttr(elements[0].attrs[0], 'class', 0);
-            expectAttr(elements[1].attrs[0], 'id', 2);
+            expectAttr(elements[0].attributes[0], 'class', 0);
+            expectAttr(elements[1].attributes[0], 'id', 2);
 
-            expect(interpolations.map(i => [i.slotIndex, i.exprIndex])).to.deep.equal([[0, 1], [1, 3]]);
+            expect(interpolations.map(i => [i.slotIndex, i.expressionIndex])).to.deep.equal([[0, 1], [1, 3]]);
         });
 
         it('must parse a multi-root fragment (role-agnostic, no single-root validation)', () => {
@@ -142,7 +142,7 @@ describe('parseTemplate', () => {
             expect(desc.slotIndex).to.equal(0);
             expect(expressions[desc.tagIndex]).to.equal(Comp);
             expect(desc.inner).to.be.null;
-            expectAttr(desc.attrs[0], 'className', 1);
+            expectAttr(desc.attributes[0], 'className', 1);
 
             expect(parts).to.have.lengthOf(5);
             expect(parts[3]).to.equal(desc);
@@ -156,7 +156,7 @@ describe('parseTemplate', () => {
             const desc = interpolations[0];
             expect(desc).to.be.instanceOf(ComponentDescriptor);
             expect(desc.inner.interpolations).to.have.lengthOf(1);
-            expect(desc.inner.interpolations[0].exprIndex).to.equal(1);
+            expect(desc.inner.interpolations[0].expressionIndex).to.equal(1);
         });
 
         it('must parse a lone component tag as a single-part container skeleton', () => {

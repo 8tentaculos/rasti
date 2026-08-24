@@ -31,9 +31,9 @@ const expandEvents = (attributes, owner) => {
             const type = match[1].toLowerCase();
             const listener = attributes[key];
             if (listener) {
-                const { attr, index } = owner.registerListener(listener, type);
+                const { attribute, index } = owner.registerListener(listener, type);
                 // Add event listener index under its data-attribute.
-                out[attr] = index;
+                out[attribute] = index;
             }
         } else {
             // Add attribute.
@@ -74,7 +74,7 @@ const canRecycle = (prev, candidate, allowUnkeyed = true) => {
  * role it has at hand.
  * @typedef {object} PartialHandlers
  * @property {Function} evaluate Evaluate an expression in the owner's context, `(expression, meta) => value`.
- * @property {Function} registerListener Register an event listener, `(listener, type) => ({ attr, index })`.
+ * @property {Function} registerListener Register an event listener, `(listener, type) => ({ attribute, index })`.
  * @property {Function} nextElementId Mint the owner's next element id.
  * @property {Function} nextMarkerId Mint the owner's next interpolation marker id.
  * @property {Function} isChild Tell whether a value is a child component.
@@ -99,9 +99,11 @@ const canRecycle = (prev, candidate, allowUnkeyed = true) => {
  * reconciled by `constructor` — the same identity mechanism as components. The
  * same class backs a component's root template and every nested `partial`, so
  * rendering is uniformly recursive: a slot that holds a partial updates it in
- * place, a slot that holds a child component recycles it. Per-render state (ids,
- * refs, previous attributes, slot occupants) is kept as plain objects on the
- * instance, materialized lazily on the first `toString`.
+ * place, a slot that holds a child component recycles it. The skeleton is static and
+ * shared by every partial from that call site; everything that changes as the partial
+ * renders (ids, refs, previous attributes, slot occupants) lives on the instance in
+ * `this.slots`, whose `elements` / `interpolations` tables mirror the skeleton's and
+ * are created lazily on the first `toString`.
  *
  * @param {Array<any>} expressions The current render expressions.
  * @param {PartialHandlers} owner The handlers of the component this template belongs to.
@@ -126,19 +128,9 @@ class Partial {
     }
 
     /**
-     * Materialize the per-render state objects for elements and interpolations,
-     * aligned with the skeleton tables.
-     * @private
-     */
-    materialize() {
-        this.elementState = this.constructor.elements.map(() => ({}));
-        this.interpolationState = this.constructor.interpolations.map(() => ({}));
-    }
-
-    /**
-     * Render the partial to an HTML string, materializing its state on first call
-     * and assigning each element/interpolation an emission id as it is emitted (so
-     * DOM order matches emission order).
+     * Render the partial to an HTML string, creating its slot state on first
+     * call and assigning each element/interpolation an emission id as it is emitted
+     * (so DOM order matches emission order).
      * @param {PartialHandlers} [host] Handlers of the component currently rendering (the
      *     one whose `children` the rendered child components join). Defaults to this
      *     partial's own owner; propagated unchanged into nested partials, so slotted
@@ -150,7 +142,15 @@ class Partial {
      * @return {string} The rendered HTML.
      */
     toString(host = this.owner, pass) {
-        if (!this.elementState) this.materialize();
+        // The slot tables mirror the skeleton tables and are created on the first
+        // render: a partial that is synthesized but never rendered (a discarded update
+        // candidate) allocates nothing.
+        if (!this.slots) {
+            this.slots = {
+                elements : this.constructor.elements.map(() => ({})),
+                interpolations : this.constructor.interpolations.map(() => ({}))
+            };
+        }
         return this.constructor.parts.map(part => this.renderPart(part, host, pass)).join('');
     }
 
@@ -165,7 +165,7 @@ class Partial {
     renderPart(part, host, pass) {
         if (part instanceof SafeHTML) return `${part}`;
         if (part instanceof ElementDescriptor) return this.renderElement(part);
-        if (part instanceof RawExpression) return this.owner.sanitize(this.owner.evaluate(this.expressions[part.exprIndex], 'dynamic tag'));
+        if (part instanceof RawExpression) return this.owner.sanitize(this.owner.evaluate(this.expressions[part.expressionIndex], 'dynamic tag'));
         return this.renderInterpolation(part, host, pass);
     }
 
@@ -177,15 +177,15 @@ class Partial {
      * @private
      */
     renderElement(descriptor) {
-        const state = this.elementState[descriptor.slotIndex];
-        if (state.id == null) state.id = this.owner.nextElementId();
-        const attributes = this.buildAttributes(descriptor.attrs);
+        const slot = this.slots.elements[descriptor.slotIndex];
+        if (slot.id == null) slot.id = this.owner.nextElementId();
+        const attributes = this.buildAttributes(descriptor.attributes);
         // Root treatment: the component's root element (emitted first, id ending
         // in `-1`) merges the owner's `attributes`. Only the root partial carries
         // `rootAttributes`; nested partials never do.
-        if (this.rootAttributes && /-1$/.test(state.id)) Object.assign(attributes, this.rootAttributes());
-        attributes[Constants.ATTRIBUTE_ELEMENT] = state.id;
-        state.previousAttributes = attributes;
+        if (this.rootAttributes && /-1$/.test(slot.id)) Object.assign(attributes, this.rootAttributes());
+        attributes[Constants.ATTRIBUTE_ELEMENT] = slot.id;
+        slot.previousAttributes = attributes;
         return getAttributesHTML(attributes);
     }
 
@@ -200,13 +200,13 @@ class Partial {
      * @private
      */
     renderInterpolation(descriptor, host, pass) {
-        const state = this.interpolationState[descriptor.slotIndex];
-        if (state.id == null) state.id = this.owner.nextMarkerId();
+        const slot = this.slots.interpolations[descriptor.slotIndex];
+        if (slot.id == null) slot.id = this.owner.nextMarkerId();
         const value = this.evaluate(descriptor);
-        state.previous = value;
+        slot.previous = value;
         const rendered = this.renderValue(value, host, pass);
         if (this.isContainer()) return rendered;
-        return `<!--${Constants.MARKER_START(state.id)}-->${rendered}<!--${Constants.MARKER_END(state.id)}-->`;
+        return `<!--${Constants.MARKER_START(slot.id)}-->${rendered}<!--${Constants.MARKER_END(slot.id)}-->`;
     }
 
     /**
@@ -219,7 +219,7 @@ class Partial {
      */
     evaluate(descriptor) {
         if (descriptor instanceof ComponentDescriptor) return this.mountComponent(descriptor);
-        return this.owner.evaluate(this.expressions[descriptor.exprIndex], 'interpolation');
+        return this.owner.evaluate(this.expressions[descriptor.expressionIndex], 'interpolation');
     }
 
     /**
@@ -234,7 +234,7 @@ class Partial {
     mountComponent(descriptor) {
         const tag = this.expressions[descriptor.tagIndex];
         const childOptions = {};
-        descriptor.attrs.forEach(attr => attr.applyTo(childOptions, this.expressions, this.owner));
+        descriptor.attributes.forEach(attribute => attribute.applyTo(childOptions, this.expressions, this.owner));
         if (descriptor.inner) {
             const InnerPartial = Partial.fromSkeleton(descriptor.inner);
             // Slotted content is evaluated in this partial's context (its expressions and
@@ -316,18 +316,18 @@ class Partial {
     /**
      * Build the attributes object for an element from its `Attribute` descriptors,
      * resolving each against the current expressions and expanding events.
-     * @param {Array<Attribute>} attrs Attribute descriptors.
+     * @param {Array<Attribute>} descriptors Attribute descriptors.
      * @return {object} Attributes object (without the emission id).
      * @private
      */
-    buildAttributes(attrs) {
+    buildAttributes(descriptors) {
         const attributes = {};
-        attrs.forEach(attr => attr.applyTo(attributes, this.expressions, this.owner));
+        descriptors.forEach(attribute => attribute.applyTo(attributes, this.expressions, this.owner));
         return expandEvents(attributes, this.owner);
     }
 
     /**
-     * Attach the partial's state to the rendered DOM and recurse into its slots: the
+     * Attach the partial's slot state to the rendered DOM and recurse into its slots: the
      * nested partials and, on a fresh hydrate, the child components they hold — so a
      * whole new subtree hydrates from one call. Elements and markers use different
      * scopes: elements carry unique, deterministic ids and are located anywhere under
@@ -344,20 +344,19 @@ class Partial {
      *     recycled ones, so only structural refs are set here.
      */
     hydrate(parent, root, fresh = true) {
-        if (!this.elementState) this.materialize();
-        this.elementState.forEach(state => {
-            state.ref = parent.querySelector(`[${Constants.ATTRIBUTE_ELEMENT}="${state.id}"]`);
+        this.slots.elements.forEach(slot => {
+            slot.ref = parent.querySelector(`[${Constants.ATTRIBUTE_ELEMENT}="${slot.id}"]`);
         });
-        if (!root) root = this.isContainer() ? parent : this.elementState[0].ref;
+        if (!root) root = this.isContainer() ? parent : this.slots.elements[0].ref;
         // Containers render without markers, so there is nothing to locate here.
         if (!this.isContainer()) {
-            this.interpolationState.forEach(state => {
-                const start = findComment(root, Constants.MARKER_START(state.id), isComponent);
-                const end = findComment(root, Constants.MARKER_END(state.id), isComponent, start);
-                state.ref = [start, end];
+            this.slots.interpolations.forEach(slot => {
+                const start = findComment(root, Constants.MARKER_START(slot.id), isComponent);
+                const end = findComment(root, Constants.MARKER_END(slot.id), isComponent, start);
+                slot.ref = [start, end];
             });
         }
-        this.interpolationState.forEach(state => this.hydrateValue(state.previous, parent, root, fresh));
+        this.slots.interpolations.forEach(slot => this.hydrateValue(slot.previous, parent, root, fresh));
     }
 
     /**
@@ -383,8 +382,8 @@ class Partial {
      * @return {Node} The root element.
      */
     rootElement() {
-        if (!this.isContainer()) return this.elementState[0].ref;
-        return this.slotElement(this.interpolationState[0].previous);
+        if (!this.isContainer()) return this.slots.elements[0].ref;
+        return this.slotElement(this.slots.interpolations[0].previous);
     }
 
     /**
@@ -422,9 +421,9 @@ class Partial {
      * @private
      */
     updateInterpolation(descriptor, host) {
-        const state = this.interpolationState[descriptor.slotIndex];
+        const slot = this.slots.interpolations[descriptor.slotIndex];
         const value = this.evaluate(descriptor);
-        const prev = state.previous;
+        const prev = slot.previous;
         // Retained nested partial with its own structure (and markers): same call site
         // → update in place, recursively. A transparent (container) partial has no
         // markers of its own, so it is re-rendered by this slot instead (below), which
@@ -440,8 +439,8 @@ class Partial {
         }
         // Anything else: regenerate the slot's content and patch the DOM. A container
         // has no markers, so its content is anchored to its current element instead.
-        if (this.isContainer()) this.replaceContainer(state, value, host);
-        else this.replaceSlot(state, value, host);
+        if (this.isContainer()) this.replaceContainer(slot, value, host);
+        else this.replaceSlot(slot, value, host);
     }
 
     /**
@@ -465,35 +464,35 @@ class Partial {
      * render the new value (recycling matched children, mounting new ones), insert
      * the fragment, then move recycled children into place, hydrate new children
      * and nested partials, and reconcile props.
-     * @param {object} state The interpolation's per-render state.
+     * @param {object} slot The interpolation's slot state.
      * @param {any} value The new value.
      * @param {PartialHandlers} host Handlers of the component rendering (see `toString`).
      * @private
      */
-    replaceSlot(state, value, host) {
-        const pass = this.makePass(state.previous, value);
+    replaceSlot(slot, value, host) {
+        const pass = this.makePass(slot.previous, value);
         const fragment = parseHTML(this.renderValue(value, host, pass));
-        const parent = state.ref[1].parentNode;
+        const parent = slot.ref[1].parentNode;
 
-        this.patchMarkers(state, fragment, () => this.placeChildren(pass, value, parent, host));
+        this.patchMarkers(slot, fragment, () => this.placeChildren(pass, value, parent, host));
 
         this.finishPass(pass, host);
-        state.previous = this.resolvePrevious(value, pass);
+        slot.previous = this.resolvePrevious(value, pass);
     }
 
     /**
      * Regenerate a container's single slot and swap it for the current element.
      * A container has no markers, so its content is anchored to its element (which
      * can be moved around the DOM by hand); the new content replaces it in place.
-     * @param {object} state The interpolation's per-render state.
+     * @param {object} slot The interpolation's slot state.
      * @param {any} value The new value.
      * @param {PartialHandlers} host Handlers of the component rendering (see `toString`).
      * @private
      */
-    replaceContainer(state, value, host) {
+    replaceContainer(slot, value, host) {
         const element = this.rootElement();
         const parent = element.parentNode;
-        const pass = this.makePass(state.previous, value);
+        const pass = this.makePass(slot.previous, value);
         const fragment = parseHTML(this.renderValue(value, host, pass));
 
         const divider = document.createComment('');
@@ -506,7 +505,7 @@ class Partial {
         parent.removeChild(divider);
 
         this.finishPass(pass, host);
-        state.previous = this.resolvePrevious(value, pass);
+        slot.previous = this.resolvePrevious(value, pass);
     }
 
     /**
@@ -569,7 +568,7 @@ class Partial {
     collectChildren(value) {
         if (Array.isArray(value)) return value.reduce((out, item) => out.concat(this.collectChildren(item)), []);
         if (value instanceof Partial) {
-            if (value.isContainer()) return this.collectChildren(value.interpolationState[0].previous);
+            if (value.isContainer()) return this.collectChildren(value.slots.interpolations[0].previous);
             return [];
         }
         if (this.owner.isChild(value)) return [value];
@@ -605,7 +604,7 @@ class Partial {
     resolveOccupant(value, retained) {
         if (Array.isArray(value)) return value.map(item => this.resolveOccupant(item, retained));
         if (value instanceof Partial) {
-            if (value.isContainer()) return this.resolveOccupant(value.interpolationState[0].previous, retained);
+            if (value.isContainer()) return this.resolveOccupant(value.slots.interpolations[0].previous, retained);
             return value;
         }
         if (this.owner.isChild(value)) return retained.get(value) || value;
@@ -615,13 +614,13 @@ class Partial {
     /**
      * Insert a fresh fragment between the slot's markers, run the handler to place
      * child components, then remove the old content.
-     * @param {object} state The interpolation's per-render state (`ref` is `[start, end]`).
+     * @param {object} slot The interpolation's slot state (`ref` is `[start, end]`).
      * @param {DocumentFragment} fragment The new content.
      * @param {Function} handleChildren Places recycled / new children in the fragment.
      * @private
      */
-    patchMarkers(state, fragment, handleChildren) {
-        const [start, end] = state.ref;
+    patchMarkers(slot, fragment, handleChildren) {
+        const [start, end] = slot.ref;
         let divider;
         if (start.nextSibling === end) {
             // The slot is empty: insert directly before the end marker.
@@ -651,24 +650,24 @@ class Partial {
      * @private
      */
     updateElement(descriptor) {
-        const state = this.elementState[descriptor.slotIndex];
-        const attributes = this.buildAttributes(descriptor.attrs);
-        attributes[Constants.ATTRIBUTE_ELEMENT] = state.id;
-        const { remove, add } = getAttributesDiff(attributes, state.previousAttributes);
-        state.previousAttributes = attributes;
+        const slot = this.slots.elements[descriptor.slotIndex];
+        const attributes = this.buildAttributes(descriptor.attributes);
+        attributes[Constants.ATTRIBUTE_ELEMENT] = slot.id;
+        const { remove, add } = getAttributesDiff(attributes, slot.previousAttributes);
+        slot.previousAttributes = attributes;
         // Remove attributes first so later `setAttribute` overrides if needed.
         remove.forEach(attr => {
-            state.ref.removeAttribute(attr);
-            if (SYNC_PROPS.indexOf(attr) !== -1 && attr in state.ref) {
-                state.ref[attr] = attr === 'value' ? '' : false;
+            slot.ref.removeAttribute(attr);
+            if (SYNC_PROPS.indexOf(attr) !== -1 && attr in slot.ref) {
+                slot.ref[attr] = attr === 'value' ? '' : false;
             }
         });
         // Add / update attributes.
         Object.keys(add).forEach(attr => {
             const value = add[attr];
-            state.ref.setAttribute(attr, value);
-            if (SYNC_PROPS.indexOf(attr) !== -1 && attr in state.ref) {
-                state.ref[attr] = attr === 'value' ? value : value !== false && value !== 'false';
+            slot.ref.setAttribute(attr, value);
+            if (SYNC_PROPS.indexOf(attr) !== -1 && attr in slot.ref) {
+                slot.ref[attr] = attr === 'value' ? value : value !== false && value !== 'false';
             }
         });
     }

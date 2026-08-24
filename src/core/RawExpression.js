@@ -4,12 +4,12 @@
  * (`<${tag}>`). It is emitted inline (no markers) by evaluating its expression, so
  * it is resolved on render but not reconciled between updates (a dynamic tag only
  * takes effect on recreation).
- * @param {number} exprIndex Index of the original expression this part evaluates.
+ * @param {number} expressionIndex Index of the original expression this part evaluates.
  * @private
  */
 class RawExpression {
-    constructor(exprIndex) {
-        this.exprIndex = exprIndex;
+    constructor(expressionIndex) {
+        this.expressionIndex = expressionIndex;
     }
 }
 

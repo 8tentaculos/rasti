@@ -120,7 +120,7 @@ const buildPartialHandlers = (component) => {
     return Object.assign({}, childHandlers, {
         evaluate : (expression, meta) => getExpressionResult(expression, component, meta),
         registerListener : (listener, type) => ({
-            attr : Constants.ATTRIBUTE_EVENT(type, component.uid),
+            attribute : Constants.ATTRIBUTE_EVENT(type, component.uid),
             index : component.eventsManager.addListener(listener, type)
         }),
         nextElementId : () => `${component.uid}-${++elementId}`,
