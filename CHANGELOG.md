@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`template()` as a first-class method**: a component's markup now comes from its `template()` method, which returns a partial (``this.partial`...` ``) or a child component (rendered as a container). A component can be authored by subclassing and implementing `template()`, in addition to `Component.create`. The root it returns is created once and patched in place on every later render, so it must be the same template each time: branch inside the interpolations rather than at the root, or it throws `Root template changed`.
+- **`Component.create` accepts a template function**: besides a tagged template string, `create(fn)` uses `fn` as the component's `template()` (sugar for `extend({ template : fn })`). The function may return a partial or a component.
+- **TypeScript: the subclass form is fully typed**: `template()` is declared as a method in the type definitions (it was a property, which made `class X extends Component { template() {…} }` fail with TS2425). Authoring a component as a subclass now typechecks with no annotations: generics type `props`/`state`, template interpolations are checked like any other expression, and the class name works as a type without an `InstanceType` alias.
+- **Value-style interpolations**: in the function and subclass template forms, `template()` re-runs on every render, so interpolations can be plain values read fresh each render, not only functions.
+
+### Changed
+
+- **Partials patch in place**: content rendered with `this.partial` is now reconciled incrementally (attributes diffed, children recycled) instead of regenerating its markup on update. DOM nodes inside a partial — and their focus, selection and input value — are preserved across renders.
+- **`template()` runs on every render**, where previously it ran once. This is what makes value-style interpolations reactive.
+- **The default export is the base `Component` class**, with a default `template()` that renders an empty `<div>`. `import Component from 'rasti'` still works the same for `create` / `extend` / `mount`.
+- **Serialized markup changed**: partials now emit their own element id (`data-rst-el`) and start/end markers, so the exact HTML a component serializes to differs from previous versions. Server-side rendering and hydration are unaffected as long as server and client run the same version; snapshot tests comparing exact HTML must be updated.
+- **BREAKING:** **Keyed recycling is now slot-local**: a component `key` matches only within the same interpolation. A keyed child that moves between two different interpolations is recreated instead of recycled, where keys used to share a global scope. Keep a keyed instance within a single interpolation (for example one array) to rely on it being reused.
+
+### Removed
+
+- **BREAKING:** **Undocumented `Component` statics**: `ATTRIBUTE_ELEMENT`, `ATTRIBUTE_EVENT`, `DATASET_ELEMENT`, `PLACEHOLDER`, `MARKER_RECYCLED`, `MARKER_START` and `MARKER_END`. They were never documented nor part of the public API, and after the engine rewrite most of them were dead. Every attribute, dataset key and marker a component writes to the DOM now comes from a single internal object.
+
 ## [4.1.1] - 2026-08-24
 
 ### Fixed
