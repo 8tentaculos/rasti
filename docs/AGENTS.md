@@ -55,9 +55,40 @@ MyComponent.mount({ model }, document.getElementById('root'));
 `template()` runs on **every render** — see [Interpolations](#interpolations) for what that means for the values inside it.
 
 **Key Methods:**
-- [`Component.create`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.1/docs/api.md#module_component_create) — creates component class from template
+- [`Component.create`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.1/docs/api.md#module_component_create) — creates component class from a tagged template or a template function
+- [`component.template`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.1/docs/api.md#module_component__template) — returns the component's root partial; override it directly, via `extend`, or as a mount option
 - [`Component.extend`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.1/docs/api.md#module_component_extend) — adds methods and lifecycle hooks
 - [`Component.mount`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.1/docs/api.md#module_component_mount) — creates and mounts a component instance
+
+---
+
+### The Root Partial
+
+The partial returned by `template()` becomes the component's root element, so two restrictions apply to it — and only to it, partials rendered inside an interpolation are free of both:
+
+- **A single root element** — it becomes `this.el`. Sibling elements or loose text at the top level are dropped silently.
+- **The same template on every render** — the root is created once and then patched in place, so returning a different template throws `Root template changed`.
+
+```js
+// ❌ Wrong — two elements at the top level; only <h1> survives
+template() {
+    return this.partial`<h1>${this.model.title}</h1><p>${this.model.body}</p>`;
+}
+
+// ❌ Wrong — a different root template per render
+template() {
+    return this.props.loading ?
+        this.partial`<p>Loading…</p>` :
+        this.partial`<ul>${this.renderRows()}</ul>`;
+}
+
+// ✅ Correct — one root element, branching inside the interpolation
+template() {
+    return this.partial`
+        <section>${this.props.loading ? 'Loading…' : this.renderRows()}</section>
+    `;
+}
+```
 
 ---
 
@@ -217,7 +248,7 @@ When using `Component.mount()`, pass `renderChildren` manually: `{ renderChildre
 
 ### Partials
 
-[`partial`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.1/docs/api.md#module_component__partial) creates sub-templates for conditional blocks and lists, preserving component recycling by position.
+[`partial`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.1/docs/api.md#module_component__partial) creates sub-templates for conditional blocks and lists. A partial is patched in place on update — attributes diffed, child components recycled — so the DOM nodes inside it, and their focus, selection and input value, survive re-renders.
 
 ```js
 const App = Component.create`
