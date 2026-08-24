@@ -16,8 +16,10 @@ import formatTemplateSource from './utils/formatTemplateSource.js';
 import __DEV__ from './utils/dev.js';
 
 /**
- * Same as getResult, but pass context as argument to the expression.
- * Used to evaluate expressions in the context of a component.
+ * Same as getResult, but pass context as argument to the expression, so an arrow function
+ * can read the component without being bound to it. Used for every piece of template code
+ * a component evaluates while rendering: `template()` itself and the expressions inside
+ * the partials it returns.
  * @param {any} expression The expression to be evaluated.
  * @param {any} context The context to call the expression with.
  * @param {string} [meta] Optional metadata about the expression type for error messages.
@@ -43,9 +45,12 @@ const getExpressionResult = (expression, context, meta) => {
             let message;
 
             if (__DEV__) {
+                // The source only locates an expression that belongs to the template, so it
+                // is left out for the ones that don't, `template()` itself among them.
                 const formattedSource = formatTemplateSource(context.source, expression);
                 message = createDevelopmentErrorMessage(
-                    `Error in ${context.constructor.name}#${context.uid} (${meta})\n${error.message}\n\nTemplate source:\n\n${formattedSource}`
+                    `Error in ${context.constructor.name}#${context.uid} (${meta})\n${error.message}` +
+                    (formattedSource ? `\n\nTemplate source:\n\n${formattedSource}` : '')
                 );
             } else {
                 message = createProductionErrorMessage(`Error in ${context.constructor.name}#${context.uid} expression`);
@@ -263,7 +268,7 @@ export default class Component extends View {
      * @private
      */
     buildRootPartial() {
-        const result = getResult(this.template, this, this);
+        const result = getExpressionResult(this.template, this, 'template');
         if (result instanceof Partial) return result;
         if (result instanceof Component) {
             let strings = containerStrings.get(this.constructor);

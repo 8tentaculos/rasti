@@ -128,6 +128,19 @@ describe('Component', () => {
 
             expect(() => { model.wide = true; }).to.throw(/Root template changed/);
         });
+
+        it('must report the component when template throws', () => {
+            class Broken extends Component {
+                template() {
+                    return this.partial`<div>${this.model.missing.value}</div>`;
+                }
+            }
+
+            // `template()` is evaluated like any other template expression, so a failure
+            // inside it is reported in the component's context.
+            expect(() => Broken.mount({ model : new Model() }, document.body))
+                .to.throw(/Broken#\w+ \(template\)/);
+        });
     });
 
     describe('Child components', () => {
