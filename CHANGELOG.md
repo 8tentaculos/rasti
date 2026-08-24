@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.1] - 2026-08-24
+
 ### Fixed
 
 - **Attribute serialization**: attribute values are now escaped when a component is serialized to string (first render and server-side rendering), so a double quote in an interpolated value stays part of the value instead of terminating the attribute. Attribute names that can't be serialized are skipped. Attribute updates already went through `setAttribute` and were not affected.
@@ -372,7 +374,8 @@ Unlike views, which are render-agnostic, components have a specific set of rende
 
 * **BREAKING:** Removed emitter.emitAsync method.
 
-[unreleased]: https://github.com/8tentaculos/rasti/compare/v4.1.0...HEAD
+[unreleased]: https://github.com/8tentaculos/rasti/compare/v4.1.1...HEAD
+[4.1.1]: https://github.com/8tentaculos/rasti/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/8tentaculos/rasti/compare/v4.0.1...v4.1.0
 [4.0.1]: https://github.com/8tentaculos/rasti/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/8tentaculos/rasti/compare/v3.0.1...v4.0.0
