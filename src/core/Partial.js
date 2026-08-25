@@ -227,7 +227,7 @@ class Partial {
      * @private
      */
     mountComponent(descriptor) {
-        const tag = this.expressions[descriptor.tagIndex];
+        const tag = this.expressions[descriptor.expressionIndex];
         const childOptions = {};
         descriptor.attributes.forEach(attribute => attribute.applyTo(childOptions, this.expressions, this.owner));
         if (descriptor.inner) {

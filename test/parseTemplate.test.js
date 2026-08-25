@@ -140,7 +140,7 @@ describe('parseTemplate', () => {
             expect(desc).to.be.instanceOf(ComponentDescriptor);
             expect(desc).to.be.instanceOf(InterpolationDescriptor);
             expect(desc.slotIndex).to.equal(0);
-            expect(expressions[desc.tagIndex]).to.equal(Comp);
+            expect(expressions[desc.expressionIndex]).to.equal(Comp);
             expect(desc.inner).to.be.null;
             expectAttr(desc.attributes[0], 'className', 1);
 
@@ -190,7 +190,7 @@ describe('parseTemplate', () => {
 
             expect(interpolations).to.have.lengthOf(1);
             expect(interpolations[0]).to.be.instanceOf(ComponentDescriptor);
-            expect(expressions[interpolations[0].tagIndex]).to.equal(Comp);
+            expect(expressions[interpolations[0].expressionIndex]).to.equal(Comp);
         });
     });
 
