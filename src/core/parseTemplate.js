@@ -3,7 +3,7 @@ import Constants from './Constants.js';
 import ElementDescriptor from './ElementDescriptor.js';
 import InterpolationDescriptor from './InterpolationDescriptor.js';
 import ComponentDescriptor from './ComponentDescriptor.js';
-import RawExpression from './RawExpression.js';
+import ExpressionIndex from './ExpressionIndex.js';
 import Attribute from './Attribute.js';
 import __DEV__ from '../utils/dev.js';
 
@@ -23,8 +23,9 @@ import __DEV__ from '../utils/dev.js';
  *
  * Two placeholder namespaces keep the user's `expressions` array pure:
  * - `Constants.PLACEHOLDER(i)` marks an original expression at index `i`. After
- *   parsing none survive loose in `parts`; each lives inside a descriptor as an
- *   `ExpressionIndex` (attributes) or a plain index (interpolations / tags).
+ *   parsing none survive as placeholders: each becomes an `ExpressionIndex` (in an
+ *   attribute, or as a part of its own for a dynamic tag) or the `expressionIndex`
+ *   of an interpolation descriptor.
  * - `Constants.SLOT_ELEMENT(k)` / `Constants.SLOT_INTERPOLATION(k)` are
  *   structural: `k` (a slot index) indexes the `elements` / `interpolations`
  *   tables so `splitPlaceholders` can swap the marker for the descriptor instance.
@@ -51,7 +52,7 @@ const addPlaceholders = (strings, expressions) =>
 
 /**
  * Parse attributes string into `Attribute` descriptors. Keys and values are
- * stored as an expression index (`number`) or a literal, so the skeleton stays
+ * stored as an `ExpressionIndex` or a literal, so the skeleton stays
  * value-agnostic.
  * @param {string} attributesStr Attributes string from HTML element.
  * @return {Array<Attribute>} Attribute descriptors.
@@ -69,8 +70,8 @@ const parseAttributes = (attributesStr) => {
 
         const hasQuotes = !!quotes;
 
-        const key = typeof attributeIdx !== 'undefined' ? parseInt(attributeIdx, 10) : attribute;
-        let val = typeof valueIdx !== 'undefined' ? parseInt(valueIdx, 10) : value;
+        const key = typeof attributeIdx !== 'undefined' ? new ExpressionIndex(parseInt(attributeIdx, 10)) : attribute;
+        let val = typeof valueIdx !== 'undefined' ? new ExpressionIndex(parseInt(valueIdx, 10)) : value;
 
         // A quoted attribute with no value renders as an empty string; a bare
         // attribute (no `=`) stays value-less (`undefined`).
@@ -239,12 +240,12 @@ const parseInterpolations = (template, interpolations) => {
 const splitPlaceholders = (main, elements, interpolations) => {
     const SLOT = `${Constants.SLOT_ELEMENT('(\\d+)')}|${Constants.SLOT_INTERPOLATION('(\\d+)')}|${Constants.PLACEHOLDER('(\\d+)')}`;
     // Resolve a matched placeholder to its part: an element / interpolation descriptor
-    // for a structural slot, or a `RawExpression` for an original expression that
+    // for a structural slot, or an `ExpressionIndex` for an original expression that
     // survived outside a slot (a dynamic tag name).
     const resolve = match => {
         if (typeof match[1] !== 'undefined') return elements[parseInt(match[1], 10)];
         if (typeof match[2] !== 'undefined') return interpolations[parseInt(match[2], 10)];
-        return new RawExpression(parseInt(match[3], 10));
+        return new ExpressionIndex(parseInt(match[3], 10));
     };
 
     const matchSinglePlaceholder = main.match(new RegExp(`^(?:${SLOT})$`));

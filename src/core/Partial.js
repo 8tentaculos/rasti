@@ -3,7 +3,7 @@ import Constants from './Constants.js';
 import ElementDescriptor from './ElementDescriptor.js';
 import InterpolationDescriptor from './InterpolationDescriptor.js';
 import ComponentDescriptor from './ComponentDescriptor.js';
-import RawExpression from './RawExpression.js';
+import ExpressionIndex from './ExpressionIndex.js';
 import parseTemplate from './parseTemplate.js';
 import isComponent from './isComponent.js';
 import getAttributesHTML from '../utils/getAttributesHTML.js';
@@ -155,8 +155,8 @@ class Partial {
     }
 
     /**
-     * Render a single skeleton part (literal, element or interpolation).
-     * @param {SafeHTML|ElementDescriptor|InterpolationDescriptor} part The part.
+     * Render a single skeleton part (literal, element, expression or interpolation).
+     * @param {SafeHTML|ElementDescriptor|ExpressionIndex|InterpolationDescriptor} part The part.
      * @param {PartialHandlers} host Handlers of the component rendering (see `toString`).
      * @param {object} [pass] Reconcile pass (see `toString`).
      * @return {string} The rendered HTML.
@@ -165,7 +165,11 @@ class Partial {
     renderPart(part, host, pass) {
         if (part instanceof SafeHTML) return `${part}`;
         if (part instanceof ElementDescriptor) return this.renderElement(part);
-        if (part instanceof RawExpression) return this.owner.sanitize(this.owner.evaluate(this.expressions[part.expressionIndex], 'dynamic tag'));
+        // A bare expression outside of an attribute or an interpolation — in practice a
+        // dynamic tag name. It is emitted inline, with no markers around it, so it is
+        // resolved on render but never reconciled: a changed tag only takes effect when
+        // the element is recreated.
+        if (part instanceof ExpressionIndex) return this.owner.sanitize(this.owner.evaluate(this.expressions[part.index], 'dynamic tag'));
         return this.renderInterpolation(part, host, pass);
     }
 

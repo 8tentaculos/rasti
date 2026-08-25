@@ -5,6 +5,7 @@ import ElementDescriptor from '../src/core/ElementDescriptor.js';
 import InterpolationDescriptor from '../src/core/InterpolationDescriptor.js';
 import ComponentDescriptor from '../src/core/ComponentDescriptor.js';
 import Attribute from '../src/core/Attribute.js';
+import ExpressionIndex from '../src/core/ExpressionIndex.js';
 
 // Capture a real tagged-template `strings` array (frozen, stable identity per
 // call site) alongside its expressions.
@@ -19,11 +20,22 @@ const makeComponent = () => {
 };
 const isComponentClass = x => !!(x && x.isStubComponent);
 
-// Assert an Attribute's key/value (index or literal) and quoted flag.
+// Assert a parsed key or value: a number expects a reference to that expression,
+// anything else a literal parsed from the template.
+const expectPart = (part, expected) => {
+    if (typeof expected === 'number') {
+        expect(part).to.be.instanceOf(ExpressionIndex);
+        expect(part.index).to.equal(expected);
+        return;
+    }
+    expect(part).to.equal(expected);
+};
+
+// Assert an Attribute's key/value (expression or literal) and quoted flag.
 const expectAttr = (attr, key, value, quoted) => {
     expect(attr).to.be.instanceOf(Attribute);
-    expect(attr.key).to.equal(key);
-    expect(attr.value).to.equal(value);
+    expectPart(attr.key, key);
+    expectPart(attr.value, value);
     if (typeof quoted !== 'undefined') expect(attr.quoted).to.equal(quoted);
 };
 
@@ -45,6 +57,21 @@ describe('parseTemplate', () => {
             expect(parts[3]).to.be.instanceOf(InterpolationDescriptor);
             expect(parts[4]).to.be.instanceOf(SafeHTML);
             expect(`${parts[4]}`).to.equal('</div>');
+        });
+
+        it('must keep a dynamic tag name as an expression part', () => {
+            const { strings, expressions } = tag`<${'section'}>${'a'}</${'section'}>`;
+            const { parts, elements } = parseTemplate(strings, expressions);
+
+            // The tag names are parts of their own, and the element still gets a
+            // descriptor, since the root always does.
+            expect(elements).to.have.lengthOf(1);
+            expect(parts[0]).to.be.instanceOf(SafeHTML);
+            expect(`${parts[0]}`).to.equal('<');
+            expect(parts[1]).to.be.instanceOf(ExpressionIndex);
+            expect(parts[1].index).to.equal(0);
+            expect(parts[parts.length - 2]).to.be.instanceOf(ExpressionIndex);
+            expect(parts[parts.length - 2].index).to.equal(2);
         });
 
         it('must reference the same descriptor instances in parts and tables', () => {
