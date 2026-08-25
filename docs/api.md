@@ -186,10 +186,28 @@ const Main = Component.create`
 <a name="module_component__template" id="module_component__template" class="anchor"></a>
 ### component.template() ⇒ [<code>Partial</code>](#new_partial_new) \| <code>Component</code>
 Return the component's root partial. Called on every render, so interpolated
-values are recomputed. The base implementation renders an empty `<div>`;
-override it (directly, via `extend`, or through `create`) to define the markup.
-It may also return a child component instance, in which case the component is
-rendered as a <b>container</b> around it.
+values are recomputed. Override it (directly, via `extend`, or through `create`)
+to define the markup. It may also return a child component instance, in which case
+the component is rendered as a <b>container</b> around it.
+
+The base implementation builds the element the way a view does: from `this.tag`
+(defaulting to `div`) and the component's `attributes`, rendering the content the
+parent slotted into it (`props.renderChildren`). A void tag renders self-closed
+and takes no content.
+
+```javascript
+// <section class="panel">Content</section>
+Component.mount({
+    tag : 'section',
+    attributes : { class : 'panel' },
+    renderChildren : () => 'Content'
+}, document.body);
+```
+
+The root element is created on the first render and keeps its tag from then on:
+later renders patch that element in place, so a `tag` that changes afterwards is
+not applied — and one that changes between a void and a non-void tag throws, since
+that does change the root template.
 
 Two restrictions apply to the root partial, and only to it — the partials rendered
 inside an interpolation are free of both:

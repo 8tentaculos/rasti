@@ -40,6 +40,73 @@ describe('Component', () => {
         });
     });
 
+    describe('Default template', () => {
+        it('must build the root element from tag and attributes', () => {
+            const c = new Component({ tag : 'section', attributes : { class : 'panel' } });
+            c.render();
+
+            expect(c.el.tagName.toLowerCase()).to.be.equal('section');
+            expect(c.el.className).to.be.equal('panel');
+        });
+
+        it('must accept tag and attributes as functions', () => {
+            const c = new Component({
+                model : new Model({ level : 2 }),
+                tag() { return `h${this.model.level}`; },
+                attributes() { return { class : `title-${this.model.level}` }; }
+            });
+            c.render();
+
+            expect(c.el.tagName.toLowerCase()).to.be.equal('h2');
+            expect(c.el.className).to.be.equal('title-2');
+        });
+
+        it('must render the content passed by the parent', () => {
+            const Inner = Component.create`<b>inner</b>`;
+            const c = new Component({ tag : 'section', renderChildren : () => Inner.mount({}) });
+            c.render();
+
+            expect(c.children.length).to.be.equal(1);
+            expect(c.el.querySelector('b').innerHTML).to.be.equal('inner');
+        });
+
+        it('must patch the content in place on re-render', () => {
+            const model = new Model({ count : 0 });
+            const c = new Component({ model, renderChildren : () => `count: ${model.count}` });
+            c.render();
+
+            const rootEl = c.el;
+            expect(rootEl.tagName.toLowerCase()).to.be.equal('div');
+            expect(rootEl.textContent).to.be.equal('count: 0');
+
+            model.count = 1;
+            expect(c.el).to.be.equal(rootEl);
+            expect(rootEl.textContent).to.be.equal('count: 1');
+        });
+
+        it('must render a void tag self enclosed', () => {
+            const model = new Model({ value : 'a' });
+            const c = new Component({
+                model,
+                tag : 'input',
+                attributes() { return { type : 'text', value : this.model.value }; }
+            });
+            c.render();
+
+            expect(c.el.tagName.toLowerCase()).to.be.equal('input');
+            expect(c.el.childNodes.length).to.be.equal(0);
+            expect(c.el.value).to.be.equal('a');
+            // The element is patched like any other root element.
+            model.value = 'b';
+            expect(c.el.value).to.be.equal('b');
+        });
+
+        it('must throw when a void tag is given content', () => {
+            const c = new Component({ tag : 'img', renderChildren : () => 'content' });
+            expect(() => c.render()).to.throw(/void element/);
+        });
+    });
+
     describe('Template creation', () => {
         it('must be created with a self enclosed tag', () => {
             const c = Component.create`<input id="test-node" type="text" />`.mount({}, document.body);
@@ -379,6 +446,30 @@ describe('Component', () => {
             expect(rootEl.getAttribute('minlength')).to.be.equal('5');
             expect(rootEl.getAttribute('placeholder')).to.be.equal('my placeholder');
             expect(rootEl.getAttribute('aria-label')).to.be.equal('my-label');
+        });
+
+        it('must preserve the component attributes on re-render', () => {
+            const model = new Model({ count : 0, theme : 'light' });
+            const c = Component.create`<section id="test-attributes">${({ model }) => model.count}</section>`.mount({
+                model,
+                attributes() {
+                    return { class : `theme-${this.model.theme}`, role : 'main' };
+                }
+            }, document.body);
+
+            const rootEl = document.getElementById('test-attributes');
+            // Verify the attributes option is merged into the root element.
+            expect(rootEl.className).to.be.equal('theme-light');
+            expect(rootEl.getAttribute('role')).to.be.equal('main');
+            // A re-render triggered by anything else must leave them in place.
+            model.count = 1;
+            expect(c.el).to.be.equal(rootEl);
+            expect(rootEl.className).to.be.equal('theme-light');
+            expect(rootEl.getAttribute('role')).to.be.equal('main');
+            // They are resolved on every render, so a change is patched in.
+            model.theme = 'dark';
+            expect(rootEl.className).to.be.equal('theme-dark');
+            expect(rootEl.getAttribute('role')).to.be.equal('main');
         });
 
         it('must render true and false attributes', () => {

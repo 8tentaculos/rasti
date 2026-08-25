@@ -8,6 +8,7 @@ import isComponent from './core/isComponent.js';
 import validateListener from './utils/validateListener.js';
 import getResult from './utils/getResult.js';
 import parseHTML from './utils/parseHTML.js';
+import isVoidElement from './utils/isVoidElement.js';
 import findComment from './utils/findComment.js';
 import replaceNode from './utils/replaceNode.js';
 import createDevelopmentErrorMessage from './utils/createDevelopmentErrorMessage.js';
@@ -424,10 +425,28 @@ export default class Component extends View {
 
     /**
      * Return the component's root partial. Called on every render, so interpolated
-     * values are recomputed. The base implementation renders an empty `<div>`;
-     * override it (directly, via `extend`, or through `create`) to define the markup.
-     * It may also return a child component instance, in which case the component is
-     * rendered as a <b>container</b> around it.
+     * values are recomputed. Override it (directly, via `extend`, or through `create`)
+     * to define the markup. It may also return a child component instance, in which case
+     * the component is rendered as a <b>container</b> around it.
+     *
+     * The base implementation builds the element the way a view does: from `this.tag`
+     * (defaulting to `div`) and the component's `attributes`, rendering the content the
+     * parent slotted into it (`props.renderChildren`). A void tag renders self-closed
+     * and takes no content.
+     *
+     * ```javascript
+     * // <section class="panel">Content</section>
+     * Component.mount({
+     *     tag : 'section',
+     *     attributes : { class : 'panel' },
+     *     renderChildren : () => 'Content'
+     * }, document.body);
+     * ```
+     *
+     * The root element is created on the first render and keeps its tag from then on:
+     * later renders patch that element in place, so a `tag` that changes afterwards is
+     * not applied — and one that changes between a void and a non-void tag throws, since
+     * that does change the root template.
      *
      * Two restrictions apply to the root partial, and only to it — the partials rendered
      * inside an interpolation are free of both:
@@ -439,7 +458,22 @@ export default class Component extends View {
      * @return {Partial|Component} The root partial, or a child component to contain.
      */
     template() {
-        return this.partial`<div></div>`;
+        const tag = getResult(this.tag, this) || 'div';
+
+        if (isVoidElement(tag)) {
+            if (__DEV__ && this.props.renderChildren) {
+                throw new Error(createDevelopmentErrorMessage(
+                    `Invalid template in ${this.constructor.name}#${this.uid}\n` +
+                    `\`${tag}\` is a void element, so it cannot render the content passed to it.`
+                ));
+            }
+            return this.partial`<${tag} />`;
+        }
+
+        // The tag goes in as an expression rather than as template text, so each branch
+        // compiles to a single skeleton shared by every component that renders through
+        // the default template, whatever its tag.
+        return this.partial`<${tag}>${({ props }) => props.renderChildren && props.renderChildren()}</${tag}>`;
     }
 
     /**

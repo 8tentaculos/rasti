@@ -179,12 +179,7 @@ class Partial {
     renderElement(descriptor) {
         const slot = this.slots.elements[descriptor.slotIndex];
         if (slot.id == null) slot.id = this.owner.nextElementId();
-        const attributes = this.buildAttributes(descriptor.attributes);
-        // Root treatment: the component's root element (emitted first, id ending
-        // in `-1`) merges the owner's `attributes`. Only the root partial carries
-        // `rootAttributes`; nested partials never do.
-        if (this.rootAttributes && /-1$/.test(slot.id)) Object.assign(attributes, this.rootAttributes());
-        attributes[Constants.ATTRIBUTE_ELEMENT] = slot.id;
+        const attributes = this.buildElementAttributes(descriptor, slot);
         slot.previousAttributes = attributes;
         return getAttributesHTML(attributes);
     }
@@ -324,6 +319,27 @@ class Partial {
         const attributes = {};
         descriptors.forEach(attribute => attribute.applyTo(attributes, this.expressions, this.owner));
         return expandEvents(attributes, this.owner);
+    }
+
+    /**
+     * Build the complete attributes object an element's slot is rendered and diffed
+     * against: its descriptors resolved against the current expressions, the root
+     * treatment, and the emission id.
+     *
+     * Root treatment: the component's root element (emitted first, id ending in `-1`)
+     * merges the owner's `attributes`. Only the root partial carries `rootAttributes`;
+     * nested partials never do. Both the render and the update path go through here, so
+     * the merged attributes are on both sides of the diff and survive a re-render.
+     * @param {ElementDescriptor} descriptor The element descriptor.
+     * @param {object} slot The element's slot, holding its emission id.
+     * @return {object} Attributes object, including the emission id.
+     * @private
+     */
+    buildElementAttributes(descriptor, slot) {
+        const attributes = this.buildAttributes(descriptor.attributes);
+        if (this.rootAttributes && /-1$/.test(slot.id)) Object.assign(attributes, this.rootAttributes());
+        attributes[Constants.ATTRIBUTE_ELEMENT] = slot.id;
+        return attributes;
     }
 
     /**
@@ -651,8 +667,7 @@ class Partial {
      */
     updateElement(descriptor) {
         const slot = this.slots.elements[descriptor.slotIndex];
-        const attributes = this.buildAttributes(descriptor.attributes);
-        attributes[Constants.ATTRIBUTE_ELEMENT] = slot.id;
+        const attributes = this.buildElementAttributes(descriptor, slot);
         const { remove, add } = getAttributesDiff(attributes, slot.previousAttributes);
         slot.previousAttributes = attributes;
         // Remove attributes first so later `setAttribute` overrides if needed.
