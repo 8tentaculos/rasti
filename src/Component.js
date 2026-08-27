@@ -508,7 +508,7 @@ export default class Component extends View {
         // Normally there won't be any data event listeners, but if there are, clear them.
         this.eventsManager.reset();
         // Delegate the render to the root partial, hosting its children on this component.
-        return this.rootPartial.render(this.partialHandlers);
+        return this.rootPartial.render();
     }
 
     /**
@@ -610,7 +610,7 @@ export default class Component extends View {
         }
         // Patch the DOM in place: reconcile interpolations (children / nested partials) and
         // diff element attributes. Expressions are re-evaluated in the component's context.
-        this.rootPartial.update(carrier.expressions, this.partialHandlers);
+        this.rootPartial.update(carrier.expressions);
         // A container may now point to a different child element.
         if (this.isContainer()) this.el = this.rootPartial.rootElement();
         // Destroy unused children: those not re-added to `children` during the reconcile.

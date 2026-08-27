@@ -58,12 +58,21 @@ import parseTemplate from './parseTemplate.js';
  *
  * @param {Array<any>} expressions The current render expressions.
  * @param {PartialHandlers} owner The handlers of the component this template belongs to.
+ * @property {PartialHandlers} host The handlers of the component this partial renders
+ *     under, whose `children` its child components join. The same as the owner except
+ *     for slotted content, which a parent writes but a host renders: the slot that
+ *     renders a nested partial hands it its own host, so a whole slotted subtree lands
+ *     in the component that renders it.
  * @private
  */
 class Partial {
     constructor(expressions, owner) {
         this.expressions = expressions;
         this.owner = owner;
+        // The component currently rendering this partial, whose `children` its child
+        // components join. Same as the owner except for slotted content, where the
+        // slot that renders it sets the host it renders under.
+        this.host = owner;
     }
 
     /**
@@ -100,31 +109,25 @@ class Partial {
      * This is the engine's internal path, the one that carries the render context.
      * The context never crosses a component: a child component is emitted by
      * coercing it to a string, and renders with its own handlers (see `toString`).
-     * @param {PartialHandlers} [host] Handlers of the component currently rendering (the
-     *     one whose `children` the rendered child components join). Defaults to this
-     *     partial's own owner; propagated unchanged into nested partials, so slotted
-     *     content adds its children to the host that renders it.
      * @param {object} [pass] Reconcile pass threaded through nested partials during
      *     an update, so child components rendered anywhere in the subtree are
      *     matched against the owning slot's previous occupants. Absent on a plain
      *     first render.
      * @return {string} The rendered HTML.
      */
-    render(host = this.owner, pass) {
+    render(pass) {
         // The slot list is created on the first render: a partial that is synthesized
         // but never rendered (a discarded update candidate) allocates nothing. From
         // then on it is the partial's live view of the skeleton — one slot per part,
         // in document order — so rendering, hydration and updates all walk it and
         // never the skeleton.
         if (!this.slots) this.slots = this.constructor.parts.map(part => new part.constructor.Slot(this, part));
-        return this.slots.map(slot => slot.render(host, pass)).join('');
+        return this.slots.map(slot => slot.render(pass)).join('');
     }
 
     /**
-     * Render the partial with no context, for wherever a string is expected: an
+     * Render the partial with no reconcile pass, for wherever a string is expected: an
      * interpolated `${partial}`, an array joined into HTML, a fragment parsed from it.
-     * Rendering it this way makes the partial its own host, so the child components it
-     * mounts join its owner.
      * @return {string} The rendered HTML.
      */
     toString() {
@@ -213,12 +216,10 @@ class Partial {
      * (child recycle / nested-partial update / content replace), an element diffs its
      * attributes.
      * @param {Array<any>} expressions The new render expressions.
-     * @param {PartialHandlers} [host] Handlers of the component rendering (see
-     *     `render`). Defaults to this partial's own owner.
      */
-    update(expressions, host = this.owner) {
+    update(expressions) {
         this.expressions = expressions;
-        this.slots.forEach(slot => slot.update(host));
+        this.slots.forEach(slot => slot.update());
     }
 
     /**

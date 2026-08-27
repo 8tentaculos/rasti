@@ -63,16 +63,15 @@ class InterpolationSlot {
      * Render the interpolation: its value wrapped between comment markers, except in a
      * container, which is marker-less and anchored to its element. Records the value as
      * the slot's occupant for the next render's reconciliation.
-     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#render`).
      * @param {object} [pass] Reconcile pass (see `Partial#render`).
      * @return {string} The rendered HTML.
      */
-    render(host, pass) {
+    render(pass) {
         const { partial } = this;
         if (this.id == null) this.id = partial.owner.nextMarkerId();
         const value = this.evaluate();
         this.previous = value;
-        const rendered = this.renderValue(value, host, pass);
+        const rendered = this.renderValue(value, pass);
         if (partial.isContainer()) return rendered;
         return `<!--${Constants.MARKER_START(this.id)}-->${rendered}<!--${Constants.MARKER_END(this.id)}-->`;
     }
@@ -83,17 +82,20 @@ class InterpolationSlot {
      * (matched against the pass's previous occupants during an update); any other
      * value is sanitized.
      * @param {any} value The value to render.
-     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#render`).
      * @param {object} [pass] Reconcile pass (see `Partial#render`).
      * @return {string} The rendered HTML.
      * @private
      */
-    renderValue(value, host, pass) {
+    renderValue(value, pass) {
         if (value == null || value === false || value === true) return '';
         if (value instanceof SafeHTML) return `${value}`;
-        if (this.partial.isPartial(value)) return value.render(host, pass);
-        if (Array.isArray(value)) return value.map(item => this.renderValue(item, host, pass)).join('');
-        return this.renderChild(value, host, pass);
+        if (this.partial.isPartial(value)) {
+            // A nested partial renders under the same host as the partial holding it.
+            value.host = this.partial.host;
+            return value.render(pass);
+        }
+        if (Array.isArray(value)) return value.map(item => this.renderValue(item, pass)).join('');
+        return this.renderChild(value, pass);
     }
 
     /**
@@ -103,13 +105,12 @@ class InterpolationSlot {
      * and its real nodes are moved into place later), otherwise it is a new child.
      * A primitive is sanitized.
      * @param {any} value The leaf value.
-     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#render`).
      * @param {object} [pass] Reconcile pass (see `Partial#render`).
      * @return {string} The rendered HTML.
      * @private
      */
-    renderChild(value, host, pass) {
-        const { owner } = this.partial;
+    renderChild(value, pass) {
+        const { owner, host } = this.partial;
         if (!owner.isChild(value)) return owner.sanitize(value);
         if (pass) {
             const found = this.claimRecyclable(value, pass);
@@ -186,9 +187,8 @@ class InterpolationSlot {
 
     /**
      * Reconcile the slot against its previous occupant.
-     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#render`).
      */
-    update(host) {
+    update() {
         const { partial } = this;
         const value = this.evaluate();
         const prev = this.previous;
@@ -197,18 +197,18 @@ class InterpolationSlot {
         // markers of its own, so it is re-rendered by this slot instead (below), which
         // still recycles the single component it may wrap.
         if (partial.isPartial(value) && partial.isPartial(prev) && value.constructor === prev.constructor && !value.isContainer()) {
-            prev.update(value.expressions, host);
+            prev.update(value.expressions);
             return;
         }
         // Retained single child: same key/type → recycle in place, without moving the DOM.
         if (partial.owner.isChild(value) && partial.owner.isChild(prev) && canRecycle(prev, value)) {
-            this.recycleInPlace(prev, value, host);
+            this.recycleInPlace(prev, value);
             return;
         }
         // Anything else: regenerate the slot's content and patch the DOM. A container
         // has no markers, so its content is anchored to its current element instead.
-        if (partial.isContainer()) this.replaceContainer(value, host);
-        else this.replaceSlot(value, host);
+        if (partial.isContainer()) this.replaceContainer(value);
+        else this.replaceSlot(value);
     }
 
     /**
@@ -217,10 +217,10 @@ class InterpolationSlot {
      * synthesized candidate.
      * @param {object} prev The retained child (kept).
      * @param {object} next The candidate child (discarded).
-     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#render`).
      * @private
      */
-    recycleInPlace(prev, next, host) {
+    recycleInPlace(prev, next) {
+        const { host } = this.partial;
         host.addChild(prev);
         host.moveChild(prev, null);
         host.updateChild(prev, host.childProps(next));
@@ -233,17 +233,16 @@ class InterpolationSlot {
      * then move recycled children into place, hydrate new children and nested
      * partials, and reconcile props.
      * @param {any} value The new value.
-     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#render`).
      * @private
      */
-    replaceSlot(value, host) {
+    replaceSlot(value) {
         const pass = this.makePass(value);
-        const fragment = parseHTML(this.renderValue(value, host, pass));
+        const fragment = parseHTML(this.renderValue(value, pass));
         const parent = this.ref[1].parentNode;
 
-        this.patchMarkers(fragment, () => this.placeChildren(pass, value, parent, host));
+        this.patchMarkers(fragment, () => this.placeChildren(pass, value, parent));
 
-        this.finishPass(pass, host);
+        this.finishPass(pass);
         this.previous = this.resolvePrevious(value, pass);
     }
 
@@ -252,25 +251,24 @@ class InterpolationSlot {
      * A container has no markers, so its content is anchored to its element (which
      * can be moved around the DOM by hand); the new content replaces it in place.
      * @param {any} value The new value.
-     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#render`).
      * @private
      */
-    replaceContainer(value, host) {
+    replaceContainer(value) {
         const element = this.partial.rootElement();
         const parent = element.parentNode;
         const pass = this.makePass(value);
-        const fragment = parseHTML(this.renderValue(value, host, pass));
+        const fragment = parseHTML(this.renderValue(value, pass));
 
         const divider = document.createComment('');
         parent.insertBefore(divider, element.nextSibling);
         parent.insertBefore(fragment, divider.nextSibling);
 
-        this.placeChildren(pass, value, parent, host);
+        this.placeChildren(pass, value, parent);
 
         if (element.nextSibling === divider) parent.removeChild(element);
         parent.removeChild(divider);
 
-        this.finishPass(pass, host);
+        this.finishPass(pass);
         this.previous = this.resolvePrevious(value, pass);
     }
 
@@ -329,10 +327,10 @@ class InterpolationSlot {
      * @param {object} pass The reconcile pass.
      * @param {any} value The rendered value.
      * @param {Node} parent The node the content was inserted into.
-     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#render`).
      * @private
      */
-    placeChildren(pass, value, parent, host) {
+    placeChildren(pass, value, parent) {
+        const { host } = this.partial;
         pass.recycled.forEach(([found]) => host.moveChild(found, parent));
         pass.next.forEach(child => host.hydrateChild(child, parent));
         // Structural pass: set the nested partials' refs, but leave the children to
@@ -344,10 +342,10 @@ class InterpolationSlot {
      * Reconcile props of recycled children and discard the candidates they
      * replaced.
      * @param {object} pass The reconcile pass.
-     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#render`).
      * @private
      */
-    finishPass(pass, host) {
+    finishPass(pass) {
+        const { host } = this.partial;
         pass.recycled.forEach(([found, discarded]) => {
             host.updateChild(found, host.childProps(discarded));
             host.destroyChild(discarded);
