@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import Partial from '../src/core/Partial.js';
 import ElementSlot from '../src/core/ElementSlot.js';
 import InterpolationSlot from '../src/core/InterpolationSlot.js';
+import LiteralSlot from '../src/core/LiteralSlot.js';
 
 // Capture a real tagged-template `strings` array plus its expressions.
 const tag = (strings, ...expressions) => ({ strings, expressions });
@@ -64,22 +65,21 @@ describe('Partial', () => {
             );
         });
 
-        it('must create slot state lazily on first render, parallel to the parts', () => {
+        it('must create slot state lazily on first render, one slot per part', () => {
             const partial = makePartial(tag`<div class="${'btn'}">${'hi'}</div>`);
 
             expect(partial.slots).to.be.undefined;
 
             partial.toString();
 
-            // `<div `, element, `>`, interpolation, `</div>`: only the two dynamic
-            // parts get a slot, of the class their descriptor names; the literals
-            // hold `null`.
+            // `<div `, element, `>`, interpolation, `</div>`: every part gets a slot of
+            // the class it names, paired by position.
+            const { parts } = partial.constructor;
             expect(partial.slots).to.have.lengthOf(5);
-            expect(partial.slots[0]).to.be.null;
-            expect(partial.slots[1]).to.be.instanceOf(ElementSlot);
-            expect(partial.slots[2]).to.be.null;
-            expect(partial.slots[3]).to.be.instanceOf(InterpolationSlot);
-            expect(partial.slots[4]).to.be.null;
+            expect(partial.slots.map(slot => slot.constructor)).to.deep.equal([
+                LiteralSlot, ElementSlot, LiteralSlot, InterpolationSlot, LiteralSlot
+            ]);
+            partial.slots.forEach((slot, i) => expect(slot.descriptor).to.equal(parts[i]));
         });
 
         it('must render a nested partial recursively, sharing the owner emission counters', () => {

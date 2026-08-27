@@ -508,7 +508,7 @@ export default class Component extends View {
         // Normally there won't be any data event listeners, but if there are, clear them.
         this.eventsManager.reset();
         // Delegate the render to the root partial, hosting its children on this component.
-        return this.rootPartial.toString(this.partialHandlers);
+        return this.rootPartial.render(this.partialHandlers);
     }
 
     /**

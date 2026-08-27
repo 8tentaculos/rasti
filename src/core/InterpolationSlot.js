@@ -1,13 +1,36 @@
 import Constants from './Constants.js';
+import SafeHTML from './SafeHTML.js';
 import isComponent from './isComponent.js';
 import findComment from '../utils/findComment.js';
+import parseHTML from '../utils/parseHTML.js';
+
+/**
+ * Tell whether a previous child can be recycled for a candidate: keyed children
+ * match by key, unkeyed children by constructor (type).
+ * @param {object} prev The previous child.
+ * @param {object} candidate The candidate child.
+ * @param {boolean} [allowUnkeyed=true] Whether unkeyed children may match. False for
+ *     the children of a user array, where position carries no identity.
+ * @return {boolean} True if `prev` can be recycled.
+ * @private
+ */
+const canRecycle = (prev, candidate, allowUnkeyed = true) => {
+    if (candidate.key != null || prev.key != null) return prev.key === candidate.key;
+    return allowUnkeyed && prev.constructor === candidate.constructor;
+};
 
 /**
  * The live state of one interpolation, paired by position with the
  * `InterpolationDescriptor` it renders from. It holds the emission id assigned when
  * the interpolation is written out, the comment markers hydration resolves that id
- * to, and the value currently occupying the slot, which the next update reconciles
- * against.
+ * to, and the value currently occupying the slot.
+ *
+ * It also carries the reconciliation of that region, which is the engine's core
+ * algorithm: an interpolation can resolve to anything — a primitive, a nested
+ * partial, a child component, an array of them — so an update either updates a
+ * retained partial in place, recycles a retained child, or regenerates the content
+ * and patches the DOM between the markers. Recycling is slot-local: a candidate only
+ * matches against the children this slot held before.
  *
  * The slot reads the current expressions and the owner's handlers off its partial, so
  * only what varies per call travels as an argument.
@@ -25,21 +48,101 @@ class InterpolationSlot {
     }
 
     /**
+     * Resolve the slot's value by evaluating its expression in the owner's context.
+     * `ComponentSlot` overrides this to synthesize a child component instead, so the
+     * rest of the algorithm never has to tell the two apart.
+     * @return {any} The resolved value.
+     * @private
+     */
+    evaluate() {
+        const { partial, descriptor } = this;
+        return partial.owner.evaluate(partial.expressions[descriptor.expressionIndex], 'interpolation');
+    }
+
+    /**
      * Render the interpolation: its value wrapped between comment markers, except in a
      * container, which is marker-less and anchored to its element. Records the value as
      * the slot's occupant for the next render's reconciliation.
-     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#toString`).
-     * @param {object} [pass] Reconcile pass (see `Partial#toString`).
+     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#render`).
+     * @param {object} [pass] Reconcile pass (see `Partial#render`).
      * @return {string} The rendered HTML.
      */
     render(host, pass) {
         const { partial } = this;
         if (this.id == null) this.id = partial.owner.nextMarkerId();
-        const value = partial.evaluate(this.descriptor);
+        const value = this.evaluate();
         this.previous = value;
-        const rendered = partial.renderValue(value, host, pass);
+        const rendered = this.renderValue(value, host, pass);
         if (partial.isContainer()) return rendered;
         return `<!--${Constants.MARKER_START(this.id)}-->${rendered}<!--${Constants.MARKER_END(this.id)}-->`;
+    }
+
+    /**
+     * Render a dynamic value to a string. Handles the engine's own types
+     * (`SafeHTML`, nested `Partial`, arrays); a child component is added to the host
+     * (matched against the pass's previous occupants during an update); any other
+     * value is sanitized.
+     * @param {any} value The value to render.
+     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#render`).
+     * @param {object} [pass] Reconcile pass (see `Partial#render`).
+     * @return {string} The rendered HTML.
+     * @private
+     */
+    renderValue(value, host, pass) {
+        if (value == null || value === false || value === true) return '';
+        if (value instanceof SafeHTML) return `${value}`;
+        if (this.partial.isPartial(value)) return value.render(host, pass);
+        if (Array.isArray(value)) return value.map(item => this.renderValue(item, host, pass)).join('');
+        return this.renderChild(value, host, pass);
+    }
+
+    /**
+     * Render a leaf value that is either a child component or a primitive. During
+     * an update (a `pass` is present) a child is matched against the slot's
+     * previous occupants: a match is recycled (its placeholder marker is emitted
+     * and its real nodes are moved into place later), otherwise it is a new child.
+     * A primitive is sanitized.
+     * @param {any} value The leaf value.
+     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#render`).
+     * @param {object} [pass] Reconcile pass (see `Partial#render`).
+     * @return {string} The rendered HTML.
+     * @private
+     */
+    renderChild(value, host, pass) {
+        const { owner } = this.partial;
+        if (!owner.isChild(value)) return owner.sanitize(value);
+        if (pass) {
+            const found = this.claimRecyclable(value, pass);
+            if (found) {
+                host.addChild(found);
+                pass.recycled.push([found, value]);
+                return `<!--${host.recycleMarker(found)}-->`;
+            }
+            pass.next.push(value);
+        }
+        return `${host.addChild(value)}`;
+    }
+
+    /**
+     * Claim a recyclable previous occupant for a candidate child: the first one the
+     * pass has not handed out yet (see `canRecycle`), marked as used so no other
+     * candidate takes it. Claiming is slot-local: it only considers this slot's own
+     * previous occupants.
+     * @param {object} candidate The candidate child component.
+     * @param {object} pass Reconcile pass holding `previous`, `used` and `allowUnkeyed`.
+     * @return {object|null} The claimed previous child, or `null`.
+     * @private
+     */
+    claimRecyclable(candidate, pass) {
+        for (let i = 0; i < pass.previous.length; i++) {
+            const prev = pass.previous[i];
+            if (pass.used.has(prev)) continue;
+            if (canRecycle(prev, candidate, pass.allowUnkeyed)) {
+                pass.used.add(prev);
+                return prev;
+            }
+        }
+        return null;
     }
 
     /**
@@ -55,11 +158,254 @@ class InterpolationSlot {
     }
 
     /**
+     * Recurse hydration into the slot's occupant (see `hydrateValue`).
+     * @param {Node} parent The node the elements were rendered into.
+     * @param {Node} root The owning component's root, scoping marker lookup.
+     * @param {boolean} [fresh=true] Hydrate child components too (see `Partial#hydrate`).
+     */
+    hydrateOccupant(parent, root, fresh = true) {
+        this.hydrateValue(this.previous, parent, root, fresh);
+    }
+
+    /**
+     * Recurse hydration into a value: a nested partial hydrates its own refs and,
+     * on a fresh subtree, a child component is hydrated in place through the owner's
+     * handlers; arrays recurse. Primitives carry no refs and are skipped.
+     * @param {any} value The value to hydrate.
+     * @param {Node} parent The node the elements were rendered into.
+     * @param {Node} root The owning component's root, scoping marker lookup.
+     * @param {boolean} [fresh=true] Hydrate child components too (see `Partial#hydrate`).
+     * @private
+     */
+    hydrateValue(value, parent, root, fresh = true) {
+        const { owner } = this.partial;
+        if (this.partial.isPartial(value)) value.hydrate(parent, root, fresh);
+        else if (Array.isArray(value)) value.forEach(item => this.hydrateValue(item, parent, root, fresh));
+        else if (fresh && owner.isChild(value)) owner.hydrateChild(value, parent);
+    }
+
+    /**
      * Reconcile the slot against its previous occupant.
-     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#toString`).
+     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#render`).
      */
     update(host) {
-        this.partial.updateInterpolation(this, host);
+        const { partial } = this;
+        const value = this.evaluate();
+        const prev = this.previous;
+        // Retained nested partial with its own structure (and markers): same call site
+        // → update in place, recursively. A transparent (container) partial has no
+        // markers of its own, so it is re-rendered by this slot instead (below), which
+        // still recycles the single component it may wrap.
+        if (partial.isPartial(value) && partial.isPartial(prev) && value.constructor === prev.constructor && !value.isContainer()) {
+            prev.update(value.expressions, host);
+            return;
+        }
+        // Retained single child: same key/type → recycle in place, without moving the DOM.
+        if (partial.owner.isChild(value) && partial.owner.isChild(prev) && canRecycle(prev, value)) {
+            this.recycleInPlace(prev, value, host);
+            return;
+        }
+        // Anything else: regenerate the slot's content and patch the DOM. A container
+        // has no markers, so its content is anchored to its current element instead.
+        if (partial.isContainer()) this.replaceContainer(value, host);
+        else this.replaceSlot(value, host);
+    }
+
+    /**
+     * Recycle a retained single child without moving its DOM: re-register it,
+     * run its recycle hook, queue its new props, and discard the freshly
+     * synthesized candidate.
+     * @param {object} prev The retained child (kept).
+     * @param {object} next The candidate child (discarded).
+     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#render`).
+     * @private
+     */
+    recycleInPlace(prev, next, host) {
+        host.addChild(prev);
+        host.moveChild(prev, null);
+        host.updateChild(prev, host.childProps(next));
+        host.destroyChild(next);
+    }
+
+    /**
+     * Regenerate the slot's content and patch it between its markers: render the new
+     * value (recycling matched children, mounting new ones), insert the fragment,
+     * then move recycled children into place, hydrate new children and nested
+     * partials, and reconcile props.
+     * @param {any} value The new value.
+     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#render`).
+     * @private
+     */
+    replaceSlot(value, host) {
+        const pass = this.makePass(value);
+        const fragment = parseHTML(this.renderValue(value, host, pass));
+        const parent = this.ref[1].parentNode;
+
+        this.patchMarkers(fragment, () => this.placeChildren(pass, value, parent, host));
+
+        this.finishPass(pass, host);
+        this.previous = this.resolvePrevious(value, pass);
+    }
+
+    /**
+     * Regenerate a container's single slot and swap it for the current element.
+     * A container has no markers, so its content is anchored to its element (which
+     * can be moved around the DOM by hand); the new content replaces it in place.
+     * @param {any} value The new value.
+     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#render`).
+     * @private
+     */
+    replaceContainer(value, host) {
+        const element = this.partial.rootElement();
+        const parent = element.parentNode;
+        const pass = this.makePass(value);
+        const fragment = parseHTML(this.renderValue(value, host, pass));
+
+        const divider = document.createComment('');
+        parent.insertBefore(divider, element.nextSibling);
+        parent.insertBefore(fragment, divider.nextSibling);
+
+        this.placeChildren(pass, value, parent, host);
+
+        if (element.nextSibling === divider) parent.removeChild(element);
+        parent.removeChild(divider);
+
+        this.finishPass(pass, host);
+        this.previous = this.resolvePrevious(value, pass);
+    }
+
+    /**
+     * Insert a fresh fragment between the slot's markers, run the handler to place
+     * child components, then remove the old content.
+     * @param {DocumentFragment} fragment The new content.
+     * @param {Function} handleChildren Places recycled / new children in the fragment.
+     * @private
+     */
+    patchMarkers(fragment, handleChildren) {
+        const [start, end] = this.ref;
+        let divider;
+        if (start.nextSibling === end) {
+            // The slot is empty: insert directly before the end marker.
+            end.parentNode.insertBefore(fragment, end);
+        } else {
+            // Insert a divider so the old content can be removed after the children are placed.
+            divider = document.createComment('');
+            end.parentNode.insertBefore(divider, end);
+            end.parentNode.insertBefore(fragment, end);
+        }
+        handleChildren();
+        if (divider) {
+            if (start.nextSibling === divider) {
+                divider.parentNode.removeChild(divider);
+            } else {
+                const range = document.createRange();
+                range.setStartAfter(start);
+                range.setEndAfter(divider);
+                range.deleteContents();
+            }
+        }
+    }
+
+    /**
+     * Build a reconcile pass seeded with the slot's previous children.
+     * @param {any} value The new value (arrays disable unkeyed recycling).
+     * @return {object} The reconcile pass.
+     * @private
+     */
+    makePass(value) {
+        return {
+            previous : this.collectChildren(this.previous),
+            used : new Set(),
+            allowUnkeyed : !Array.isArray(value),
+            recycled : [],
+            next : []
+        };
+    }
+
+    /**
+     * Place the pass's children in the freshly inserted content: move recycled
+     * ones onto their placeholder markers, hydrate new ones, and hydrate any nested
+     * partials.
+     * @param {object} pass The reconcile pass.
+     * @param {any} value The rendered value.
+     * @param {Node} parent The node the content was inserted into.
+     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#render`).
+     * @private
+     */
+    placeChildren(pass, value, parent, host) {
+        pass.recycled.forEach(([found]) => host.moveChild(found, parent));
+        pass.next.forEach(child => host.hydrateChild(child, parent));
+        // Structural pass: set the nested partials' refs, but leave the children to
+        // the reconcile above (new ones hydrated, recycled ones moved).
+        this.hydrateValue(value, parent, parent, false);
+    }
+
+    /**
+     * Reconcile props of recycled children and discard the candidates they
+     * replaced.
+     * @param {object} pass The reconcile pass.
+     * @param {PartialHandlers} host Handlers of the component rendering (see `Partial#render`).
+     * @private
+     */
+    finishPass(pass, host) {
+        pass.recycled.forEach(([found, discarded]) => {
+            host.updateChild(found, host.childProps(discarded));
+            host.destroyChild(discarded);
+        });
+    }
+
+    /**
+     * Collect the child components a value mounted, descending through transparent
+     * (container) partials and arrays. Used to build the slot-local pool of
+     * recyclable children.
+     * @param {any} value The value.
+     * @return {Array<object>} The child components.
+     * @private
+     */
+    collectChildren(value) {
+        if (Array.isArray(value)) return value.reduce((out, item) => out.concat(this.collectChildren(item)), []);
+        if (this.partial.isPartial(value)) {
+            if (value.isContainer()) return this.collectChildren(value.slots[0].previous);
+            return [];
+        }
+        if (this.partial.owner.isChild(value)) return [value];
+        return [];
+    }
+
+    /**
+     * Resolve the live occupants the slot must remember for the next render. Each
+     * recycled candidate is replaced by the retained instance it matched (the
+     * candidates are discarded in `finishPass`), and a transparent partial is
+     * unwrapped to the child it holds. Without this the slot would remember the
+     * freshly synthesized candidates, and the next render would match its
+     * candidates against those dead instances.
+     * @param {any} value The rendered value (holding the candidates).
+     * @param {object} pass The reconcile pass (holds the recycled pairs).
+     * @return {any} The value with candidates replaced by retained instances.
+     * @private
+     */
+    resolvePrevious(value, pass) {
+        const retained = new Map(pass.recycled.map(([found, candidate]) => [candidate, found]));
+        return this.resolveOccupant(value, retained);
+    }
+
+    /**
+     * Replace recycled candidates with their retained instances within a value,
+     * descending arrays and unwrapping transparent partials to the child they wrap
+     * (the only occupant they contribute to the pool).
+     * @param {any} value The value.
+     * @param {Map} retained Map from candidate child to retained instance.
+     * @return {any} The resolved value.
+     * @private
+     */
+    resolveOccupant(value, retained) {
+        if (Array.isArray(value)) return value.map(item => this.resolveOccupant(item, retained));
+        if (this.partial.isPartial(value)) {
+            if (value.isContainer()) return this.resolveOccupant(value.slots[0].previous, retained);
+            return value;
+        }
+        if (this.partial.owner.isChild(value)) return retained.get(value) || value;
+        return value;
     }
 }
 
