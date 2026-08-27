@@ -1,5 +1,7 @@
 import { expect } from 'chai';
 import Partial from '../src/core/Partial.js';
+import ElementSlot from '../src/core/ElementSlot.js';
+import InterpolationSlot from '../src/core/InterpolationSlot.js';
 
 // Capture a real tagged-template `strings` array plus its expressions.
 const tag = (strings, ...expressions) => ({ strings, expressions });
@@ -70,9 +72,14 @@ describe('Partial', () => {
             partial.toString();
 
             // `<div `, element, `>`, interpolation, `</div>`: only the two dynamic
-            // parts get a slot, the literals hold `null`.
+            // parts get a slot, of the class their descriptor names; the literals
+            // hold `null`.
             expect(partial.slots).to.have.lengthOf(5);
-            expect(partial.slots.map(slot => slot != null)).to.deep.equal([false, true, false, true, false]);
+            expect(partial.slots[0]).to.be.null;
+            expect(partial.slots[1]).to.be.instanceOf(ElementSlot);
+            expect(partial.slots[2]).to.be.null;
+            expect(partial.slots[3]).to.be.instanceOf(InterpolationSlot);
+            expect(partial.slots[4]).to.be.null;
         });
 
         it('must render a nested partial recursively, sharing the owner emission counters', () => {

@@ -1,47 +1,11 @@
 import SafeHTML from './SafeHTML.js';
-import Constants from './Constants.js';
-import ElementDescriptor from './ElementDescriptor.js';
 import InterpolationDescriptor from './InterpolationDescriptor.js';
 import ComponentDescriptor from './ComponentDescriptor.js';
 import ExpressionIndex from './ExpressionIndex.js';
+import ElementSlot from './ElementSlot.js';
+import InterpolationSlot from './InterpolationSlot.js';
 import parseTemplate from './parseTemplate.js';
-import isComponent from './isComponent.js';
-import getAttributesHTML from '../utils/getAttributesHTML.js';
-import getAttributesDiff from '../utils/getAttributesDiff.js';
 import parseHTML from '../utils/parseHTML.js';
-import findComment from '../utils/findComment.js';
-
-const SYNC_PROPS = ['value', 'checked', 'selected'];
-
-/**
- * Expand events. Delegates listener registration and the event data-attribute to
- * the owner through `registerListener`.
- * @param {object} attributes Attributes object.
- * @param {PartialHandlers} owner The partial's owner.
- * @return {object} Attributes object.
- * @private
- */
-const expandEvents = (attributes, owner) => {
-    const out = {};
-    Object.keys(attributes).forEach(key => {
-        // Check if key is an event listener.
-        const match = key.match(/on(([A-Z]{1}[a-z]+)+)/);
-
-        if (match && match[1]) {
-            const type = match[1].toLowerCase();
-            const listener = attributes[key];
-            if (listener) {
-                const { attribute, index } = owner.registerListener(listener, type);
-                // Add event listener index under its data-attribute.
-                out[attribute] = index;
-            }
-        } else {
-            // Add attribute.
-            out[key] = attributes[key];
-        }
-    });
-    return out;
-};
 
 /**
  * Tell whether a previous child can be recycled for a candidate: keyed children
@@ -57,16 +21,6 @@ const canRecycle = (prev, candidate, allowUnkeyed = true) => {
     if (candidate.key != null || prev.key != null) return prev.key === candidate.key;
     return allowUnkeyed && prev.constructor === candidate.constructor;
 };
-
-/**
- * Tell whether a skeleton part carries live per-render state (an element's id, refs
- * and previous attributes; an interpolation's marker id and occupant). Literals and
- * bare expressions are rendered from the skeleton alone and get no slot.
- * @param {any} part The skeleton part.
- * @return {boolean} True if the part needs a slot.
- * @private
- */
-const hasSlot = part => part instanceof ElementDescriptor || part instanceof InterpolationDescriptor;
 
 /**
  * The handlers through which a partial reaches the component world. The engine never
@@ -113,7 +67,9 @@ const hasSlot = part => part instanceof ElementDescriptor || part instanceof Int
  * that changes as the partial renders (ids, refs, previous attributes, slot
  * occupants) lives on the instance in `this.slots`, a list parallel to `parts` —
  * created lazily on the first `toString`, `null` at the positions that hold no live
- * state — so a descriptor and its slot are paired by position alone.
+ * state — so a descriptor and its slot are paired by position alone. Each slot is an
+ * instance of the class its descriptor names in `Slot`, and carries the rendering,
+ * hydration and update of the region it owns.
  *
  * @param {Array<any>} expressions The current render expressions.
  * @param {PartialHandlers} owner The handlers of the component this template belongs to.
@@ -157,42 +113,39 @@ class Partial {
         // but never rendered (a discarded update candidate) allocates nothing. It stays
         // parallel to `parts` rather than compact, so a second `toString` over the same
         // partial finds each slot at its part's own index.
-        if (!this.slots) this.slots = parts.map(part => hasSlot(part) ? {} : null);
+        if (!this.slots) this.slots = parts.map(part => part.constructor.Slot ? new part.constructor.Slot(this, part) : null);
         return parts.map((part, i) => this.renderPart(part, this.slots[i], host, pass)).join('');
     }
 
     /**
-     * Run a callback over the live slots of one descriptor type, in document order.
-     * `ComponentDescriptor` extends `InterpolationDescriptor`, so selecting the latter
-     * takes component tags along.
-     * @param {Function} Descriptor The descriptor class selecting the slots to visit.
-     * @param {Function} callback Called as `(slot, descriptor)`.
+     * Run a callback over the slots of one kind, in document order. `ComponentSlot`
+     * extends `InterpolationSlot`, so selecting the latter takes component tags along.
+     * @param {Function} Slot The slot class selecting the slots to visit.
+     * @param {Function} callback Called with each matching slot.
      * @private
      */
-    eachSlot(Descriptor, callback) {
-        this.constructor.parts.forEach((part, i) => {
-            if (part instanceof Descriptor) callback(this.slots[i], part);
+    eachSlot(Slot, callback) {
+        this.slots.forEach(slot => {
+            if (slot instanceof Slot) callback(slot);
         });
     }
 
     /**
-     * The slot of the first part of a given descriptor type, or `undefined` when the
-     * template has none.
-     * @param {Function} Descriptor The descriptor class selecting the slot.
-     * @return {object|undefined} The slot state.
+     * The first slot of a given kind, or `undefined` when the template has none.
+     * @param {Function} Slot The slot class selecting the slot.
+     * @return {object|undefined} The slot.
      * @private
      */
-    firstSlot(Descriptor) {
-        const { parts } = this.constructor;
-        for (let i = 0; i < parts.length; i++) {
-            if (parts[i] instanceof Descriptor) return this.slots[i];
-        }
+    firstSlot(Slot) {
+        return this.slots.find(slot => slot instanceof Slot);
     }
 
     /**
-     * Render a single skeleton part (literal, element, expression or interpolation).
-     * @param {SafeHTML|ElementDescriptor|ExpressionIndex|InterpolationDescriptor} part The part.
-     * @param {object|null} slot The part's slot state, or `null` for a part without one.
+     * Render a single skeleton part. Literals and bare expressions render from the
+     * skeleton alone; everything else has a slot that renders itself.
+     * @param {SafeHTML|ExpressionIndex|ElementDescriptor|InterpolationDescriptor} part The part.
+     * @param {ElementSlot|InterpolationSlot|null} slot The part's slot, or `null` for a
+     *     part without one.
      * @param {PartialHandlers} host Handlers of the component rendering (see `toString`).
      * @param {object} [pass] Reconcile pass (see `toString`).
      * @return {string} The rendered HTML.
@@ -200,48 +153,12 @@ class Partial {
      */
     renderPart(part, slot, host, pass) {
         if (part instanceof SafeHTML) return `${part}`;
-        if (part instanceof ElementDescriptor) return this.renderElement(part, slot);
         // A bare expression outside of an attribute or an interpolation — in practice a
         // dynamic tag name. It is emitted inline, with no markers around it, so it is
         // resolved on render but never reconciled: a changed tag only takes effect when
         // the element is recreated.
         if (part instanceof ExpressionIndex) return this.owner.sanitize(this.owner.evaluate(this.expressions[part.index], 'dynamic tag'));
-        return this.renderInterpolation(part, slot, host, pass);
-    }
-
-    /**
-     * Render an element's opening attributes, assigning its emission id and
-     * capturing the initial attributes for later diffing.
-     * @param {ElementDescriptor} descriptor The element descriptor.
-     * @param {object} slot The element's slot state.
-     * @return {string} The attributes HTML.
-     * @private
-     */
-    renderElement(descriptor, slot) {
-        if (slot.id == null) slot.id = this.owner.nextElementId();
-        const attributes = this.buildElementAttributes(descriptor, slot);
-        slot.previousAttributes = attributes;
-        return getAttributesHTML(attributes);
-    }
-
-    /**
-     * Render an interpolation: its value wrapped between comment markers, except
-     * in a container, which is marker-less and anchored to its element. Records
-     * the value as the slot's occupant for the next render's reconciliation.
-     * @param {InterpolationDescriptor} descriptor The interpolation descriptor.
-     * @param {object} slot The interpolation's slot state.
-     * @param {PartialHandlers} host Handlers of the component rendering (see `toString`).
-     * @param {object} [pass] Reconcile pass (see `toString`).
-     * @return {string} The rendered HTML.
-     * @private
-     */
-    renderInterpolation(descriptor, slot, host, pass) {
-        if (slot.id == null) slot.id = this.owner.nextMarkerId();
-        const value = this.evaluate(descriptor);
-        slot.previous = value;
-        const rendered = this.renderValue(value, host, pass);
-        if (this.isContainer()) return rendered;
-        return `<!--${Constants.MARKER_START(slot.id)}-->${rendered}<!--${Constants.MARKER_END(slot.id)}-->`;
+        return slot.render(host, pass);
     }
 
     /**
@@ -349,47 +266,10 @@ class Partial {
     }
 
     /**
-     * Build the attributes object for an element from its `Attribute` descriptors,
-     * resolving each against the current expressions and expanding events.
-     * @param {Array<Attribute>} descriptors Attribute descriptors.
-     * @return {object} Attributes object (without the emission id).
-     * @private
-     */
-    buildAttributes(descriptors) {
-        const attributes = {};
-        descriptors.forEach(attribute => attribute.applyTo(attributes, this.expressions, this.owner));
-        return expandEvents(attributes, this.owner);
-    }
-
-    /**
-     * Build the complete attributes object an element's slot is rendered and diffed
-     * against: its descriptors resolved against the current expressions, the root
-     * treatment, and the emission id.
-     *
-     * Root treatment: the component's root element (emitted first, id ending in `-1`)
-     * merges the owner's `attributes`. Only the root partial carries `rootAttributes`;
-     * nested partials never do. Both the render and the update path go through here, so
-     * the merged attributes are on both sides of the diff and survive a re-render.
-     * @param {ElementDescriptor} descriptor The element descriptor.
-     * @param {object} slot The element's slot, holding its emission id.
-     * @return {object} Attributes object, including the emission id.
-     * @private
-     */
-    buildElementAttributes(descriptor, slot) {
-        const attributes = this.buildAttributes(descriptor.attributes);
-        if (this.rootAttributes && /-1$/.test(slot.id)) Object.assign(attributes, this.rootAttributes());
-        attributes[Constants.ATTRIBUTE_ELEMENT] = slot.id;
-        return attributes;
-    }
-
-    /**
-     * Attach the partial's slot state to the rendered DOM and recurse into its slots: the
-     * nested partials and, on a fresh hydrate, the child components they hold — so a
-     * whole new subtree hydrates from one call. Elements and markers use different
-     * scopes: elements carry unique, deterministic ids and are located anywhere under
-     * `parent` (including a component root, which cannot be found within itself);
-     * markers are located by a structural traversal that skips nested component
-     * subtrees, so they must be scoped within the owning component's root.
+     * Attach the partial's slots to the rendered DOM and recurse into them: the nested
+     * partials and, on a fresh hydrate, the child components they hold — so a whole new
+     * subtree hydrates from one call. Each slot resolves its own nodes; elements and
+     * markers are looked up in different scopes, hence the two arguments.
      * @param {Node} parent The node the partial's elements were rendered into.
      * @param {Node} [root] The owning component's root, scoping marker lookup. Passed
      *     down to nested partials; defaults to this partial's own root (its first
@@ -405,19 +285,11 @@ class Partial {
         // interpolation can precede it in the document. The values are then hydrated in
         // a pass of their own, because hydrating one runs the user's `onHydrate`, which
         // may move nodes and break a marker lookup still pending.
-        this.eachSlot(ElementDescriptor, slot => {
-            slot.ref = parent.querySelector(`[${Constants.ATTRIBUTE_ELEMENT}="${slot.id}"]`);
-        });
-        if (!root) root = this.isContainer() ? parent : this.firstSlot(ElementDescriptor).ref;
+        this.eachSlot(ElementSlot, slot => slot.hydrateRef(parent));
+        if (!root) root = this.isContainer() ? parent : this.firstSlot(ElementSlot).ref;
         // Containers render without markers, so there is nothing to locate here.
-        if (!this.isContainer()) {
-            this.eachSlot(InterpolationDescriptor, slot => {
-                const start = findComment(root, Constants.MARKER_START(slot.id), isComponent);
-                const end = findComment(root, Constants.MARKER_END(slot.id), isComponent, start);
-                slot.ref = [start, end];
-            });
-        }
-        this.eachSlot(InterpolationDescriptor, slot => this.hydrateValue(slot.previous, parent, root, fresh));
+        if (!this.isContainer()) this.eachSlot(InterpolationSlot, slot => slot.hydrateMarkers(root));
+        this.eachSlot(InterpolationSlot, slot => this.hydrateValue(slot.previous, parent, root, fresh));
     }
 
     /**
@@ -443,7 +315,7 @@ class Partial {
      * @return {Node} The root element.
      */
     rootElement() {
-        if (!this.isContainer()) return this.firstSlot(ElementDescriptor).ref;
+        if (!this.isContainer()) return this.firstSlot(ElementSlot).ref;
         // A container is a single interpolation, so its slot is the first one.
         return this.slotElement(this.slots[0].previous);
     }
@@ -463,28 +335,29 @@ class Partial {
     }
 
     /**
-     * Swap in a new set of expressions and patch in place: reconcile every
-     * interpolation (child recycle / nested-partial update / content replace) and
-     * diff every element's attributes.
+     * Swap in a new set of expressions and patch in place: every slot updates itself
+     * against them, in document order — an interpolation reconciles its occupant
+     * (child recycle / nested-partial update / content replace), an element diffs its
+     * attributes.
      * @param {Array<any>} expressions The new render expressions.
      * @param {PartialHandlers} [host] Handlers of the component rendering (see
      *     `toString`). Defaults to this partial's own owner.
      */
     update(expressions, host = this.owner) {
         this.expressions = expressions;
-        this.eachSlot(InterpolationDescriptor, (slot, descriptor) => this.updateInterpolation(descriptor, slot, host));
-        this.eachSlot(ElementDescriptor, (slot, descriptor) => this.updateElement(descriptor, slot));
+        this.slots.forEach(slot => {
+            if (slot) slot.update(host);
+        });
     }
 
     /**
      * Reconcile one interpolation against its previous occupant.
-     * @param {InterpolationDescriptor} descriptor The interpolation descriptor.
-     * @param {object} slot The interpolation's slot state.
+     * @param {InterpolationSlot} slot The interpolation's slot.
      * @param {PartialHandlers} host Handlers of the component rendering (see `toString`).
      * @private
      */
-    updateInterpolation(descriptor, slot, host) {
-        const value = this.evaluate(descriptor);
+    updateInterpolation(slot, host) {
+        const value = this.evaluate(slot.descriptor);
         const prev = slot.previous;
         // Retained nested partial with its own structure (and markers): same call site
         // → update in place, recursively. A transparent (container) partial has no
@@ -704,33 +577,6 @@ class Partial {
                 range.deleteContents();
             }
         }
-    }
-
-    /**
-     * Diff and patch one element's attributes against the swapped expressions.
-     * @param {ElementDescriptor} descriptor The element descriptor.
-     * @param {object} slot The element's slot state.
-     * @private
-     */
-    updateElement(descriptor, slot) {
-        const attributes = this.buildElementAttributes(descriptor, slot);
-        const { remove, add } = getAttributesDiff(attributes, slot.previousAttributes);
-        slot.previousAttributes = attributes;
-        // Remove attributes first so later `setAttribute` overrides if needed.
-        remove.forEach(attr => {
-            slot.ref.removeAttribute(attr);
-            if (SYNC_PROPS.indexOf(attr) !== -1 && attr in slot.ref) {
-                slot.ref[attr] = attr === 'value' ? '' : false;
-            }
-        });
-        // Add / update attributes.
-        Object.keys(add).forEach(attr => {
-            const value = add[attr];
-            slot.ref.setAttribute(attr, value);
-            if (SYNC_PROPS.indexOf(attr) !== -1 && attr in slot.ref) {
-                slot.ref[attr] = attr === 'value' ? value : value !== false && value !== 'false';
-            }
-        });
     }
 
     /**

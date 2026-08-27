@@ -1,3 +1,5 @@
+import ElementSlot from './ElementSlot.js';
+
 /**
  * Compile-time descriptor for an element with dynamic attributes.
  * Shared across every render and iteration of a template (cached by `strings`
@@ -7,6 +9,7 @@
  * emission counter at `toString` time, so there is no node index or path here.
  * @param {Array<Attribute>} attributes Attribute descriptors, each holding its key
  *     and value as either a literal or an expression index.
+ * @property {Function} Slot The class of the live state this descriptor renders through.
  * @private
  */
 class ElementDescriptor {
@@ -14,5 +17,7 @@ class ElementDescriptor {
         this.attributes = attributes;
     }
 }
+
+ElementDescriptor.Slot = ElementSlot;
 
 export default ElementDescriptor;
