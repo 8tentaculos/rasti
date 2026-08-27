@@ -62,15 +62,17 @@ describe('Partial', () => {
             );
         });
 
-        it('must create slot state lazily on first render', () => {
+        it('must create slot state lazily on first render, parallel to the parts', () => {
             const partial = makePartial(tag`<div class="${'btn'}">${'hi'}</div>`);
 
             expect(partial.slots).to.be.undefined;
 
             partial.toString();
 
-            expect(partial.slots.elements).to.have.lengthOf(1);
-            expect(partial.slots.interpolations).to.have.lengthOf(1);
+            // `<div `, element, `>`, interpolation, `</div>`: only the two dynamic
+            // parts get a slot, the literals hold `null`.
+            expect(partial.slots).to.have.lengthOf(5);
+            expect(partial.slots.map(slot => slot != null)).to.deep.equal([false, true, false, true, false]);
         });
 
         it('must render a nested partial recursively, sharing the owner emission counters', () => {
@@ -122,8 +124,8 @@ describe('Partial', () => {
             // the root); markers are then located within the root.
             partial.hydrate(document.body);
 
-            expect(partial.slots.elements[0].ref).to.equal(document.querySelector('[data-rst-el="r1-1"]'));
-            const [start, end] = partial.slots.interpolations[0].ref;
+            expect(partial.slots[1].ref).to.equal(document.querySelector('[data-rst-el="r1-1"]'));
+            const [start, end] = partial.slots[3].ref;
             expect(start.data).to.equal('rst-s-r1-1');
             expect(end.data).to.equal('rst-e-r1-1');
         });
@@ -135,10 +137,10 @@ describe('Partial', () => {
             document.body.innerHTML = partial.toString();
             partial.hydrate(document.body);
 
-            expect(partial.slots.elements[0].ref.getAttribute('class')).to.equal('a');
+            expect(partial.slots[1].ref.getAttribute('class')).to.equal('a');
 
             partial.update(['b']);
-            expect(partial.slots.elements[0].ref.getAttribute('class')).to.equal('b');
+            expect(partial.slots[1].ref.getAttribute('class')).to.equal('b');
         });
     });
 });

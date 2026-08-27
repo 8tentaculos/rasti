@@ -10,12 +10,12 @@ import __DEV__ from '../utils/dev.js';
 /**
  * @module core/parseTemplate
  * Role-agnostic template parser. Turns a tagged template (`strings`,
- * `expressions`) into skeleton data (`parts`, `elements`, `interpolations`) that
- * is independent of the expression values: dynamic parts become descriptors that
- * carry the original expression *indices*, never the resolved values. The same
- * shape is produced for a component's own template and for a `partial`; root
- * treatment (merging the component's `attributes`, resolving `this.el`) is handled
- * by the component when it adopts its root partial.
+ * `expressions`) into skeleton data (`parts`) that is independent of the expression
+ * values: dynamic parts become descriptors that carry the original expression
+ * *indices*, never the resolved values. The same shape is produced for a
+ * component's own template and for a `partial`; root treatment (merging the
+ * component's `attributes`, resolving `this.el`) is handled by the component when
+ * it adopts its root partial.
  *
  * The parser never imports `Component`. Component-tag detection is injected
  * through the `isComponentClass` predicate; the per-component wire values (ids,
@@ -27,8 +27,9 @@ import __DEV__ from '../utils/dev.js';
  *   attribute, or as a part of its own for a dynamic tag) or the `expressionIndex`
  *   of an interpolation descriptor.
  * - `Constants.SLOT_ELEMENT(k)` / `Constants.SLOT_INTERPOLATION(k)` are
- *   structural: `k` (a slot index) indexes the `elements` / `interpolations`
- *   tables so `splitPlaceholders` can swap the marker for the descriptor instance.
+ *   structural: `k` indexes the parse-time element / interpolation tables so
+ *   `splitPlaceholders` can swap the marker for the descriptor instance. Those
+ *   tables are scaffolding — only `parts` survives into the skeleton.
  * @private
  */
 
@@ -89,7 +90,7 @@ const parseAttributes = (attributesStr) => {
  * Replace component tags with structural interpolation placeholders.
  * `<${Component} />` or `<${Component}></${Component}>` become a
  * `ComponentDescriptor` (a component tag is an interpolation that produces a
- * `Component`, so it lives in the `interpolations` table). The component's inner
+ * `Component`, so it goes into the interpolation table). The component's inner
  * content is parsed into a nested fragment skeleton that shares the parent's
  * expressions.
  * @param {string} main The main template.
@@ -143,10 +144,10 @@ const expandComponents = (main, expressions, interpolations, isComponentClass, s
                 innerSkeleton = parseMain(inner, expressions, isComponentClass, true);
             }
             // Add component descriptor to interpolations table.
-            const slotIndex = interpolations.length;
-            interpolations.push(new ComponentDescriptor(slotIndex, tagIndex, parseAttributes(attributesStr), innerSkeleton));
+            const index = interpolations.length;
+            interpolations.push(new ComponentDescriptor(tagIndex, parseAttributes(attributesStr), innerSkeleton));
             // Replace whole tag with structural interpolation placeholder.
-            return Constants.SLOT_INTERPOLATION(slotIndex);
+            return Constants.SLOT_INTERPOLATION(index);
         }
     );
 };
@@ -193,11 +194,11 @@ const parseElements = (template, elements) => {
             return match;
         }
         // Add element descriptor to elements array.
-        const slotIndex = elements.length;
-        elements.push(new ElementDescriptor(slotIndex, parseAttributes(attributesStr)));
+        const index = elements.length;
+        elements.push(new ElementDescriptor(parseAttributes(attributesStr)));
         // Replace attributes with structural placeholder.
         // Preserve original tag ending (> or />)
-        return `<${tag} ${Constants.SLOT_ELEMENT(slotIndex)}${ending}`;
+        return `<${tag} ${Constants.SLOT_ELEMENT(index)}${ending}`;
     });
 };
 
@@ -224,10 +225,10 @@ const parseInterpolations = (template, interpolations) => {
                 return match;
             }
             // Add interpolation descriptor to interpolations array.
-            const slotIndex = interpolations.length;
-            interpolations.push(new InterpolationDescriptor(slotIndex, parseInt(expressionIndex, 10)));
+            const index = interpolations.length;
+            interpolations.push(new InterpolationDescriptor(parseInt(expressionIndex, 10)));
             // Replace with structural placeholder.
-            return Constants.SLOT_INTERPOLATION(slotIndex);
+            return Constants.SLOT_INTERPOLATION(index);
         }
     );
 };
@@ -258,8 +259,7 @@ const splitPlaceholders = (main, elements, interpolations) => {
     const out = [];
     let lastIndex = 0;
     let match;
-    // Generate one dimensional array with SafeHTML literals and descriptor instances,
-    // referencing the same descriptor instances held in the skeleton tables.
+    // Generate one dimensional array with SafeHTML literals and descriptor instances.
     while ((match = regExp.exec(main)) !== null) {
         const before = main.slice(lastIndex, match.index);
         out.push(new SafeHTML(before), resolve(match));
@@ -279,11 +279,13 @@ const splitPlaceholders = (main, elements, interpolations) => {
  * @param {Function} isComponentClass Predicate telling whether an expression is a component class.
  * @param {boolean} skipNormalization Skip component reference normalization (for nested content).
  * @param {Object|null} source Original template source for debugging (dev only).
- * @return {{ parts: Array, elements: Array, interpolations: Array, source: Object|null }} Skeleton data.
+ * @return {{ parts: Array, source: Object|null }} Skeleton data.
  * @private
  */
 const parseMain = (main, expressions, isComponentClass, skipNormalization, source = null) => {
-    // Create elements and interpolations descriptor tables.
+    // Descriptor tables local to the parse: the structural placeholders index them so
+    // `splitPlaceholders` can resolve each one to its descriptor. Once `parts` holds
+    // those instances the tables are no longer needed.
     const elements = [], interpolations = [];
     const parts = splitPlaceholders(
         parseInterpolations(
@@ -303,7 +305,7 @@ const parseMain = (main, expressions, isComponentClass, skipNormalization, sourc
         interpolations
     );
 
-    return { parts, elements, interpolations, source };
+    return { parts, source };
 };
 
 /**
@@ -316,7 +318,7 @@ const parseMain = (main, expressions, isComponentClass, skipNormalization, sourc
  * @param {Function} [isComponentClass] Predicate telling whether an expression is a
  *     component class. Defaults to treating nothing as a component (elements /
  *     interpolations only).
- * @return {{ parts: Array, elements: Array, interpolations: Array, source: Object|null }} Skeleton data.
+ * @return {{ parts: Array, source: Object|null }} Skeleton data.
  * @private
  */
 const parseTemplate = (strings, expressions, isComponentClass = () => false) => {

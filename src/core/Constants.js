@@ -25,8 +25,8 @@ const Constants = {
     MARKER_END : id => `rst-e-${id}`,
     MARKER_RECYCLED : uid => `rst-r-${uid}`,
     PLACEHOLDER : idx => `__RASTI_PLACEHOLDER_${idx}__`,
-    SLOT_ELEMENT : slotIndex => `__RASTI_ELEMENT_${slotIndex}__`,
-    SLOT_INTERPOLATION : slotIndex => `__RASTI_INTERPOLATION_${slotIndex}__`
+    SLOT_ELEMENT : idx => `__RASTI_ELEMENT_${idx}__`,
+    SLOT_INTERPOLATION : idx => `__RASTI_INTERPOLATION_${idx}__`
 };
 
 export default Constants;
