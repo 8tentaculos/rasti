@@ -113,12 +113,39 @@ describe('Partial', () => {
         });
     });
 
-    describe('container', () => {
-        it('must render a single-interpolation partial without markers', () => {
+    describe('anchoring', () => {
+        it('must render a single-interpolation partial with markers', () => {
             const partial = makePartial(tag`${'solo'}`);
 
+            expect(partial.isAnchored()).to.be.false;
+            expect(partial.toString()).to.equal('<!--rst-s-r1-1-->solo<!--rst-e-r1-1-->');
+        });
+
+        it('must anchor a lone component tag, which writes no markers', () => {
+            const Child = class {};
+            const { strings, expressions } = tag`<${Child} />`;
+            const PartialClass = Partial.create(strings, expressions, value => value === Child);
+            const partial = new PartialClass(expressions, makeOwner());
+
+            expect(partial.isComponentTag()).to.be.true;
+            expect(partial.isAnchored()).to.be.true;
+        });
+
+        it('must be a container only as a component root partial', () => {
+            const partial = makePartial(tag`${'solo'}`);
+
+            expect(partial.isContainer()).to.be.false;
+            partial.isRoot = true;
             expect(partial.isContainer()).to.be.true;
-            expect(partial.toString()).to.equal('solo');
+            expect(partial.isAnchored()).to.be.true;
+        });
+
+        it('must not be transparent when the template has markup', () => {
+            const partial = makePartial(tag`<div>${'solo'}</div>`);
+
+            expect(partial.isTransparent()).to.be.false;
+            partial.isRoot = true;
+            expect(partial.isContainer()).to.be.false;
         });
     });
 

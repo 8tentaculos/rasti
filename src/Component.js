@@ -255,6 +255,9 @@ export default class Component extends View {
     ensureRootPartial() {
         if (this.rootPartial) return;
         this.rootPartial = this.buildRootPartial();
+        // Adopting it as the root is what makes a single-interpolation partial a
+        // container: the component borrows the element of the child it resolves to.
+        this.rootPartial.isRoot = true;
         // The root element merges the component's `attributes` (root treatment).
         if (this.attributes) this.rootPartial.rootAttributes = () => getResult(this.attributes, this);
         // Expose the template source for expression error messages (dev only).

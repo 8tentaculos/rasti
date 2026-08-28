@@ -1,3 +1,4 @@
+import ComponentDescriptor from './ComponentDescriptor.js';
 import InterpolationDescriptor from './InterpolationDescriptor.js';
 import ElementSlot from './ElementSlot.js';
 import InterpolationSlot from './InterpolationSlot.js';
@@ -73,6 +74,9 @@ class Partial {
         // components join. Same as the owner except for slotted content, where the
         // slot that renders it sets the host it renders under.
         this.host = owner;
+        // Whether this is the component's own root partial, set when the component
+        // adopts it. Only a root partial can be a container (see `isContainer`).
+        this.isRoot = false;
     }
 
     /**
@@ -90,15 +94,50 @@ class Partial {
     }
 
     /**
-     * Tell whether this partial is a container: the whole template is a single
-     * interpolation with no surrounding markup (expected to resolve to one
-     * component / partial). A container renders without markers and borrows its
-     * child's element.
-     * @return {boolean} True if the partial is a container.
+     * Tell whether the template is a single interpolation with no surrounding markup,
+     * so the partial contributes no node of its own: whatever its interpolation
+     * resolves to lands directly where the partial was written. The engine sees
+     * through it when collecting the children a value mounted, and when resolving the
+     * element a value stands on.
+     * @return {boolean} True if the partial adds no markup of its own.
      */
-    isContainer() {
+    isTransparent() {
         const { parts } = this.constructor;
         return parts.length === 1 && parts[0] instanceof InterpolationDescriptor;
+    }
+
+    /**
+     * Tell whether the whole template is a single component tag (`<${Comp} />`), which
+     * always renders a component and nothing else.
+     * @return {boolean} True if the partial is a lone component tag.
+     */
+    isComponentTag() {
+        const { parts } = this.constructor;
+        return parts.length === 1 && parts[0] instanceof ComponentDescriptor;
+    }
+
+    /**
+     * Tell whether this partial is a container: a component's own root partial, and
+     * transparent, so the component has no element of its own and adopts the one its
+     * single interpolation resolves to. Container is a property of the component;
+     * transparency is a property of any partial's shape (see `isTransparent`).
+     * @return {boolean} True if the partial is a component container.
+     */
+    isContainer() {
+        return this.isRoot && this.isTransparent();
+    }
+
+    /**
+     * Tell whether the partial stands for the component it renders: it writes no
+     * markers of its own and is anchored to that component's element, which the DOM
+     * can then move around freely. True for a container, whose component adopts that
+     * element as its own, and for a lone component tag, which makes
+     * `partial`<${Comp} />`` equivalent to mounting the component. Every other
+     * partial writes markers, which is where its interpolations are patched.
+     * @return {boolean} True if the partial renders anchored to a component.
+     */
+    isAnchored() {
+        return this.isContainer() || this.isComponentTag();
     }
 
     /**
@@ -178,27 +217,27 @@ class Partial {
         // a pass of their own, because hydrating one runs the user's `onHydrate`, which
         // may move nodes and break a marker lookup still pending.
         this.eachSlot(ElementSlot, slot => slot.hydrateRef(parent));
-        if (!root) root = this.isContainer() ? parent : this.firstSlot(ElementSlot).ref;
-        // Containers render without markers, so there is nothing to locate here.
-        if (!this.isContainer()) this.eachSlot(InterpolationSlot, slot => slot.hydrateMarkers(root));
+        if (!root) root = this.isAnchored() ? parent : this.firstSlot(ElementSlot).ref;
+        // An anchored partial renders without markers, so there is nothing to locate here.
+        if (!this.isAnchored()) this.eachSlot(InterpolationSlot, slot => slot.hydrateMarkers(root));
         this.eachSlot(InterpolationSlot, slot => slot.hydrateOccupant(parent, root, fresh));
     }
 
     /**
      * The root DOM element this partial resolves to: its first element, or, for a
-     * container, the element of whatever its single slot resolves to (recursively
-     * descending nested partials).
+     * transparent one, the element of whatever its single slot resolves to
+     * (recursively descending nested partials).
      * @return {Node} The root element.
      */
     rootElement() {
-        if (!this.isContainer()) return this.firstSlot(ElementSlot).ref;
-        // A container is a single interpolation, so its slot is the first one.
+        if (!this.isTransparent()) return this.firstSlot(ElementSlot).ref;
+        // A transparent partial is a single interpolation, so its slot is the first one.
         return this.slotElement(this.slots[0].previous);
     }
 
     /**
-     * Resolve the root element of a container's slot value, descending through a
-     * nested partial or the first item of an array.
+     * Resolve the root element of a transparent partial's slot value, descending
+     * through a nested partial or the first item of an array.
      * @param {any} value The slot value.
      * @return {Node} The resolved element.
      * @private

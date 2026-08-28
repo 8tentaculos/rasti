@@ -60,9 +60,9 @@ class InterpolationSlot {
     }
 
     /**
-     * Render the interpolation: its value wrapped between comment markers, except in a
-     * container, which is marker-less and anchored to its element. Records the value as
-     * the slot's occupant for the next render's reconciliation.
+     * Render the interpolation: its value wrapped between comment markers, except in an
+     * anchored partial, which is marker-less and stands on its component's element.
+     * Records the value as the slot's occupant for the next render's reconciliation.
      * @param {object} [pass] Reconcile pass (see `Partial#render`).
      * @return {string} The rendered HTML.
      */
@@ -72,7 +72,7 @@ class InterpolationSlot {
         const value = this.evaluate();
         this.previous = value;
         const rendered = this.renderValue(value, pass);
-        if (partial.isContainer()) return rendered;
+        if (partial.isAnchored()) return rendered;
         return `<!--${Constants.MARKER_START(this.id)}-->${rendered}<!--${Constants.MARKER_END(this.id)}-->`;
     }
 
@@ -192,11 +192,10 @@ class InterpolationSlot {
         const { partial } = this;
         const value = this.evaluate();
         const prev = this.previous;
-        // Retained nested partial with its own structure (and markers): same call site
-        // → update in place, recursively. A transparent (container) partial has no
-        // markers of its own, so it is re-rendered by this slot instead (below), which
-        // still recycles the single component it may wrap.
-        if (partial.isPartial(value) && partial.isPartial(prev) && value.constructor === prev.constructor && !value.isContainer()) {
+        // Retained nested partial: same call site → update in place, recursively. Every
+        // partial has somewhere to patch: its own markers, or, when anchored, the
+        // element of the component it renders.
+        if (partial.isPartial(value) && partial.isPartial(prev) && value.constructor === prev.constructor) {
             prev.update(value.expressions);
             return;
         }
@@ -205,9 +204,9 @@ class InterpolationSlot {
             this.recycleInPlace(prev, value);
             return;
         }
-        // Anything else: regenerate the slot's content and patch the DOM. A container
-        // has no markers, so its content is anchored to its current element instead.
-        if (partial.isContainer()) this.replaceContainer(value);
+        // Anything else: regenerate the slot's content and patch the DOM. An anchored
+        // partial has no markers, so its content is placed on its current element.
+        if (partial.isAnchored()) this.replaceAnchored(value);
         else this.replaceSlot(value);
     }
 
@@ -247,13 +246,14 @@ class InterpolationSlot {
     }
 
     /**
-     * Regenerate a container's single slot and swap it for the current element.
-     * A container has no markers, so its content is anchored to its element (which
-     * can be moved around the DOM by hand); the new content replaces it in place.
+     * Regenerate an anchored partial's single slot and swap it for the current
+     * element. Such a partial has no markers, so its content stands on that element
+     * (which can be moved around the DOM by hand); the new content replaces it in
+     * place.
      * @param {any} value The new value.
      * @private
      */
-    replaceContainer(value) {
+    replaceAnchored(value) {
         const element = this.partial.rootElement();
         const parent = element.parentNode;
         const pass = this.makePass(value);
@@ -354,8 +354,7 @@ class InterpolationSlot {
 
     /**
      * Collect the child components a value mounted, descending through transparent
-     * (container) partials and arrays. Used to build the slot-local pool of
-     * recyclable children.
+     * partials and arrays. Used to build the slot-local pool of recyclable children.
      * @param {any} value The value.
      * @return {Array<object>} The child components.
      * @private
@@ -363,7 +362,7 @@ class InterpolationSlot {
     collectChildren(value) {
         if (Array.isArray(value)) return value.reduce((out, item) => out.concat(this.collectChildren(item)), []);
         if (this.partial.isPartial(value)) {
-            if (value.isContainer()) return this.collectChildren(value.slots[0].previous);
+            if (value.isTransparent()) return this.collectChildren(value.slots[0].previous);
             return [];
         }
         if (this.partial.owner.isChild(value)) return [value];
@@ -399,7 +398,7 @@ class InterpolationSlot {
     resolveOccupant(value, retained) {
         if (Array.isArray(value)) return value.map(item => this.resolveOccupant(item, retained));
         if (this.partial.isPartial(value)) {
-            if (value.isContainer()) return this.resolveOccupant(value.slots[0].previous, retained);
+            if (value.isTransparent()) return this.resolveOccupant(value.slots[0].previous, retained);
             return value;
         }
         if (this.partial.owner.isChild(value)) return retained.get(value) || value;

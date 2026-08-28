@@ -259,7 +259,11 @@ describe('Component', () => {
             const c = Main.mount({}, document.body);
 
             expect(c.children[0].options.color).to.be.equal('primary');
-            expect(document.querySelector('button').innerHTML).to.be.equal(`<!--${Constants.MARKER_START('r2-1')}-->click me<!--${Constants.MARKER_END('r2-1')}-->`);
+            expect(document.querySelector('button').innerHTML).to.be.equal(
+                `<!--${Constants.MARKER_START('r2-1')}-->` +
+                    `<!--${Constants.MARKER_START('r1-2')}-->click me<!--${Constants.MARKER_END('r1-2')}-->` +
+                `<!--${Constants.MARKER_END('r2-1')}-->`
+            );
         });
 
         it('must mount nested component tags with opening and closing tags', () => {
@@ -1261,7 +1265,11 @@ describe('Component', () => {
             expect(c1.el).to.be.equal(c1.children[0].el);
             expect(c1.children[0].options.color).to.be.equal('primary');
 
-            expect(document.querySelectorAll('button')[1].innerHTML).to.be.equal(`<!--${Constants.MARKER_START('r4-1')}-->cancel<!--${Constants.MARKER_END('r4-1')}-->`);
+            expect(document.querySelectorAll('button')[1].innerHTML).to.be.equal(
+                `<!--${Constants.MARKER_START('r4-1')}-->` +
+                    `<!--${Constants.MARKER_START('r3-2')}-->cancel<!--${Constants.MARKER_END('r3-2')}-->` +
+                `<!--${Constants.MARKER_END('r4-1')}-->`
+            );
             expect(c2.el).to.be.equal(c2.children[0].el);
             expect(c2.children[0].options.color).to.be.equal('secondary');
 
@@ -1271,7 +1279,11 @@ describe('Component', () => {
             expect(document.querySelectorAll('button')[0].innerHTML).to.be.equal(`<!--${Constants.MARKER_START('r2-1')}-->ok<!--${Constants.MARKER_END('r2-1')}-->`);
             expect(c1.el).to.be.equal(c1.children[0].el);
 
-            expect(document.querySelectorAll('button')[1].innerHTML).to.be.equal(`<!--${Constants.MARKER_START('r4-1')}-->cancel<!--${Constants.MARKER_END('r4-1')}-->`);
+            expect(document.querySelectorAll('button')[1].innerHTML).to.be.equal(
+                `<!--${Constants.MARKER_START('r4-1')}-->` +
+                    `<!--${Constants.MARKER_START('r3-2')}-->cancel<!--${Constants.MARKER_END('r3-2')}-->` +
+                `<!--${Constants.MARKER_END('r4-1')}-->`
+            );
             expect(c2.el).to.be.equal(c2.children[0].el);
         });
 
@@ -1521,7 +1533,11 @@ describe('Component', () => {
 
             expect(c4.children.length).to.be.equal(1);
             expect(c4.children[0].el).to.be.equal(document.querySelector('#test-node-4 div button'));
-            expect(document.querySelector('#test-node-4 div button').innerHTML).to.be.equal(`<!--${Constants.MARKER_START('r10-1')}-->ok<!--${Constants.MARKER_END('r10-1')}-->`);
+            expect(document.querySelector('#test-node-4 div button').innerHTML).to.be.equal(
+                `<!--${Constants.MARKER_START('r10-1')}-->` +
+                    `<!--${Constants.MARKER_START('r9-3')}-->ok<!--${Constants.MARKER_END('r9-3')}-->` +
+                `<!--${Constants.MARKER_END('r10-1')}-->`
+            );
         });
 
         it('must render partial with nested component tags with opening and closing tags', () => {
