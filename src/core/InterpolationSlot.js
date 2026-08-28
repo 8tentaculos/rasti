@@ -9,14 +9,12 @@ import parseHTML from '../utils/parseHTML.js';
  * match by key, unkeyed children by constructor (type).
  * @param {object} prev The previous child.
  * @param {object} candidate The candidate child.
- * @param {boolean} [allowUnkeyed=true] Whether unkeyed children may match. False for
- *     the children of a user array, where position carries no identity.
  * @return {boolean} True if `prev` can be recycled.
  * @private
  */
-const canRecycle = (prev, candidate, allowUnkeyed = true) => {
+const canRecycle = (prev, candidate) => {
     if (candidate.key != null || prev.key != null) return prev.key === candidate.key;
-    return allowUnkeyed && prev.constructor === candidate.constructor;
+    return prev.constructor === candidate.constructor;
 };
 
 /**
@@ -130,7 +128,7 @@ class InterpolationSlot {
      * candidate takes it. Claiming is slot-local: it only considers this slot's own
      * previous occupants.
      * @param {object} candidate The candidate child component.
-     * @param {object} pass Reconcile pass holding `previous`, `used` and `allowUnkeyed`.
+     * @param {object} pass Reconcile pass holding `previous` and `used`.
      * @return {object|null} The claimed previous child, or `null`.
      * @private
      */
@@ -138,7 +136,7 @@ class InterpolationSlot {
         for (let i = 0; i < pass.previous.length; i++) {
             const prev = pass.previous[i];
             if (pass.used.has(prev)) continue;
-            if (canRecycle(prev, candidate, pass.allowUnkeyed)) {
+            if (canRecycle(prev, candidate)) {
                 pass.used.add(prev);
                 return prev;
             }
@@ -305,16 +303,19 @@ class InterpolationSlot {
     }
 
     /**
-     * Build a reconcile pass seeded with the slot's previous children.
-     * @param {any} value The new value (arrays disable unkeyed recycling).
+     * Build a reconcile pass. Its pool is seeded only when the new value is a list:
+     * that is the one case where a child changes position among its siblings and has
+     * to be carried over to the regenerated content. Anywhere else an occupant is
+     * either retained in place (see `update`) or mounted anew, so there is nothing to
+     * claim.
+     * @param {any} value The new value.
      * @return {object} The reconcile pass.
      * @private
      */
     makePass(value) {
         return {
-            previous : this.collectChildren(this.previous),
+            previous : Array.isArray(value) ? this.collectChildren(this.previous) : [],
             used : new Set(),
-            allowUnkeyed : !Array.isArray(value),
             recycled : [],
             next : []
         };
@@ -353,10 +354,12 @@ class InterpolationSlot {
     }
 
     /**
-     * Collect the child components a value mounted, descending through transparent
-     * partials and arrays. Used to build the slot-local pool of recyclable children.
+     * Collect the keyed child components a value mounted, descending through
+     * transparent partials and arrays. Used to build the slot-local pool of recyclable
+     * children: in a list a key is what identifies a child among its siblings, so an
+     * unkeyed one has no identity to be claimed by.
      * @param {any} value The value.
-     * @return {Array<object>} The child components.
+     * @return {Array<object>} The keyed child components.
      * @private
      */
     collectChildren(value) {
@@ -365,7 +368,7 @@ class InterpolationSlot {
             if (value.isTransparent()) return this.collectChildren(value.slots[0].previous);
             return [];
         }
-        if (this.partial.owner.isChild(value)) return [value];
+        if (this.partial.owner.isChild(value) && value.key != null) return [value];
         return [];
     }
 
