@@ -20,11 +20,12 @@ function expressionToString(expr) {
  * Formats the template source with line numbers and highlights the specific error expression.
  * @param {Object} source The original template source object with strings and expressions.
  * @param {any} errorExpression The expression that caused the error.
+ * @param {string} [label='Error here!'] The text of the pointer under the expression.
  * @return {string} Formatted template source.
  * @module
  * @private
  */
-export default function formatTemplateSource(source, errorExpression) {
+export default function formatTemplateSource(source, errorExpression, label = 'Error here!') {
     if (!source || !source.strings || !source.expressions || !errorExpression) return '';
 
     const { strings, expressions } = source;
@@ -91,7 +92,7 @@ export default function formatTemplateSource(source, errorExpression) {
         if (isErrorLine) {
             const markerPos = linePrefix.length + errorStartCol;
             const markerLen = expressionStr.length;
-            const pointerLine = repeat(' ', markerPos) + repeat('^', markerLen) + ' <-- Error here!';
+            const pointerLine = repeat(' ', markerPos) + repeat('^', markerLen) + ` <-- ${label}`;
             formattedLines.push(pointerLine);
         }
     }
