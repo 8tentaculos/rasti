@@ -276,8 +276,14 @@ When rendering child components, they can be either recreated or recycled:
   is found for recycling.
 
 - **Recycling:** The same component instance is reused. Recycling happens in two ways:
-  - Components with a `key` are recycled if a previous child with the same key exists in the same interpolation
   - Unkeyed components are recycled if they have the same type and position in the template or partial
+  - Components with a `key` are recycled if a previous child with the same key occupied the same interpolation
+
+  A `key` identifies a component among the siblings of its own interpolation, which is what lets the items
+  of a list be reordered without recreating them: ``items.map(item => partial`<${Row} key="${item.id}" />`)``
+  reuses the rows and moves them into place. A component wrapped in markup
+  (``partial`<li><${Row} key="…" /></li>` ``) belongs to that partial instead, and is recreated with it
+  whenever the partial is regenerated. Development builds warn about it.
 
   When a component is recycled:
   - The `onBeforeRecycle` lifecycle method is called when recycling starts
