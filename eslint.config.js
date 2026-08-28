@@ -24,7 +24,8 @@ export default [
             'key-spacing' : ['error', { beforeColon : true, afterColon : true }],
             'no-trailing-spaces' : ['error', { skipBlankLines : false, ignoreComments : true }],
             'no-multiple-empty-lines' : ['error', { max : 1, maxEOF : 0 }],
-            'no-console' : 'error'
+            // Development warnings are printed through `console.warn`.
+            'no-console' : ['error', { allow : ['warn'] }]
         }
     }
 ];

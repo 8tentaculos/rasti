@@ -47,7 +47,6 @@ const warn = (slot, message) => {
     const expression = source && source.expressions[slot.descriptor.expressionIndex];
     const formattedSource = formatTemplateSource(source, expression, 'This interpolation');
     slot.descriptor.warned = true;
-    // eslint-disable-next-line no-console
     console.warn(createDevelopmentWarningMessage(
         message + (formattedSource ? `\n\nTemplate source:\n\n${formattedSource}` : '')
     ));

@@ -2269,4 +2269,73 @@ describe('Component', () => {
             expect(clicks).to.be.equal(2);
         });
     });
+
+    describe('Development warnings', () => {
+        const Row = Component.create`<b class="row">${({ props }) => props.text}</b>`;
+        let warnings;
+        let consoleWarn;
+
+        beforeEach(() => {
+            warnings = [];
+            consoleWarn = console.warn;
+            console.warn = message => warnings.push(message);
+        });
+
+        afterEach(() => {
+            console.warn = consoleWarn;
+        });
+
+        it('must warn when a list item is not a keyed component', () => {
+            Component.create`
+                <ul>${({ model, partial }) => model.items.map(item => partial`<li>${item}</li>`)}</ul>
+            `.mount({ model : new Model({ items : ['a', 'b'] }) }, document.body);
+
+            expect(warnings.length).to.be.equal(1);
+            expect(warnings[0]).to.contain('List items must be keyed components');
+        });
+
+        it('must warn when the key of a list item sits under markup', () => {
+            Component.create`
+                <ul>${({ model, partial }) => model.items.map(item =>
+        partial`<span><${Row} key="${item}" text="${item}" /></span>`)}</ul>
+            `.mount({ model : new Model({ items : ['a', 'b'] }) }, document.body);
+
+            expect(warnings.length).to.be.equal(1);
+            expect(warnings[0]).to.contain('List items must be keyed components');
+        });
+
+        it('must warn when two list items share a key', () => {
+            Component.create`
+                <ul>${({ model, partial }) => model.items.map(item =>
+        partial`<${Row} key="dup" text="${item}" />`)}</ul>
+            `.mount({ model : new Model({ items : ['a', 'b'] }) }, document.body);
+
+            expect(warnings.length).to.be.equal(1);
+            expect(warnings[0]).to.contain('Duplicate key "dup" in a list');
+        });
+
+        it('must not warn for keyed component items, nor for plain values', () => {
+            Component.create`
+                <ul>${({ model, partial }) => model.items.map(item =>
+        partial`<${Row} key="${item}" text="${item}" />`)}</ul>
+            `.mount({ model : new Model({ items : ['a', 'b'] }) }, document.body);
+
+            Component.create`
+                <ul>${({ model }) => model.items}</ul>
+            `.mount({ model : new Model({ items : ['a', 'b'] }) }, document.body);
+
+            expect(warnings).to.be.empty;
+        });
+
+        it('must warn once per call site, not on every render', () => {
+            const c = Component.create`
+                <ul>${({ model, partial }) => model.items.map(item => partial`<li>${item}</li>`)}</ul>
+            `.mount({ model : new Model({ items : ['a', 'b'] }) }, document.body);
+
+            c.model.items = ['c', 'd'];
+            c.model.items = ['e', 'f'];
+
+            expect(warnings.length).to.be.equal(1);
+        });
+    });
 });
