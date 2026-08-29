@@ -161,11 +161,12 @@ const expandComponents = (main, expressions, interpolations, isComponentClass, s
  */
 const replaceElements = (template, replacer) => {
     const PH = Constants.PLACEHOLDER('(?:\\d+)');
-    // The attributes group is lazy so a self-closing slash is left for the ending
-    // group instead of being swallowed as an attribute character. The ending matters
-    // in foreign content (SVG, MathML), where `/>` actually closes the element.
+    // The attributes group is lazy so the tag ending, and the whitespace before it,
+    // are left for the ending group instead of being swallowed as attribute
+    // characters. The ending matters in foreign content (SVG, MathML), where `/>`
+    // actually closes the element.
     return template.replace(
-        new RegExp(`<(${PH}|[a-z]+[1-6]?)(?:\\s*)((?:"[^"]*"|'[^']*'|[^>])*?)(/?>)`, 'gi'),
+        new RegExp(`<(${PH}|[a-z]+[1-6]?)(?:\\s*)((?:"[^"]*"|'[^']*'|[^>])*?)(\\s*/?>)`, 'gi'),
         replacer
     );
 };

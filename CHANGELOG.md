@@ -28,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **BREAKING:** **Undocumented `Component` statics**: `ATTRIBUTE_ELEMENT`, `ATTRIBUTE_EVENT`, `DATASET_ELEMENT`, `PLACEHOLDER`, `MARKER_RECYCLED`, `MARKER_START` and `MARKER_END`. They were never documented nor part of the public API, and after the engine rewrite most of them were dead. Every attribute, dataset key and marker a component writes to the DOM now comes from a single internal object.
 
+## [4.1.2] - 2026-08-29
+
+### Fixed
+
+- **Self-closing tags**: self-closing elements now keep their `/>` ending when rendered. Inside SVG and other foreign content the slash is what closes the element, so a `<circle r="${...}"/>` that lost it swallowed its following siblings as children. Only the root element and elements with an interpolated attribute were affected.
+
 ## [4.1.1] - 2026-08-24
 
 ### Fixed
@@ -395,7 +401,8 @@ Unlike views, which are render-agnostic, components have a specific set of rende
 
 * **BREAKING:** Removed emitter.emitAsync method.
 
-[unreleased]: https://github.com/8tentaculos/rasti/compare/v4.1.1...HEAD
+[unreleased]: https://github.com/8tentaculos/rasti/compare/v4.1.2...HEAD
+[4.1.2]: https://github.com/8tentaculos/rasti/compare/v4.1.1...v4.1.2
 [4.1.1]: https://github.com/8tentaculos/rasti/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/8tentaculos/rasti/compare/v4.0.1...v4.1.0
 [4.0.1]: https://github.com/8tentaculos/rasti/compare/v4.0.0...v4.0.1
