@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Self-closing tags**: self-closing elements now keep their `/>` ending when rendered. Inside SVG and other foreign content the slash is what closes the element, so a `<circle r="${...}"/>` that lost it swallowed its following siblings as children. Only the root element and elements with an interpolated attribute were affected.
+
 ## [4.1.1] - 2026-08-24
 
 ### Fixed
