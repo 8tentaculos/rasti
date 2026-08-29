@@ -42,7 +42,7 @@ describe('Component', () => {
     describe('Template creation', () => {
         it('must be created with a self enclosed tag', () => {
             const c = Component.create`<input id="test-node" type="text" />`.mount({}, document.body);
-            expect(c.toString()).to.be.equal(`<input id="test-node" type="text" ${Component.ATTRIBUTE_ELEMENT}="r1-1">`);
+            expect(c.toString()).to.be.equal(`<input id="test-node" type="text" ${Component.ATTRIBUTE_ELEMENT}="r1-1" />`);
             expect(document.getElementById('test-node')).to.exist;
         });
 
@@ -54,8 +54,39 @@ describe('Component', () => {
 
         it('must be created with a function tag with self enclosed tag', () => {
             const c = Component.create`<${() => 'input'} id="test-node" type="text" />`.mount({}, document.body);
-            expect(c.toString()).to.be.equal(`<input id="test-node" type="text" ${Component.ATTRIBUTE_ELEMENT}="r1-1">`);
+            expect(c.toString()).to.be.equal(`<input id="test-node" type="text" ${Component.ATTRIBUTE_ELEMENT}="r1-1" />`);
             expect(document.getElementById('test-node')).to.exist;
+        });
+
+        it('must keep the self-closing tag ending on elements carrying dynamic attributes', () => {
+            Component.create`<svg id="test-node"><circle r="${() => 1}"/><rect width="2"/></svg>`.mount({}, document.body);
+            // In foreign content the slash closes the element, so dropping it while
+            // rewriting the attributes would nest the following siblings inside.
+            const svg = document.getElementById('test-node');
+            expect(svg.children).to.have.lengthOf(2);
+            expect(svg.querySelector('rect').parentNode).to.be.equal(svg);
+        });
+
+        it('must keep the self-closing tag ending on partial elements', () => {
+            Component.create`<div id="test-node">${self => self.renderShapes()}</div>`.extend({
+                renderShapes() {
+                    return this.partial`<svg><circle r="${() => 1}"/><rect width="2"/></svg>`;
+                }
+            }).mount({}, document.body);
+
+            const svg = document.getElementById('test-node').querySelector('svg');
+            expect(svg.children).to.have.lengthOf(2);
+            expect(svg.querySelector('rect').parentNode).to.be.equal(svg);
+        });
+
+        it('must serialize the tag ending as written in the template', () => {
+            const c = Component.create`<div id="test-node"><input value="${() => 'a'}"><img alt="${() => 'b'}"/></div>`.mount();
+            expect(c.toString()).to.be.equal(
+                `<div id="test-node" ${Component.ATTRIBUTE_ELEMENT}="r1-1">` +
+                `<input value="a" ${Component.ATTRIBUTE_ELEMENT}="r1-2">` +
+                `<img alt="b" ${Component.ATTRIBUTE_ELEMENT}="r1-3"/>` +
+                '</div>'
+            );
         });
 
         it('must support header tags', () => {
@@ -305,11 +336,11 @@ describe('Component', () => {
         it('must render true and false attributes', () => {
             expect(
                 Component.create`<input id="test-node" disabled="${() => false}" />`.mount().toString()
-            ).to.be.equal(`<input id="test-node" ${Component.ATTRIBUTE_ELEMENT}="r1-1">`);
+            ).to.be.equal(`<input id="test-node" ${Component.ATTRIBUTE_ELEMENT}="r1-1" />`);
 
             expect(
                 Component.create`<input id="test-node" disabled="${() => true}" />`.mount().toString()
-            ).to.be.equal(`<input id="test-node" disabled ${Component.ATTRIBUTE_ELEMENT}="r2-1">`);
+            ).to.be.equal(`<input id="test-node" disabled ${Component.ATTRIBUTE_ELEMENT}="r2-1" />`);
         });
 
         it('must escape attribute values', () => {

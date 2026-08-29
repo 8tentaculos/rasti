@@ -275,7 +275,7 @@ const expandComponents = (main, expressions, skipNormalization = false) => {
 const replaceElements = (template, replacer) => {
     const PH = Component.PLACEHOLDER('(?:\\d+)');
     return template.replace(
-        new RegExp(`<(${PH}|[a-z]+[1-6]?)(?:\\s*)((?:"[^"]*"|'[^']*'|[^>])*)(/?>)`, 'gi'),
+        new RegExp(`<(${PH}|[a-z]+[1-6]?)(?:\\s*)((?:"[^"]*"|'[^']*'|[^>])*?)(\\s*/?>)`, 'gi'),
         replacer
     );
 };
