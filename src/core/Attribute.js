@@ -11,11 +11,24 @@ import ExpressionIndex from './ExpressionIndex.js';
 const resolvePart = (part, expressions) => part instanceof ExpressionIndex ? expressions[part.index] : part;
 
 /**
+ * Coerce a resolved mixed-value part for string composition, with the same rule
+ * content interpolations use: nullish and boolean values render as the empty
+ * string, anything else as its string form.
+ * @param {any} value The resolved part.
+ * @return {string} The part's contribution to the joined value.
+ * @private
+ */
+const coercePart = value =>
+    value === null || typeof value === 'undefined' || typeof value === 'boolean' ? '' : `${value}`;
+
+/**
  * A parsed template attribute. Holds its key and value as either an
- * `ExpressionIndex` or a literal, plus whether the value was quoted, and knows
+ * `ExpressionIndex` or a literal — or, for a mixed value, an array of literal
+ * and `ExpressionIndex` parts — plus whether the value was quoted, and knows
  * how to resolve itself against the current expressions.
  * @param {ExpressionIndex|string} key Expression reference or literal attribute name.
- * @param {ExpressionIndex|string|undefined} value Expression reference, literal, or `undefined` for a value-less attribute.
+ * @param {ExpressionIndex|string|Array<string|ExpressionIndex>|undefined} value Expression
+ *     reference, literal, mixed-value parts, or `undefined` for a value-less attribute.
  * @param {boolean} quoted Whether the value was quoted (evaluated) or unquoted (passed as-is).
  * @private
  */
@@ -41,6 +54,18 @@ class Attribute {
             // Value-less attribute: object spread or boolean.
             if (typeof key === 'object') Object.assign(attributes, key);
             else if (typeof key === 'string') attributes[key] = true;
+            return;
+        }
+
+        if (Array.isArray(this.value)) {
+            // Mixed value: literal parts are taken as-is; each interpolated part is
+            // evaluated like any quoted value, coerced, and the parts join into one
+            // string. Mixed values are quoted by construction.
+            attributes[key] = this.value.map(part =>
+                part instanceof ExpressionIndex ?
+                    coercePart(owner.evaluate(resolvePart(part, expressions), 'element attribute')) :
+                    part
+            ).join('');
             return;
         }
 

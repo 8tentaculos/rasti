@@ -152,6 +152,39 @@ describe('parseTemplate', () => {
             expect(attributes).to.have.lengthOf(1);
             expectAttr(attributes[0], 'title', 'x > y', true);
         });
+
+        it('must split a quoted mixed value into literal and expression parts', () => {
+            const { strings, expressions } = tag`<a href="/s?a=1&b=${2}&c=${3}">x</a>`;
+            const attributes = elementsOf(parseTemplate(strings, expressions).parts)[0].attributes;
+
+            expect(attributes).to.have.lengthOf(1);
+            expect(attributes[0].quoted).to.equal(true);
+            const { value } = attributes[0];
+            expect(value).to.be.an('array').with.lengthOf(4);
+            expectPart(value[0], '/s?a=1&b=');
+            expectPart(value[1], 0);
+            expectPart(value[2], '&c=');
+            expectPart(value[3], 1);
+        });
+
+        it('must drop empty literal parts of a mixed value', () => {
+            const { strings, expressions } = tag`<a class="${'a'}${'b'}">x</a>`;
+            const { value } = elementsOf(parseTemplate(strings, expressions).parts)[0].attributes[0];
+
+            expect(value).to.be.an('array').with.lengthOf(2);
+            expectPart(value[0], 0);
+            expectPart(value[1], 1);
+        });
+
+        it('must not split an unquoted literal holding a placeholder', () => {
+            const { strings, expressions } = tag`<a href=x${'y'}>x</a>`;
+            const { value, quoted } = elementsOf(parseTemplate(strings, expressions).parts)[0].attributes[0];
+
+            // Unquoted values take a single interpolation; a trailing placeholder in
+            // an unquoted literal stays opaque (and warns — see the mixed warnings).
+            expect(quoted).to.equal(false);
+            expect(value).to.be.a('string');
+        });
     });
 
     describe('multiple dynamic regions and ordering', () => {

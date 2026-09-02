@@ -52,8 +52,32 @@ const addPlaceholders = (strings, expressions) =>
     }, []).join('');
 
 /**
+ * Split a quoted literal value still holding placeholders into its parts:
+ * literal strings and `ExpressionIndex` instances, in template order. Empty
+ * literal parts are dropped. A value that is exactly one placeholder never
+ * reaches here — the placeholder alternative matches it whole.
+ * @param {string} value Literal value holding at least one placeholder.
+ * @return {Array<string|ExpressionIndex>} The value parts.
+ * @private
+ */
+const splitValueParts = (value) => {
+    const regExp = new RegExp(Constants.PLACEHOLDER('(\\d+)'), 'g');
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+    while ((match = regExp.exec(value)) !== null) {
+        if (match.index > lastIndex) parts.push(value.slice(lastIndex, match.index));
+        parts.push(new ExpressionIndex(parseInt(match[1], 10)));
+        lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < value.length) parts.push(value.slice(lastIndex));
+    return parts;
+};
+
+/**
  * Parse attributes string into `Attribute` descriptors. Keys and values are
- * stored as an `ExpressionIndex` or a literal, so the skeleton stays
+ * stored as an `ExpressionIndex` or a literal — or, for a quoted value mixing
+ * literal text and interpolations, an array of parts — so the skeleton stays
  * value-agnostic.
  * @param {string} attributesStr Attributes string from HTML element.
  * @return {Array<Attribute>} Attribute descriptors.
@@ -96,7 +120,14 @@ const parseAttributes = (attributesStr) => {
         const value = [doubleQuotedValue, singleQuotedValue, unquotedValue].find(isDefined);
 
         const key = isDefined(attributeIdx) ? new ExpressionIndex(parseInt(attributeIdx, 10)) : attribute;
-        const val = isDefined(valueIdx) ? new ExpressionIndex(parseInt(valueIdx, 10)) : value;
+        let val = isDefined(valueIdx) ? new ExpressionIndex(parseInt(valueIdx, 10)) : value;
+
+        // A quoted literal still holding placeholders is a mixed value: split it into
+        // parts so `Attribute` can compose them. Unquoted literals are not split — an
+        // unquoted value takes a single interpolation.
+        if (hasQuotes && typeof val === 'string' && new RegExp(PH).test(val)) {
+            val = splitValueParts(val);
+        }
 
         attributes.push(new Attribute(key, val, hasQuotes));
     }

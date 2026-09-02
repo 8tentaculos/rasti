@@ -183,6 +183,60 @@ describe('Component', () => {
         });
     });
 
+    describe('Mixed attribute values', () => {
+        it('must compose literal text and interpolations into one string', () => {
+            const c = Component.create`<a id="test-node" href="/s?a=1&b=${() => 2}" class="base ${({ model }) => model.active ? 'active' : ''}">x</a>`
+                .mount({ model : new Model({ active : true }) }, document.body);
+            expect(c.el.getAttribute('href')).to.be.equal('/s?a=1&b=2');
+            expect(c.el.className).to.be.equal('base active');
+        });
+
+        it('must serialize the composed value on first render', () => {
+            const c = Component.create`<a id="test-node" href="/s?a=1&b=${() => 2}">x</a>`.mount();
+            expect(c.toString()).to.be.equal(`<a id="test-node" href="/s?a=1&b=2" ${Constants.ATTRIBUTE_ELEMENT}="r1-1">x</a>`);
+        });
+
+        it('must coerce nullish and boolean parts to the empty string', () => {
+            const c = Component.create`<div id="test-node" title="v${() => null}${() => undefined}${() => false}${() => true}:${() => 0}"></div>`
+                .mount({}, document.body);
+            expect(c.el.getAttribute('title')).to.be.equal('v:0');
+        });
+
+        it('must re-join and patch a mixed value on update', () => {
+            const model = new Model({ page : 1 });
+            const c = Component.create`<a id="test-node" href="/items?page=${({ model }) => model.page}&size=10">x</a>`
+                .mount({ model }, document.body);
+            expect(c.el.getAttribute('href')).to.be.equal('/items?page=1&size=10');
+            model.page = 2;
+            expect(c.el.getAttribute('href')).to.be.equal('/items?page=2&size=10');
+        });
+
+        it('must not patch a mixed value whose joined string is unchanged', () => {
+            const model = new Model({ count : 0 });
+            const c = Component.create`<div id="test-node" data-count="${({ model }) => model.count}" title="fixed ${() => 'x'}"></div>`
+                .mount({ model }, document.body);
+            const calls = [];
+            const setAttribute = c.el.setAttribute.bind(c.el);
+            c.el.setAttribute = (name, value) => { calls.push(name); return setAttribute(name, value); };
+            model.count = 1;
+            expect(calls).to.include('data-count');
+            expect(calls).to.not.include('title');
+        });
+
+        it('must pass a mixed component tag attribute as the joined string', () => {
+            const Child = Component.create`<span>${({ props }) => props.title}</span>`;
+            Component.create`<div id="test-node"><${Child} title="Mr. ${() => 'X'}" /></div>`.mount({}, document.body);
+            expect(document.querySelector('#test-node span').textContent).to.be.equal('Mr. X');
+        });
+
+        it('must keep the raw value of a lone interpolation', () => {
+            // A value that is exactly one interpolation is not composed: booleans keep
+            // driving attribute presence.
+            const html = Component.create`<input id="test-node" disabled="${() => false}" />`.mount().toString();
+            expect(html).to.not.contain('disabled');
+        });
+    });
+
     describe('Value style templates', () => {
         it('must recompute plain interpolated values on each render', () => {
             const Timer = Component.extend({

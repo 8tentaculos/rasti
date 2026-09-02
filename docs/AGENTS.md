@@ -132,15 +132,19 @@ onClick=${function() { this.model.removeCompleted(); }}
 handleChange=${(checked) => model.toggleAll(checked)}
 ```
 
-**Attribute values must be a single interpolation** — mixing literals and interpolations within an attribute is not supported:
+**Quoted attribute values compose** — a quoted value may mix literal text and any number of interpolations; the parts are joined into a single string. Each interpolated part is evaluated like any quoted value and coerced with the content-interpolation rule: `null`, `undefined`, `true` and `false` become `''`, anything else its string form. A value that is *exactly* one interpolation passes its raw resolved value, so booleans, objects and handler thunks keep working:
 
 ```js
-// ❌ Wrong — mixed literal and interpolation
+// ✅ Mixed — literal text and interpolations join into one string
 class="base ${({ state }) => state.active ? 'active' : ''}"
+href="/items?page=${({ state }) => state.page}"
 
-// ✅ Correct — entire value is one interpolation
-class="${({ state }) => state.active ? 'base active' : 'base'}"
-class="${getClassName}"  // helper function
+// ✅ Lone interpolation — raw value (boolean drives attribute presence)
+disabled="${({ model }) => model.locked}"
+
+// ❌ Still unsupported (warns in development)
+data-${x}="1"    // attribute names must be literal
+attr=x${fn}      // unquoted values take a single interpolation
 ```
 
 ---
