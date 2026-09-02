@@ -2,8 +2,7 @@ import Constants from './Constants.js';
 import SafeHTML from './SafeHTML.js';
 import isComponent from './isComponent.js';
 import __DEV__ from '../utils/dev.js';
-import createDevelopmentWarningMessage from '../utils/createDevelopmentWarningMessage.js';
-import formatTemplateSource from '../utils/formatTemplateSource.js';
+import warnTemplate from '../utils/warnTemplate.js';
 import findComment from '../utils/findComment.js';
 import parseHTML from '../utils/parseHTML.js';
 
@@ -35,9 +34,8 @@ const listItemChild = (partial, value) => {
 };
 
 /**
- * Print a warning about one interpolation, pointing at it in the template source, and
- * silence further ones from the same call site: the descriptor comes from the
- * skeleton, which every partial from that call site shares. Development only.
+ * Print a warning about one interpolation, resolving its expression off the slot's
+ * descriptor (see `warnTemplate`). Development only.
  * @param {InterpolationSlot} slot The slot the warning is about.
  * @param {string} message The warning message.
  * @private
@@ -45,11 +43,7 @@ const listItemChild = (partial, value) => {
 const warn = (slot, message) => {
     const { source } = slot.partial.constructor;
     const expression = source && source.expressions[slot.descriptor.expressionIndex];
-    const formattedSource = formatTemplateSource(source, expression, 'This interpolation');
-    slot.descriptor.warned = true;
-    console.warn(createDevelopmentWarningMessage(
-        message + (formattedSource ? `\n\nTemplate source:\n\n${formattedSource}` : '')
-    ));
+    warnTemplate(slot.partial.constructor, slot.descriptor, expression, message);
 };
 
 /**

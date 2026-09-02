@@ -1,6 +1,8 @@
 import Constants from './Constants.js';
 import getAttributesHTML from '../utils/getAttributesHTML.js';
 import getAttributesDiff from '../utils/getAttributesDiff.js';
+import __DEV__ from '../utils/dev.js';
+import warnUnsupportedAttribute from '../utils/warnUnsupportedAttribute.js';
 
 // Attributes the browser stops reflecting into the DOM once the user interacts with
 // the element, so patching the attribute alone is not enough: the property has to be
@@ -65,6 +67,7 @@ class ElementSlot {
      */
     render() {
         if (this.id == null) this.id = this.partial.owner.nextElementId();
+        if (__DEV__) warnUnsupportedAttribute(this.partial.constructor, this.descriptor);
         const { attributes, sourceKeys } = this.buildAttributes();
         this.previousAttributes = attributes;
         return getAttributesHTML(attributes, sourceKeys);

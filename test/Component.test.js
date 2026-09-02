@@ -2435,5 +2435,56 @@ describe('Component', () => {
 
             expect(warnings.length).to.be.equal(1);
         });
+
+        it('must warn when an attribute name holds an interpolation', () => {
+            Component.create`<div data-${() => 'x'}="1"></div>`.mount({}, document.body);
+
+            expect(warnings.length).to.be.equal(1);
+            expect(warnings[0]).to.contain('Unsupported interpolation in an attribute');
+            expect(warnings[0]).to.contain('Template source');
+        });
+
+        it('must warn when an unquoted value mixes literal text and an interpolation', () => {
+            Component.create`<a href=x${() => 'y'}>l</a>`.mount({}, document.body);
+
+            expect(warnings.length).to.be.equal(1);
+            expect(warnings[0]).to.contain('Unsupported interpolation in an attribute');
+        });
+
+        it('must not warn for pure forms and quoted mixed values', () => {
+            Component.create`<div class="a ${() => 'b'}" title="${() => 't'}" data-s="z" onClick=${() => {}}></div>`
+                .mount({}, document.body);
+
+            expect(warnings).to.be.empty;
+        });
+
+        it('must warn once per call site for an unsupported attribute, not on every render', () => {
+            const c = Component.create`<div data-${() => 'x'}="1" title="${({ model }) => model.t}"></div>`
+                .mount({ model : new Model({ t : 'a' }) }, document.body);
+
+            c.model.t = 'b';
+            c.model.t = 'c';
+
+            expect(warnings.length).to.be.equal(1);
+        });
+
+        it('must warn for an unsupported component tag attribute', () => {
+            const Child = Component.create`<span>x</span>`;
+            Component.create`<div><${Child} data-${() => 'x'}="1" /></div>`.mount({}, document.body);
+
+            expect(warnings.length).to.be.equal(1);
+            expect(warnings[0]).to.contain('Unsupported interpolation in an attribute');
+        });
+
+        it('must omit the source block for a warning inside slotted content', () => {
+            const Child = Component.create`<div>${({ props }) => props.renderChildren()}</div>`;
+            Component.create`<div><${Child}><a href=x${() => 'y'}>l</a></${Child}></div>`.mount({}, document.body);
+
+            // A component tag's inner skeleton is parsed without the template source,
+            // so the warning prints without the source block.
+            expect(warnings.length).to.be.equal(1);
+            expect(warnings[0]).to.contain('Unsupported interpolation in an attribute');
+            expect(warnings[0]).to.not.contain('Template source');
+        });
     });
 });

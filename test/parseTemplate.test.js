@@ -185,6 +185,16 @@ describe('parseTemplate', () => {
             expect(quoted).to.equal(false);
             expect(value).to.be.a('string');
         });
+
+        it('must record the first unresolved expression of an unsupported form', () => {
+            const { strings, expressions } = tag`<a data-${'x'}="1" href=y${'z'}>l</a>`;
+            const attributes = elementsOf(parseTemplate(strings, expressions).parts)[0].attributes;
+
+            // A placeholder in a literal name, or in an unquoted literal value, marks
+            // the attribute so the slot can warn on first render (dev only).
+            expect(attributes[0].unsupportedIndex).to.equal(0);
+            expect(attributes[1].unsupportedIndex).to.equal(1);
+        });
     });
 
     describe('multiple dynamic regions and ordering', () => {

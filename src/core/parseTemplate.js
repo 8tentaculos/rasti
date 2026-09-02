@@ -129,7 +129,18 @@ const parseAttributes = (attributesStr) => {
             val = splitValueParts(val);
         }
 
-        attributes.push(new Attribute(key, val, hasQuotes));
+        const parsed = new Attribute(key, val, hasQuotes);
+
+        if (__DEV__) {
+            // A placeholder surviving in a literal name, or in an unquoted literal
+            // value, is one of the two unsupported forms; record the first offending
+            // expression so the slot can warn on first render.
+            const unsupported = (typeof key === 'string' && key.match(new RegExp(PH))) ||
+                (!hasQuotes && typeof val === 'string' && val.match(new RegExp(PH)));
+            if (unsupported) parsed.unsupportedIndex = parseInt(unsupported[1], 10);
+        }
+
+        attributes.push(parsed);
     }
 
     return attributes;

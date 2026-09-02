@@ -1,4 +1,6 @@
 import InterpolationSlot from './InterpolationSlot.js';
+import __DEV__ from '../utils/dev.js';
+import warnUnsupportedAttribute from '../utils/warnUnsupportedAttribute.js';
 
 /**
  * The live state of one component tag (`<${Comp} .../>`). A component tag is an
@@ -21,6 +23,7 @@ class ComponentSlot extends InterpolationSlot {
      */
     evaluate() {
         const { partial, descriptor } = this;
+        if (__DEV__) warnUnsupportedAttribute(partial.constructor, descriptor);
         const tag = partial.expressions[descriptor.expressionIndex];
         const childOptions = {};
         descriptor.attributes.forEach(attribute => attribute.applyTo(childOptions, partial.expressions, partial.owner));
