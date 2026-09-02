@@ -192,8 +192,10 @@ describe('Component', () => {
         });
 
         it('must serialize the composed value on first render', () => {
+            // A mixed value is plain text, so its `&` serializes escaped; the DOM
+            // receives the composed string as written.
             const c = Component.create`<a id="test-node" href="/s?a=1&b=${() => 2}">x</a>`.mount();
-            expect(c.toString()).to.be.equal(`<a id="test-node" href="/s?a=1&b=2" ${Constants.ATTRIBUTE_ELEMENT}="r1-1">x</a>`);
+            expect(c.toString()).to.be.equal(`<a id="test-node" href="/s?a=1&amp;b=2" ${Constants.ATTRIBUTE_ELEMENT}="r1-1">x</a>`);
         });
 
         it('must coerce nullish and boolean parts to the empty string', () => {
@@ -234,6 +236,61 @@ describe('Component', () => {
             // driving attribute presence.
             const html = Component.create`<input id="test-node" disabled="${() => false}" />`.mount().toString();
             expect(html).to.not.contain('disabled');
+        });
+    });
+
+    describe('Attribute escaping by origin', () => {
+        it('must render a dynamic entity-looking value identically on first render and update', () => {
+            const model = new Model({ title : 'Tom &amp; Jerry' });
+            const c = Component.create`<div id="test-node" title="${({ model }) => model.title}"></div>`
+                .mount({ model }, document.body);
+            expect(c.el.getAttribute('title')).to.be.equal('Tom &amp; Jerry');
+            model.title = 'x';
+            model.title = 'Tom &amp; Jerry';
+            expect(c.el.getAttribute('title')).to.be.equal('Tom &amp; Jerry');
+        });
+
+        it('must keep a static entity as HTML source', () => {
+            const c = Component.create`<a id="test-node" href="/s?a=1&amp;b=2" title="${() => 'x'}">x</a>`
+                .mount({}, document.body);
+            expect(c.el.getAttribute('href')).to.be.equal('/s?a=1&b=2');
+            expect(c.toString()).to.contain('href="/s?a=1&amp;b=2"');
+        });
+
+        it('must pass a dynamic query string to the DOM as written', () => {
+            const c = Component.create`<a id="test-node" href="${() => '/s?a=1&b=2'}">x</a>`.mount({}, document.body);
+            expect(c.el.getAttribute('href')).to.be.equal('/s?a=1&b=2');
+            expect(c.toString()).to.contain('href="/s?a=1&amp;b=2"');
+        });
+
+        it('must keep each convention on the same element', () => {
+            const c = Component.create`<a id="test-node" href="/s?a=1&amp;b=2" title="${() => 'a & b'}">x</a>`
+                .mount({}, document.body);
+            expect(c.el.getAttribute('href')).to.be.equal('/s?a=1&b=2');
+            expect(c.el.getAttribute('title')).to.be.equal('a & b');
+        });
+
+        it('must treat literal parts of a mixed value as plain text', () => {
+            // Inside a mixed value the author composes a string, not markup: the
+            // literal `&amp;` reaches the DOM as written.
+            const c = Component.create`<div id="test-node" title="a &amp; ${() => 'b'}"></div>`.mount({}, document.body);
+            expect(c.el.getAttribute('title')).to.be.equal('a &amp; b');
+            expect(c.toString()).to.contain('title="a &amp;amp; b"');
+        });
+
+        it('must drop the source mark when a spread overwrites a literal', () => {
+            const c = Component.create`<div id="test-node" title="a&amp;b" ${() => ({ title : 'a&amp;b' })}></div>`
+                .mount({}, document.body);
+            // The spread value is plain text: without invalidation the stale literal
+            // mark would serialize it as source and the DOM would read `a&b`.
+            expect(c.el.getAttribute('title')).to.be.equal('a&amp;b');
+        });
+
+        it('must drop the source mark when root attributes overwrite a literal', () => {
+            const c = Component.create`<div id="test-node" title="a&amp;b"></div>`
+                .extend({ attributes : { title : 'a&amp;b' } })
+                .mount({}, document.body);
+            expect(c.el.getAttribute('title')).to.be.equal('a&amp;b');
         });
     });
 

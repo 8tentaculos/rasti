@@ -65,9 +65,9 @@ class ElementSlot {
      */
     render() {
         if (this.id == null) this.id = this.partial.owner.nextElementId();
-        const attributes = this.buildAttributes();
+        const { attributes, sourceKeys } = this.buildAttributes();
         this.previousAttributes = attributes;
-        return getAttributesHTML(attributes);
+        return getAttributesHTML(attributes, sourceKeys);
     }
 
     /**
@@ -84,7 +84,8 @@ class ElementSlot {
      * Diff the element's attributes against the swapped expressions and patch the DOM.
      */
     update() {
-        const attributes = this.buildAttributes();
+        // The source keys are ignored here: `setAttribute` always takes plain text.
+        const { attributes } = this.buildAttributes();
         const { remove, add } = getAttributesDiff(attributes, this.previousAttributes);
         this.previousAttributes = attributes;
         // Remove attributes first so later `setAttribute` overrides if needed.
@@ -113,17 +114,29 @@ class ElementSlot {
      * merges the owner's `attributes`. Only the root partial carries `rootAttributes`;
      * nested partials never do. Both the render and the update path go through here, so
      * the merged attributes are on both sides of the diff and survive a re-render.
-     * @return {object} Attributes object, including the emission id.
+     *
+     * Alongside the attributes it returns the keys whose values are HTML source (pure
+     * template literals) — kept beside the object, not inside it, so `getAttributesDiff`
+     * keeps comparing primitive values by identity. Everything added after the
+     * descriptors — events, `rootAttributes`, the element id — is plain text, and a
+     * `rootAttributes` key colliding with a literal-marked one drops the mark.
+     * @return {{ attributes: object, sourceKeys: Set<string> }} Attributes (including
+     *     the emission id) and the HTML-source key set.
      * @private
      */
     buildAttributes() {
         const { partial } = this;
         const attributes = {};
-        this.descriptor.attributes.forEach(attribute => attribute.applyTo(attributes, partial.expressions, partial.owner));
+        const sourceKeys = new Set();
+        this.descriptor.attributes.forEach(attribute => attribute.applyTo(attributes, partial.expressions, partial.owner, sourceKeys));
         const out = expandEvents(attributes, partial.owner);
-        if (partial.rootAttributes && /-1$/.test(this.id)) Object.assign(out, partial.rootAttributes());
+        if (partial.rootAttributes && /-1$/.test(this.id)) {
+            const rootAttributes = partial.rootAttributes();
+            Object.assign(out, rootAttributes);
+            Object.keys(rootAttributes).forEach(key => sourceKeys.delete(key));
+        }
         out[Constants.ATTRIBUTE_ELEMENT] = this.id;
-        return out;
+        return { attributes : out, sourceKeys };
     }
 }
 
