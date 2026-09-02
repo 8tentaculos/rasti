@@ -63,22 +63,40 @@ const parseAttributes = (attributesStr) => {
     const PH = Constants.PLACEHOLDER('(\\d+)');
     const attributes = [];
     // Parse attributes string with support for placeholders in both names and values.
-    const regExp = new RegExp(`(?:${PH}|([\\w-]+))(?:=(["']?)(?:${PH}|((?:.?(?!["']?\\s+(?:\\S+)=|\\s*/>|\\s*[>"']))+.))?\\3)?`, 'g');
+    // The value takes one of three explicit alternatives (double-quoted, single-quoted,
+    // unquoted), so a quoted value is "everything up to the closing quote" and may hold
+    // the other quote, `>` or whitespace. Unquoted values need not exclude `/`:
+    // `replaceElements` hands the tag ending (and the whitespace before it) to its own
+    // group, so `attributesStr` never ends in a slash.
+    const regExp = new RegExp(
+        `(?:${PH}|([\\w-]+))` +
+        '(?:=(?:' +
+            `"(?:${PH}|([^"]*))"` +
+            `|'(?:${PH}|([^']*))'` +
+            `|(?:${PH}|([^\\s>]+))` +
+        '))?',
+        'g'
+    );
 
     let attributeMatch;
     while ((attributeMatch = regExp.exec(attributesStr)) !== null) {
-        const [, attributeIdx, attribute, quotes, valueIdx, value] = attributeMatch;
+        const [
+            , attributeIdx, attribute,
+            doubleQuotedIdx, doubleQuotedValue,
+            singleQuotedIdx, singleQuotedValue,
+            unquotedIdx, unquotedValue
+        ] = attributeMatch;
 
-        const hasQuotes = !!quotes;
+        // Which alternative matched tells whether the value was quoted. A quoted
+        // literal may be the empty string, so presence is checked, not truthiness.
+        const isDefined = part => typeof part !== 'undefined';
+        const hasQuotes = [doubleQuotedIdx, doubleQuotedValue, singleQuotedIdx, singleQuotedValue].some(isDefined);
 
-        const key = typeof attributeIdx !== 'undefined' ? new ExpressionIndex(parseInt(attributeIdx, 10)) : attribute;
-        let val = typeof valueIdx !== 'undefined' ? new ExpressionIndex(parseInt(valueIdx, 10)) : value;
+        const valueIdx = [doubleQuotedIdx, singleQuotedIdx, unquotedIdx].find(isDefined);
+        const value = [doubleQuotedValue, singleQuotedValue, unquotedValue].find(isDefined);
 
-        // A quoted attribute with no value renders as an empty string; a bare
-        // attribute (no `=`) stays value-less (`undefined`).
-        if (hasQuotes && typeof val === 'undefined') {
-            val = '';
-        }
+        const key = isDefined(attributeIdx) ? new ExpressionIndex(parseInt(attributeIdx, 10)) : attribute;
+        const val = isDefined(valueIdx) ? new ExpressionIndex(parseInt(valueIdx, 10)) : value;
 
         attributes.push(new Attribute(key, val, hasQuotes));
     }
@@ -121,9 +139,13 @@ const expandComponents = (main, expressions, interpolations, isComponentClass, s
             }
         );
     }
-    // Match component tags with backreference to ensure correct pairing.
+    // Match component tags with backreference to ensure correct pairing. The
+    // attributes groups are quote-aware (like `replaceElements`), so a quoted value
+    // may hold `>` without ending the tag; their inner alternation is non-capturing,
+    // so group numbering — including the `\4` pairing backreference — is unchanged.
+    const ATTRS = '((?:"[^"]*"|\'[^\']*\'|[^>])*?)';
     return main.replace(
-        new RegExp(`<(${PH})([^>]*)/>|<(${PH})([^>]*)>([\\s\\S]*?)</\\4>`, 'g'),
+        new RegExp(`<(${PH})${ATTRS}/>|<(${PH})${ATTRS}>([\\s\\S]*?)</\\4>`, 'g'),
         (match, selfClosingTag, selfClosingIdx, selfClosingAttrs, openTag, openIdx, nonVoidAttrs, inner) => {
             let tag, attributesStr, tagIndex, innerSkeleton = null;
 

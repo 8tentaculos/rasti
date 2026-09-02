@@ -123,6 +123,35 @@ describe('parseTemplate', () => {
             expect(elements[0].attributes).to.have.lengthOf(1);
             expectAttr(elements[0].attributes[0], 0, undefined, false);
         });
+
+        it('must parse a single-quoted placeholder value and an empty quoted value', () => {
+            const { strings, expressions } = tag`<a title='${'t'}' alt="">x</a>`;
+            const attributes = elementsOf(parseTemplate(strings, expressions).parts)[0].attributes;
+
+            expect(attributes).to.have.lengthOf(2);
+            expectAttr(attributes[0], 'title', 0, true);
+            expectAttr(attributes[1], 'alt', '', true);
+        });
+
+        it('must parse literal values holding the other quote, `>` and JSON', () => {
+            const { strings, expressions } = tag`<div data-json='{"a":1}' title="x > y" alt="say 'hi'" aria-label='say "hi"' dynamic="${'d'}">t</div>`;
+            const attributes = elementsOf(parseTemplate(strings, expressions).parts)[0].attributes;
+
+            expect(attributes).to.have.lengthOf(5);
+            expectAttr(attributes[0], 'data-json', '{"a":1}', true);
+            expectAttr(attributes[1], 'title', 'x > y', true);
+            expectAttr(attributes[2], 'alt', 'say \'hi\'', true);
+            expectAttr(attributes[3], 'aria-label', 'say "hi"', true);
+            expectAttr(attributes[4], 'dynamic', 0, true);
+        });
+
+        it('must parse root element literals holding `>` when it has no dynamic attributes', () => {
+            const { strings, expressions } = tag`<div title="x > y">t</div>`;
+            const attributes = elementsOf(parseTemplate(strings, expressions).parts)[0].attributes;
+
+            expect(attributes).to.have.lengthOf(1);
+            expectAttr(attributes[0], 'title', 'x > y', true);
+        });
     });
 
     describe('multiple dynamic regions and ordering', () => {
@@ -211,6 +240,28 @@ describe('parseTemplate', () => {
             const inner = interpolationsOf(outer.inner.parts);
             expect(inner).to.have.lengthOf(1);
             expect(inner[0]).to.be.instanceOf(ComponentDescriptor);
+        });
+
+        it('must expand a self-closing component tag whose quoted attributes hold `>` and quotes', () => {
+            const Comp = makeComponent();
+            const { strings, expressions } = tag`<div><${Comp} title="a > b" alt='say "hi"'/></div>`;
+            const { parts } = parseTemplate(strings, expressions, isComponentClass);
+
+            const desc = interpolationsOf(parts)[0];
+            expect(desc).to.be.instanceOf(ComponentDescriptor);
+            expectAttr(desc.attributes[0], 'title', 'a > b', true);
+            expectAttr(desc.attributes[1], 'alt', 'say "hi"', true);
+        });
+
+        it('must expand a non-void component tag whose quoted attribute holds `>`', () => {
+            const Comp = makeComponent();
+            const { strings, expressions } = tag`<div><${Comp} title="a > b">${'hi'}</${Comp}></div>`;
+            const { parts } = parseTemplate(strings, expressions, isComponentClass);
+
+            const desc = interpolationsOf(parts)[0];
+            expect(desc).to.be.instanceOf(ComponentDescriptor);
+            expectAttr(desc.attributes[0], 'title', 'a > b', true);
+            expect(interpolationsOf(desc.inner.parts)).to.have.lengthOf(1);
         });
 
         it('must coalesce open and close tag references to a single descriptor', () => {

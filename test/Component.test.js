@@ -161,6 +161,26 @@ describe('Component', () => {
             Component.create`<h1 id="test-node"></h1>`.mount({}, document.body);
             expect(document.getElementById('test-node')).to.exist;
         });
+
+        it('must serialize literal values holding quotes and `>` without corruption', () => {
+            const c = Component.create`<div id="test-node" data-json='{"a":1}' title="x > y" alt="${() => 'ok'}">t</div>`.mount();
+            expect(c.toString()).to.be.equal(
+                `<div id="test-node" data-json="{&quot;a&quot;:1}" title="x > y" alt="ok" ${Constants.ATTRIBUTE_ELEMENT}="r1-1">t</div>`
+            );
+        });
+
+        it('must serialize root literal attributes holding `>` without dynamic ones', () => {
+            const c = Component.create`<div id="test-node" title="x > y">t</div>`.mount();
+            expect(c.toString()).to.be.equal(
+                `<div id="test-node" title="x > y" ${Constants.ATTRIBUTE_ELEMENT}="r1-1">t</div>`
+            );
+        });
+
+        it('must expand a component tag whose quoted attribute holds `>`', () => {
+            const Child = Component.create`<span>${({ props }) => props.title}</span>`;
+            Component.create`<div id="test-node"><${Child} title="a > b" /></div>`.mount({}, document.body);
+            expect(document.querySelector('#test-node span').textContent).to.be.equal('a > b');
+        });
     });
 
     describe('Value style templates', () => {
