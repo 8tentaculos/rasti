@@ -1,3 +1,4 @@
+import Slot from './Slot.js';
 import Constants from './Constants.js';
 import SafeHTML from './SafeHTML.js';
 import isComponent from './isComponent.js';
@@ -106,10 +107,9 @@ const checkListItems = (slot, items) => {
  * @param {InterpolationDescriptor} descriptor The descriptor this slot renders from.
  * @private
  */
-class InterpolationSlot {
+class InterpolationSlot extends Slot {
     constructor(partial, descriptor) {
-        this.partial = partial;
-        this.descriptor = descriptor;
+        super(partial, descriptor);
         this.id = null;
         this.ref = null;
         this.previous = null;
@@ -277,10 +277,8 @@ class InterpolationSlot {
             this.recycleInPlace(prev, value);
             return;
         }
-        // Anything else: regenerate the slot's content and patch the DOM. An anchored
-        // partial has no markers, so its content is placed on its current element.
-        if (partial.isAnchored()) this.replaceAnchored(value);
-        else this.replaceSlot(value);
+        // Anything else: regenerate the slot's content and patch the DOM.
+        this.regenerate(value);
     }
 
     /**
@@ -300,49 +298,53 @@ class InterpolationSlot {
     }
 
     /**
-     * Regenerate the slot's content and patch it between its markers: render the new
-     * value (recycling matched children, mounting new ones), insert the fragment,
-     * then move recycled children into place, hydrate new children and nested
-     * partials, and reconcile props.
+     * Regenerate the slot's content: render the new value (recycling matched
+     * children, mounting new ones), place the fragment, then hydrate and
+     * reconcile props. Placement is the only fork — markers vs the anchored
+     * element's parent.
      * @param {any} value The new value.
      * @private
      */
-    replaceSlot(value) {
+    regenerate(value) {
         const pass = this.makePass(value);
         const fragment = parseHTML(this.renderValue(value, pass));
-        const parent = this.ref[1].parentNode;
-
-        this.patchMarkers(fragment, () => this.placeChildren(pass, value, parent));
-
+        if (this.partial.isAnchored()) this.placeAnchored(fragment, pass, value);
+        else this.placeBetweenMarkers(fragment, pass, value);
         this.finishPass(pass);
         this.previous = this.resolvePrevious(value, pass);
     }
 
     /**
-     * Regenerate an anchored partial's single slot and swap it for the current
-     * element. Such a partial has no markers, so its content stands on that element
-     * (which can be moved around the DOM by hand); the new content replaces it in
-     * place.
-     * @param {any} value The new value.
+     * Place a fresh fragment between the slot's markers and run `placeChildren`
+     * before the old content is removed.
+     * @param {DocumentFragment} fragment The new content.
+     * @param {object} pass The reconcile pass.
+     * @param {any} value The rendered value.
      * @private
      */
-    replaceAnchored(value) {
+    placeBetweenMarkers(fragment, pass, value) {
+        const parent = this.ref[1].parentNode;
+        this.patchMarkers(fragment, () => this.placeChildren(pass, value, parent));
+    }
+
+    /**
+     * Place a fresh fragment next to an anchored partial's current element and
+     * swap it in. Such a partial has no markers, so its content stands on that
+     * element (which can be moved around the DOM by hand).
+     * @param {DocumentFragment} fragment The new content.
+     * @param {object} pass The reconcile pass.
+     * @param {any} value The rendered value.
+     * @private
+     */
+    placeAnchored(fragment, pass, value) {
         const element = this.partial.rootElement();
         const parent = element.parentNode;
-        const pass = this.makePass(value);
-        const fragment = parseHTML(this.renderValue(value, pass));
-
         const divider = document.createComment('');
         parent.insertBefore(divider, element.nextSibling);
         parent.insertBefore(fragment, divider.nextSibling);
-
         this.placeChildren(pass, value, parent);
-
         if (element.nextSibling === divider) parent.removeChild(element);
         parent.removeChild(divider);
-
-        this.finishPass(pass);
-        this.previous = this.resolvePrevious(value, pass);
     }
 
     /**

@@ -1,3 +1,4 @@
+import Slot from './Slot.js';
 import Constants from './Constants.js';
 import getAttributesHTML from '../utils/getAttributesHTML.js';
 import getAttributesDiff from '../utils/getAttributesDiff.js';
@@ -66,10 +67,9 @@ const expandEvents = (attributes, owner) => {
  * @param {ElementDescriptor} descriptor The descriptor this slot renders from.
  * @private
  */
-class ElementSlot {
+class ElementSlot extends Slot {
     constructor(partial, descriptor) {
-        this.partial = partial;
-        this.descriptor = descriptor;
+        super(partial, descriptor);
         this.id = null;
         this.ref = null;
         this.previousAttributes = null;

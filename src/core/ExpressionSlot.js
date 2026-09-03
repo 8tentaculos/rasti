@@ -1,3 +1,5 @@
+import Slot from './Slot.js';
+
 /**
  * The live state of a bare expression, paired by position with the `ExpressionIndex`
  * it renders from — an expression that stands on its own, outside of an attribute or
@@ -8,12 +10,7 @@
  * @param {ExpressionIndex} descriptor The expression reference this slot renders from.
  * @private
  */
-class ExpressionSlot {
-    constructor(partial, descriptor) {
-        this.partial = partial;
-        this.descriptor = descriptor;
-    }
-
+class ExpressionSlot extends Slot {
     /**
      * Render the expression, evaluated in the owner's context and sanitized.
      * @return {string} The rendered HTML.
@@ -23,11 +20,6 @@ class ExpressionSlot {
         const { owner } = partial;
         return owner.sanitize(owner.evaluate(partial.expressions[this.descriptor.index], 'dynamic tag'));
     }
-
-    /**
-     * Nothing to reconcile: the expression is resolved on render alone.
-     */
-    update() {}
 }
 
 export default ExpressionSlot;

@@ -1,3 +1,5 @@
+import Slot from './Slot.js';
+
 /**
  * The live state of a literal chunk of the template, paired by position with the
  * `SafeHTML` it renders from. A literal has nothing to keep between renders: it is
@@ -7,12 +9,7 @@
  * @param {SafeHTML} descriptor The literal this slot renders.
  * @private
  */
-class LiteralSlot {
-    constructor(partial, descriptor) {
-        this.partial = partial;
-        this.descriptor = descriptor;
-    }
-
+class LiteralSlot extends Slot {
     /**
      * Render the literal, as written in the template.
      * @return {string} The literal HTML.
@@ -20,11 +17,6 @@ class LiteralSlot {
     render() {
         return `${this.descriptor}`;
     }
-
-    /**
-     * Nothing to reconcile: the literal cannot change between renders.
-     */
-    update() {}
 }
 
 export default LiteralSlot;
