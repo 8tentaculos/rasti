@@ -10,12 +10,14 @@
 const VALID_ATTRIBUTE_NAME = /^[^\s"'>/=\u0000-\u001F\u007F-\u009F]+$/;
 
 /**
- * Escape an attribute value. Values are serialized inside double quotes, so
- * escaping the double quote keeps the value from terminating the attribute on
- * every value. A plain-text value also escapes the ampersand — first, or it
- * would double-escape the `&quot;` just produced — so it reaches the DOM as
- * written, matching what `setAttribute` does on update. An HTML-source value
- * (a pure template literal) keeps its character references as written.
+ * Escape an attribute value, following the HTML fragment serialization
+ * algorithm ("escaping a string" in attribute mode): `&`, U+00A0 as `&nbsp;`
+ * and the double quote, which the value is serialized inside of. A plain-text
+ * value escapes the ampersand first — or it would double-escape the references
+ * just produced — so it reaches the DOM as written, matching what
+ * `setAttribute` does on update. An HTML-source value (a pure template
+ * literal) keeps its character references as written; U+00A0 is still escaped,
+ * being a raw character rather than a reference.
  * @param {string} value Attribute value.
  * @param {boolean} isSource Whether the value is HTML source.
  * @return {string} Escaped attribute value.
@@ -24,7 +26,7 @@ const VALID_ATTRIBUTE_NAME = /^[^\s"'>/=\u0000-\u001F\u007F-\u009F]+$/;
 const escapeAttributeValue = (value, isSource) => {
     let out = `${value}`;
     if (!isSource) out = out.replace(/&/g, '&amp;');
-    return out.replace(/"/g, '&quot;');
+    return out.replace(/\u00A0/g, '&nbsp;').replace(/"/g, '&quot;');
 };
 
 /**

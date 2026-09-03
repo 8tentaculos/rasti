@@ -292,6 +292,35 @@ describe('Component', () => {
                 .mount({}, document.body);
             expect(c.el.getAttribute('title')).to.be.equal('a&amp;b');
         });
+
+        it('must serialize U+00A0 in a dynamic value as &nbsp;', () => {
+            const c = Component.create`<div id="test-node" title="${() => 'a\u00A0b'}"></div>`
+                .mount({}, document.body);
+            expect(c.toString()).to.contain('title="a&nbsp;b"');
+            expect(c.el.getAttribute('title')).to.be.equal('a\u00A0b');
+        });
+
+        it('must round-trip a U+00A0 value through server markup and hydration', () => {
+            const Main = Component.create`<div title="${() => 'a\u00A0b'}"></div>`;
+            Component.resetUid();
+            const serverHtml = Main.mount({}).toString();
+            expect(serverHtml).to.contain('title="a&nbsp;b"');
+            // Client side: the browser parses `&nbsp;` back to U+00A0, hydration
+            // leaves it alone and an update writes the same raw character.
+            document.body.innerHTML = serverHtml;
+            Component.resetUid();
+            const client = Main.mount({}, document.body, true);
+            expect(client.el.getAttribute('title')).to.be.equal('a\u00A0b');
+            client.render();
+            expect(client.el.getAttribute('title')).to.be.equal('a\u00A0b');
+        });
+
+        it('must keep a written &nbsp; reference in a source value as written', () => {
+            const c = Component.create`<div id="test-node" title="a&nbsp;b"></div>`
+                .mount({}, document.body);
+            expect(c.toString()).to.contain('title="a&nbsp;b"');
+            expect(c.el.getAttribute('title')).to.be.equal('a\u00A0b');
+        });
     });
 
     describe('Value style templates', () => {
