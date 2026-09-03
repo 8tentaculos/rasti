@@ -10,6 +10,21 @@ import warnUnsupportedAttribute from '../utils/warnUnsupportedAttribute.js';
 const SYNC_PROPS = ['value', 'checked', 'selected'];
 
 /**
+ * Write an attribute's value through to its DOM property when the attribute is one
+ * the browser stops reflecting (see `SYNC_PROPS`). `value` takes the string as is;
+ * the boolean properties coerce it, with the string `'false'` counting as false.
+ * @param {Element} ref The DOM element.
+ * @param {string} attr The attribute name.
+ * @param {any} value The value to sync, already resolved by the caller.
+ * @private
+ */
+const syncProperty = (ref, attr, value) => {
+    if (SYNC_PROPS.indexOf(attr) !== -1 && attr in ref) {
+        ref[attr] = attr === 'value' ? value : value !== false && value !== 'false';
+    }
+};
+
+/**
  * Expand events. Delegates listener registration and the event data-attribute to
  * the owner through `registerListener`.
  * @param {object} attributes Attributes object.
@@ -94,17 +109,13 @@ class ElementSlot {
         // Remove attributes first so later `setAttribute` overrides if needed.
         remove.forEach(attr => {
             this.ref.removeAttribute(attr);
-            if (SYNC_PROPS.indexOf(attr) !== -1 && attr in this.ref) {
-                this.ref[attr] = attr === 'value' ? '' : false;
-            }
+            syncProperty(this.ref, attr, attr === 'value' ? '' : false);
         });
         // Add / update attributes.
         Object.keys(add).forEach(attr => {
             const value = add[attr];
             this.ref.setAttribute(attr, value);
-            if (SYNC_PROPS.indexOf(attr) !== -1 && attr in this.ref) {
-                this.ref[attr] = attr === 'value' ? value : value !== false && value !== 'false';
-            }
+            syncProperty(this.ref, attr, value);
         });
     }
 
@@ -113,10 +124,11 @@ class ElementSlot {
      * its descriptors resolved against the current expressions, events expanded, the
      * root treatment, and the emission id.
      *
-     * Root treatment: the component's root element (emitted first, id ending in `-1`)
-     * merges the owner's `attributes`. Only the root partial carries `rootAttributes`;
-     * nested partials never do. Both the render and the update path go through here, so
-     * the merged attributes are on both sides of the diff and survive a re-render.
+     * Root treatment: the component's root element — the root partial's first element
+     * slot — merges the owner's `attributes`. Only the root partial carries
+     * `rootAttributes`; nested partials never do. Both the render and the update path
+     * go through here, so the merged attributes are on both sides of the diff and
+     * survive a re-render.
      *
      * Alongside the attributes it returns the keys whose values are HTML source (pure
      * template literals) — kept beside the object, not inside it, so `getAttributesDiff`
@@ -133,7 +145,7 @@ class ElementSlot {
         const sourceKeys = new Set();
         this.descriptor.attributes.forEach(attribute => attribute.applyTo(attributes, partial.expressions, partial.owner, sourceKeys));
         const out = expandEvents(attributes, partial.owner);
-        if (partial.rootAttributes && /-1$/.test(this.id)) {
+        if (partial.rootAttributes && partial.firstSlot(ElementSlot) === this) {
             const rootAttributes = partial.rootAttributes();
             Object.assign(out, rootAttributes);
             Object.keys(rootAttributes).forEach(key => sourceKeys.delete(key));

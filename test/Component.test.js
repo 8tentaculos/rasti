@@ -667,6 +667,25 @@ describe('Component', () => {
             expect(rootEl.getAttribute('role')).to.be.equal('main');
         });
 
+        it('must merge the component attributes only into the root element', () => {
+            const model = new Model({ count : 0 });
+            // The nested partial has elements of its own; the merge must not reach them.
+            const c = Component.create`<div id="test-node">${({ model, partial }) =>
+                partial`<span class="${() => `count-${model.count}`}">${() => model.count}</span>`
+            }</div>`
+                .extend({ attributes : { role : 'main' } })
+                .mount({ model }, document.body);
+
+            const span = c.el.querySelector('span');
+            expect(c.el.getAttribute('role')).to.be.equal('main');
+            expect(span.hasAttribute('role')).to.be.false;
+            // Same on update renders.
+            model.count = 1;
+            expect(c.el.getAttribute('role')).to.be.equal('main');
+            expect(span.hasAttribute('role')).to.be.false;
+            expect(span.className).to.be.equal('count-1');
+        });
+
         it('must render true and false attributes', () => {
             expect(
                 Component.create`<input id="test-node" disabled="${() => false}" />`.mount().toString()

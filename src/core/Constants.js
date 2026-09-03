@@ -6,6 +6,11 @@
  * It is a plain mutable object: any value can be overridden (for example
  * `Constants.ATTRIBUTE_ELEMENT = 'data-x'`) before anything renders, and as long as it
  * is done identically on server and client, so hydration keeps matching.
+ *
+ * Emission ids are part of the wire format too, by convention rather than by entry
+ * here: an element id is `${uid}-${n}` with `n` counting from 1 in emission order, so
+ * a component's root element — emitted first — always carries the `-1` suffix, which
+ * is how `isComponent` recognizes component roots in the DOM.
  * @property {string} ATTRIBUTE_ELEMENT Data-attribute carrying an element's emission id.
  * @property {Function} ATTRIBUTE_EVENT Event data-attribute, given event type and component uid.
  * @property {string} DATASET_ELEMENT Dataset key matching `ATTRIBUTE_ELEMENT` (component-root detection).

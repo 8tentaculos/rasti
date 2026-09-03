@@ -3,6 +3,9 @@ import Partial from '../src/core/Partial.js';
 import ElementSlot from '../src/core/ElementSlot.js';
 import InterpolationSlot from '../src/core/InterpolationSlot.js';
 import LiteralSlot from '../src/core/LiteralSlot.js';
+import isComponent from '../src/core/isComponent.js';
+import findComment from '../src/utils/findComment.js';
+import Constants from '../src/core/Constants.js';
 
 // Capture a real tagged-template `strings` array plus its expressions.
 const tag = (strings, ...expressions) => ({ strings, expressions });
@@ -175,6 +178,22 @@ describe('Partial', () => {
 
             partial.update(['b']);
             expect(partial.slots[1].ref.getAttribute('class')).to.equal('b');
+        });
+    });
+
+    describe('marker lookup', () => {
+        it('must skip nested component subtrees when locating a marker', () => {
+            // A component root carries an emission id ending in `-1`; any other
+            // element of the owner carries a later index. The lookup must skip the
+            // former and descend into the latter.
+            document.body.innerHTML =
+                `<div ${Constants.ATTRIBUTE_ELEMENT}="r1-1">` +
+                `<section ${Constants.ATTRIBUTE_ELEMENT}="r2-1"><!--target--></section>` +
+                `<span ${Constants.ATTRIBUTE_ELEMENT}="r1-2"><!--target--></span>` +
+                '</div>';
+
+            const found = findComment(document.body.firstChild, 'target', isComponent);
+            expect(found).to.equal(document.querySelector('span').firstChild);
         });
     });
 });
