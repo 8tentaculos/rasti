@@ -1,5 +1,4 @@
 import SafeHTML from './SafeHTML.js';
-import Constants from './Constants.js';
 import ElementDescriptor from './ElementDescriptor.js';
 import InterpolationDescriptor from './InterpolationDescriptor.js';
 import ComponentDescriptor from './ComponentDescriptor.js';
@@ -22,16 +21,105 @@ import __DEV__ from '../utils/dev.js';
  * event data-attributes) come from the partial's owner at render time.
  *
  * Two placeholder namespaces keep the user's `expressions` array pure:
- * - `Constants.PLACEHOLDER(i)` marks an original expression at index `i`. After
- *   parsing none survive as placeholders: each becomes an `ExpressionIndex` (in an
- *   attribute, or as a part of its own for a dynamic tag) or the `expressionIndex`
- *   of an interpolation descriptor.
- * - `Constants.SLOT_ELEMENT(k)` / `Constants.SLOT_INTERPOLATION(k)` are
- *   structural: `k` indexes the parse-time element / interpolation tables so
- *   `splitPlaceholders` can swap the marker for the descriptor instance. Those
- *   tables are scaffolding — only `parts` survives into the skeleton.
+ * - `PLACEHOLDER(i)` marks an original expression at index `i`. After parsing
+ *   none survive as placeholders: each becomes an `ExpressionIndex` (in an
+ *   attribute, or as a part of its own for a dynamic tag) or the
+ *   `expressionIndex` of an interpolation descriptor.
+ * - `SLOT_ELEMENT(k)` / `SLOT_INTERPOLATION(k)` are structural: `k` indexes the
+ *   parse-time element / interpolation tables so `splitPlaceholders` can swap
+ *   the marker for the descriptor instance. Those tables are scaffolding — only
+ *   `parts` survives into the skeleton.
  * @private
  */
+
+// Compile-time tokens, local to the parser: they exist only between
+// `addPlaceholders` and `splitPlaceholders` and never reach the DOM, unlike the
+// wire format in `Constants`.
+const PLACEHOLDER = idx => `__RASTI_PLACEHOLDER_${idx}__`;
+const SLOT_ELEMENT = idx => `__RASTI_ELEMENT_${idx}__`;
+const SLOT_INTERPOLATION = idx => `__RASTI_INTERPOLATION_${idx}__`;
+
+// Placeholder patterns to embed in the regexes below: one capturing the
+// expression index, one anonymous for regexes with their own group numbering.
+const PH_CAPTURE = PLACEHOLDER('(\\d+)');
+const PH_ANY = PLACEHOLDER('(?:\\d+)');
+
+// The parser's regexes, compiled once. The global ones are safe to share across
+// the parser's recursion (a component tag's inner content re-enters `parseMain`
+// mid-replace): `String.replace` collects every match before running the
+// callbacks, so no `lastIndex` is live by then. The `exec` loops guard
+// themselves by resetting `lastIndex` on entry.
+
+/** Placeholder with its expression index captured. @type {RegExp} @private */
+const RE_PH = new RegExp(PH_CAPTURE);
+/** Global variant of `RE_PH`, for replaces and `exec` loops. @type {RegExp} @private */
+const RE_PH_G = new RegExp(PH_CAPTURE, 'g');
+/**
+ * A placeholder in text content, with an optional `<` / `</` immediately before
+ * it captured. The prefix marks a dynamic tag name (`<${tag}`, `</${tag}>`) — the
+ * only placeholders legitimately inside a tag by the time interpolations are
+ * parsed, since `parseElements` has already absorbed every attribute placeholder.
+ * @type {RegExp}
+ * @private
+ */
+const RE_PH_TEXT = new RegExp(`(</?)?${PH_CAPTURE}`, 'g');
+
+/**
+ * One attribute: a name (literal or placeholder) and an optional value in one of
+ * three explicit alternatives (double-quoted, single-quoted, unquoted), so a quoted
+ * value is "everything up to the closing quote" and may hold the other quote, `>`
+ * or whitespace. Unquoted values need not exclude `/`: `replaceElements` hands the
+ * tag ending (and the whitespace before it) to its own group, so the attributes
+ * string never ends in a slash.
+ * @type {RegExp}
+ * @private
+ */
+const RE_ATTRIBUTE = new RegExp(
+    `(?:${PH_CAPTURE}|([\\w-]+))` +
+    '(?:=(?:' +
+        `"(?:${PH_CAPTURE}|([^"]*))"` +
+        `|'(?:${PH_CAPTURE}|([^']*))'` +
+        `|(?:${PH_CAPTURE}|([^\\s>]+))` +
+    '))?',
+    'g'
+);
+
+/**
+ * A tag's attributes region, quote-aware: a quoted value may hold `>` without
+ * ending the tag. The inner alternation is non-capturing, so embedding it does not
+ * shift the group numbering of the host regex.
+ * @type {string}
+ * @private
+ */
+const ATTRIBUTES_PATTERN = '((?:"[^"]*"|\'[^\']*\'|[^>])*?)';
+
+/**
+ * A component tag: self-closing (`<PH … />`) or non-void with a backreference
+ * (`<PH …>…</PH>`, `\4` pairing the closing tag) to ensure correct pairing.
+ * @type {RegExp}
+ * @private
+ */
+const RE_COMPONENT_TAG = new RegExp(
+    `<(${PH_CAPTURE})${ATTRIBUTES_PATTERN}/>|<(${PH_CAPTURE})${ATTRIBUTES_PATTERN}>([\\s\\S]*?)</\\4>`,
+    'g'
+);
+
+/**
+ * An HTML element opening tag, its name a literal or a placeholder. The attributes
+ * group is lazy so the tag ending, and the whitespace before it, are left for the
+ * ending group instead of being swallowed as attribute characters. The ending
+ * matters in foreign content (SVG, MathML), where `/>` actually closes the element.
+ * @type {RegExp}
+ * @private
+ */
+const RE_ELEMENT = new RegExp(`<(${PH_ANY}|[a-z]+[1-6]?)(?:\\s*)${ATTRIBUTES_PATTERN}(\\s*/?>)`, 'gi');
+
+/** Any structural slot token or surviving placeholder, index captured. @type {string} @private */
+const SLOT_PATTERN = `${SLOT_ELEMENT('(\\d+)')}|${SLOT_INTERPOLATION('(\\d+)')}|${PH_CAPTURE}`;
+/** A string that is exactly one slot token. @type {RegExp} @private */
+const RE_SLOT = new RegExp(`^(?:${SLOT_PATTERN})$`);
+/** Global variant of `SLOT_PATTERN`, for the split `exec` loop. @type {RegExp} @private */
+const RE_SLOT_G = new RegExp(SLOT_PATTERN, 'g');
 
 /**
  * Generate string with placeholders for interpolated expressions.
@@ -46,10 +134,41 @@ const addPlaceholders = (strings, expressions) =>
         out.push(string);
         // Add expression placeholders.
         if (typeof expressions[i] !== 'undefined') {
-            out.push(Constants.PLACEHOLDER(i));
+            out.push(PLACEHOLDER(i));
         }
         return out;
     }, []).join('');
+
+/**
+ * Split a string on a global regex into interleaved literal and match parts, in
+ * source order: each literal goes through `literal`, each match through
+ * `resolve`. A `literal` returning `undefined` drops that part, so each caller
+ * sets its own policy for the empty literals between adjacent matches and at
+ * the extremes.
+ * @param {string} str The string to split.
+ * @param {RegExp} regExp Global regex matching the non-literal parts.
+ * @param {Function} resolve Map a regex match to its part.
+ * @param {Function} literal Map a literal string to its part, or `undefined` to drop it.
+ * @return {Array} The parts.
+ * @private
+ */
+const splitByRegExp = (str, regExp, resolve, literal) => {
+    regExp.lastIndex = 0;
+    const out = [];
+    const pushLiteral = part => {
+        const mapped = literal(part);
+        if (typeof mapped !== 'undefined') out.push(mapped);
+    };
+    let lastIndex = 0;
+    let match;
+    while ((match = regExp.exec(str)) !== null) {
+        pushLiteral(str.slice(lastIndex, match.index));
+        out.push(resolve(match));
+        lastIndex = match.index + match[0].length;
+    }
+    pushLiteral(str.slice(lastIndex));
+    return out;
+};
 
 /**
  * Split a quoted literal value still holding placeholders into its parts:
@@ -60,19 +179,12 @@ const addPlaceholders = (strings, expressions) =>
  * @return {Array<string|ExpressionIndex>} The value parts.
  * @private
  */
-const splitValueParts = (value) => {
-    const regExp = new RegExp(Constants.PLACEHOLDER('(\\d+)'), 'g');
-    const parts = [];
-    let lastIndex = 0;
-    let match;
-    while ((match = regExp.exec(value)) !== null) {
-        if (match.index > lastIndex) parts.push(value.slice(lastIndex, match.index));
-        parts.push(new ExpressionIndex(parseInt(match[1], 10)));
-        lastIndex = match.index + match[0].length;
-    }
-    if (lastIndex < value.length) parts.push(value.slice(lastIndex));
-    return parts;
-};
+const splitValueParts = (value) => splitByRegExp(
+    value,
+    RE_PH_G,
+    match => new ExpressionIndex(parseInt(match[1], 10)),
+    part => part || undefined
+);
 
 /**
  * Parse attributes string into `Attribute` descriptors. Keys and values are
@@ -84,24 +196,9 @@ const splitValueParts = (value) => {
  * @private
  */
 const parseAttributes = (attributesStr) => {
-    const PH = Constants.PLACEHOLDER('(\\d+)');
     const attributes = [];
-    // Parse attributes string with support for placeholders in both names and values.
-    // The value takes one of three explicit alternatives (double-quoted, single-quoted,
-    // unquoted), so a quoted value is "everything up to the closing quote" and may hold
-    // the other quote, `>` or whitespace. Unquoted values need not exclude `/`:
-    // `replaceElements` hands the tag ending (and the whitespace before it) to its own
-    // group, so `attributesStr` never ends in a slash.
-    const regExp = new RegExp(
-        `(?:${PH}|([\\w-]+))` +
-        '(?:=(?:' +
-            `"(?:${PH}|([^"]*))"` +
-            `|'(?:${PH}|([^']*))'` +
-            `|(?:${PH}|([^\\s>]+))` +
-        '))?',
-        'g'
-    );
-
+    const regExp = RE_ATTRIBUTE;
+    regExp.lastIndex = 0;
     let attributeMatch;
     while ((attributeMatch = regExp.exec(attributesStr)) !== null) {
         const [
@@ -125,7 +222,7 @@ const parseAttributes = (attributesStr) => {
         // A quoted literal still holding placeholders is a mixed value: split it into
         // parts so `Attribute` can compose them. Unquoted literals are not split — an
         // unquoted value takes a single interpolation.
-        if (hasQuotes && typeof val === 'string' && new RegExp(PH).test(val)) {
+        if (hasQuotes && typeof val === 'string' && RE_PH.test(val)) {
             val = splitValueParts(val);
         }
 
@@ -135,8 +232,8 @@ const parseAttributes = (attributesStr) => {
             // A placeholder surviving in a literal name, or in an unquoted literal
             // value, is one of the two unsupported forms; record the first offending
             // expression so the slot can warn on first render.
-            const unsupported = (typeof key === 'string' && key.match(new RegExp(PH))) ||
-                (!hasQuotes && typeof val === 'string' && val.match(new RegExp(PH)));
+            const unsupported = (typeof key === 'string' && key.match(RE_PH)) ||
+                (!hasQuotes && typeof val === 'string' && val.match(RE_PH));
             if (unsupported) parsed.unsupportedIndex = parseInt(unsupported[1], 10);
         }
 
@@ -144,6 +241,36 @@ const parseAttributes = (attributesStr) => {
     }
 
     return attributes;
+};
+
+/**
+ * Normalize component references: every placeholder resolving to the same
+ * component class is rewritten to the first placeholder that named it, so a
+ * repeated tag (`<${Comp} /><${Comp} />`) pairs its opening and closing
+ * placeholders and `RE_COMPONENT_TAG`'s backreference can match them. Runs once
+ * per template, before parsing: the recursion into a component tag's inner
+ * content receives references already normalized.
+ * @param {string} main The main template.
+ * @param {Array<any>} expressions Array of expressions (read for structural decisions only).
+ * @param {Function} isComponentClass Predicate telling whether an expression is a component class.
+ * @return {string} The template with component references normalized.
+ * @private
+ */
+const normalizeComponentRefs = (main, expressions, isComponentClass) => {
+    const componentRefMap = new Map();
+    return main.replace(
+        RE_PH_G,
+        (match, idx) => {
+            const expression = expressions[idx];
+            if (expression && isComponentClass(expression)) {
+                if (componentRefMap.has(expression)) {
+                    return componentRefMap.get(expression);
+                }
+                componentRefMap.set(expression, match);
+            }
+            return match;
+        }
+    );
 };
 
 /**
@@ -157,37 +284,12 @@ const parseAttributes = (attributesStr) => {
  * @param {Array<any>} expressions Array of expressions (read for structural decisions only).
  * @param {Array} interpolations Interpolation descriptor table to append to.
  * @param {Function} isComponentClass Predicate telling whether an expression is a component class.
- * @param {boolean} skipNormalization Skip placeholder normalization (for recursive calls).
  * @return {string} The template with component tags replaced by structural placeholders.
  * @private
  */
-const expandComponents = (main, expressions, interpolations, isComponentClass, skipNormalization = false) => {
-    const PH = Constants.PLACEHOLDER('(\\d+)');
-    const componentRefMap = new Map();
-    // Normalize component references to use first placeholder index.
-    // Only on first call, not on recursive calls.
-    if (!skipNormalization) {
-        main = main.replace(
-            new RegExp(PH, 'g'),
-            (match, idx) => {
-                const expression = expressions[idx];
-                if (expression && isComponentClass(expression)) {
-                    if (componentRefMap.has(expression)) {
-                        return componentRefMap.get(expression);
-                    }
-                    componentRefMap.set(expression, match);
-                }
-                return match;
-            }
-        );
-    }
-    // Match component tags with backreference to ensure correct pairing. The
-    // attributes groups are quote-aware (like `replaceElements`), so a quoted value
-    // may hold `>` without ending the tag; their inner alternation is non-capturing,
-    // so group numbering — including the `\4` pairing backreference — is unchanged.
-    const ATTRS = '((?:"[^"]*"|\'[^\']*\'|[^>])*?)';
+const expandComponents = (main, expressions, interpolations, isComponentClass) => {
     return main.replace(
-        new RegExp(`<(${PH})${ATTRS}/>|<(${PH})${ATTRS}>([\\s\\S]*?)</\\4>`, 'g'),
+        RE_COMPONENT_TAG,
         (match, selfClosingTag, selfClosingIdx, selfClosingAttrs, openTag, openIdx, nonVoidAttrs, inner) => {
             let tag, attributesStr, tagIndex, innerSkeleton = null;
 
@@ -205,13 +307,13 @@ const expandComponents = (main, expressions, interpolations, isComponentClass, s
             // Non void component. Parse inner content as a nested fragment skeleton
             // that shares the parent's expressions (references already normalized).
             if (openTag) {
-                innerSkeleton = parseMain(inner, expressions, isComponentClass, true);
+                innerSkeleton = parseMain(inner, expressions, isComponentClass);
             }
             // Add component descriptor to interpolations table.
             const index = interpolations.length;
             interpolations.push(new ComponentDescriptor(tagIndex, parseAttributes(attributesStr), innerSkeleton));
             // Replace whole tag with structural interpolation placeholder.
-            return Constants.SLOT_INTERPOLATION(index);
+            return SLOT_INTERPOLATION(index);
         }
     );
 };
@@ -223,17 +325,7 @@ const expandComponents = (main, expressions, interpolations, isComponentClass, s
  * @return {string} Template string with replaced elements.
  * @private
  */
-const replaceElements = (template, replacer) => {
-    const PH = Constants.PLACEHOLDER('(?:\\d+)');
-    // The attributes group is lazy so the tag ending, and the whitespace before it,
-    // are left for the ending group instead of being swallowed as attribute
-    // characters. The ending matters in foreign content (SVG, MathML), where `/>`
-    // actually closes the element.
-    return template.replace(
-        new RegExp(`<(${PH}|[a-z]+[1-6]?)(?:\\s*)((?:"[^"]*"|'[^']*'|[^>])*?)(\\s*/?>)`, 'gi'),
-        replacer
-    );
-};
+const replaceElements = (template, replacer) => template.replace(RE_ELEMENT, replacer);
 
 /**
  * Parse all HTML elements with dynamic attributes and extract element descriptors.
@@ -246,7 +338,6 @@ const replaceElements = (template, replacer) => {
  * @private
  */
 const parseElements = (template, elements) => {
-    const PH = Constants.PLACEHOLDER('(?:\\d+)');
     let first = true;
     // Match all HTML elements including placeholders and self-closed elements.
     return replaceElements(template, (match, tag, attributesStr, ending) => {
@@ -255,7 +346,7 @@ const parseElements = (template, elements) => {
         // Elements with dynamic attributes always get a descriptor. The first
         // (root) element also gets one even without dynamic attributes, so a
         // component can adopt it as `this.el` and hydration can locate it by id.
-        if (!isFirst && !attributesStr.match(new RegExp(PH))) {
+        if (!isFirst && !attributesStr.match(RE_PH)) {
             return match;
         }
         // Add element descriptor to elements array.
@@ -263,43 +354,34 @@ const parseElements = (template, elements) => {
         elements.push(new ElementDescriptor(parseAttributes(attributesStr)));
         // Replace attributes with structural placeholder.
         // Preserve original tag ending (> or />)
-        return `<${tag} ${Constants.SLOT_ELEMENT(index)}${ending}`;
+        return `<${tag} ${SLOT_ELEMENT(index)}${ending}`;
     });
 };
 
 /**
- * Parse all interpolations in template text content.
+ * Parse all interpolations in template text content. A placeholder immediately
+ * after `<` or `</` is a dynamic tag name and stays, to survive as an
+ * `ExpressionIndex` part; every other placeholder is an interpolation.
  * @param {string} template Template string with placeholders.
  * @param {Array} interpolations Array to store interpolation descriptors.
  * @return {string} Template with interpolation structural placeholders.
  * @private
  */
-const parseInterpolations = (template, interpolations) => {
-    const PH = Constants.PLACEHOLDER('(\\d+)');
-    // Match all expression placeholders.
-    return template.replace(
-        new RegExp(PH, 'g'),
-        function(match, expressionIndex, offset) {
-            // Check if this placeholder is inside an element tag (attribute).
-            // `offset` is the index of the match in the original string.
-            const beforeMatch = template.substring(0, offset);
-            const lastOpenTag = beforeMatch.lastIndexOf('<');
-            const lastCloseTag = beforeMatch.lastIndexOf('>');
-            // If we're inside an element tag, don't process as interpolation.
-            if (lastOpenTag > lastCloseTag) {
-                return match;
-            }
-            // Add interpolation descriptor to interpolations array.
-            const index = interpolations.length;
-            interpolations.push(new InterpolationDescriptor(parseInt(expressionIndex, 10)));
-            // Replace with structural placeholder.
-            return Constants.SLOT_INTERPOLATION(index);
-        }
-    );
-};
+const parseInterpolations = (template, interpolations) =>
+    template.replace(RE_PH_TEXT, (match, tagPrefix, expressionIndex) => {
+        if (tagPrefix) return match;
+        // Add interpolation descriptor to interpolations array.
+        const index = interpolations.length;
+        interpolations.push(new InterpolationDescriptor(parseInt(expressionIndex, 10)));
+        // Replace with structural placeholder.
+        return SLOT_INTERPOLATION(index);
+    });
 
 /**
- * Generate one dimensional array with strings and descriptor instances.
+ * Generate one dimensional array with strings and descriptor instances. Every
+ * literal is kept, empty ones included: a template that is a single
+ * interpolation must yield exactly one part (`isTransparent` counts parts), so
+ * that case short-circuits before the split.
  * @param main {string} The main template containing structural placeholders.
  * @param {Array} elements Element descriptor table.
  * @param {Array} interpolations Interpolation descriptor table.
@@ -307,7 +389,6 @@ const parseInterpolations = (template, interpolations) => {
  * @private
  */
 const splitPlaceholders = (main, elements, interpolations) => {
-    const SLOT = `${Constants.SLOT_ELEMENT('(\\d+)')}|${Constants.SLOT_INTERPOLATION('(\\d+)')}|${Constants.PLACEHOLDER('(\\d+)')}`;
     // Resolve a matched placeholder to its part: an element / interpolation descriptor
     // for a structural slot, or an `ExpressionIndex` for an original expression that
     // survived outside a slot (a dynamic tag name).
@@ -317,37 +398,24 @@ const splitPlaceholders = (main, elements, interpolations) => {
         return new ExpressionIndex(parseInt(match[3], 10));
     };
 
-    const matchSinglePlaceholder = main.match(new RegExp(`^(?:${SLOT})$`));
+    const matchSinglePlaceholder = main.match(RE_SLOT);
     if (matchSinglePlaceholder) return [resolve(matchSinglePlaceholder)];
 
-    const regExp = new RegExp(SLOT, 'g');
-    const out = [];
-    let lastIndex = 0;
-    let match;
-    // Generate one dimensional array with SafeHTML literals and descriptor instances.
-    while ((match = regExp.exec(main)) !== null) {
-        const before = main.slice(lastIndex, match.index);
-        out.push(new SafeHTML(before), resolve(match));
-        lastIndex = match.index + match[0].length;
-    }
-    out.push(new SafeHTML(main.slice(lastIndex)));
-
-    return out;
+    return splitByRegExp(main, RE_SLOT_G, resolve, part => new SafeHTML(part));
 };
 
 /**
- * Parse a template string (already carrying placeholders) into skeleton data.
- * Shared by the top-level template and by nested component inner content, which
- * re-parses with `skipNormalization` since references are already normalized.
+ * Parse a template string (already carrying placeholders, with component
+ * references already normalized) into skeleton data. Shared by the top-level
+ * template and by nested component inner content.
  * @param {string} main Template string with placeholders.
  * @param {Array<any>} expressions Template expressions (used only for structural decisions).
  * @param {Function} isComponentClass Predicate telling whether an expression is a component class.
- * @param {boolean} skipNormalization Skip component reference normalization (for nested content).
  * @param {Object|null} source Original template source for debugging (dev only).
  * @return {{ parts: Array, source: Object|null }} Skeleton data.
  * @private
  */
-const parseMain = (main, expressions, isComponentClass, skipNormalization, source = null) => {
+const parseMain = (main, expressions, isComponentClass, source = null) => {
     // Descriptor tables local to the parse: the structural placeholders index them so
     // `splitPlaceholders` can resolve each one to its descriptor. Once `parts` holds
     // those instances the tables are no longer needed.
@@ -359,8 +427,7 @@ const parseMain = (main, expressions, isComponentClass, skipNormalization, sourc
                     main,
                     expressions,
                     interpolations,
-                    isComponentClass,
-                    skipNormalization
+                    isComponentClass
                 ),
                 elements
             ),
@@ -389,7 +456,12 @@ const parseMain = (main, expressions, isComponentClass, skipNormalization, sourc
 const parseTemplate = (strings, expressions, isComponentClass = () => false) => {
     // Store original template source for debugging (only in dev mode).
     const source = __DEV__ ? { strings, expressions : [...expressions] } : null;
-    return parseMain(addPlaceholders(strings, expressions).trim(), expressions, isComponentClass, false, source);
+    const main = normalizeComponentRefs(
+        addPlaceholders(strings, expressions).trim(),
+        expressions,
+        isComponentClass
+    );
+    return parseMain(main, expressions, isComponentClass, source);
 };
 
 export default parseTemplate;

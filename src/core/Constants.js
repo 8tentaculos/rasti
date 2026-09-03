@@ -17,9 +17,6 @@
  * @property {Function} MARKER_START Interpolation start marker, given the emission id.
  * @property {Function} MARKER_END Interpolation end marker, given the emission id.
  * @property {Function} MARKER_RECYCLED Placeholder marker for a recycled component, given its uid.
- * @property {Function} PLACEHOLDER Compile placeholder for an original expression, given its index.
- * @property {Function} SLOT_ELEMENT Structural placeholder for an element slot, given its index.
- * @property {Function} SLOT_INTERPOLATION Structural placeholder for an interpolation slot, given its index.
  * @private
  */
 const Constants = {
@@ -28,10 +25,7 @@ const Constants = {
     DATASET_ELEMENT : 'rstEl',
     MARKER_START : id => `rst-s-${id}`,
     MARKER_END : id => `rst-e-${id}`,
-    MARKER_RECYCLED : uid => `rst-r-${uid}`,
-    PLACEHOLDER : idx => `__RASTI_PLACEHOLDER_${idx}__`,
-    SLOT_ELEMENT : idx => `__RASTI_ELEMENT_${idx}__`,
-    SLOT_INTERPOLATION : idx => `__RASTI_INTERPOLATION_${idx}__`
+    MARKER_RECYCLED : uid => `rst-r-${uid}`
 };
 
 export default Constants;

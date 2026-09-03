@@ -231,6 +231,28 @@ describe('parseTemplate', () => {
             expect(parse).to.not.throw();
             expect(interpolationsOf(parse().parts)).to.have.lengthOf(2);
         });
+
+        it('must parse an interpolation after a literal < in text', () => {
+            const { strings, expressions } = tag`<div>a < b ${'x'}</div>`;
+            const { parts } = parseTemplate(strings, expressions);
+
+            // Only a placeholder immediately after `<` or `</` reads as a dynamic
+            // tag name; a lone `<` in text does not swallow the interpolations
+            // after it.
+            const interpolations = interpolationsOf(parts);
+            expect(interpolations).to.have.lengthOf(1);
+            expect(interpolations[0].expressionIndex).to.equal(0);
+        });
+
+        it('must read a placeholder immediately after < as a dynamic tag name', () => {
+            const { strings, expressions } = tag`<div>a <${'em'}>x</${'em'}></div>`;
+            const { parts } = parseTemplate(strings, expressions);
+
+            // `<${tag}` is a dynamic tag opening: both references stay as
+            // expression parts, not interpolations.
+            expect(interpolationsOf(parts)).to.have.lengthOf(0);
+            expect(parts.filter(part => part instanceof ExpressionIndex)).to.have.lengthOf(2);
+        });
     });
 
     describe('component tags', () => {
@@ -316,6 +338,34 @@ describe('parseTemplate', () => {
             expect(interpolations).to.have.lengthOf(1);
             expect(interpolations[0]).to.be.instanceOf(ComponentDescriptor);
             expect(expressions[interpolations[0].expressionIndex]).to.equal(Comp);
+        });
+
+        it('must normalize repeated references to the same component class', () => {
+            const Comp = makeComponent();
+            const { strings, expressions } = tag`<div><${Comp} a=${'x'}/><${Comp} b=${'y'}/></div>`;
+            const { parts } = parseTemplate(strings, expressions, isComponentClass);
+
+            // Both tags resolve to one descriptor each, and both descriptors point
+            // at the first expression that named the class.
+            const interpolations = interpolationsOf(parts);
+            expect(interpolations).to.have.lengthOf(2);
+            interpolations.forEach(desc => {
+                expect(desc).to.be.instanceOf(ComponentDescriptor);
+                expect(desc.expressionIndex).to.equal(0);
+            });
+            expectAttr(interpolations[0].attributes[0], 'a', 1);
+            expectAttr(interpolations[1].attributes[0], 'b', 3);
+        });
+
+        it('must pair repeated non-void tags of the same class with their own closings', () => {
+            const Comp = makeComponent();
+            const { strings, expressions } = tag`<div><${Comp}>${'a'}</${Comp}><${Comp}>${'b'}</${Comp}></div>`;
+            const { parts } = parseTemplate(strings, expressions, isComponentClass);
+
+            const interpolations = interpolationsOf(parts);
+            expect(interpolations).to.have.lengthOf(2);
+            expect(interpolationsOf(interpolations[0].inner.parts)[0].expressionIndex).to.equal(1);
+            expect(interpolationsOf(interpolations[1].inner.parts)[0].expressionIndex).to.equal(4);
         });
     });
 
