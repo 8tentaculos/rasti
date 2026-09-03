@@ -309,7 +309,7 @@ To scaffold a real-world project, use [`create-rasti`](#scaffolding-a-new-projec
 
 ## API Documentation
 
-For detailed information on how to use **Rasti**, refer to the [API documentation](/docs/api.md).
+For detailed information on how to use **Rasti**, refer to the [API documentation](/docs/api.md). How the pieces fit together — components, the render engine, recycling and SSR — is in the [architecture overview](/docs/architecture.md).
 
 ## TypeScript
 
@@ -512,7 +512,7 @@ handleChange=${((checked) => model.toggleAll(checked)) satisfies ToggleAllProps[
 
 ## Working with LLMs
 
-For those working with LLMs, there is an [AI Agents reference guide](/docs/AGENTS.md) that provides API patterns, lifecycle methods, and best practices, optimized for LLM context. You can share this guide with AI assistants to help them understand **Rasti**'s architecture and component APIs.
+For those working with LLMs, there is an [AI Agents reference guide](/docs/AGENTS.md) that provides API patterns, lifecycle methods, and best practices, optimized for LLM context. You can share this guide with AI assistants to help them understand **Rasti**'s architecture and component APIs. The [architecture overview](/docs/architecture.md) is the companion document for how the engine works.
 
 ## Changelog
 

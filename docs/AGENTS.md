@@ -1,6 +1,6 @@
 # Rasti API Reference for AI Agents
 
-Compact reference for developing with Rasti. Full API: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.2/docs/api.md)
+Compact reference for developing with Rasti. Full API: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.2/docs/api.md). How the engine works: [architecture.md](./architecture.md)
 
 ---
 
@@ -627,5 +627,6 @@ removeTodo(todo) {
 ## Additional Resources
 
 - **Full API Documentation**: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.2/docs/api.md)
+- **Architecture**: [architecture.md](./architecture.md) — render engine, recycling, SSR, development mode
 - **TypeScript usage** (generics, helpers, declaration merging, known limitations): see the [TypeScript section in the README](https://github.com/8tentaculos/rasti#typescript)
 - **GitHub Repository**: [8tentaculos/rasti](https://github.com/8tentaculos/rasti)
