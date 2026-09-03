@@ -68,6 +68,19 @@ const getExpressionResult = (expression, context, meta) => {
 };
 
 /**
+ * Throw a component error. Call sites pass the development message as
+ * `__DEV__ && \`...\`` so the long string is dead code when `__DEV__` is false.
+ * @param {string|boolean} devMessage The development message, or `false` when `__DEV__` is false.
+ * @param {string} prodMessage The short production message.
+ * @private
+ */
+const throwComponentError = (devMessage, prodMessage) => {
+    throw new Error(__DEV__ ?
+        createDevelopmentErrorMessage(devMessage) :
+        createProductionErrorMessage(prodMessage));
+};
+
+/**
  * Tell whether an expression is a component class (used by the template engine to
  * detect component tags).
  * @param {any} expression The expression to check.
@@ -279,13 +292,12 @@ export default class Component extends View {
             if (!strings) containerStrings.set(this.constructor, strings = ['', '']);
             return this.partial(strings, result);
         }
-        const message = __DEV__ ?
-            createDevelopmentErrorMessage(
+        throwComponentError(
+            __DEV__ &&
                 `Invalid template in ${this.constructor.name}#${this.uid}\n` +
-                '`template()` must return a partial (this.partial`...`) or a component instance.'
-            ) :
-            createProductionErrorMessage(`Invalid template in ${this.constructor.name}#${this.uid}`);
-        throw new Error(message);
+                '`template()` must return a partial (this.partial`...`) or a component instance.',
+            `Invalid template in ${this.constructor.name}#${this.uid}`
+        );
     }
 
     /**
@@ -564,34 +576,48 @@ export default class Component extends View {
     render() {
         // Prevent a last re render if view is already destroyed.
         if (this.destroyed) return this;
-        // First render: build the root from the template and hydrate it. When an element
-        // is provided, hydrate onto it (server-rendered DOM); otherwise render to a
-        // fragment. `template()` runs here, after construction, so it sees `state`/`props`.
-        if (!this.hydrated) {
-            if (this.el) {
-                // If `this.el` is a function, call it to get the element.
-                this.el = getResult(this.el, this);
-                // The element must be in the DOM to hydrate onto it.
-                if (!this.el.parentNode) {
-                    const message = __DEV__ ?
-                        createDevelopmentErrorMessage(
-                            `Hydration failed in ${this.constructor.name}#${this.uid}\n` +
-                            'The element must have a parent node for hydration to work.\n' +
-                            'Make sure the element is mounted in the DOM before hydrating.'
-                        ) :
-                        createProductionErrorMessage(`Hydration failed in ${this.constructor.name}#${this.uid}`);
-                    throw new Error(message);
-                }
-                // Render the component as a string to generate children components.
-                this.toString();
-                // Hydrate onto the provided element.
-                this.hydrate(this.el.parentNode);
-            } else {
-                // Render to a fragment and hydrate.
-                this.hydrate(parseHTML(this));
+        return this.hydrated ? this.renderUpdate() : this.renderFirst();
+    }
+
+    /**
+     * First render: build the root from the template and hydrate it. When an
+     * element is provided, hydrate onto it (server-rendered DOM); otherwise
+     * render to a fragment. `template()` runs here, after construction, so it
+     * sees `state`/`props`.
+     * @return {Component} The component instance.
+     * @private
+     */
+    renderFirst() {
+        if (this.el) {
+            // If `this.el` is a function, call it to get the element.
+            this.el = getResult(this.el, this);
+            // The element must be in the DOM to hydrate onto it.
+            if (!this.el.parentNode) {
+                throwComponentError(
+                    __DEV__ &&
+                        `Hydration failed in ${this.constructor.name}#${this.uid}\n` +
+                        'The element must have a parent node for hydration to work.\n' +
+                        'Make sure the element is mounted in the DOM before hydrating.',
+                    `Hydration failed in ${this.constructor.name}#${this.uid}`
+                );
             }
-            return this;
+            // Render the component as a string to generate children components.
+            this.toString();
+            // Hydrate onto the provided element.
+            this.hydrate(this.el.parentNode);
+        } else {
+            // Render to a fragment and hydrate.
+            this.hydrate(parseHTML(this));
         }
+        return this;
+    }
+
+    /**
+     * Update render: re-run `template()` and patch the existing DOM in place.
+     * @return {Component} The component instance.
+     * @private
+     */
+    renderUpdate() {
         // Call `onBeforeUpdate` lifecycle method.
         this.onBeforeUpdate.call(this);
         // Clear event listeners.
@@ -608,14 +634,13 @@ export default class Component extends View {
         // The root partial is retained across renders and reconciled by structure, so the
         // carrier must come from the same template. A changed root can't be patched in place.
         if (carrier.constructor !== this.rootPartial.constructor) {
-            const message = __DEV__ ?
-                createDevelopmentErrorMessage(
+            throwComponentError(
+                __DEV__ &&
                     `Root template changed in ${this.constructor.name}#${this.uid}\n` +
                     'A component\'s `template()` must return the same template on every render.\n' +
-                    'Branch inside interpolations instead of switching the root template itself.'
-                ) :
-                createProductionErrorMessage(`Root template changed in ${this.constructor.name}#${this.uid}`);
-            throw new Error(message);
+                    'Branch inside interpolations instead of switching the root template itself.',
+                `Root template changed in ${this.constructor.name}#${this.uid}`
+            );
         }
         // Patch the DOM in place: reconcile interpolations (children / nested partials) and
         // diff element attributes. Expressions are re-evaluated in the component's context.
