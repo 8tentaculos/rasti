@@ -90,14 +90,14 @@ const throwComponentError = (devMessage, prodMessage) => {
 const isComponentClass = (expression) => !!(expression && expression.prototype instanceof Component);
 
 /**
- * Stable template strings per component class for the container wrapper. A component
- * whose `template()` returns another component is rendered as a container built from
- * these; keeping them per class gives the container a stable root-partial identity
+ * Call-site identity for the synthetic container wrapper (`${child}`). Every
+ * container has that same shape, so one interned `strings` array is enough:
+ * `Partial.create` caches a single subclass and the root stays reconcilable
  * across renders.
- * @type {WeakMap<Function, Array<string>>}
+ * @type {Array<string>}
  * @private
  */
-const containerStrings = new WeakMap();
+const CONTAINER_STRINGS = ['', ''];
 
 /**
  * The handlers that do not depend on which component is rendering: telling a child
@@ -288,9 +288,7 @@ export default class Component extends View {
         const result = getExpressionResult(this.template, this, 'template');
         if (result instanceof Partial) return result;
         if (result instanceof Component) {
-            let strings = containerStrings.get(this.constructor);
-            if (!strings) containerStrings.set(this.constructor, strings = ['', '']);
-            return this.partial(strings, result);
+            return this.partial(CONTAINER_STRINGS, result);
         }
         throwComponentError(
             __DEV__ &&
