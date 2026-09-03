@@ -101,7 +101,7 @@ const checkListItems = (slot, items) => {
  * and patches the DOM between the markers. Recycling is slot-local: a candidate only
  * matches against the children this slot held before.
  *
- * The slot reads the current expressions and the owner's handlers off its partial, so
+ * The slot reads the current expressions and the owner off its partial, so
  * only what varies per call travels as an argument.
  * @param {Partial} partial The partial this slot belongs to.
  * @param {InterpolationDescriptor} descriptor The descriptor this slot renders from.

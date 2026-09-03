@@ -29,7 +29,7 @@ const syncProperty = (ref, attr, value) => {
  * Expand events. Delegates listener registration and the event data-attribute to
  * the owner through `registerListener`.
  * @param {object} attributes Attributes object.
- * @param {PartialHandlers} owner The partial's owner.
+ * @param {PartialOwner} owner The partial's owner.
  * @return {object} Attributes object.
  * @private
  */
@@ -61,7 +61,7 @@ const expandEvents = (attributes, owner) => {
  * element is written out, the DOM node hydration resolves that id to, and the
  * attributes last rendered, which the next update diffs against.
  *
- * The slot reads the current expressions and the owner's handlers off its partial, so
+ * The slot reads the current expressions and the owner off its partial, so
  * only what varies per call travels as an argument.
  * @param {Partial} partial The partial this slot belongs to.
  * @param {ElementDescriptor} descriptor The descriptor this slot renders from.

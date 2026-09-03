@@ -51,7 +51,7 @@ class Attribute {
      * serializes as the plain text it is.
      * @param {object} attributes The attributes object to add to.
      * @param {Array<any>} expressions The current render expressions.
-     * @param {PartialHandlers} owner The partial's owner (for `evaluate`).
+     * @param {PartialOwner} owner The partial's owner (for `evaluate`).
      * @param {Set<string>} [sourceKeys] Set collecting the keys whose values are HTML source.
      */
     applyTo(attributes, expressions, owner, sourceKeys) {

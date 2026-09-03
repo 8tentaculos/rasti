@@ -5,11 +5,11 @@ import InterpolationSlot from './InterpolationSlot.js';
 import parseTemplate from './parseTemplate.js';
 
 /**
- * The handlers through which a partial reaches the component world. The engine never
+ * The object through which a partial reaches the component world. The engine never
  * imports `Component`: everything component-specific arrives here, so the same code
  * drives real components in the app and fakes in tests.
  *
- * A partial sees them in two roles. Its <b>owner</b> is the component whose template it
+ * A partial sees it in two roles. Its <b>owner</b> is the component whose template it
  * comes from: expressions are evaluated in that component's context, and its ids and
  * event listeners belong to it. Its <b>host</b> is the component currently rendering,
  * whose `children` the rendered child components join. They are the same component
@@ -18,7 +18,7 @@ import parseTemplate from './parseTemplate.js';
  * The child-lifecycle handlers are the same for every component, so reaching them
  * through the owner or through the host is equivalent; each call site uses whichever
  * role it has at hand.
- * @typedef {object} PartialHandlers
+ * @typedef {object} PartialOwner
  * @property {Function} evaluate Evaluate an expression in the owner's context, `(expression, meta) => value`.
  * @property {Function} registerListener Register an event listener, `(listener, type) => ({ attribute, index })`.
  * @property {Function} nextElementId Mint the owner's next element id.
@@ -37,7 +37,7 @@ import parseTemplate from './parseTemplate.js';
 
 /**
  * A bound instance of a parsed template. Pairs the render's `expressions` with its
- * owner's handlers.
+ * owner.
  *
  * `Partial` itself is the base engine: `Partial.create` returns a cached subclass
  * per call site with the skeleton (`parts`) baked as a static, so two partials from
@@ -58,8 +58,8 @@ import parseTemplate from './parseTemplate.js';
  * three phases of a render (emit, hydrate, update).
  *
  * @param {Array<any>} expressions The current render expressions.
- * @param {PartialHandlers} owner The handlers of the component this template belongs to.
- * @property {PartialHandlers} host The handlers of the component this partial renders
+ * @param {PartialOwner} owner The component this template belongs to.
+ * @property {PartialOwner} host The component this partial renders
  *     under, whose `children` its child components join. The same as the owner except
  *     for slotted content, which a parent writes but a host renders: the slot that
  *     renders a nested partial hands it its own host, so a whole slotted subtree lands
@@ -84,7 +84,7 @@ class Partial {
      * renders, hydrates and updates recursively instead of treating it as content.
      * The check lives here, next to the class, and the slots reach it through their
      * partial — the same way they reach the component-world checks through the
-     * owner's handlers.
+     * owner.
      * @param {any} value The value to check.
      * @return {boolean} True if the value is a partial.
      * @private

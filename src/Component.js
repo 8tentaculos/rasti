@@ -117,18 +117,19 @@ const childHandlers = {
 };
 
 /**
- * Build the handlers bag a component hands to its template engine, where it is the
- * partial's owner and, while it renders, its host. It is created once per component
- * (in `ensureElement`) and shared by the root partial and every nested partial, so the
- * emission counters (and therefore element / marker ids) are consistent across the
- * whole component. Every component-specific concern the engine needs is exposed here,
- * so the engine never has to name `Component`: what is bound to this component is built
- * below, and the rest is shared (see `childHandlers`).
+ * Build the owner a component hands to its template engine: the same object is
+ * the partial's owner and, while it renders, its host. It is created once per
+ * component (in `ensureElement`) and shared by the root partial and every nested
+ * partial, so the emission counters (and therefore element / marker ids) are
+ * consistent across the whole component. Every component-specific concern the
+ * engine needs is exposed here, so the engine never has to name `Component`:
+ * what is bound to this component is built below, and the rest is shared
+ * (see `childHandlers`).
  * @param {Component} component The owning component.
- * @return {object} The partial handlers bag.
+ * @return {object} The partial owner.
  * @private
  */
-const buildPartialHandlers = (component) => {
+const buildPartialOwner = (component) => {
     let elementId = 0;
     let markerId = 0;
     return Object.assign({}, childHandlers, {
@@ -255,8 +256,8 @@ export default class Component extends View {
         // Recycled children whose props are reconciled after the render's destroy sweep,
         // so a prop change cannot re-enter render while the tree is still being patched.
         this.propsQueue = [];
-        // Build the handlers bag shared by the root partial and every nested partial.
-        this.partialHandlers = buildPartialHandlers(this);
+        // Build the owner shared by the root partial and every nested partial.
+        this.partialOwner = buildPartialOwner(this);
     }
 
     /**
@@ -433,7 +434,7 @@ export default class Component extends View {
      */
     partial(strings, ...expressions) {
         const PartialClass = Partial.create(strings, expressions, isComponentClass);
-        return new PartialClass(expressions, this.partialHandlers);
+        return new PartialClass(expressions, this.partialOwner);
     }
 
     /**

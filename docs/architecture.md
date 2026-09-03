@@ -27,7 +27,7 @@ src/
   Emitter.js
   Model.js
   View.js
-  Component.js      lifecycle, template(), the handlers bag the engine sees
+  Component.js      lifecycle, template(), the owner bag the engine sees
   core/             the render engine (never imports Component)
     parseTemplate.js
     Partial.js
@@ -36,7 +36,7 @@ src/
   utils/            DOM, HTML, errors, `__DEV__`
 ```
 
-The engine never names `Component`. What it needs from the component world arrives as a handlers bag (`PartialHandlers`). Tests fake that bag; production fills it in `Component`.
+The engine never names `Component`. What it needs from the component world arrives as an owner bag (`PartialOwner`). Tests fake that bag; production fills it in `Component`.
 
 ---
 
@@ -169,7 +169,7 @@ A tagged template is compiled **once per call site**. The `strings` array is the
 
 Compilation (`parseTemplate`) turns the template into a **skeleton**: an ordered list of **parts**. A part is a literal (`SafeHTML`), a bare expression (`ExpressionIndex`, in practice a dynamic tag name), or a descriptor (element, interpolation, component tag). Descriptors hold parse-time structure (attribute lists, inner skeletons); they do not hold live DOM.
 
-A **partial** is a live instance: the skeleton class plus this render's `expressions` and the owner's handlers. Slot state (ids, refs, previous occupants) lives on the instance, created lazily on first `render()`.
+A **partial** is a live instance: the skeleton class plus this render's `expressions` and the owner. Slot state (ids, refs, previous occupants) lives on the instance, created lazily on first `render()`.
 
 ```
 strings  ──compile──►  Partial subclass (parts, source)
@@ -264,7 +264,7 @@ The component's `attributes` merge only onto the **root** element: the root part
 
 ### Wire format (`Constants`)
 
-Everything written into the DOM comes from one mutable object. Override keys **before** anything renders, identically on server and client, or hydration will not match.
+Everything written into the DOM comes from `Constants`:
 
 | Entry                 | Default                         | Role                                      |
 |-----------------------|---------------------------------|-------------------------------------------|
@@ -312,9 +312,7 @@ Warnings (lists without keyed components, duplicate keys, unsupported attribute 
 
 ## 9. Extension points
 
-**`Constants`.** Override before render, same on server and client. See [Wire format](#wire-format-constants).
-
-**Handlers bag.** The engine's only door into the component world. Production fills it in `buildPartialHandlers` (evaluate, ids, listeners, child lifecycle). Tests pass a fake with the same shape. Adding an engine capability that needs the component means adding a handler, not an `import Component`.
+**Owner bag.** The engine's only door into the component world. Production fills it in `buildPartialOwner` (evaluate, ids, listeners, child lifecycle). Tests pass a fake with the same shape. Adding an engine capability that needs the component means adding a handler, not an `import Component`.
 
 **`Component.markAsSafeHTML(value)`.** Opt out of sanitization for a trusted HTML string. Literals in tagged templates are marked automatically.
 
@@ -331,7 +329,7 @@ Warnings (lists without keyed components, duplicate keys, unsupported attribute 
 | **skeleton**    | Compile result of one call site: ordered `parts`, plus optional template `source`. Static, cached. |
 | **part**        | One entry in `parts`: a literal, an expression index, or a descriptor. |
 | **descriptor**  | Parse-time structure for an element, interpolation or component tag. Shared by every partial from that call site. |
-| **partial**     | Live instance: skeleton class + this render's expressions + owner's handlers. Identity is the `strings` array (the subclass). |
+| **partial**     | Live instance: skeleton class + this render's expressions + owner. Identity is the `strings` array (the subclass). |
 | **slot**        | Live state for one part. One per part, same order. Owns emit / hydrate / update of its region. |
 | **call site**   | A tagged-template expression in source. Its `strings` array is stable across renders. |
 | **owner**       | Component whose template the partial comes from. Expressions and event listeners belong to it. |
