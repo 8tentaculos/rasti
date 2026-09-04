@@ -151,6 +151,13 @@ const buildComponentAdapter = (component) => {
 const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', 'onBeforeRecycle', 'onRecycle', 'onBeforeUpdate', 'onUpdate'];
 
 /**
+ * An opaque partial template produced by {@link #module_component__partial component.partial}.
+ * It carries a template's structure and current expressions so the render engine can
+ * patch it in place.
+ * @typedef {object} ComponentPartial
+ */
+
+/**
  * Components are a special kind of `View` that is designed to be easily composable,
  * making it simple to add child views and build complex user interfaces.
  * Unlike views, which are render-agnostic, components have a specific set of rendering
@@ -159,7 +166,7 @@ const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', '
  * @module
  * @extends View
  * @param {object} options Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onHydrate, onBeforeRecycle, onRecycle, onBeforeUpdate, onUpdate, onCreate, onChange. Any additional options not in the component or view options list will be automatically extracted as props and stored as `this.props`.
- * @property {string} [key] A unique key to identify the component. Components with keys are recycled when the same key is found in the previous render of the same interpolation. Unkeyed components are recycled based on type and position.
+ * @property {string} [key] A unique key to identify the component. Components with keys are recycled when the same key is found in the previous render of the same interpolation. Unkeyed components are recycled by type and position for a single value, but are never recycled inside an array.
  * @property {Model} [model] A `Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method.
  * @property {Model} [state] A `Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method.
  * @property {Model} [props] Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When a component with a `key` is recycled during parent re-render, new props are automatically updated and any changes trigger a re-render.
@@ -408,7 +415,7 @@ export default class Component extends View {
      * restricted on both counts.
      * @param {TemplateStringsArray} strings - Template strings.
      * @param  {...any} expressions - Template expressions.
-     * @return {Partial} The partial to render.
+     * @return {ComponentPartial} The partial to render.
      * @example
      * import { Component } from 'rasti';
      * // Create a Title component.
@@ -469,7 +476,7 @@ export default class Component extends View {
      * - It must be built from the <b>same template</b> on every render, since the root is
      *   patched in place; returning a different one throws. Branch inside the interpolations
      *   instead of switching the root itself.
-     * @return {Partial|Component} The root partial, or a child component to contain.
+     * @return {ComponentPartial|Component} The root partial, or a child component to contain.
      */
     template() {
         const tag = getResult(this.tag, this) || 'div';
@@ -539,7 +546,11 @@ export default class Component extends View {
      * handles this process automatically, creating the component instance, rendering it, and appending it to the DOM.
      *
      * **Update render (once the component is hydrated):**
-     * This indicates the component is being updated. The DOM is patched in place, never regenerated. The method will:
+     * The component keeps its root partial and root element, and reconciles their
+     * contents recursively instead of rendering the whole tree from scratch. Elements
+     * and retained partials are patched in place, matching children are recycled, and
+     * an interpolation region is regenerated only when its occupant changes identity
+     * or shape. The method will:
      * - Diff and update the attributes of every element in the template and in its partials
      * - Reconcile the content of each interpolation (the dynamic parts of the template), updating nested partials in place
      * - For container components (components that render a single child component), update the single interpolation
@@ -748,7 +759,7 @@ export default class Component extends View {
      * Be sure that the string is safe to be rendered, as it will be inserted into the DOM without any sanitization.
      * @static
      * @param {string} value
-     * @return {SafeHTML} A safe HTML object.
+     * @return {object} An opaque safe HTML value.
      */
     static markAsSafeHTML(value) {
         return new SafeHTML(value);
@@ -838,8 +849,10 @@ export default class Component extends View {
 
     /**
      * Takes a tagged template string, or a template function that returns a partial or a component, and returns a new `Component` class. It is sugar for defining the component's {@link #module_component__template template} method: the tagged form captures its expressions once, while the function form is used as `template()` itself and re-runs on every render (so it may interpolate plain values, not only functions).
-     * - The template outer tag and attributes will be used to create the view's root element.
-     * - The template inner HTML will be used as the view's template.
+     * - The tagged template becomes the component's root partial; its outer element
+     *   becomes `this.el` and is retained across updates.
+     * - Interpolations become dynamic regions that the engine patches, recycles, or
+     *   regenerates according to their current occupant.
      *   ```javascript
      *   const Button = Component.create`<button class="button">Click me</button>`;
      *   ```

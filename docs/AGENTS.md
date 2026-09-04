@@ -446,7 +446,7 @@ const Dashboard = Component.create`...`.extend({
 [`render()`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.2/docs/api.md#module_component__render) handles both initial hydration and updates:
 
 - **First render** — runs `template()`, renders as string inside `DocumentFragment`, hydrates DOM, calls `onHydrate()`. If an `el` option was provided, hydrates onto that existing DOM instead (server-rendered markup)
-- **Update render** — runs `template()` again and patches the DOM in place, never regenerating it: attributes are diffed across the template and its partials, and each interpolation is reconciled (children recycled, nested partials updated). Calls `onBeforeUpdate()` then `onUpdate()`
+- **Update render** — runs `template()` again while retaining the component's root partial and root element. Reconciliation is recursive: elements and retained partials patch in place, matching children recycle, and an interpolation region regenerates only when its occupant changes identity or shape. Calls `onBeforeUpdate()` then `onUpdate()`
 
 Use [`Component.markAsSafeHTML`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.2/docs/api.md#module_component_markassafehtml) only for pre-sanitized trusted HTML:
 

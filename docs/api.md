@@ -3,8 +3,8 @@
 * [Component](#module_component) ⇐ <code>View</code>
     * _instance_
         * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
-        * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>Partial</code>](#new_partial_new)
-        * [.template()](#module_component__template) ⇒ [<code>Partial</code>](#new_partial_new) \| <code>Component</code>
+        * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>ComponentPartial</code>](#componentpartial)
+        * [.template()](#module_component__template) ⇒ [<code>ComponentPartial</code>](#componentpartial) \| <code>Component</code>
         * [.toString()](#module_component__tostring) ⇒ <code>string</code>
         * [.render()](#module_component__render) ⇒ <code>Component</code>
         * [.onCreate(...args)](#module_component__oncreate)
@@ -16,7 +16,7 @@
         * [.onUpdate()](#module_component__onupdate)
         * [.onDestroy(...args)](#module_component__ondestroy)
     * _static_
-        * [.markAsSafeHTML(value)](#module_component_markassafehtml) ⇒ [<code>SafeHTML</code>](#new_safehtml_new)
+        * [.markAsSafeHTML(value)](#module_component_markassafehtml) ⇒ <code>object</code>
         * [.extend(object)](#module_component_extend)
         * [.mount([options], [el], [hydrate])](#module_component_mount) ⇒ <code>Component</code>
         * [.create(strings, ...expressions)](#module_component_create) ⇒ <code>Component</code>
@@ -59,6 +59,16 @@
         * [.sanitize(value)](#module_view_sanitize) ⇒ <code>string</code>
         * [.resetUid()](#module_view_resetuid)
 
+## Typedefs
+
+<dl>
+<dt><a href="#componentpartial">ComponentPartial</a> : <code>object</code></dt>
+<dd><p>An opaque partial template produced by <a href="#module_component__partial">component.partial</a>.
+It carries a template&#39;s structure and current expressions so the render engine can
+patch it in place.</p>
+</dd>
+</dl>
+
 <a name="module_component" id="module_component" class="anchor"></a>
 ## Component ⇐ <code>View</code>
 Components are a special kind of `View` that is designed to be easily composable,
@@ -78,7 +88,7 @@ A component renders from its [template](#module_component__template) method, whi
 
 | Name | Type | Description |
 | --- | --- | --- |
-| [key] | <code>string</code> | A unique key to identify the component. Components with keys are recycled when the same key is found in the previous render of the same interpolation. Unkeyed components are recycled based on type and position. |
+| [key] | <code>string</code> | A unique key to identify the component. Components with keys are recycled when the same key is found in the previous render of the same interpolation. Unkeyed components are recycled by type and position for a single value, but are never recycled inside an array. |
 | [model] | <code>Model</code> | A `Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method. |
 | [state] | <code>Model</code> | A `Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method. |
 | [props] | <code>Model</code> | Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When a component with a `key` is recycled during parent re-render, new props are automatically updated and any changes trigger a re-render. |
@@ -103,8 +113,8 @@ setInterval(() => model.seconds++, 1000);
 * [Component](#module_component) ⇐ <code>View</code>
     * _instance_
         * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
-        * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>Partial</code>](#new_partial_new)
-        * [.template()](#module_component__template) ⇒ [<code>Partial</code>](#new_partial_new) \| <code>Component</code>
+        * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>ComponentPartial</code>](#componentpartial)
+        * [.template()](#module_component__template) ⇒ [<code>ComponentPartial</code>](#componentpartial) \| <code>Component</code>
         * [.toString()](#module_component__tostring) ⇒ <code>string</code>
         * [.render()](#module_component__render) ⇒ <code>Component</code>
         * [.onCreate(...args)](#module_component__oncreate)
@@ -116,7 +126,7 @@ setInterval(() => model.seconds++, 1000);
         * [.onUpdate()](#module_component__onupdate)
         * [.onDestroy(...args)](#module_component__ondestroy)
     * _static_
-        * [.markAsSafeHTML(value)](#module_component_markassafehtml) ⇒ [<code>SafeHTML</code>](#new_safehtml_new)
+        * [.markAsSafeHTML(value)](#module_component_markassafehtml) ⇒ <code>object</code>
         * [.extend(object)](#module_component_extend)
         * [.mount([options], [el], [hydrate])](#module_component_mount) ⇒ <code>Component</code>
         * [.create(strings, ...expressions)](#module_component_create) ⇒ <code>Component</code>
@@ -137,7 +147,7 @@ By default, the component subscribes to changes on `this.model`, `this.state`, a
 | [listener] | <code>function</code> | <code>this.onChange</code> | The callback to invoke when the event is emitted. |
 
 <a name="module_component__partial" id="module_component__partial" class="anchor"></a>
-### component.partial(strings, ...expressions) ⇒ [<code>Partial</code>](#new_partial_new)
+### component.partial(strings, ...expressions) ⇒ [<code>ComponentPartial</code>](#componentpartial)
 Tagged template helper method.
 Used to create a partial template.
 It will return a `Partial`: the template's structure paired with this render's
@@ -152,7 +162,7 @@ swapped for a different template between renders. The partial returned by
 restricted on both counts.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
-**Returns**: [<code>Partial</code>](#new_partial_new) - The partial to render.  
+**Returns**: [<code>ComponentPartial</code>](#componentpartial) - The partial to render.  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -184,7 +194,7 @@ const Main = Component.create`
 });
 ```
 <a name="module_component__template" id="module_component__template" class="anchor"></a>
-### component.template() ⇒ [<code>Partial</code>](#new_partial_new) \| <code>Component</code>
+### component.template() ⇒ [<code>ComponentPartial</code>](#componentpartial) \| <code>Component</code>
 Return the component's root partial. Called on every render, so interpolated
 values are recomputed. Override it (directly, via `extend`, or through `create`)
 to define the markup. It may also return a child component instance, in which case
@@ -218,7 +228,7 @@ inside an interpolation are free of both:
   instead of switching the root itself.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
-**Returns**: [<code>Partial</code>](#new_partial_new) \| <code>Component</code> - The root partial, or a child component to contain.  
+**Returns**: [<code>ComponentPartial</code>](#componentpartial) \| <code>Component</code> - The root partial, or a child component to contain.  
 <a name="module_component__tostring" id="module_component__tostring" class="anchor"></a>
 ### component.toString() ⇒ <code>string</code>
 Render the component as a string.
@@ -262,7 +272,11 @@ The `onHydrate` lifecycle method will be called.
 handles this process automatically, creating the component instance, rendering it, and appending it to the DOM.
 
 **Update render (once the component is hydrated):**
-This indicates the component is being updated. The DOM is patched in place, never regenerated. The method will:
+The component keeps its root partial and root element, and reconciles their
+contents recursively instead of rendering the whole tree from scratch. Elements
+and retained partials are patched in place, matching children are recycled, and
+an interpolation region is regenerated only when its occupant changes identity
+or shape. The method will:
 - Diff and update the attributes of every element in the template and in its partials
 - Reconcile the content of each interpolation (the dynamic parts of the template), updating nested partials in place
 - For container components (components that render a single child component), update the single interpolation
@@ -383,7 +397,7 @@ Use this method to clean up resources, cancel timers, remove event listeners, et
 | ...args | <code>\*</code> | Options object or any arguments passed to `destroy` method. |
 
 <a name="module_component_markassafehtml" id="module_component_markassafehtml" class="anchor"></a>
-### Component.markAsSafeHTML(value) ⇒ [<code>SafeHTML</code>](#new_safehtml_new)
+### Component.markAsSafeHTML(value) ⇒ <code>object</code>
 Mark a string as safe HTML to be rendered.
 Normally you don't need to use this method, as Rasti will automatically mark string literals
 as safe HTML when the component is [created](#module_component_create) and when
@@ -391,7 +405,7 @@ using the [Component.partial](#module_component__partial) method.
 Be sure that the string is safe to be rendered, as it will be inserted into the DOM without any sanitization.
 
 **Kind**: static method of [<code>Component</code>](#module_component)  
-**Returns**: [<code>SafeHTML</code>](#new_safehtml_new) - A safe HTML object.  
+**Returns**: <code>object</code> - An opaque safe HTML value.  
 
 | Param | Type |
 | --- | --- |
@@ -457,8 +471,10 @@ const hydratedButton = Button.mount({
 <a name="module_component_create" id="module_component_create" class="anchor"></a>
 ### Component.create(strings, ...expressions) ⇒ <code>Component</code>
 Takes a tagged template string, or a template function that returns a partial or a component, and returns a new `Component` class. It is sugar for defining the component's [template](#module_component__template) method: the tagged form captures its expressions once, while the function form is used as `template()` itself and re-runs on every render (so it may interpolate plain values, not only functions).
-- The template outer tag and attributes will be used to create the view's root element.
-- The template inner HTML will be used as the view's template.
+- The tagged template becomes the component's root partial; its outer element
+  becomes `this.el` and is retained across updates.
+- Interpolations become dynamic regions that the engine patches, recycles, or
+  regenerates according to their current occupant.
   ```javascript
   const Button = Component.create`<button class="button">Click me</button>`;
   ```
@@ -1463,3 +1479,10 @@ the generated unique IDs match those on the client, enabling seamless hydration 
 This method is inherited by [Component](#module_component).
 
 **Kind**: static method of [<code>View</code>](#module_view)  
+<a name="componentpartial" id="componentpartial" class="anchor"></a>
+## ComponentPartial : <code>object</code>
+An opaque partial template produced by [component.partial](#module_component__partial).
+It carries a template's structure and current expressions so the render engine can
+patch it in place.
+
+**Kind**: global typedef  
