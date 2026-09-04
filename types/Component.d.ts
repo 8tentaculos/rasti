@@ -196,8 +196,10 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
      * `template()` directly; in the tagged form the expressions are captured once, so
      * anything dynamic must be a function.
      *
-     * - The template outer tag and attributes define the view's root element.
-     * - Inner HTML becomes the view's template.
+     * - The tagged template becomes the component's root partial; its outer element
+     *   becomes `this.el` and is retained across updates.
+     * - Interpolations become dynamic regions that are patched, recycled, or regenerated
+     *   according to their current occupant.
      * - Function interpolations are evaluated on render, bound to the component instance.
      * - DOM event handlers via camelCased attributes (`onClick=${handler}`), delegated to the root.
      * - Returning a component instance (or array of them) adds it as a child.
@@ -219,7 +221,8 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
     /**
      * A unique key to identify the component, merged from options.
      * Components with keys are recycled when the same key is found in the previous render
-     * of the same interpolation.
+     * of the same interpolation. Unkeyed components are recycled by type and position for
+     * a single value, but are never recycled inside an array.
      */
     key?: string;
 
@@ -242,8 +245,9 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
      * Returns the component's root for this render: a partial built with `this.partial`,
      * or a component instance to render as a container (whose element this component
      * borrows). Called on every render, so interpolated values are recomputed. The base
-     * implementation returns an empty `<div>`; override it directly, via `extend`, or
-     * through `create`.
+     * implementation builds `this.tag` (default `div`) with `this.attributes` and the
+     * content passed through `props.renderChildren`; override it directly, via `extend`,
+     * or through `create`.
      *
      * The root partial must have a single root element — it becomes `this.el` — and must be
      * built from the same template on every render, since the root is patched in place.
@@ -276,6 +280,12 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
      * `this.model`, `this.state` and `this.props`.
      */
     subscribe(model: object, type?: string, listener?: (...args: any[]) => void): this;
+
+    /**
+     * Render the component to an HTML string. Used for server-side rendering and static
+     * site generation; string coercion delegates to the same method.
+     */
+    toString(): string;
 
     /**
      * Render the component.
