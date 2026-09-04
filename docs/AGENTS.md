@@ -66,7 +66,7 @@ MyComponent.mount({ model }, document.getElementById('root'));
 
 The partial returned by `template()` becomes the component's root element, so two restrictions apply to it — and only to it, partials rendered inside an interpolation are free of both:
 
-- **A single root element** — it becomes `this.el`. Sibling elements or loose text at the top level are dropped silently.
+- **A single root element** — it becomes `this.el`. Sibling elements or loose text at the top level are left out of every update, so development builds throw `Invalid root template`.
 - **The same template on every render** — the root is created once and then patched in place, so returning a different template throws `Root template changed`.
 
 ```js

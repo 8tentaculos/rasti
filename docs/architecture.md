@@ -122,7 +122,7 @@ The tagged form captures expressions once, so anything dynamic must be a functio
 
 They apply only to the partial `template()` returns, not to partials inside interpolations:
 
-1. A **single root element** — it becomes `this.el`.
+1. A **single root element** — it becomes `this.el`. Development builds throw `Invalid root template` when the template resolves to anything else.
 2. The **same template** every render — identity is the `strings` array of the tagged template. Switching the root throws `Root template changed`. Branch inside interpolations.
 
 ### Lifecycle

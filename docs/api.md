@@ -223,6 +223,8 @@ Two restrictions apply to the root partial, and only to it — the partials rend
 inside an interpolation are free of both:
 
 - It must have a <b>single root element</b>, which becomes the component's `this.el`.
+  Development builds throw when it resolves to anything else, since the nodes
+  beside the root would be left out of every update.
 - It must be built from the <b>same template</b> on every render, since the root is
   patched in place; returning a different one throws. Branch inside the interpolations
   instead of switching the root itself.

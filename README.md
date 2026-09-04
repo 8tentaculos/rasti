@@ -240,7 +240,7 @@ const ButtonCancel = Component.create(() => Button.mount({
 
 The partial returned by `template()` becomes the component's root element, so it carries two restrictions that the partials rendered inside an interpolation don't have:
 
-- **A single root element.** Its outer element becomes `this.el`; anything next to it at the top level is dropped. A partial rendered in an interpolation lives between the slot's markers, so it may render as many nodes as it needs.
+- **A single root element.** Its outer element becomes `this.el`; anything next to it at the top level would render once and then be left out of every update, so development builds throw (*Invalid root template*). A partial rendered in an interpolation lives between the slot's markers, so it may render as many nodes as it needs.
 - **The same template on every render.** The root is created once and then patched in place, so returning a different template throws (*Root template changed*). Branch inside the interpolations instead:
 
 ```javascript
