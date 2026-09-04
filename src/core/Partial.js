@@ -18,7 +18,7 @@ import parseTemplate from './parseTemplate.js';
  * The child-lifecycle handlers are the same for every component, so reaching them
  * through the owner or through the host is equivalent; each call site uses whichever
  * role it has at hand.
- * @typedef {object} PartialOwner
+ * @typedef {object} ComponentAdapter
  * @property {Function} evaluate Evaluate an expression in the owner's context, `(expression, meta) => value`.
  * @property {Function} registerListener Register an event listener, `(listener, type) => ({ attribute, index })`.
  * @property {Function} nextElementId Mint the owner's next element id.
@@ -58,8 +58,8 @@ import parseTemplate from './parseTemplate.js';
  * three phases of a render (emit, hydrate, update).
  *
  * @param {Array<any>} expressions The current render expressions.
- * @param {PartialOwner} owner The component this template belongs to.
- * @property {PartialOwner} host The component this partial renders
+ * @param {ComponentAdapter} owner The adapter for the component this template belongs to.
+ * @property {ComponentAdapter} host The adapter for the component this partial renders
  *     under, whose `children` its child components join. The same as the owner except
  *     for slotted content, which a parent writes but a host renders: the slot that
  *     renders a nested partial hands it its own host, so a whole slotted subtree lands

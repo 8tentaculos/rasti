@@ -27,7 +27,7 @@ src/
   Emitter.js
   Model.js
   View.js
-  Component.js      lifecycle, template(), the owner bag the engine sees
+  Component.js      lifecycle, template(), the component adapter the engine sees
   core/             the render engine (never imports Component)
     parseTemplate.js
     Partial.js
@@ -36,7 +36,7 @@ src/
   utils/            DOM, HTML, errors, `__DEV__`
 ```
 
-The engine never names `Component`. What it needs from the component world arrives as an owner bag (`PartialOwner`). Tests fake that bag; production fills it in `Component`.
+The engine never names `Component`. What it needs from the component world arrives through a `ComponentAdapter`. A partial holds one adapter as its **owner** and another as its **host**; tests fake the same interface and production builds it in `Component`.
 
 ---
 
@@ -310,9 +310,9 @@ Warnings (lists without keyed components, duplicate keys, unsupported attribute 
 
 ---
 
-## 9. Extension points
+## 9. Internal boundary and extension points
 
-**Owner bag.** The engine's only door into the component world. Production fills it in `buildPartialOwner` (evaluate, ids, listeners, child lifecycle). Tests pass a fake with the same shape. Adding an engine capability that needs the component means adding a handler, not an `import Component`.
+**Component adapter.** The engine's only door into the component world. Production fills it in `buildComponentAdapter` (evaluate, ids, listeners, child lifecycle). Tests pass a fake with the same shape. Adding an engine capability that needs the component means adding an adapter method, not an `import Component`. Owner and host are roles played by adapters bound to different components.
 
 **`Component.markAsSafeHTML(value)`.** Opt out of sanitization for a trusted HTML string. Literals in tagged templates are marked automatically.
 

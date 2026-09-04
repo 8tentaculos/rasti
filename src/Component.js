@@ -117,7 +117,7 @@ const childHandlers = {
 };
 
 /**
- * Build the owner a component hands to its template engine: the same object is
+ * Build the adapter a component hands to its template engine: the same object is
  * the partial's owner and, while it renders, its host. It is created once per
  * component (in `ensureElement`) and shared by the root partial and every nested
  * partial, so the emission counters (and therefore element / marker ids) are
@@ -126,10 +126,10 @@ const childHandlers = {
  * what is bound to this component is built below, and the rest is shared
  * (see `childHandlers`).
  * @param {Component} component The owning component.
- * @return {object} The partial owner.
+ * @return {object} The component adapter.
  * @private
  */
-const buildPartialOwner = (component) => {
+const buildComponentAdapter = (component) => {
     let elementId = 0;
     let markerId = 0;
     return Object.assign({}, childHandlers, {
@@ -256,8 +256,8 @@ export default class Component extends View {
         // Recycled children whose props are reconciled after the render's destroy sweep,
         // so a prop change cannot re-enter render while the tree is still being patched.
         this.propsQueue = [];
-        // Build the owner shared by the root partial and every nested partial.
-        this.partialOwner = buildPartialOwner(this);
+        // Build the adapter shared by the root partial and every nested partial.
+        this.adapter = buildComponentAdapter(this);
     }
 
     /**
@@ -434,7 +434,7 @@ export default class Component extends View {
      */
     partial(strings, ...expressions) {
         const PartialClass = Partial.create(strings, expressions, isComponentClass);
-        return new PartialClass(expressions, this.partialOwner);
+        return new PartialClass(expressions, this.adapter);
     }
 
     /**

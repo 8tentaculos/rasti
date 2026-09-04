@@ -29,7 +29,7 @@ const syncProperty = (ref, attr, value) => {
  * Expand events. Delegates listener registration and the event data-attribute to
  * the owner through `registerListener`.
  * @param {object} attributes Attributes object.
- * @param {PartialOwner} owner The partial's owner.
+ * @param {ComponentAdapter} owner The partial's owner.
  * @return {object} Attributes object.
  * @private
  */
