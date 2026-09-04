@@ -24,6 +24,7 @@ const App = Component.create`
                 <ul class="todo-list">
                     ${model.filtered.map(todo => partial`
                         <${Todo}
+                            key="${todo.id}"
                             model="${todo}"
                             handleRemove=${() => model.removeTodo(todo)}
                         />

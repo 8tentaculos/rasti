@@ -20,6 +20,7 @@ class Todo extends Model {
      */
     defaults() {
         return {
+            id : crypto.randomUUID(),
             title : '',
             completed : false
         };
