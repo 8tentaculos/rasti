@@ -4,6 +4,7 @@ import InterpolationDescriptor from './InterpolationDescriptor.js';
 import ComponentDescriptor from './ComponentDescriptor.js';
 import ExpressionIndex from './ExpressionIndex.js';
 import Attribute from './Attribute.js';
+import isVoidElement from '../utils/isVoidElement.js';
 import __DEV__ from '../utils/dev.js';
 
 /**
@@ -113,6 +114,18 @@ const RE_COMPONENT_TAG = new RegExp(
  * @private
  */
 const RE_ELEMENT = new RegExp(`<(${PH_ANY}|[a-z]+[1-6]?)(?:\\s*)${ATTRIBUTES_PATTERN}(\\s*/?>)`, 'gi');
+
+/**
+ * A node boundary, for walking the template's structure: a comment, or an opening
+ * or closing tag. Comments are matched so the tags written inside one do not count
+ * as markup; a comment match leaves the tag and ending groups undefined.
+ * @type {RegExp}
+ * @private
+ */
+const RE_NODE = new RegExp(
+    `<!--[\\s\\S]*?-->|<(/)?(${PH_ANY}|[a-z]+[1-6]?)(?:\\s*)${ATTRIBUTES_PATTERN}(\\s*/?>)`,
+    'gi'
+);
 
 /** Any structural slot token or surviving placeholder, index captured. @type {string} @private */
 const SLOT_PATTERN = `${SLOT_ELEMENT('(\\d+)')}|${SLOT_INTERPOLATION('(\\d+)')}|${PH_CAPTURE}`;
@@ -405,6 +418,57 @@ const splitPlaceholders = (main, elements, interpolations) => {
 };
 
 /**
+ * Tell whether the template renders a single root element holding everything else:
+ * it opens exactly one element at the top level, closes it, and writes nothing
+ * beside it — no text, no interpolation, no comment. A structural fact, not a rule:
+ * only a component's root template is required to satisfy it, and that is the
+ * component's call when it adopts the partial as its root. Development only.
+ *
+ * Walks the template with a depth counter rather than matching the root and its
+ * closing tag as a pair, which cannot tell `<div></div>` from `<div></div><div></div>`.
+ * Void elements and self-closed tags hold nothing, so they never open a level; a
+ * dynamic tag name is assumed to be neither.
+ *
+ * Reports a second node only on seeing one, never from an unbalanced count: the
+ * optional closing tags HTML fills in (`<ul><li>a<li>b</ul>`) leave the walk inside
+ * the root, where anything that follows is out of reach. So the answer is
+ * conservative — it can miss a sibling written after such markup, and never invents
+ * one.
+ * @param {string} template Template string with structural placeholders.
+ * @return {boolean} True if the template has a single root element.
+ * @private
+ */
+const hasSingleRoot = (template) => {
+    const regExp = RE_NODE;
+    regExp.lastIndex = 0;
+    let depth = 0, roots = 0, lastIndex = 0, match;
+    // Everything but whitespace between nodes at the top level is a sibling of the root.
+    const isEmpty = (from, to) => !template.slice(from, to).trim();
+
+    while ((match = regExp.exec(template)) !== null) {
+        const [, closing, tag, , ending] = match;
+        if (!depth && !isEmpty(lastIndex, match.index)) return false;
+        lastIndex = regExp.lastIndex;
+        // A comment: a node of its own at the top level, and inert anywhere else.
+        if (!tag) {
+            if (!depth) return false;
+            continue;
+        }
+        if (closing) {
+            // A closing tag with nothing open is the one the parser drops.
+            if (depth) depth--;
+            continue;
+        }
+        if (!depth) roots++;
+        if (ending.indexOf('/') === -1 && !isVoidElement(tag)) depth++;
+    }
+
+    // Left inside the root, the rest of the template cannot be read: report what was
+    // seen up to there.
+    return roots === 1 && (depth > 0 || isEmpty(lastIndex, template.length));
+};
+
+/**
  * Parse a template string (already carrying placeholders, with component
  * references already normalized) into skeleton data. Shared by the top-level
  * template and by nested component inner content.
@@ -412,7 +476,7 @@ const splitPlaceholders = (main, elements, interpolations) => {
  * @param {Array<any>} expressions Template expressions (used only for structural decisions).
  * @param {Function} isComponentClass Predicate telling whether an expression is a component class.
  * @param {Object|null} source Original template source for debugging (dev only).
- * @return {{ parts: Array, source: Object|null }} Skeleton data.
+ * @return {{ parts: Array, source: Object|null, singleRoot: boolean }} Skeleton data.
  * @private
  */
 const parseMain = (main, expressions, isComponentClass, source = null) => {
@@ -420,24 +484,30 @@ const parseMain = (main, expressions, isComponentClass, source = null) => {
     // `splitPlaceholders` can resolve each one to its descriptor. Once `parts` holds
     // those instances the tables are no longer needed.
     const elements = [], interpolations = [];
-    const parts = splitPlaceholders(
-        parseInterpolations(
-            parseElements(
-                expandComponents(
-                    main,
-                    expressions,
-                    interpolations,
-                    isComponentClass
-                ),
-                elements
+    // Structure is read off the parsed template, where component tags and
+    // interpolations are already single tokens and attributes cannot be mistaken
+    // for markup.
+    const parsed = parseInterpolations(
+        parseElements(
+            expandComponents(
+                main,
+                expressions,
+                interpolations,
+                isComponentClass
             ),
-            interpolations
+            elements
         ),
-        elements,
         interpolations
     );
 
-    return { parts, source };
+    return {
+        parts : splitPlaceholders(parsed, elements, interpolations),
+        source,
+        // Only a component's root template is required to have a single root, and a
+        // template is authored, not data-driven: like `source`, the fact is computed
+        // in development only, and the component checks it there.
+        singleRoot : __DEV__ ? hasSingleRoot(parsed) : null,
+    };
 };
 
 /**
@@ -450,7 +520,7 @@ const parseMain = (main, expressions, isComponentClass, source = null) => {
  * @param {Function} [isComponentClass] Predicate telling whether an expression is a
  *     component class. Defaults to treating nothing as a component (elements /
  *     interpolations only).
- * @return {{ parts: Array, source: Object|null }} Skeleton data.
+ * @return {{ parts: Array, source: Object|null, singleRoot: boolean }} Skeleton data.
  * @private
  */
 const parseTemplate = (strings, expressions, isComponentClass = () => false) => {

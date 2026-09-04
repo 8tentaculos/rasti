@@ -101,6 +101,73 @@ describe('parseTemplate', () => {
         });
     });
 
+    describe('template structure', () => {
+        // `singleRoot` is the fact a component checks before adopting a partial as
+        // its root. Asserted on the parsed skeleton, with no component involved.
+        const singleRootOf = ({ strings, expressions }) =>
+            parseTemplate(strings, expressions, isComponentClass).singleRoot;
+
+        it('must report a single root element', () => {
+            expect(singleRootOf(tag`<div>a</div>`)).to.be.true;
+            expect(singleRootOf(tag`<div><span>a</span></div>`)).to.be.true;
+            expect(singleRootOf(tag`<div class=${'a'}>${'b'}</div>`)).to.be.true;
+            expect(singleRootOf(tag`<div><${makeComponent()} /></div>`)).to.be.true;
+            expect(singleRootOf(tag`<div>  </div>  `)).to.be.true;
+        });
+
+        it('must count a void or self-closed root as complete', () => {
+            expect(singleRootOf(tag`<input>`)).to.be.true;
+            expect(singleRootOf(tag`<img/>`)).to.be.true;
+            expect(singleRootOf(tag`<div><br></div>`)).to.be.true;
+            expect(singleRootOf(tag`<svg><circle r="${1}"/></svg>`)).to.be.true;
+        });
+
+        it('must report siblings of the root element', () => {
+            // A repeated tag is the case a root-and-closing-tag match cannot tell
+            // from a single root, since the pair spans both elements.
+            expect(singleRootOf(tag`<div></div><div></div>`)).to.be.false;
+            expect(singleRootOf(tag`<div></div><span></span>`)).to.be.false;
+            expect(singleRootOf(tag`text <div></div>`)).to.be.false;
+            expect(singleRootOf(tag`<div></div> tail`)).to.be.false;
+            expect(singleRootOf(tag`${'a'}<div></div>`)).to.be.false;
+            expect(singleRootOf(tag`<div></div>${'a'}`)).to.be.false;
+        });
+
+        it('must report a template with no root element', () => {
+            expect(singleRootOf(tag`hello`)).to.be.false;
+            expect(singleRootOf(tag`${'a'}`)).to.be.false;
+            expect(singleRootOf(tag`${'a'}${'b'}`)).to.be.false;
+            expect(singleRootOf(tag`<${makeComponent()} />`)).to.be.false;
+        });
+
+        it('must not report a second node it cannot see', () => {
+            // The closing tags HTML fills in leave the walk inside the root, so the
+            // answer is conservative rather than wrong: these all have a single root.
+            expect(singleRootOf(tag`<ul><li>a<li>b</ul>`)).to.be.true;
+            expect(singleRootOf(tag`<table><tr><td>a<td>b</table>`)).to.be.true;
+            expect(singleRootOf(tag`<p>one<p>two`)).to.be.true;
+            // Unclosed markup, closed by the parser at the end of the root.
+            expect(singleRootOf(tag`<div>a`)).to.be.true;
+            // A closing tag with nothing open is dropped by the parser too.
+            expect(singleRootOf(tag`</div><div></div>`)).to.be.true;
+        });
+
+        it('must read structure through comments and quoted attribute values', () => {
+            // Tags written inside a comment are not markup.
+            expect(singleRootOf(tag`<div><!-- <span> --></div>`)).to.be.true;
+            // A comment beside the root is a node of its own.
+            expect(singleRootOf(tag`<!-- x --><div></div>`)).to.be.false;
+            // A quoted value holding `>` does not end the tag.
+            expect(singleRootOf(tag`<div title="x > y"></div>`)).to.be.true;
+            expect(singleRootOf(tag`<div data-json='{"a":1}'></div>`)).to.be.true;
+        });
+
+        it('must accept a dynamic tag name as the root element', () => {
+            expect(singleRootOf(tag`<${'section'}>${'a'}</${'section'}>`)).to.be.true;
+            expect(singleRootOf(tag`<${'img'} />`)).to.be.true;
+        });
+    });
+
     describe('attribute descriptors', () => {
         it('must parse unquoted, quoted, value-less and static attributes', () => {
             const { strings, expressions } = tag`<a href=${'/x'} title="${'t'}" hidden=${true} data-static="z"></a>`;

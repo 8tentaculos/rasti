@@ -387,6 +387,44 @@ describe('Component', () => {
             expect(() => { model.wide = true; }).to.throw(/Root template changed/);
         });
 
+        it('must throw when the root template has more than one root element', () => {
+            // `this.el` would be the first element, and everything beside it would
+            // render once and then be left out of every update.
+            const Split = Component.create`<div id="test-node"></div><span></span>`;
+
+            expect(() => Split.mount({}, document.body)).to.throw(/Invalid root template/);
+        });
+
+        it('must throw when the root template writes content beside the root element', () => {
+            const Text = Component.create`text <div id="test-node"></div>`;
+            const Tail = Component.create`<div id="test-node"></div>${'tail'}`;
+            const Commented = Component.create`<!-- note --><div id="test-node"></div>`;
+
+            expect(() => Text.mount({}, document.body)).to.throw(/Invalid root template/);
+            expect(() => Tail.mount({}, document.body)).to.throw(/Invalid root template/);
+            expect(() => Commented.mount({}, document.body)).to.throw(/Invalid root template/);
+        });
+
+        it('must accept a root that renders no element of its own', () => {
+            const Child = Component.create`<div id="test-node"></div>`;
+            // A container and a lone component tag have no element of their own: they
+            // adopt the one their single interpolation resolves to.
+            const Container = Component.create(function() {
+                return new Child();
+            });
+            const Tag = Component.create`<${Child} />`;
+
+            expect(() => Container.mount({}, document.body)).to.not.throw();
+            expect(() => Tag.mount({}, document.body)).to.not.throw();
+        });
+
+        it('must accept a void element as the root', () => {
+            const Field = Component.create`<input id="test-node">`;
+
+            expect(() => Field.mount({}, document.body)).to.not.throw();
+            expect(document.getElementById('test-node').tagName.toLowerCase()).to.be.equal('input');
+        });
+
         it('must report the component when template throws', () => {
             class Broken extends Component {
                 template() {

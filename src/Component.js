@@ -3,6 +3,7 @@ import Model from './Model.js';
 import SafeHTML from './core/SafeHTML.js';
 import Constants from './core/Constants.js';
 import Partial from './core/Partial.js';
+import ExpressionIndex from './core/ExpressionIndex.js';
 import EventsManager from './core/EventsManager.js';
 import isComponent from './core/isComponent.js';
 import validateListener from './utils/validateListener.js';
@@ -88,6 +89,40 @@ const throwComponentError = (devMessage, prodMessage) => {
  * @private
  */
 const isComponentClass = (expression) => !!(expression && expression.prototype instanceof Component);
+
+/**
+ * Throw when a component's root template does not resolve to a single element.
+ * `this.el` is the first element the root partial renders, so anything written
+ * beside it is rendered once and then left out of every update, move and destroy.
+ * A transparent root — a container or a lone component tag — is valid: it has no
+ * element of its own and adopts the one its interpolation resolves to.
+ *
+ * Development only, as a module function so it is dropped from production builds:
+ * a root template is authored, not data-driven, so the mistake surfaces the first
+ * time the component renders in development.
+ * @param {Component} component The component adopting the root partial.
+ * @private
+ */
+const checkRootStructure = (component) => {
+    const { rootPartial } = component;
+    if (rootPartial.isTransparent() || rootPartial.constructor.singleRoot) return;
+    // A component class left as a tag name means the component tag is malformed, so
+    // the markup around it could not be read either. Rendering it reports the
+    // malformed tag, which is the actual mistake.
+    const malformedTag = rootPartial.constructor.parts.some(part =>
+        part instanceof ExpressionIndex && isComponentClass(rootPartial.expressions[part.index]));
+    if (malformedTag) return;
+    throw new Error(createDevelopmentErrorMessage(
+        `Invalid root template in ${component.constructor.name}#${component.uid}\n` +
+        'A component\'s template must have a single root element, or render a single component.\n\n' +
+        'Valid examples:\n' +
+        '- `<div>content</div>`\n' +
+        '- `<${MyComponent} />`\n\n' +
+        'Invalid examples:\n' +
+        '- `<div></div><div></div>`  (multiple root elements)\n' +
+        '- `text <div></div>`  (text outside the root element)'
+    ));
+};
 
 /**
  * Call-site identity for the synthetic container wrapper (`${child}`). Every
@@ -276,6 +311,7 @@ export default class Component extends View {
     ensureRootPartial() {
         if (this.rootPartial) return;
         this.rootPartial = this.buildRootPartial();
+        if (__DEV__) checkRootStructure(this);
         // Adopting it as the root is what makes a single-interpolation partial a
         // container: the component borrows the element of the child it resolves to.
         this.rootPartial.isRoot = true;
@@ -473,6 +509,8 @@ export default class Component extends View {
      * inside an interpolation are free of both:
      *
      * - It must have a <b>single root element</b>, which becomes the component's `this.el`.
+     *   Development builds throw when it resolves to anything else, since the nodes
+     *   beside the root would be left out of every update.
      * - It must be built from the <b>same template</b> on every render, since the root is
      *   patched in place; returning a different one throws. Branch inside the interpolations
      *   instead of switching the root itself.
