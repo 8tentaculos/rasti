@@ -2,6 +2,7 @@ import Slot from './Slot.js';
 import Constants from './Constants.js';
 import SafeHTML from './SafeHTML.js';
 import isComponent from './isComponent.js';
+import valueToString from './valueToString.js';
 import __DEV__ from '../utils/dev.js';
 import warnTemplate from '../utils/warnTemplate.js';
 import findComment from '../utils/findComment.js';
@@ -155,46 +156,37 @@ class InterpolationSlot extends Slot {
      * @private
      */
     renderValue(value, pass) {
-        if (value == null || value === false || value === true) return '';
         if (value instanceof SafeHTML) return `${value}`;
-        if (this.partial.isPartial(value)) {
-            // A nested partial renders under the same host as the partial holding it.
-            value.host = this.partial.host;
-            return value.render(pass);
-        }
+
         if (Array.isArray(value)) {
             const rendered = value.map(item => this.renderValue(item, pass)).join('');
             // Checked after rendering, when the items have resolved their own occupants.
             if (__DEV__) checkListItems(this, value);
             return rendered;
         }
-        return this.renderChild(value, pass);
-    }
 
-    /**
-     * Render a leaf value that is either a child component or a primitive. During
-     * an update (a `pass` is present) a child is matched against the slot's
-     * previous occupants: a match is recycled (its placeholder marker is emitted
-     * and its real nodes are moved into place later), otherwise it is a new child.
-     * A primitive is sanitized.
-     * @param {any} value The leaf value.
-     * @param {object} [pass] Reconcile pass (see `Partial#render`).
-     * @return {string} The rendered HTML.
-     * @private
-     */
-    renderChild(value, pass) {
         const { owner, host } = this.partial;
-        if (!owner.isChild(value)) return owner.sanitize(value);
-        if (pass) {
-            const found = this.claimRecyclable(value, pass);
-            if (found) {
-                host.addChild(found);
-                pass.recycled.push([found, value]);
-                return `<!--${host.recycleMarker(found)}-->`;
-            }
-            pass.next.push(value);
+
+        if (this.partial.isPartial(value)) {
+            // A nested partial renders under the same host as the partial holding it.
+            value.host = host;
+            return value.render(pass);
         }
-        return `${host.addChild(value)}`;
+
+        if (owner.isChild(value)) {
+            if (pass) {
+                const found = this.claimRecyclable(value, pass);
+                if (found) {
+                    host.addChild(found);
+                    pass.recycled.push([found, value]);
+                    return `<!--${host.recycleMarker(found)}-->`;
+                }
+                pass.next.push(value);
+            }
+            return `${host.addChild(value)}`;
+        }
+
+        return valueToString(value, owner.sanitize);
     }
 
     /**

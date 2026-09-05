@@ -798,6 +798,14 @@ describe('Component', () => {
                 Component.create`<div id="test-node">${() => false}</div>`.mount().toString()
             ).to.be.equal(`<div id="test-node" ${Constants.ATTRIBUTE_ELEMENT}="r2-1"><!--${Constants.MARKER_START('r2-1')}--><!--${Constants.MARKER_END('r2-1')}--></div>`);
         });
+
+        it('must render nullish and boolean content as empty strings', () => {
+            const c = Component.create`
+                <div>${() => null}${() => undefined}${() => false}${() => true}:${() => 0}</div>
+            `.mount({}, document.body);
+
+            expect(c.el.textContent).to.be.equal(':0');
+        });
     });
 
     describe('Component lifecycle and destruction', () => {
@@ -2398,6 +2406,44 @@ describe('Component', () => {
             // And content converges identically.
             expect(aAfter.map(li => li.textContent.trim())).to.deep.equal(['C2', 'A2', 'B2']);
             expect(bAfter.map(li => li.textContent.trim())).to.deep.equal(['C2', 'A2', 'B2']);
+        });
+
+        it('must recycle keyed components through nested arrays and transparent partials', () => {
+            const Row = Component.create`
+                <li data-id="${({ props }) => props.id}">${({ props }) => props.text}</li>
+            `;
+            const List = Component.create`
+                <ul>${({ model, partial }) =>
+        model.groups.map(group => group.map(item =>
+            partial`<${Row} key="${item.id}" id="${item.id}" text="${item.text}" />`
+        ))}</ul>
+            `;
+            const main = List.mount({
+                model : new Model({
+                    groups : [
+                        [{ id : 'a', text : 'A' }, { id : 'b', text : 'B' }],
+                        [{ id : 'c', text : 'C' }]
+                    ]
+                })
+            }, document.body);
+
+            const original = Object.fromEntries(
+                Array.from(main.el.children).map(el => [el.dataset.id, el])
+            );
+
+            main.model.groups = [
+                [{ id : 'c', text : 'C2' }],
+                [{ id : 'a', text : 'A2' }, { id : 'b', text : 'B2' }]
+            ];
+            main.model.groups = [
+                [{ id : 'b', text : 'B3' }, { id : 'c', text : 'C3' }],
+                [{ id : 'a', text : 'A3' }]
+            ];
+
+            const updated = Array.from(main.el.children);
+            expect(updated.map(el => el.dataset.id)).to.deep.equal(['b', 'c', 'a']);
+            expect(updated.map(el => el.textContent)).to.deep.equal(['B3', 'C3', 'A3']);
+            updated.forEach(el => expect(el).to.be.equal(original[el.dataset.id]));
         });
 
         // Keys are matched slot-locally: each interpolation only recycles against its own
