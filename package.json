@@ -1,7 +1,7 @@
 {
     "name": "rasti",
     "version": "4.1.2",
-    "description": "Modern MVC for building user interfaces",
+    "description": "HTML-first, composable user interfaces",
     "type": "module",
     "main": "lib/index.cjs",
     "module": "es/index.js",

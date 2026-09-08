@@ -8,7 +8,7 @@ Audience: a developer arriving at the project, and an LLM that needs enough cont
 
 ## 1. Overview
 
-Rasti is a small MVC library for building user interfaces. Zero runtime dependencies, SSR-first, standards-based. Components are declarative (tagged templates); models, views and emitters are the building blocks underneath, in the Backbone tradition.
+Rasti builds user interfaces from components. A component describes its markup with a tagged template, and its first output is an HTML string — the same markup in the browser and on the server. Models, views and event emitters are the building blocks underneath, in the Backbone tradition. Zero runtime dependencies.
 
 Public surface:
 

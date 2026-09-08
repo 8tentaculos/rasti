@@ -6,12 +6,19 @@
 </p>
 
 <p align="center">
-    <b>Modern MVC for building user interfaces</b>
+    <b>HTML-first, composable user interfaces</b>
 </p>
 
-**Rasti is a lightweight MVC library for building fast, reactive user interfaces.**  
-It provides declarative, composable **components** for building state-driven UIs.  
-Its low-level MVC core, inspired by **Backbone.js**’s architecture, provides **models**, **views** and **event emitters** as the fundamental building blocks.
+**Rasti is a library for building state-driven user interfaces from HTML-first components.**
+
+A component's template renders as **HTML first**. That markup is then **hydrated**, and from then on, when state changes, Rasti **patches only the regions that changed**.
+
+This has two consequences:
+
+- Parsing and DOM creation are delegated to the browser's own parser.
+- Server rendering, static builds and browser rendering all follow the same path.
+
+Underneath sits a small MVC core — **models**, **views** and **event emitters** — small enough to read when you need to know how something works. Templates are tagged literals, so nothing needs compiling: drop in a `<script>` tag and start.
 
 [![CI](https://github.com/8tentaculos/rasti/actions/workflows/ci.yml/badge.svg)](https://github.com/8tentaculos/rasti/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/rasti.svg)](https://www.npmjs.com/package/rasti)
@@ -20,24 +27,22 @@ Its low-level MVC core, inspired by **Backbone.js**’s architecture, provides *
 [![jsDelivr hits (npm)](https://img.shields.io/jsdelivr/npm/hm/rasti)](https://www.jsdelivr.com/package/npm/rasti)
 [![license](https://img.shields.io/npm/l/rasti.svg)](https://github.com/8tentaculos/rasti/blob/master/LICENSE)
 
-## Key Features  
+## Key Features
 
-- **Declarative Components** 🌟  
-  Build dynamic UI components using intuitive template literals.  
-- **Event Delegation** 🎯  
-  Simplify event handling with built-in delegation.  
-- **Model-View Binding** 🔗  
-  Keep your UI and data in sync with ease.  
-- **Server-Side Rendering** 🌐  
-  Render as plain text for server-side use or static builds.  
-- **Lightweight and Fast** ⚡  
-  Minimal overhead with efficient rendering.  
-- **Legacy Compatibility** 🕰️  
-  Seamlessly integrates into existing **Backbone.js** legacy projects.  
-- **Standards-Based** 📐  
-  Built on modern web standards, no tooling required.  
-- **TypeScript Support** 🧩  
-  Ships with type definitions for strict typing of models, views, components, props, and events.  
+- **Components as tags**  
+  A component is used inside another template as a tag: `<${Link} href="${href}">${label}</${Link}>`, with props, children and a closing tag. No registry, no custom elements, no JSX.
+- **Handlers in the markup**  
+  `onClick=${function() { this.model.count++; }}` — handlers are written as attributes, run with `this` bound to the component, and are delegated from its root element, so an update never rebinds anything.
+- **Updates in place**  
+  A change re-evaluates every interpolation and writes only what differs. Nested partials, components and lists are retained by identity or key, so elements are never recreated and focus, selection and input values persist.
+- **State from anything that emits**  
+  `model`, `state` and `props` are subscribed automatically, and a change event fires only when a value really differs — nothing re-renders on a no-op set, including a child whose props resolved the same. `subscribe()` takes any object with `on`/`off`: a Backbone model, or a store of your own.
+- **Real DOM, no wrapper**  
+  `render().el` is the element itself: no shadow DOM, no synthetic events, nothing between you and the node. Query it, style it, or hand it to another library.
+- **Server rendering and hydration**  
+  A component renders to a string anywhere JavaScript runs, and picks up the served markup in the browser without recreating it.
+- **Typed**  
+  TypeScript declarations ship with the package and resolve automatically.
 
 ## Getting Started
 
@@ -265,17 +270,6 @@ Component.mount(
     document.body,
 );
 ```
-
-## Why Choose **Rasti**?  
-
-**Rasti** is built for developers who want a simple yet powerful way to create UI components without the complexity of heavy frameworks. Whether you're building a high-performance dashboard, or embedding a lightweight widget, **Rasti** lets you:  
-
-- **Skip the Setup**  
-  No installations, no build tools—just load it and start coding.  
-- **Lightweight and Efficient**  
-  Minimal footprint with optimized performance, ensuring smooth updates.  
-- **Just the Right Abstraction**  
-  Keeps you close to the DOM with no over-engineering. Fully hackable — if you're curious about how something works, just check the source code.  
 
 ## Scaffolding a New Project
 
