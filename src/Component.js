@@ -224,18 +224,17 @@ const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', '
 export default class Component extends View {
     constructor(options = {}) {
         super(...arguments);
-        this.componentOptions = [];
         // Extend "this" with options.
         componentOptions.forEach(key => {
             if (key in options) {
                 this[key] = options[key];
-                this.componentOptions.push(key);
+                this.optionKeys.add(key);
             }
         });
         // Extract props from options that aren't component or view options.
         const props = {};
         Object.keys(options).forEach(key => {
-            if (this.viewOptions.indexOf(key) === -1 && this.componentOptions.indexOf(key) === -1) {
+            if (!this.optionKeys.has(key)) {
                 props[key] = options[key];
             }
         });
