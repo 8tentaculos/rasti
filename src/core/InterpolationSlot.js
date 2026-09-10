@@ -178,7 +178,7 @@ class InterpolationSlot extends Slot {
                 const found = this.claimRecyclable(value, pass);
                 if (found) {
                     host.addChild(found);
-                    pass.recycled.push([found, value]);
+                    pass.recycled.set(value, found);
                     return `<!--${host.recycleMarker(found)}-->`;
                 }
                 pass.next.push(value);
@@ -385,7 +385,7 @@ class InterpolationSlot extends Slot {
         return {
             previous : Array.isArray(value) ? this.collectChildren(this.previous) : [],
             used : new Set(),
-            recycled : [],
+            recycled : new Map(),
             next : []
         };
     }
@@ -401,7 +401,7 @@ class InterpolationSlot extends Slot {
      */
     placeChildren(pass, value, parent) {
         const { host } = this.partial;
-        pass.recycled.forEach(([found]) => host.moveChild(found, parent));
+        pass.recycled.forEach(found => host.moveChild(found, parent));
         pass.next.forEach(child => host.hydrateChild(child, parent));
         // Structural pass: set the nested partials' refs, but leave the children to
         // the reconcile above (new ones hydrated, recycled ones moved).
@@ -416,7 +416,7 @@ class InterpolationSlot extends Slot {
      */
     finishPass(pass) {
         const { host } = this.partial;
-        pass.recycled.forEach(([found, discarded]) => {
+        pass.recycled.forEach((found, discarded) => {
             host.updateChild(found, host.childProps(discarded));
             host.destroyChild(discarded);
         });
@@ -449,31 +449,17 @@ class InterpolationSlot extends Slot {
      * freshly synthesized candidates, and the next render would match its
      * candidates against those dead instances.
      * @param {any} value The rendered value (holding the candidates).
-     * @param {object} pass The reconcile pass (holds the recycled pairs).
+     * @param {object} pass The reconcile pass (holds the recycled children).
      * @return {any} The value with candidates replaced by retained instances.
      * @private
      */
     resolvePrevious(value, pass) {
-        const retained = new Map(pass.recycled.map(([found, candidate]) => [candidate, found]));
-        return this.resolveOccupant(value, retained);
-    }
-
-    /**
-     * Replace recycled candidates with their retained instances within a value,
-     * descending arrays and unwrapping transparent partials to the child they wrap
-     * (the only occupant they contribute to the pool).
-     * @param {any} value The value.
-     * @param {Map} retained Map from candidate child to retained instance.
-     * @return {any} The resolved value.
-     * @private
-     */
-    resolveOccupant(value, retained) {
-        if (Array.isArray(value)) return value.map(item => this.resolveOccupant(item, retained));
+        if (Array.isArray(value)) return value.map(item => this.resolvePrevious(item, pass));
         if (this.partial.isPartial(value)) {
-            if (value.isTransparent()) return this.resolveOccupant(value.slots[0].previous, retained);
+            if (value.isTransparent()) return this.resolvePrevious(value.slots[0].previous, pass);
             return value;
         }
-        if (this.partial.owner.isChild(value)) return retained.get(value) || value;
+        if (this.partial.owner.isChild(value)) return pass.recycled.get(value) || value;
         return value;
     }
 }

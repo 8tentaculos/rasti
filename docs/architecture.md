@@ -338,7 +338,7 @@ Warnings (lists without keyed components, duplicate keys, unsupported attribute 
 | **transparent** | A partial that is a single interpolation with no markup. The engine sees through it. |
 | **anchored**    | A partial that stands on a component's element and writes no interpolation markers (container or lone component tag). |
 | **marker**      | HTML comment delimiting an interpolation (`rst-s-` / `rst-e-`), or a recycle placeholder (`rst-r-`). |
-| **pass**        | Reconcile context for one regeneration: previous keyed children, used set, recycled pairs, newly mounted children. |
+| **pass**        | Reconcile context for one regeneration: previous keyed children, used set, recycled children, newly mounted ones. |
 | **emission id** | `${uid}-${n}` assigned when an element or interpolation is first written out. Root element is `-1`. |
 | **wire format** | What hits the DOM: data attributes, dataset keys, comment markers, emission-id convention. |
 
