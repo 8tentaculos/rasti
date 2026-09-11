@@ -5,8 +5,9 @@ import warnUnsupportedAttribute from '../utils/warnUnsupportedAttribute.js';
 /**
  * The live state of one component tag (`<${Comp} .../>`). A component tag is an
  * interpolation whose value is synthesized from its descriptor instead of read from
- * an expression, so it is an `InterpolationSlot` that only replaces `evaluate`:
- * rendering, hydration and reconciliation are the same, and the child it mounts is
+ * an expression, so it is an `InterpolationSlot` that replaces `evaluate` and stands
+ * on the element of the component it mounts instead of on markers: rendering,
+ * hydration and reconciliation are otherwise the same, and the child it mounts is
  * recycled like any other.
  * @param {Partial} partial The partial this slot belongs to.
  * @param {ComponentDescriptor} descriptor The descriptor this slot renders from.
@@ -36,6 +37,25 @@ class ComponentSlot extends InterpolationSlot {
             childOptions.renderChildren = () => new InnerPartial(partial.expressions, partial.owner);
         }
         return tag.mount(childOptions);
+    }
+
+    /**
+     * A component tag is always anchored: it resolves to a single component, so it
+     * needs no markers of its own and stands on that component's element.
+     * @return {boolean} Always true.
+     * @private
+     */
+    isAnchored() {
+        return true;
+    }
+
+    /**
+     * The element of the component currently occupying the slot.
+     * @return {Node} The anchor element.
+     * @private
+     */
+    anchorElement() {
+        return this.previous.el;
     }
 }
 

@@ -206,8 +206,8 @@ class Partial {
         // may move nodes and break a marker lookup still pending.
         this.eachSlot(ElementSlot, slot => slot.hydrateRef(parent));
         if (!root) root = this.isAnchored() ? parent : this.firstSlot(ElementSlot).ref;
-        // An anchored partial renders without markers, so there is nothing to locate here.
-        if (!this.isAnchored()) this.eachSlot(InterpolationSlot, slot => slot.hydrateMarkers(root));
+        // Each slot knows whether it wrote markers: an anchored one has none to locate.
+        this.eachSlot(InterpolationSlot, slot => slot.hydrateMarkers(root));
         this.eachSlot(InterpolationSlot, slot => slot.hydrateOccupant(parent, root, fresh));
     }
 

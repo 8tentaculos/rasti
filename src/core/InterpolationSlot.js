@@ -129,19 +129,42 @@ class InterpolationSlot extends Slot {
     }
 
     /**
-     * Render the interpolation: its value wrapped between comment markers, except in an
-     * anchored partial, which is marker-less and stands on its component's element.
+     * Tell whether the slot is anchored to an element instead of to markers: it writes
+     * no markers of its own and patches around the element its content stands on. True
+     * inside an anchored partial, which stands on the element of the component it
+     * renders; `ComponentSlot` overrides it, since a component tag always resolves to
+     * a single component and can stand on its element too.
+     * @return {boolean} True if the slot is anchored to an element.
+     * @private
+     */
+    isAnchored() {
+        return this.partial.isAnchored();
+    }
+
+    /**
+     * The element the slot's content currently stands on, around which an anchored
+     * slot patches. Only meaningful while the slot is anchored.
+     * @return {Node} The anchor element.
+     * @private
+     */
+    anchorElement() {
+        return this.partial.rootElement();
+    }
+
+    /**
+     * Render the interpolation: its value wrapped between comment markers, except when
+     * the slot is anchored, in which case it is marker-less and stands on an element.
      * Records the value as the slot's occupant for the next render's reconciliation.
      * @param {object} [pass] Reconcile pass (see `Partial#render`).
      * @return {string} The rendered HTML.
      */
     render(pass) {
         const { partial } = this;
-        if (this.id == null) this.id = partial.owner.nextMarkerId();
+        if (this.id == null && !this.isAnchored()) this.id = partial.owner.nextMarkerId();
         const value = this.evaluate();
         this.previous = value;
         const rendered = this.renderValue(value, pass);
-        if (partial.isAnchored()) return rendered;
+        if (this.isAnchored()) return rendered;
         return `<!--${Constants.MARKER_START(this.id)}-->${rendered}<!--${Constants.MARKER_END(this.id)}-->`;
     }
 
@@ -214,10 +237,12 @@ class InterpolationSlot extends Slot {
     /**
      * Resolve the slot's comment markers. They are located by a structural traversal
      * that skips nested component subtrees, so the search is scoped to the owning
-     * component's root.
+     * component's root. An anchored slot writes no markers, so there is nothing to
+     * locate.
      * @param {Node} root The owning component's root.
      */
     hydrateMarkers(root) {
+        if (this.isAnchored()) return;
         const start = findComment(root, Constants.MARKER_START(this.id), isComponent);
         const end = findComment(root, Constants.MARKER_END(this.id), isComponent, start);
         this.ref = [start, end];
@@ -300,7 +325,7 @@ class InterpolationSlot extends Slot {
     regenerate(value) {
         const pass = this.makePass(value);
         const fragment = parseHTML(this.renderValue(value, pass));
-        if (this.partial.isAnchored()) this.placeAnchored(fragment, pass, value);
+        if (this.isAnchored()) this.placeAnchored(fragment, pass, value);
         else this.placeBetweenMarkers(fragment, pass, value);
         this.finishPass(pass);
         this.previous = this.resolvePrevious(value, pass);
@@ -320,16 +345,16 @@ class InterpolationSlot extends Slot {
     }
 
     /**
-     * Place a fresh fragment next to an anchored partial's current element and
-     * swap it in. Such a partial has no markers, so its content stands on that
-     * element (which can be moved around the DOM by hand).
+     * Place a fresh fragment next to the slot's anchor element and swap it in. An
+     * anchored slot has no markers, so its content stands on that element (which can
+     * be moved around the DOM by hand).
      * @param {DocumentFragment} fragment The new content.
      * @param {object} pass The reconcile pass.
      * @param {any} value The rendered value.
      * @private
      */
     placeAnchored(fragment, pass, value) {
-        const element = this.partial.rootElement();
+        const element = this.anchorElement();
         const parent = element.parentNode;
         const divider = document.createComment('');
         parent.insertBefore(divider, element.nextSibling);

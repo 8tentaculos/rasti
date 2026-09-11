@@ -481,7 +481,7 @@ describe('Component', () => {
             expect(c.children[0].options.color).to.be.equal('primary');
             expect(document.querySelector('button').innerHTML).to.be.equal(
                 `<!--${Constants.MARKER_START('r2-1')}-->` +
-                    `<!--${Constants.MARKER_START('r1-2')}-->click me<!--${Constants.MARKER_END('r1-2')}-->` +
+                    `<!--${Constants.MARKER_START('r1-1')}-->click me<!--${Constants.MARKER_END('r1-1')}-->` +
                 `<!--${Constants.MARKER_END('r2-1')}-->`
             );
         });
@@ -1459,7 +1459,7 @@ describe('Component', () => {
 
             expect(document.querySelectorAll('button')[1].innerHTML).to.be.equal(
                 `<!--${Constants.MARKER_START('r4-1')}-->` +
-                    `<!--${Constants.MARKER_START('r3-2')}-->cancel<!--${Constants.MARKER_END('r3-2')}-->` +
+                    `<!--${Constants.MARKER_START('r3-1')}-->cancel<!--${Constants.MARKER_END('r3-1')}-->` +
                 `<!--${Constants.MARKER_END('r4-1')}-->`
             );
             expect(c2.el).to.be.equal(c2.children[0].el);
@@ -1473,7 +1473,7 @@ describe('Component', () => {
 
             expect(document.querySelectorAll('button')[1].innerHTML).to.be.equal(
                 `<!--${Constants.MARKER_START('r4-1')}-->` +
-                    `<!--${Constants.MARKER_START('r3-2')}-->cancel<!--${Constants.MARKER_END('r3-2')}-->` +
+                    `<!--${Constants.MARKER_START('r3-1')}-->cancel<!--${Constants.MARKER_END('r3-1')}-->` +
                 `<!--${Constants.MARKER_END('r4-1')}-->`
             );
             expect(c2.el).to.be.equal(c2.children[0].el);
@@ -1727,7 +1727,7 @@ describe('Component', () => {
             expect(c4.children[0].el).to.be.equal(document.querySelector('#test-node-4 div button'));
             expect(document.querySelector('#test-node-4 div button').innerHTML).to.be.equal(
                 `<!--${Constants.MARKER_START('r10-1')}-->` +
-                    `<!--${Constants.MARKER_START('r9-3')}-->ok<!--${Constants.MARKER_END('r9-3')}-->` +
+                    `<!--${Constants.MARKER_START('r9-2')}-->ok<!--${Constants.MARKER_END('r9-2')}-->` +
                 `<!--${Constants.MARKER_END('r10-1')}-->`
             );
         });
@@ -2221,6 +2221,33 @@ describe('Component', () => {
             expect(updatedInnerSpan).to.be.equal(originalInnerSpan); // Inner span preserved (partial patched in place).
             expect(updatedChildElement.textContent.trim()).to.be.equal('World');
             expect(recycleCalls).to.be.equal(1); // onRecycle was called.
+        });
+
+        it('must replace a component tag whose key changed', () => {
+            let destroyCalls = 0;
+
+            const Child = Component.create`<div>${({ props }) => props.text}</div>`.extend({
+                onDestroy() {
+                    destroyCalls++;
+                }
+            });
+
+            const Main = Component.create`
+                <div id="test-node">before<${Child} key="${({ model }) => model.id}" text="${({ model }) => model.text}" />after</div>
+            `.mount({ model : new Model({ id : 'a', text : 'Hello' }) }, document.body);
+
+            const originalElement = document.querySelector('#test-node div');
+            expect(Main.el.textContent).to.be.equal('beforeHelloafter');
+            // A different key cannot be recycled: the child is replaced, standing on its
+            // own element since the tag writes no markers.
+            Main.model.set({ id : 'b', text : 'World' });
+
+            const updatedElement = document.querySelector('#test-node div');
+            expect(updatedElement).to.not.be.equal(originalElement);
+            expect(originalElement.parentNode).to.be.equal(null); // Old element removed.
+            expect(Main.el.textContent).to.be.equal('beforeWorldafter');
+            expect(Main.children.length).to.be.equal(1);
+            expect(destroyCalls).to.be.equal(1);
         });
     });
 
