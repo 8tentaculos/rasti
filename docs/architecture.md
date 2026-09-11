@@ -245,8 +245,7 @@ These are different predicates. Do not collapse them.
 |-------------------|-----------------------------------------------------------------------|-----------------------------------------------|
 | `isTransparent()` | skeleton is exactly one interpolation, no markup                      | see-through for `collectChildren` / `rootElement` |
 | `isComponentTag()`| skeleton is exactly one component tag                                 | `partial\`<${Comp} />\`` ≡ mounting Comp      |
-| `isContainer()`   | **this** is a component's root partial **and** transparent            | the component adopts the child's `el`         |
-| `isAnchored()`    | container **or** component tag                                        | no interpolation markers; stands on a component's element |
+| `isAnchored()`    | transparent **and** either a component's root partial or a component tag | no interpolation markers; stands on a component's element |
 
 Container is a property of a **component**. Transparency is a property of a partial's **shape**.
 

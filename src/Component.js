@@ -342,18 +342,6 @@ export default class Component extends View {
     }
 
     /**
-     * Tell if `Component` is a container.
-     * In which case, it will not have an element by itself.
-     * It will render a single expression which is expected to return a single component as child.
-     * `this.el` will be a reference to that child component's element.
-     * @return {boolean}
-     * @private
-     */
-    isContainer() {
-        return this.rootPartial.isContainer();
-    }
-
-    /**
      * Subscribes to a `change` event on a model or emitter object and invokes the `onChange` lifecycle method.
      * The subscription is automatically cleaned up when the component is destroyed.
      * By default, the component subscribes to changes on `this.model`, `this.state`, and `this.props`.
@@ -693,7 +681,7 @@ export default class Component extends View {
         // diff element attributes. Expressions are re-evaluated in the component's context.
         this.rootPartial.update(carrier.expressions);
         // A container may now point to a different child element.
-        if (this.isContainer()) this.el = this.rootPartial.rootElement();
+        if (this.rootPartial.isTransparent()) this.el = this.rootPartial.rootElement();
         // Destroy unused children: those not re-added to `children` during the reconcile.
         const liveChildren = new Set(this.children);
         previousChildren.forEach(prev => {

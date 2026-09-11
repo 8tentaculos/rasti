@@ -424,7 +424,7 @@ class InterpolationSlot extends Slot {
 
     /**
      * Collect the keyed child components a value mounted, descending through
-     * transparent (container) partials and arrays. Used to build the slot-local pool
+     * transparent partials and arrays. Used to build the slot-local pool
      * of recyclable children: in a list a key is what identifies a child among its
      * siblings, so an unkeyed one has no identity to be claimed by.
      * @param {any} value The value.

@@ -75,7 +75,7 @@ class Partial {
         // slot that renders it sets the host it renders under.
         this.host = owner;
         // Whether this is the component's own root partial, set when the component
-        // adopts it. Only a root partial can be a container (see `isContainer`).
+        // adopts it. A transparent root partial is a container: see `isAnchored`.
         this.isRoot = false;
     }
 
@@ -87,7 +87,6 @@ class Partial {
      * owner.
      * @param {any} value The value to check.
      * @return {boolean} True if the value is a partial.
-     * @private
      */
     isPartial(value) {
         return value instanceof Partial;
@@ -117,17 +116,6 @@ class Partial {
     }
 
     /**
-     * Tell whether this partial is a container: a component's own root partial, and
-     * transparent, so the component has no element of its own and adopts the one its
-     * single interpolation resolves to. Container is a property of the component;
-     * transparency is a property of any partial's shape (see `isTransparent`).
-     * @return {boolean} True if the partial is a component container.
-     */
-    isContainer() {
-        return this.isRoot && this.isTransparent();
-    }
-
-    /**
      * Tell whether the partial stands for the component it renders: it writes no
      * markers of its own and is anchored to that component's element, which the DOM
      * can then move around freely. True for a container, whose component adopts that
@@ -137,7 +125,7 @@ class Partial {
      * @return {boolean} True if the partial renders anchored to a component.
      */
     isAnchored() {
-        return this.isContainer() || this.isComponentTag();
+        return this.isTransparent() && (this.isRoot || this.isComponentTag());
     }
 
     /**

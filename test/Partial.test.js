@@ -134,21 +134,19 @@ describe('Partial', () => {
             expect(partial.isAnchored()).to.be.true;
         });
 
-        it('must be a container only as a component root partial', () => {
+        it('must anchor a transparent root partial, whose component takes its element', () => {
             const partial = makePartial(tag`${'solo'}`);
 
-            expect(partial.isContainer()).to.be.false;
             partial.isRoot = true;
-            expect(partial.isContainer()).to.be.true;
             expect(partial.isAnchored()).to.be.true;
         });
 
-        it('must not be transparent when the template has markup', () => {
+        it('must not anchor a root partial whose template has markup', () => {
             const partial = makePartial(tag`<div>${'solo'}</div>`);
 
-            expect(partial.isTransparent()).to.be.false;
             partial.isRoot = true;
-            expect(partial.isContainer()).to.be.false;
+            expect(partial.isTransparent()).to.be.false;
+            expect(partial.isAnchored()).to.be.false;
         });
     });
 
