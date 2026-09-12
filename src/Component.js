@@ -3,7 +3,7 @@ import Model from './Model.js';
 import SafeHTML from './core/SafeHTML.js';
 import Constants from './core/Constants.js';
 import Partial from './core/Partial.js';
-import ExpressionIndex from './core/ExpressionIndex.js';
+import ExpressionDescriptor from './core/ExpressionDescriptor.js';
 import EventsManager from './core/EventsManager.js';
 import isComponent from './core/isComponent.js';
 import validateListener from './utils/validateListener.js';
@@ -110,7 +110,7 @@ const checkRootStructure = (component) => {
     // the markup around it could not be read either. Rendering it reports the
     // malformed tag, which is the actual mistake.
     const malformedTag = rootPartial.constructor.parts.some(part =>
-        part instanceof ExpressionIndex && isComponentClass(rootPartial.expressions[part.index]));
+        part instanceof ExpressionDescriptor && isComponentClass(rootPartial.expressions[part.index]));
     if (malformedTag) return;
     throw new Error(createDevelopmentErrorMessage(
         `Invalid root template in ${component.constructor.name}#${component.uid}\n` +
@@ -526,6 +526,10 @@ export default class Component extends View {
      * Render the component as a string.
      * Used internally on the render process.
      * Use it for server-side rendering or static site generation.
+     *
+     * Rendering is the `toString` contract: every piece Rasti emits answers it with
+     * the markup it stands for, so a component goes straight into any HTML string —
+     * interpolated into a server-side layout, or concatenated with it.
      * @return {string} The rendered component.
      * @example
      * import { Component } from 'rasti';
@@ -554,7 +558,7 @@ export default class Component extends View {
         // Normally there won't be any data event listeners, but if there are, clear them.
         this.eventsManager.reset();
         // Delegate the render to the root partial, hosting its children on this component.
-        return this.rootPartial.render();
+        return this.rootPartial.toString();
     }
 
     /**

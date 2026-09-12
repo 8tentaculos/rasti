@@ -44,7 +44,7 @@ const listItemChild = (partial, value) => {
  */
 const warn = (slot, message) => {
     const { source } = slot.partial.constructor;
-    const expression = source && source.expressions[slot.descriptor.expressionIndex];
+    const expression = source && source.expressions[slot.descriptor.index];
     warnTemplate(slot.partial.constructor, slot.descriptor, expression, message);
 };
 
@@ -125,7 +125,7 @@ class InterpolationSlot extends Slot {
      */
     evaluate() {
         const { partial, descriptor } = this;
-        return partial.owner.evaluate(partial.expressions[descriptor.expressionIndex], 'interpolation');
+        return partial.owner.evaluate(partial.expressions[descriptor.index], 'interpolation');
     }
 
     /**
@@ -155,10 +155,10 @@ class InterpolationSlot extends Slot {
      * Render the interpolation: its value wrapped between comment markers, except when
      * the slot is anchored, in which case it is marker-less and stands on an element.
      * Records the value as the slot's occupant for the next render's reconciliation.
-     * @param {object} [pass] Reconcile pass (see `Partial#render`).
+     * @param {object} [pass] Reconcile pass (see `Partial#toString`).
      * @return {string} The rendered HTML.
      */
-    render(pass) {
+    toString(pass) {
         const { partial } = this;
         if (this.id == null && !this.isAnchored()) this.id = partial.owner.nextMarkerId();
         const value = this.evaluate();
@@ -172,14 +172,15 @@ class InterpolationSlot extends Slot {
      * Render a dynamic value to a string. Handles the engine's own types
      * (`SafeHTML`, nested `Partial`, arrays); a child component is added to the host
      * (matched against the pass's previous occupants during an update); any other
-     * value is sanitized.
+     * value is sanitized. The engine's own types render through `toString`, called
+     * directly: only a value with no such contract is coerced (see `valueToString`).
      * @param {any} value The value to render.
-     * @param {object} [pass] Reconcile pass (see `Partial#render`).
+     * @param {object} [pass] Reconcile pass (see `Partial#toString`).
      * @return {string} The rendered HTML.
      * @private
      */
     renderValue(value, pass) {
-        if (value instanceof SafeHTML) return `${value}`;
+        if (value instanceof SafeHTML) return value.toString();
 
         if (Array.isArray(value)) {
             const rendered = value.map(item => this.renderValue(item, pass)).join('');
@@ -193,7 +194,7 @@ class InterpolationSlot extends Slot {
         if (this.partial.isPartial(value)) {
             // A nested partial renders under the same host as the partial holding it.
             value.host = host;
-            return value.render(pass);
+            return value.toString(pass);
         }
 
         if (owner.isChild(value)) {
@@ -206,7 +207,7 @@ class InterpolationSlot extends Slot {
                 }
                 pass.next.push(value);
             }
-            return `${host.addChild(value)}`;
+            return host.addChild(value).toString();
         }
 
         return valueToString(value, owner.sanitize);

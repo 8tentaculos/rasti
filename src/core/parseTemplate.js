@@ -1,8 +1,8 @@
-import SafeHTML from './SafeHTML.js';
+import LiteralDescriptor from './LiteralDescriptor.js';
 import ElementDescriptor from './ElementDescriptor.js';
 import InterpolationDescriptor from './InterpolationDescriptor.js';
 import ComponentDescriptor from './ComponentDescriptor.js';
-import ExpressionIndex from './ExpressionIndex.js';
+import ExpressionDescriptor from './ExpressionDescriptor.js';
 import Attribute from './Attribute.js';
 import isVoidElement from '../utils/isVoidElement.js';
 import __DEV__ from '../utils/dev.js';
@@ -23,9 +23,9 @@ import __DEV__ from '../utils/dev.js';
  *
  * Two placeholder namespaces keep the user's `expressions` array pure:
  * - `PLACEHOLDER(i)` marks an original expression at index `i`. After parsing
- *   none survive as placeholders: each becomes an `ExpressionIndex` (in an
+ *   none survive as placeholders: each becomes an `ExpressionDescriptor` (in an
  *   attribute, or as a part of its own for a dynamic tag) or the
- *   `expressionIndex` of an interpolation descriptor.
+ *   `index` of an interpolation descriptor.
  * - `SLOT_ELEMENT(k)` / `SLOT_INTERPOLATION(k)` are structural: `k` indexes the
  *   parse-time element / interpolation tables so `splitPlaceholders` can swap
  *   the marker for the descriptor instance. Those tables are scaffolding — only
@@ -36,7 +36,7 @@ import __DEV__ from '../utils/dev.js';
 // Compile-time tokens, local to the parser: they exist only between
 // `addPlaceholders` and `splitPlaceholders` and never reach the DOM, unlike the
 // wire format in `Constants`.
-const PLACEHOLDER = idx => `__RASTI_PLACEHOLDER_${idx}__`;
+const PLACEHOLDER = idx => `__RASTI_EXPRESSION_${idx}__`;
 const SLOT_ELEMENT = idx => `__RASTI_ELEMENT_${idx}__`;
 const SLOT_INTERPOLATION = idx => `__RASTI_INTERPOLATION_${idx}__`;
 
@@ -185,23 +185,23 @@ const splitByRegExp = (str, regExp, resolve, literal) => {
 
 /**
  * Split a quoted literal value still holding placeholders into its parts:
- * literal strings and `ExpressionIndex` instances, in template order. Empty
+ * literal strings and `ExpressionDescriptor` instances, in template order. Empty
  * literal parts are dropped. A value that is exactly one placeholder never
  * reaches here — the placeholder alternative matches it whole.
  * @param {string} value Literal value holding at least one placeholder.
- * @return {Array<string|ExpressionIndex>} The value parts.
+ * @return {Array<string|ExpressionDescriptor>} The value parts.
  * @private
  */
 const splitValueParts = (value) => splitByRegExp(
     value,
     RE_PH_G,
-    match => new ExpressionIndex(parseInt(match[1], 10)),
+    match => new ExpressionDescriptor(parseInt(match[1], 10)),
     part => part || undefined
 );
 
 /**
  * Parse attributes string into `Attribute` descriptors. Keys and values are
- * stored as an `ExpressionIndex` or a literal — or, for a quoted value mixing
+ * stored as an `ExpressionDescriptor` or a literal — or, for a quoted value mixing
  * literal text and interpolations, an array of parts — so the skeleton stays
  * value-agnostic.
  * @param {string} attributesStr Attributes string from HTML element.
@@ -229,8 +229,8 @@ const parseAttributes = (attributesStr) => {
         const valueIdx = [doubleQuotedIdx, singleQuotedIdx, unquotedIdx].find(isDefined);
         const value = [doubleQuotedValue, singleQuotedValue, unquotedValue].find(isDefined);
 
-        const key = isDefined(attributeIdx) ? new ExpressionIndex(parseInt(attributeIdx, 10)) : attribute;
-        let val = isDefined(valueIdx) ? new ExpressionIndex(parseInt(valueIdx, 10)) : value;
+        const key = isDefined(attributeIdx) ? new ExpressionDescriptor(parseInt(attributeIdx, 10)) : attribute;
+        let val = isDefined(valueIdx) ? new ExpressionDescriptor(parseInt(valueIdx, 10)) : value;
 
         // A quoted literal still holding placeholders is a mixed value: split it into
         // parts so `Attribute` can compose them. Unquoted literals are not split — an
@@ -374,18 +374,18 @@ const parseElements = (template, elements) => {
 /**
  * Parse all interpolations in template text content. A placeholder immediately
  * after `<` or `</` is a dynamic tag name and stays, to survive as an
- * `ExpressionIndex` part; every other placeholder is an interpolation.
+ * `ExpressionDescriptor` part; every other placeholder is an interpolation.
  * @param {string} template Template string with placeholders.
  * @param {Array} interpolations Array to store interpolation descriptors.
  * @return {string} Template with interpolation structural placeholders.
  * @private
  */
 const parseInterpolations = (template, interpolations) =>
-    template.replace(RE_PH_TEXT, (match, tagPrefix, expressionIndex) => {
+    template.replace(RE_PH_TEXT, (match, tagPrefix, expressionIdx) => {
         if (tagPrefix) return match;
         // Add interpolation descriptor to interpolations array.
         const index = interpolations.length;
-        interpolations.push(new InterpolationDescriptor(parseInt(expressionIndex, 10)));
+        interpolations.push(new InterpolationDescriptor(parseInt(expressionIdx, 10)));
         // Replace with structural placeholder.
         return SLOT_INTERPOLATION(index);
     });
@@ -398,23 +398,23 @@ const parseInterpolations = (template, interpolations) =>
  * @param main {string} The main template containing structural placeholders.
  * @param {Array} elements Element descriptor table.
  * @param {Array} interpolations Interpolation descriptor table.
- * @return {array} Array containing SafeHTML literals and descriptor instances.
+ * @return {array} Array containing descriptor instances.
  * @private
  */
 const splitPlaceholders = (main, elements, interpolations) => {
     // Resolve a matched placeholder to its part: an element / interpolation descriptor
-    // for a structural slot, or an `ExpressionIndex` for an original expression that
+    // for a structural slot, or an `ExpressionDescriptor` for an original expression that
     // survived outside a slot (a dynamic tag name).
     const resolve = match => {
         if (typeof match[1] !== 'undefined') return elements[parseInt(match[1], 10)];
         if (typeof match[2] !== 'undefined') return interpolations[parseInt(match[2], 10)];
-        return new ExpressionIndex(parseInt(match[3], 10));
+        return new ExpressionDescriptor(parseInt(match[3], 10));
     };
 
     const matchSinglePlaceholder = main.match(RE_SLOT);
     if (matchSinglePlaceholder) return [resolve(matchSinglePlaceholder)];
 
-    return splitByRegExp(main, RE_SLOT_G, resolve, part => new SafeHTML(part));
+    return splitByRegExp(main, RE_SLOT_G, resolve, part => new LiteralDescriptor(part));
 };
 
 /**

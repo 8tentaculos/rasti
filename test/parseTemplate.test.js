@@ -1,11 +1,11 @@
 import { expect } from 'chai';
 import parseTemplate from '../src/core/parseTemplate.js';
-import SafeHTML from '../src/core/SafeHTML.js';
+import LiteralDescriptor from '../src/core/LiteralDescriptor.js';
 import ElementDescriptor from '../src/core/ElementDescriptor.js';
 import InterpolationDescriptor from '../src/core/InterpolationDescriptor.js';
 import ComponentDescriptor from '../src/core/ComponentDescriptor.js';
 import Attribute from '../src/core/Attribute.js';
-import ExpressionIndex from '../src/core/ExpressionIndex.js';
+import ExpressionDescriptor from '../src/core/ExpressionDescriptor.js';
 
 // Capture a real tagged-template `strings` array (frozen, stable identity per
 // call site) alongside its expressions.
@@ -24,7 +24,7 @@ const isComponentClass = x => !!(x && x.isStubComponent);
 // anything else a literal parsed from the template.
 const expectPart = (part, expected) => {
     if (typeof expected === 'number') {
-        expect(part).to.be.instanceOf(ExpressionIndex);
+        expect(part).to.be.instanceOf(ExpressionDescriptor);
         expect(part.index).to.equal(expected);
         return;
     }
@@ -53,14 +53,14 @@ describe('parseTemplate', () => {
             const { parts } = parseTemplate(strings, expressions);
 
             expect(parts).to.have.lengthOf(5);
-            expect(parts[0]).to.be.instanceOf(SafeHTML);
-            expect(`${parts[0]}`).to.equal('<div ');
+            expect(parts[0]).to.be.instanceOf(LiteralDescriptor);
+            expect(parts[0].value).to.equal('<div ');
             expect(parts[1]).to.be.instanceOf(ElementDescriptor);
-            expect(parts[2]).to.be.instanceOf(SafeHTML);
-            expect(`${parts[2]}`).to.equal('>');
+            expect(parts[2]).to.be.instanceOf(LiteralDescriptor);
+            expect(parts[2].value).to.equal('>');
             expect(parts[3]).to.be.instanceOf(InterpolationDescriptor);
-            expect(parts[4]).to.be.instanceOf(SafeHTML);
-            expect(`${parts[4]}`).to.equal('</div>');
+            expect(parts[4]).to.be.instanceOf(LiteralDescriptor);
+            expect(parts[4].value).to.equal('</div>');
         });
 
         it('must keep a dynamic tag name as an expression part', () => {
@@ -70,11 +70,11 @@ describe('parseTemplate', () => {
             // The tag names are parts of their own, and the element still gets a
             // descriptor, since the root always does.
             expect(elementsOf(parts)).to.have.lengthOf(1);
-            expect(parts[0]).to.be.instanceOf(SafeHTML);
-            expect(`${parts[0]}`).to.equal('<');
-            expect(parts[1]).to.be.instanceOf(ExpressionIndex);
+            expect(parts[0]).to.be.instanceOf(LiteralDescriptor);
+            expect(parts[0].value).to.equal('<');
+            expect(parts[1]).to.be.instanceOf(ExpressionDescriptor);
             expect(parts[1].index).to.equal(0);
-            expect(parts[parts.length - 2]).to.be.instanceOf(ExpressionIndex);
+            expect(parts[parts.length - 2]).to.be.instanceOf(ExpressionDescriptor);
             expect(parts[parts.length - 2].index).to.equal(2);
         });
 
@@ -85,7 +85,7 @@ describe('parseTemplate', () => {
             expect(parts[1].attributes).to.have.lengthOf(1);
             expectAttr(parts[1].attributes[0], 'class', 0, false);
 
-            expect(parts[3].expressionIndex).to.equal(1);
+            expect(parts[3].index).to.equal(1);
         });
 
         it('must give the root element a descriptor even when otherwise static', () => {
@@ -274,7 +274,7 @@ describe('parseTemplate', () => {
             expectAttr(elements[0].attributes[0], 'class', 0);
             expectAttr(elements[1].attributes[0], 'id', 2);
 
-            expect(interpolationsOf(parts).map(i => i.expressionIndex)).to.deep.equal([1, 3]);
+            expect(interpolationsOf(parts).map(i => i.index)).to.deep.equal([1, 3]);
         });
 
         it('must place component tags in document order among the other parts', () => {
@@ -287,7 +287,7 @@ describe('parseTemplate', () => {
             const interpolations = interpolationsOf(parts);
             expect(interpolations).to.have.lengthOf(2);
             expect(interpolations[0]).to.not.be.instanceOf(ComponentDescriptor);
-            expect(interpolations[0].expressionIndex).to.equal(1);
+            expect(interpolations[0].index).to.equal(1);
             expect(interpolations[1]).to.be.instanceOf(ComponentDescriptor);
         });
 
@@ -308,7 +308,7 @@ describe('parseTemplate', () => {
             // after it.
             const interpolations = interpolationsOf(parts);
             expect(interpolations).to.have.lengthOf(1);
-            expect(interpolations[0].expressionIndex).to.equal(0);
+            expect(interpolations[0].index).to.equal(0);
         });
 
         it('must read a placeholder immediately after < as a dynamic tag name', () => {
@@ -318,7 +318,7 @@ describe('parseTemplate', () => {
             // `<${tag}` is a dynamic tag opening: both references stay as
             // expression parts, not interpolations.
             expect(interpolationsOf(parts)).to.have.lengthOf(0);
-            expect(parts.filter(part => part instanceof ExpressionIndex)).to.have.lengthOf(2);
+            expect(parts.filter(part => part instanceof ExpressionDescriptor)).to.have.lengthOf(2);
         });
     });
 
@@ -335,7 +335,7 @@ describe('parseTemplate', () => {
             const desc = parts[3];
             expect(desc).to.be.instanceOf(ComponentDescriptor);
             expect(desc).to.be.instanceOf(InterpolationDescriptor);
-            expect(expressions[desc.expressionIndex]).to.equal(Comp);
+            expect(expressions[desc.index]).to.equal(Comp);
             expect(desc.inner).to.be.null;
             expectAttr(desc.attributes[0], 'className', 1);
         });
@@ -349,7 +349,7 @@ describe('parseTemplate', () => {
             expect(desc).to.be.instanceOf(ComponentDescriptor);
             const inner = interpolationsOf(desc.inner.parts);
             expect(inner).to.have.lengthOf(1);
-            expect(inner[0].expressionIndex).to.equal(1);
+            expect(inner[0].index).to.equal(1);
         });
 
         it('must parse a lone component tag as a single-part container skeleton', () => {
@@ -404,7 +404,7 @@ describe('parseTemplate', () => {
             const interpolations = interpolationsOf(parts);
             expect(interpolations).to.have.lengthOf(1);
             expect(interpolations[0]).to.be.instanceOf(ComponentDescriptor);
-            expect(expressions[interpolations[0].expressionIndex]).to.equal(Comp);
+            expect(expressions[interpolations[0].index]).to.equal(Comp);
         });
 
         it('must normalize repeated references to the same component class', () => {
@@ -418,7 +418,7 @@ describe('parseTemplate', () => {
             expect(interpolations).to.have.lengthOf(2);
             interpolations.forEach(desc => {
                 expect(desc).to.be.instanceOf(ComponentDescriptor);
-                expect(desc.expressionIndex).to.equal(0);
+                expect(desc.index).to.equal(0);
             });
             expectAttr(interpolations[0].attributes[0], 'a', 1);
             expectAttr(interpolations[1].attributes[0], 'b', 3);
@@ -431,8 +431,8 @@ describe('parseTemplate', () => {
 
             const interpolations = interpolationsOf(parts);
             expect(interpolations).to.have.lengthOf(2);
-            expect(interpolationsOf(interpolations[0].inner.parts)[0].expressionIndex).to.equal(1);
-            expect(interpolationsOf(interpolations[1].inner.parts)[0].expressionIndex).to.equal(4);
+            expect(interpolationsOf(interpolations[0].inner.parts)[0].index).to.equal(1);
+            expect(interpolationsOf(interpolations[1].inner.parts)[0].index).to.equal(4);
         });
     });
 

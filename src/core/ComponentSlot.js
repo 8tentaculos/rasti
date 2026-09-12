@@ -25,7 +25,7 @@ class ComponentSlot extends InterpolationSlot {
     evaluate() {
         const { partial, descriptor } = this;
         if (__DEV__) warnUnsupportedAttribute(partial.constructor, descriptor);
-        const tag = partial.expressions[descriptor.expressionIndex];
+        const tag = partial.expressions[descriptor.index];
         const childOptions = {};
         descriptor.attributes.forEach(attribute => attribute.applyTo(childOptions, partial.expressions, partial.owner));
         if (descriptor.inner) {

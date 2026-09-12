@@ -1,23 +1,23 @@
-import ExpressionIndex from './ExpressionIndex.js';
+import ExpressionDescriptor from './ExpressionDescriptor.js';
 import valueToString from './valueToString.js';
 
 /**
- * Resolve a parsed part to its raw value: an `ExpressionIndex` is looked up in
+ * Resolve a parsed part to its raw value: an `ExpressionDescriptor` is looked up in
  * `expressions`, anything else is a literal parsed from the template.
- * @param {ExpressionIndex|string} part The key or value to resolve.
+ * @param {ExpressionDescriptor|string} part The key or value to resolve.
  * @param {Array<any>} expressions The current render expressions.
  * @return {any} The expression it points at, or the literal.
  * @private
  */
-const resolvePart = (part, expressions) => part instanceof ExpressionIndex ? expressions[part.index] : part;
+const resolvePart = (part, expressions) => part instanceof ExpressionDescriptor ? expressions[part.index] : part;
 
 /**
  * A parsed template attribute. Holds its key and value as either an
- * `ExpressionIndex` or a literal — or, for a mixed value, an array of literal
- * and `ExpressionIndex` parts — plus whether the value was quoted, and knows
+ * `ExpressionDescriptor` or a literal — or, for a mixed value, an array of literal
+ * and `ExpressionDescriptor` parts — plus whether the value was quoted, and knows
  * how to resolve itself against the current expressions.
- * @param {ExpressionIndex|string} key Expression reference or literal attribute name.
- * @param {ExpressionIndex|string|Array<string|ExpressionIndex>|undefined} value Expression
+ * @param {ExpressionDescriptor|string} key Expression reference or literal attribute name.
+ * @param {ExpressionDescriptor|string|Array<string|ExpressionDescriptor>|undefined} value Expression
  *     reference, literal, mixed-value parts, or `undefined` for a value-less attribute.
  * @param {boolean} quoted Whether the value was quoted (evaluated) or unquoted (passed as-is).
  * @private
@@ -67,7 +67,7 @@ class Attribute {
             // text including their literal parts: the author is composing a string,
             // not writing markup.
             attributes[key] = this.value.map(part =>
-                part instanceof ExpressionIndex ?
+                part instanceof ExpressionDescriptor ?
                     valueToString(owner.evaluate(resolvePart(part, expressions), 'element attribute')) :
                     part
             ).join('');

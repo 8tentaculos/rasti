@@ -131,34 +131,26 @@ class Partial {
     /**
      * Render the partial to an HTML string, creating its slot state on first
      * call and assigning each element/interpolation an emission id as it is emitted
-     * (so DOM order matches emission order).
+     * (so DOM order matches emission order). It is the `toString` contract every
+     * part answers (see `Slot`), which is what makes `${partial}` render.
      *
-     * This is the engine's internal path, the one that carries the render context.
-     * The context never crosses a component: a child component is emitted by
-     * coercing it to a string, and renders with its own handlers (see `toString`).
+     * The render context travels here as the optional `pass`, invisible to a plain
+     * coercion, and never crosses a component: a child component renders with its
+     * own handlers (see `Component#toString`).
      * @param {object} [pass] Reconcile pass threaded through nested partials during
      *     an update, so child components rendered anywhere in the subtree are
      *     matched against the owning slot's previous occupants. Absent on a plain
      *     first render.
      * @return {string} The rendered HTML.
      */
-    render(pass) {
+    toString(pass) {
         // The slot list is created on the first render: a partial that is synthesized
         // but never rendered (a discarded update candidate) allocates nothing. From
         // then on it is the partial's live view of the skeleton — one slot per part,
         // in document order — so rendering, hydration and updates all walk it and
         // never the skeleton.
         if (!this.slots) this.slots = this.constructor.parts.map(part => new part.constructor.Slot(this, part));
-        return this.slots.map(slot => slot.render(pass)).join('');
-    }
-
-    /**
-     * Render the partial with no reconcile pass, for wherever a string is expected: an
-     * interpolated `${partial}`, an array joined into HTML, a fragment parsed from it.
-     * @return {string} The rendered HTML.
-     */
-    toString() {
-        return this.render();
+        return this.slots.map(slot => slot.toString(pass)).join('');
     }
 
     /**

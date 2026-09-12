@@ -11,12 +11,12 @@ import ExpressionSlot from './ExpressionSlot.js';
  *     when the expression stands on its own as a skeleton part.
  * @private
  */
-class ExpressionIndex {
+class ExpressionDescriptor {
     constructor(index) {
         this.index = index;
     }
 }
 
-ExpressionIndex.Slot = ExpressionSlot;
+ExpressionDescriptor.Slot = ExpressionSlot;
 
-export default ExpressionIndex;
+export default ExpressionDescriptor;
