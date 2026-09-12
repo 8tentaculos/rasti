@@ -203,7 +203,7 @@ class InterpolationSlot extends Slot {
                 if (found) {
                     host.addChild(found);
                     pass.recycled.set(value, found);
-                    return `<!--${host.recycleMarker(found)}-->`;
+                    return `<!--${Constants.MARKER_RECYCLED(found.uid)}-->`;
                 }
                 pass.next.push(value);
             }

@@ -323,7 +323,7 @@ Warnings (lists without keyed components, duplicate keys, unsupported attribute 
 
 ## 9. Internal boundary and extension points
 
-**Component adapter.** The engine's only door into the component world. Production fills it in `buildComponentAdapter` (evaluate, ids, listeners, child lifecycle). Tests pass a fake with the same shape. Adding an engine capability that needs the component means adding an adapter method, not an `import Component`. Owner and host are roles played by adapters bound to different components.
+**Component adapter.** The engine's only door into the component world. Production fills it in `buildComponentAdapter` (evaluate, ids, listeners, child lifecycle). Tests pass a fake with the same shape. Adding an engine capability that needs the component means adding an adapter method, not an `import Component` — behavior only: the wire format is the engine's own, written from `Constants`, and a child component is read directly for its `el` and `uid`. Owner and host are roles played by adapters bound to different components.
 
 **`Component.markAsSafeHTML(value)`.** Opt out of sanitization for a trusted HTML string. Literals in tagged templates are marked automatically.
 

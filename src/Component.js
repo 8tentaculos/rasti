@@ -144,7 +144,6 @@ const CONTAINER_STRINGS = ['', ''];
 const childHandlers = {
     isChild : (value) => value instanceof Component,
     sanitize : (value) => Component.sanitize(value),
-    recycleMarker : (child) => Constants.MARKER_RECYCLED(child.uid),
     moveChild : (child, parent) => child.recycle(parent),
     hydrateChild : (child, parent) => child.hydrate(parent),
     childProps : (child) => child.props.toJSON(),

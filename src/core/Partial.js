@@ -18,6 +18,10 @@ import parseTemplate from './parseTemplate.js';
  * The child-lifecycle handlers are the same for every component, so reaching them
  * through the owner or through the host is equivalent; each call site uses whichever
  * role it has at hand.
+ *
+ * The handlers cover what only the component can do; the wire format stays with the
+ * engine, which writes it from `Constants`. A child component is the one value the
+ * engine reads fields off: its `el` and its `uid`.
  * @typedef {object} ComponentAdapter
  * @property {Function} evaluate Evaluate an expression in the owner's context, `(expression, meta) => value`.
  * @property {Function} registerListener Register an event listener, `(listener, type) => ({ attribute, index })`.
@@ -26,7 +30,6 @@ import parseTemplate from './parseTemplate.js';
  * @property {Function} isChild Tell whether a value is a child component.
  * @property {Function} sanitize Escape a plain value for HTML.
  * @property {Function} addChild Adopt a child component into the host, returning it to render.
- * @property {Function} recycleMarker The placeholder marker emitted in place of a recycled child.
  * @property {Function} moveChild Move a recycled child onto its placeholder, `(child, parent)`.
  * @property {Function} hydrateChild Hydrate a freshly rendered child, `(child, parent)`.
  * @property {Function} updateChild Queue a recycled child's new props, `(child, props)`.
