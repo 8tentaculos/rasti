@@ -40,7 +40,7 @@ Underneath sits a small MVC core — **models**, **views** and **event emitters*
 - **Real DOM, no wrapper**  
   `render().el` is the element itself: no shadow DOM, no synthetic events, nothing between you and the node. Query it, style it, or hand it to another library.
 - **Server rendering and hydration**  
-  A component renders to a string anywhere JavaScript runs, and picks up the served markup in the browser without recreating it.
+  Rendering is just `toString`: a component drops into any HTML string, anywhere JavaScript runs — ``const html = `<body>${new App({ model })}</body>` `` — and picks up the served markup in the browser without recreating it.
 - **Typed**  
   TypeScript declarations ship with the package and resolve automatically.
 

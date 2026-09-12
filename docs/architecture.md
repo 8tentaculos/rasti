@@ -2,8 +2,6 @@
 
 How Rasti is put together. Read this with [api.md](./api.md): the API reference is the contract; this document is the system.
 
-Audience: a developer arriving at the project, and an LLM that needs enough context to write about the library or extend it.
-
 ---
 
 ## 1. Overview
@@ -167,9 +165,9 @@ The inner partial is **owned** by the parent (expressions and events evaluate th
 
 A tagged template is compiled **once per call site**. The `strings` array is the identity: `Partial.create` caches a subclass keyed on it. Two `partial\`…\`` with the same `strings` share one class; two with different `strings` are different templates.
 
-Compilation (`parseTemplate`) turns the template into a **skeleton**: an ordered list of **parts**. A part is a literal (`SafeHTML`), a bare expression (`ExpressionIndex`, in practice a dynamic tag name), or a descriptor (element, interpolation, component tag). Descriptors hold parse-time structure (attribute lists, inner skeletons); they do not hold live DOM.
+Compilation (`parseTemplate`) turns the template into a **skeleton**: an ordered list of **parts**. A part is a literal (`LiteralDescriptor`), a bare expression (`ExpressionDescriptor`, in practice a dynamic tag name), or a descriptor (element, interpolation, component tag). Descriptors hold parse-time structure (attribute lists, inner skeletons); they do not hold live DOM.
 
-A **partial** is a live instance: the skeleton class plus this render's `expressions` and the owner. Slot state (ids, refs, previous occupants) lives on the instance, created lazily on first `render()`.
+A **partial** is a live instance: the skeleton class plus this render's `expressions` and the owner. Slot state (ids, refs, previous occupants) lives on the instance, created lazily on the first render.
 
 ```
 strings  ──compile──►  Partial subclass (parts, source)
@@ -185,8 +183,8 @@ Every part has a slot. `part.constructor.Slot` names the class. Position in `par
 
 | Class                 | Part                         | What it owns                                              |
 |-----------------------|------------------------------|-----------------------------------------------------------|
-| `LiteralSlot`         | `SafeHTML`                   | nothing (emitted as written, never patched)               |
-| `ExpressionSlot`      | `ExpressionIndex`            | a dynamic tag name; resolved on emit, never reconciled    |
+| `LiteralSlot`         | `LiteralDescriptor`          | nothing (emitted as written, never patched)               |
+| `ExpressionSlot`      | `ExpressionDescriptor`       | a dynamic tag name; resolved on emit, never reconciled    |
 | `ElementSlot`         | `ElementDescriptor`          | emission id, DOM node, last attributes                    |
 | `InterpolationSlot`   | `InterpolationDescriptor`    | markers, occupant, list recycle                           |
 | `ComponentSlot`       | `ComponentDescriptor`        | same as interpolation; `evaluate` synthesizes the child   |
@@ -197,7 +195,7 @@ Every part has a slot. `part.constructor.Slot` names the class. Position in `par
 
 ### Three phases
 
-**Emit** (`toString` / `Partial#render`). Walk slots, concatenate HTML. Elements get `data-rst-el="${uid}-${n}"` in emission order. Interpolations are wrapped in comment markers, except on an **anchored** partial (see below), which writes no markers of its own.
+**Emit** (`Partial#toString`). Walk slots, concatenate HTML. Elements get `data-rst-el="${uid}-${n}"` in emission order. Interpolations are wrapped in comment markers, except on an **anchored** partial (see below), which writes no markers of its own.
 
 **Hydrate.** Bind those ids and markers to live nodes, then recurse. Three passes, in this order — they cannot collapse:
 
@@ -208,6 +206,14 @@ Every part has a slot. `part.constructor.Slot` names the class. Position in `par
 Pass 1 must finish before pass 2 because the search root for markers is the first element, and an interpolation can precede that element in document order (`html\`${a}<div>${b}</div>\``). Pass 2 must finish before pass 3 because hydrating a child runs `onHydrate`, which may move nodes and would break a marker lookup still pending.
 
 **Update.** Swap expressions, then each slot patches itself: elements diff attributes; interpolations reconcile the occupant.
+
+### Emission is `toString`
+
+Emitting is one contract, answered by every piece the engine renders: `Slot`, `Partial`, `Component` and `SafeHTML` all return the markup they stand for from `toString`. That is why a partial interpolates into a template, an array of children joins into HTML, and a component concatenates into a page — no render call, no wrapper.
+
+Inside the engine the contract is **called**, never coerced: `slot.toString(pass)`, `child.toString()`. Calling a known `toString` is 3-5x faster than coercing the object (implicit coercion walks `Symbol.toPrimitive` and `valueOf` before reaching `toString`), and the reconcile pass rides along as an argument that a coercion could not pass. Coercion is left for values with no contract — a plain interpolated value, which goes through `valueToString` and the owner's `sanitize`.
+
+A descriptor is not part of this: it is parse-time data, so `LiteralSlot` reads `descriptor.value` rather than stringifying it.
 
 ### Interpolation reconcile
 
@@ -280,6 +286,12 @@ Emission ids are convention, not an entry: `${uid}-${n}` counting from 1 in emis
 ## 7. SSR and hydration
 
 `component.toString()` (and string coercion) is the SSR path: emit the tree as HTML, no DOM. Ids are deterministic (`View.uid` plus per-component counters), so a client that starts from the same uid sequence produces the same markup.
+
+Since rendering is the `toString` contract (see §6), a component drops into whatever string builds the page:
+
+```js
+const html = `<!doctype html><html><body>${new App({ model })}</body></html>`;
+```
 
 Hydration onto served DOM:
 
