@@ -221,7 +221,7 @@ For one slot, in order:
 
 1. **Same partial** (same constructor / call site) → `prev.update(newExpressions)` in place.
 2. **Same child** (key, or unkeyed type) → recycle in place: no DOM move, props queued.
-3. **Anything else** → **regenerate**: render a fresh fragment, place it (between markers, or next to an anchored element's node), move recycled list children onto placeholder comments, hydrate new children, then finish props.
+3. **Anything else** → **regenerate**: render a fresh fragment, locate the recycled list children's placeholder comments in it, place it (between markers, or next to an anchored element's node), move those children onto their placeholders, hydrate new children, then finish props.
 
 `regenerate` is one cycle; only placement forks (markers vs anchored).
 
@@ -242,6 +242,8 @@ items.map(i => partial`<li><${Row} key="${i.id}" /></li>`)
 ```
 
 Recycle **markers** (`<!--rst-r-${uid}-->`) are emitted only when a keyed child is claimed during regeneration of a **list**, so its nodes can be moved to the new position. Outside a list, retain-in-place or mount-anew; no placeholder.
+
+The engine writes those markers and reads them back: one traversal of the rendered fragment, before it is inserted, resolves the placeholder of every claimed child (`findComments`). The component is handed the node to replace and never searches for it.
 
 ### Transparent, container, anchored
 
@@ -349,7 +351,7 @@ Warnings (lists without keyed components, duplicate keys, unsupported attribute 
 | **transparent** | A partial that is a single interpolation with no markup. The engine sees through it. |
 | **anchored**    | A partial that stands on a component's element and writes no interpolation markers (container or lone component tag). |
 | **marker**      | HTML comment delimiting an interpolation (`rst-s-` / `rst-e-`), or a recycle placeholder (`rst-r-`). |
-| **pass**        | Reconcile context for one regeneration: previous keyed children, used set, recycled children, newly mounted ones. |
+| **pass**        | Reconcile context for one regeneration: previous keyed children, used set, recycled children, newly mounted ones, and the placeholders the recycled ones were rendered as. |
 | **emission id** | `${uid}-${n}` assigned when an element or interpolation is first written out. Root element is `-1`. |
 | **wire format** | What hits the DOM: data attributes, dataset keys, comment markers, emission-id convention. |
 

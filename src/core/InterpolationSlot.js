@@ -6,6 +6,7 @@ import valueToString from './valueToString.js';
 import __DEV__ from '../utils/dev.js';
 import warnTemplate from '../utils/warnTemplate.js';
 import findComment from '../utils/findComment.js';
+import findComments from '../utils/findComments.js';
 import parseHTML from '../utils/parseHTML.js';
 
 /**
@@ -326,10 +327,27 @@ class InterpolationSlot extends Slot {
     regenerate(value) {
         const pass = this.makePass(value);
         const fragment = parseHTML(this.renderValue(value, pass));
+        if (pass.recycled.size) pass.placeholders = this.findPlaceholders(fragment, pass);
         if (this.isAnchored()) this.placeAnchored(fragment, pass, value);
         else this.placeBetweenMarkers(fragment, pass, value);
         this.finishPass(pass);
         this.previous = this.resolvePrevious(value, pass);
+    }
+
+    /**
+     * Locate the placeholder comment each recycled child was rendered as. They are
+     * resolved from the fresh content before it is inserted, so one traversal of the
+     * fragment answers for every child. Component subtrees are skipped: a child mounted
+     * anew renders without the pass, so no placeholder can stand inside one.
+     * @param {DocumentFragment} fragment The new content.
+     * @param {object} pass The reconcile pass.
+     * @return {Map<string, Comment>} The placeholders, keyed by their marker text.
+     * @private
+     */
+    findPlaceholders(fragment, pass) {
+        const markers = new Set();
+        pass.recycled.forEach(found => markers.add(Constants.MARKER_RECYCLED(found.uid)));
+        return findComments(fragment, markers, isComponent);
     }
 
     /**
@@ -412,14 +430,17 @@ class InterpolationSlot extends Slot {
             previous : Array.isArray(value) ? this.collectChildren(this.previous) : [],
             used : new Set(),
             recycled : new Map(),
-            next : []
+            next : [],
+            // Resolved from the rendered content, before it is inserted (see
+            // `findPlaceholders`).
+            placeholders : null
         };
     }
 
     /**
      * Place the pass's children in the freshly inserted content: move recycled
-     * ones onto their placeholder markers, hydrate new ones, and hydrate any nested
-     * partials.
+     * ones onto the placeholders located before insertion, hydrate new ones, and
+     * hydrate any nested partials.
      * @param {object} pass The reconcile pass.
      * @param {any} value The rendered value.
      * @param {Node} parent The node the content was inserted into.
@@ -427,7 +448,7 @@ class InterpolationSlot extends Slot {
      */
     placeChildren(pass, value, parent) {
         const { host } = this.partial;
-        pass.recycled.forEach(found => host.moveChild(found, parent));
+        pass.recycled.forEach(found => host.moveChild(found, pass.placeholders.get(Constants.MARKER_RECYCLED(found.uid))));
         pass.next.forEach(child => host.hydrateChild(child, parent));
         // Structural pass: set the nested partials' refs, but leave the children to
         // the reconcile above (new ones hydrated, recycled ones moved).

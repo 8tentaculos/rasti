@@ -5,12 +5,10 @@ import Constants from './core/Constants.js';
 import Partial from './core/Partial.js';
 import ExpressionDescriptor from './core/ExpressionDescriptor.js';
 import EventsManager from './core/EventsManager.js';
-import isComponent from './core/isComponent.js';
 import validateListener from './utils/validateListener.js';
 import getResult from './utils/getResult.js';
 import parseHTML from './utils/parseHTML.js';
 import isVoidElement from './utils/isVoidElement.js';
-import findComment from './utils/findComment.js';
 import replaceNode from './utils/replaceNode.js';
 import createDevelopmentErrorMessage from './utils/createDevelopmentErrorMessage.js';
 import createProductionErrorMessage from './utils/createProductionErrorMessage.js';
@@ -144,7 +142,7 @@ const CONTAINER_STRINGS = ['', ''];
 const childHandlers = {
     isChild : (value) => value instanceof Component,
     sanitize : (value) => Component.sanitize(value),
-    moveChild : (child, parent) => child.recycle(parent),
+    moveChild : (child, placeholder) => child.recycle(placeholder),
     hydrateChild : (child, parent) => child.hydrate(parent),
     childProps : (child) => child.props.toJSON(),
     destroyChild : (child) => child.destroy()
@@ -389,19 +387,16 @@ export default class Component extends View {
      * Used internally on the render process.
      * Reuse a `Component` by replacing the placeholder comment with the real nodes.
      * Calls `onBeforeRecycle` lifecycle method at the beginning, before any recycling operations occur.
-     * @param parent {node} The parent node. If not provided, the node is already in the correct position and won't be moved.
+     * @param placeholder {node} The placeholder comment the component was rendered as, located by the
+     *     render engine. If not provided, the node is already in the correct position and won't be moved.
      * @return {Component} The component instance.
      * @private
      */
-    recycle(parent) {
+    recycle(placeholder) {
         // Call `onBeforeRecycle` lifecycle method.
         this.onBeforeRecycle.call(this);
-        // No parent means the node is already in the correct position. So we don't need to replace it.
-        if (parent) {
-            // Locate the placeholder comment and replace it with the real nodes
-            const placeholder = findComment(parent, Constants.MARKER_RECYCLED(this.uid), isComponent);
-            replaceNode(placeholder, this.el);
-        }
+        // No placeholder means the node is already in the correct position. So we don't need to replace it.
+        if (placeholder) replaceNode(placeholder, this.el);
         // Return `this` for chaining.
         return this;
     }

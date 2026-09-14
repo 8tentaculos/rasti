@@ -30,7 +30,7 @@ import parseTemplate from './parseTemplate.js';
  * @property {Function} isChild Tell whether a value is a child component.
  * @property {Function} sanitize Escape a plain value for HTML.
  * @property {Function} addChild Adopt a child component into the host, returning it to render.
- * @property {Function} moveChild Move a recycled child onto its placeholder, `(child, parent)`.
+ * @property {Function} moveChild Move a recycled child onto its placeholder, `(child, placeholder)`.
  * @property {Function} hydrateChild Hydrate a freshly rendered child, `(child, parent)`.
  * @property {Function} updateChild Queue a recycled child's new props, `(child, props)`.
  * @property {Function} childProps Read the props a discarded candidate carried.
