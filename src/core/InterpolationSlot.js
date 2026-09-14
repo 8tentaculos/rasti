@@ -252,29 +252,31 @@ class InterpolationSlot extends Slot {
 
     /**
      * Recurse hydration into the slot's occupant (see `hydrateValue`).
-     * @param {Node} parent The node the elements were rendered into.
-     * @param {Node} root The owning component's root, scoping marker lookup.
+     * @param {Node} root The owning component's root, scoping every lookup below.
      * @param {boolean} [fresh=true] Hydrate child components too (see `Partial#hydrate`).
      */
-    hydrateOccupant(parent, root, fresh = true) {
-        this.hydrateValue(this.previous, parent, root, fresh);
+    hydrateOccupant(root, fresh = true) {
+        this.hydrateValue(this.previous, root, fresh);
     }
 
     /**
      * Recurse hydration into a value: a nested partial hydrates its own refs and,
      * on a fresh subtree, a child component is hydrated in place through the owner's
      * handlers; arrays recurse. Primitives carry no refs and are skipped.
+     *
+     * Everything below resolves its nodes under the root: a child component looks its
+     * own root element up by id, and the component's markup is the smallest node known
+     * to contain it.
      * @param {any} value The value to hydrate.
-     * @param {Node} parent The node the elements were rendered into.
-     * @param {Node} root The owning component's root, scoping marker lookup.
+     * @param {Node} root The owning component's root, scoping every lookup below.
      * @param {boolean} [fresh=true] Hydrate child components too (see `Partial#hydrate`).
      * @private
      */
-    hydrateValue(value, parent, root, fresh = true) {
+    hydrateValue(value, root, fresh = true) {
         const { owner } = this.partial;
-        if (this.partial.isPartial(value)) value.hydrate(parent, root, fresh);
-        else if (Array.isArray(value)) value.forEach(item => this.hydrateValue(item, parent, root, fresh));
-        else if (fresh && owner.isChild(value)) owner.hydrateChild(value, parent);
+        if (this.partial.isPartial(value)) value.hydrate(root, root, fresh);
+        else if (Array.isArray(value)) value.forEach(item => this.hydrateValue(item, root, fresh));
+        else if (fresh && owner.isChild(value)) owner.hydrateChild(value, root);
     }
 
     /**
@@ -452,7 +454,7 @@ class InterpolationSlot extends Slot {
         pass.next.forEach(child => host.hydrateChild(child, parent));
         // Structural pass: set the nested partials' refs, but leave the children to
         // the reconcile above (new ones hydrated, recycled ones moved).
-        this.hydrateValue(value, parent, parent, false);
+        this.hydrateValue(value, parent, false);
     }
 
     /**

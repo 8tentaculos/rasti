@@ -184,26 +184,50 @@ class Partial {
      * partials and, on a fresh hydrate, the child components they hold — so a whole new
      * subtree hydrates from one call. Each slot resolves its own nodes; elements and
      * markers are looked up in different scopes, hence the two arguments.
-     * @param {Node} parent The node the partial's elements were rendered into.
-     * @param {Node} [root] The owning component's root, scoping marker lookup. Passed
-     *     down to nested partials; defaults to this partial's own root (its first
-     *     element, or `parent` for a container, which has no root of its own).
+     * @param {Node} parent The node the partial's elements were rendered into. Scopes
+     *     the lookup of the partial's own root, and nothing else.
+     * @param {Node} [root] The owning component's root, scoping every other lookup.
+     *     Passed down to nested partials; resolved here when absent, from this
+     *     partial's own first element (or `parent` for an anchored partial, which has
+     *     no element of its own).
      * @param {boolean} [fresh=true] Whether this is a brand-new subtree, in which case
      *     the child components in the slots are hydrated too. False during an update's
      *     slot replacement, where the reconcile pass hydrates new children and moves
      *     recycled ones, so only structural refs are set here.
      */
     hydrate(parent, root, fresh = true) {
-        // Three passes, in this order. The element refs must all be resolved before any
-        // marker is looked up, since `root` comes from the first of them and an
-        // interpolation can precede it in the document. The values are then hydrated in
-        // a pass of their own, because hydrating one runs the user's `onHydrate`, which
-        // may move nodes and break a marker lookup still pending.
-        this.eachSlot(ElementSlot, slot => slot.hydrateRef(parent));
-        if (!root) root = this.isAnchored() ? parent : this.firstSlot(ElementSlot).ref;
+        // Four passes, in this order. The root is resolved first, since everything else
+        // is looked up under it. The remaining element refs must all be resolved before
+        // any marker is, because an interpolation can precede an element in the
+        // document. The occupants are hydrated in a pass of their own, because
+        // hydrating one runs the user's `onHydrate`, which may move nodes and break a
+        // marker lookup still pending.
+        let first;
+        if (!root) {
+            // Resolving the root is the entry point's job alone: a nested partial is
+            // handed the one its component resolved. Only a component's root template
+            // reaches here, and that one is required to hold everything in a single
+            // root, so whatever the partial renders is under it.
+            if (this.isAnchored()) {
+                // An anchored partial writes no element of its own: it stands on the
+                // element of the component it renders, wherever that was rendered.
+                root = parent;
+            } else {
+                // The partial's first element is its root: the one element that cannot
+                // be found within itself, and so the only one resolved against `parent`.
+                first = this.firstSlot(ElementSlot);
+                first.hydrateRef(parent);
+                root = first.ref;
+            }
+        }
+        // Everything else is looked up under the root — a scope bounded by the
+        // component's own markup, instead of by the node it was rendered into.
+        this.eachSlot(ElementSlot, slot => {
+            if (slot !== first) slot.hydrateRef(root);
+        });
         // Each slot knows whether it wrote markers: an anchored one has none to locate.
         this.eachSlot(InterpolationSlot, slot => slot.hydrateMarkers(root));
-        this.eachSlot(InterpolationSlot, slot => slot.hydrateOccupant(parent, root, fresh));
+        this.eachSlot(InterpolationSlot, slot => slot.hydrateOccupant(root, fresh));
     }
 
     /**
