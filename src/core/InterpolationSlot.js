@@ -1,12 +1,10 @@
 import Slot from './Slot.js';
 import Constants from './Constants.js';
 import SafeHTML from './SafeHTML.js';
-import isComponent from './isComponent.js';
 import valueToString from './valueToString.js';
 import __DEV__ from '../utils/dev.js';
 import warnTemplate from '../utils/warnTemplate.js';
-import findComment from '../utils/findComment.js';
-import findComments from '../utils/findComments.js';
+import HydrationIndex from './HydrationIndex.js';
 import parseHTML from '../utils/parseHTML.js';
 
 /**
@@ -237,26 +235,22 @@ class InterpolationSlot extends Slot {
     }
 
     /**
-     * Resolve the slot's comment markers. They are located by a structural traversal
-     * that skips nested component subtrees, so the search is scoped to the owning
-     * component's root. An anchored slot writes no markers, so there is nothing to
-     * locate.
-     * @param {Node} root The owning component's root.
+     * Resolve the slot's comment markers out of the hydration index. An anchored slot
+     * writes no markers, so there is nothing to locate.
+     * @param {HydrationIndex} index The hydration's node index.
      */
-    hydrateMarkers(root) {
+    hydrateMarkers(index) {
         if (this.isAnchored()) return;
-        const start = findComment(root, Constants.MARKER_START(this.id), isComponent);
-        const end = findComment(root, Constants.MARKER_END(this.id), isComponent, start);
-        this.ref = [start, end];
+        this.ref = [index.comment(Constants.MARKER_START(this.id)), index.comment(Constants.MARKER_END(this.id))];
     }
 
     /**
      * Recurse hydration into the slot's occupant (see `hydrateValue`).
-     * @param {Node} root The owning component's root, scoping every lookup below.
+     * @param {HydrationIndex} index The hydration's node index.
      * @param {boolean} [fresh=true] Hydrate child components too (see `Partial#hydrate`).
      */
-    hydrateOccupant(root, fresh = true) {
-        this.hydrateValue(this.previous, root, fresh);
+    hydrateOccupant(index, fresh = true) {
+        this.hydrateValue(this.previous, index, fresh);
     }
 
     /**
@@ -264,19 +258,18 @@ class InterpolationSlot extends Slot {
      * on a fresh subtree, a child component is hydrated in place through the owner's
      * handlers; arrays recurse. Primitives carry no refs and are skipped.
      *
-     * Everything below resolves its nodes under the root: a child component looks its
-     * own root element up by id, and the component's markup is the smallest node known
-     * to contain it.
+     * A child component hydrates from the same index: its nodes were written out by
+     * the same render, so they are already in it.
      * @param {any} value The value to hydrate.
-     * @param {Node} root The owning component's root, scoping every lookup below.
+     * @param {HydrationIndex} index The hydration's node index.
      * @param {boolean} [fresh=true] Hydrate child components too (see `Partial#hydrate`).
      * @private
      */
-    hydrateValue(value, root, fresh = true) {
+    hydrateValue(value, index, fresh = true) {
         const { owner } = this.partial;
-        if (this.partial.isPartial(value)) value.hydrate(root, root, fresh);
-        else if (Array.isArray(value)) value.forEach(item => this.hydrateValue(item, root, fresh));
-        else if (fresh && owner.isChild(value)) owner.hydrateChild(value, root);
+        if (this.partial.isPartial(value)) value.hydrate(index, fresh);
+        else if (Array.isArray(value)) value.forEach(item => this.hydrateValue(item, index, fresh));
+        else if (fresh && owner.isChild(value)) owner.hydrateChild(value, index);
     }
 
     /**
@@ -329,27 +322,14 @@ class InterpolationSlot extends Slot {
     regenerate(value) {
         const pass = this.makePass(value);
         const fragment = parseHTML(this.renderValue(value, pass));
-        if (pass.recycled.size) pass.placeholders = this.findPlaceholders(fragment, pass);
+        // Indexed before the fragment is inserted, so the walk covers the new content
+        // alone: it answers both for the placeholders of the recycled children and for
+        // the refs of everything mounted anew.
+        pass.index = new HydrationIndex(fragment);
         if (this.isAnchored()) this.placeAnchored(fragment, pass, value);
         else this.placeBetweenMarkers(fragment, pass, value);
         this.finishPass(pass);
         this.previous = this.resolvePrevious(value, pass);
-    }
-
-    /**
-     * Locate the placeholder comment each recycled child was rendered as. They are
-     * resolved from the fresh content before it is inserted, so one traversal of the
-     * fragment answers for every child. Component subtrees are skipped: a child mounted
-     * anew renders without the pass, so no placeholder can stand inside one.
-     * @param {DocumentFragment} fragment The new content.
-     * @param {object} pass The reconcile pass.
-     * @return {Map<string, Comment>} The placeholders, keyed by their marker text.
-     * @private
-     */
-    findPlaceholders(fragment, pass) {
-        const markers = new Set();
-        pass.recycled.forEach(found => markers.add(Constants.MARKER_RECYCLED(found.uid)));
-        return findComments(fragment, markers, isComponent);
     }
 
     /**
@@ -361,8 +341,7 @@ class InterpolationSlot extends Slot {
      * @private
      */
     placeBetweenMarkers(fragment, pass, value) {
-        const parent = this.ref[1].parentNode;
-        this.patchMarkers(fragment, () => this.placeChildren(pass, value, parent));
+        this.patchMarkers(fragment, () => this.placeChildren(pass, value));
     }
 
     /**
@@ -380,7 +359,7 @@ class InterpolationSlot extends Slot {
         const divider = document.createComment('');
         parent.insertBefore(divider, element.nextSibling);
         parent.insertBefore(fragment, divider.nextSibling);
-        this.placeChildren(pass, value, parent);
+        this.placeChildren(pass, value);
         if (element.nextSibling === divider) parent.removeChild(element);
         parent.removeChild(divider);
     }
@@ -433,28 +412,27 @@ class InterpolationSlot extends Slot {
             used : new Set(),
             recycled : new Map(),
             next : [],
-            // Resolved from the rendered content, before it is inserted (see
-            // `findPlaceholders`).
-            placeholders : null
+            // The index of the content this pass renders, built in `regenerate`.
+            index : null
         };
     }
 
     /**
      * Place the pass's children in the freshly inserted content: move recycled
-     * ones onto the placeholders located before insertion, hydrate new ones, and
-     * hydrate any nested partials.
+     * ones onto the placeholders they were rendered as, hydrate new ones, and hydrate
+     * any nested partials. Every node comes from the pass's index.
      * @param {object} pass The reconcile pass.
      * @param {any} value The rendered value.
-     * @param {Node} parent The node the content was inserted into.
      * @private
      */
-    placeChildren(pass, value, parent) {
+    placeChildren(pass, value) {
         const { host } = this.partial;
-        pass.recycled.forEach(found => host.moveChild(found, pass.placeholders.get(Constants.MARKER_RECYCLED(found.uid))));
-        pass.next.forEach(child => host.hydrateChild(child, parent));
+        const { index } = pass;
+        pass.recycled.forEach(found => host.moveChild(found, index.comment(Constants.MARKER_RECYCLED(found.uid))));
+        pass.next.forEach(child => host.hydrateChild(child, index));
         // Structural pass: set the nested partials' refs, but leave the children to
         // the reconcile above (new ones hydrated, recycled ones moved).
-        this.hydrateValue(value, parent, false);
+        this.hydrateValue(value, index, false);
     }
 
     /**

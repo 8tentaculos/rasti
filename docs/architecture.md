@@ -30,6 +30,7 @@ src/
     parseTemplate.js
     Partial.js
     Slot.js and the five slot classes
+    HydrationIndex.js
     *Descriptor.js, Attribute.js, Constants.js, …
   utils/            DOM, HTML, errors, `__DEV__`
 ```
@@ -197,13 +198,13 @@ Every part has a slot. `part.constructor.Slot` names the class. Position in `par
 
 **Emit** (`Partial#toString`). Walk slots, concatenate HTML. Elements get `data-rst-el="${uid}-${n}"` in emission order. Interpolations are wrapped in comment markers, except on an **anchored** partial (see below), which writes no markers of its own.
 
-**Hydrate.** Bind those ids and markers to live nodes, then recurse. Three passes, in this order — they cannot collapse:
+**Hydrate.** Bind those ids and markers to live nodes, then recurse. Nothing is searched for: whoever enters the hydration builds a `HydrationIndex` — one traversal of the rendered content, mapping elements by emission id and comments by text — and hands it down through the whole subtree. One index answers for all of it, nested components included, because an emission id carries the component's uid and is unique across the page.
 
-1. **Element refs** — `querySelector` by emission id under `parent`. All of them, before any marker.
-2. **Markers** — `findComment` under the component root, skipping nested component subtrees (`isComponent`: the element's id ends in `-1`).
+1. **Element refs** — `index.element(id)`.
+2. **Markers** — `index.comment(text)`, start and end.
 3. **Occupants** — nested partials hydrate; on a fresh tree, child components hydrate too (`onHydrate`).
 
-Pass 1 must finish before pass 2 because the search root for markers is the first element, and an interpolation can precede that element in document order (`html\`${a}<div>${b}</div>\``). Pass 2 must finish before pass 3 because hydrating a child runs `onHydrate`, which may move nodes and would break a marker lookup still pending.
+The index belongs to the hydration, not to a component: built where the content is (a freshly parsed fragment, or the element a server rendered), dropped when the hydration ends. Nothing holds it afterwards, so it cannot go stale and it keeps no DOM alive. Because it is a snapshot taken up front, the refs resolved in pass 3 are right even though `onHydrate` runs in the middle of it and may move nodes.
 
 **Update.** Swap expressions, then each slot patches itself: elements diff attributes; interpolations reconcile the occupant.
 
@@ -243,7 +244,7 @@ items.map(i => partial`<li><${Row} key="${i.id}" /></li>`)
 
 Recycle **markers** (`<!--rst-r-${uid}-->`) are emitted only when a keyed child is claimed during regeneration of a **list**, so its nodes can be moved to the new position. Outside a list, retain-in-place or mount-anew; no placeholder.
 
-The engine writes those markers and reads them back: one traversal of the rendered fragment, before it is inserted, resolves the placeholder of every claimed child (`findComments`). The component is handed the node to replace and never searches for it.
+The engine writes those markers and reads them back: the regeneration indexes its fresh fragment before inserting it, and that same index resolves the placeholder of every claimed child. The component is handed the node to replace and never searches for it.
 
 ### Transparent, container, anchored
 
@@ -277,11 +278,10 @@ Everything written into the DOM comes from `Constants`:
 |-----------------------|---------------------------------|-------------------------------------------|
 | `ATTRIBUTE_ELEMENT`   | `data-rst-el`                   | emission id on every tracked element      |
 | `ATTRIBUTE_EVENT`     | `data-rst-on-${type}-${uid}`    | delegated listener index                  |
-| `DATASET_ELEMENT`     | `rstEl`                         | dataset key matching `ATTRIBUTE_ELEMENT`  |
 | `MARKER_START` / `_END` | `rst-s-${id}` / `rst-e-${id}` | interpolation region                      |
 | `MARKER_RECYCLED`     | `rst-r-${uid}`                  | placeholder for a claimed list child      |
 
-Emission ids are convention, not an entry: `${uid}-${n}` counting from 1 in emission order. A component's root is emitted first, so it always ends in `-1`. `isComponent` uses that suffix to skip nested component subtrees when looking up comments. Compile-time placeholders never reach the DOM; they stay local to `parseTemplate`.
+Emission ids are convention, not an entry: `${uid}-${n}` counting from 1 in emission order. A component's root is emitted first, so it always ends in `-1`. Carrying the uid makes the id unique across the page, which is what lets one `HydrationIndex` cover a whole subtree without collisions. Compile-time placeholders never reach the DOM; they stay local to `parseTemplate`.
 
 ---
 
@@ -351,7 +351,8 @@ Warnings (lists without keyed components, duplicate keys, unsupported attribute 
 | **transparent** | A partial that is a single interpolation with no markup. The engine sees through it. |
 | **anchored**    | A partial that stands on a component's element and writes no interpolation markers (container or lone component tag). |
 | **marker**      | HTML comment delimiting an interpolation (`rst-s-` / `rst-e-`), or a recycle placeholder (`rst-r-`). |
-| **pass**        | Reconcile context for one regeneration: previous keyed children, used set, recycled children, newly mounted ones, and the placeholders the recycled ones were rendered as. |
+| **pass**        | Reconcile context for one regeneration: previous keyed children, used set, recycled children, newly mounted ones, and the index of the content it rendered. |
+| **index**       | `HydrationIndex`: snapshot of one render's nodes — elements by emission id, comments by text — built before hydrating and shared by the subtree. |
 | **emission id** | `${uid}-${n}` assigned when an element or interpolation is first written out. Root element is `-1`. |
 | **wire format** | What hits the DOM: data attributes, dataset keys, comment markers, emission-id convention. |
 

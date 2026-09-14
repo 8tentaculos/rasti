@@ -89,13 +89,11 @@ class ElementSlot extends Slot {
     }
 
     /**
-     * Resolve the rendered node by its emission id. Ids are unique and deterministic,
-     * so the element is found anywhere under `parent`, including a component root,
-     * which cannot be found within itself.
-     * @param {Node} parent The node the partial's elements were rendered into.
+     * Resolve the rendered node by its emission id.
+     * @param {HydrationIndex} index The hydration's node index.
      */
-    hydrateRef(parent) {
-        this.ref = parent.querySelector(`[${Constants.ATTRIBUTE_ELEMENT}="${this.id}"]`);
+    hydrateRef(index) {
+        this.ref = index.element(this.id);
     }
 
     /**

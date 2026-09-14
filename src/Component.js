@@ -3,6 +3,7 @@ import Model from './Model.js';
 import SafeHTML from './core/SafeHTML.js';
 import Constants from './core/Constants.js';
 import Partial from './core/Partial.js';
+import HydrationIndex from './core/HydrationIndex.js';
 import ExpressionDescriptor from './core/ExpressionDescriptor.js';
 import EventsManager from './core/EventsManager.js';
 import validateListener from './utils/validateListener.js';
@@ -143,7 +144,7 @@ const childHandlers = {
     isChild : (value) => value instanceof Component,
     sanitize : (value) => Component.sanitize(value),
     moveChild : (child, placeholder) => child.recycle(placeholder),
-    hydrateChild : (child, parent) => child.hydrate(parent),
+    hydrateChild : (child, index) => child.hydrate(index),
     childProps : (child) => child.props.toJSON(),
     destroyChild : (child) => child.destroy()
 };
@@ -358,11 +359,12 @@ export default class Component extends View {
      * Used internally on the render process.
      * Attach the `Component` to the dom element providing `this.el`, delegate events,
      * subscribe to model changes and call `onHydrate` lifecycle method.
-     * @param parent {node} The parent node.
+     * @param index {HydrationIndex} Index of the rendered nodes, built by whoever
+     *     entered the hydration and shared by the whole subtree.
      * @return {Component} The component instance.
      * @private
      */
-    hydrate(parent) {
+    hydrate(index) {
         ['model', 'state', 'props'].forEach(key => {
             if (this[key]) this.subscribe(this[key]);
         });
@@ -371,7 +373,7 @@ export default class Component extends View {
         // partials and the child components in its slots, so the whole subtree hydrates
         // from this one call. Then adopt its resolved root element — for a container,
         // the wrapped child's element, already hydrated during the walk.
-        this.rootPartial.hydrate(parent);
+        this.rootPartial.hydrate(index);
         this.el = this.rootPartial.rootElement();
         // Mark as hydrated so later renders take the update path.
         this.hydrated = true;
@@ -624,23 +626,14 @@ export default class Component extends View {
         if (this.el) {
             // If `this.el` is a function, call it to get the element.
             this.el = getResult(this.el, this);
-            // The element must be in the DOM to hydrate onto it.
-            if (!this.el.parentNode) {
-                throwComponentError(
-                    __DEV__ &&
-                        `Hydration failed in ${this.constructor.name}#${this.uid}\n` +
-                        'The element must have a parent node for hydration to work.\n' +
-                        'Make sure the element is mounted in the DOM before hydrating.',
-                    `Hydration failed in ${this.constructor.name}#${this.uid}`
-                );
-            }
             // Render the component as a string to generate children components.
             this.toString();
-            // Hydrate onto the provided element.
-            this.hydrate(this.el.parentNode);
+            // Hydrate onto the provided element: it is the root the markup was rendered
+            // around, so it is the whole subtree to index, itself included.
+            this.hydrate(new HydrationIndex(this.el));
         } else {
             // Render to a fragment and hydrate.
-            this.hydrate(parseHTML(this));
+            this.hydrate(new HydrationIndex(parseHTML(this)));
         }
         return this;
     }
@@ -856,15 +849,23 @@ export default class Component extends View {
         const component = new this(options);
         // If `el` is passed, mount component.
         if (el) {
+            let index;
             if (hydrate) {
                 // Hydrate existing DOM, only generate subcomponents calling `toString`.
                 component.toString();
+                // The server wrote the content into `el`, so that is what to index.
+                index = new HydrationIndex(el);
             } else {
-                // Render the component and append it to the provided element.
-                el.append(parseHTML(component));
+                // Render the component and append it to the provided element. The
+                // fragment is indexed before it is appended, so the walk covers the
+                // component's own content and nothing that was already there: the index
+                // holds nodes, which appending only moves.
+                const fragment = parseHTML(component);
+                index = new HydrationIndex(fragment);
+                el.append(fragment);
             }
             // Hydrate in both cases.
-            component.hydrate(el);
+            component.hydrate(index);
         }
         // Return component instance.
         return component;

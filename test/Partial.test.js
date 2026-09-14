@@ -3,8 +3,7 @@ import Partial from '../src/core/Partial.js';
 import ElementSlot from '../src/core/ElementSlot.js';
 import InterpolationSlot from '../src/core/InterpolationSlot.js';
 import LiteralSlot from '../src/core/LiteralSlot.js';
-import isComponent from '../src/core/isComponent.js';
-import findComment from '../src/utils/findComment.js';
+import HydrationIndex from '../src/core/HydrationIndex.js';
 import Constants from '../src/core/Constants.js';
 
 // Capture a real tagged-template `strings` array plus its expressions.
@@ -155,9 +154,9 @@ describe('Partial', () => {
             const partial = makePartial(tag`<div class="${'btn'}">${'hi'}</div>`);
             document.body.innerHTML = partial.toString();
 
-            // Elements are located by unique id anywhere under the parent (including
-            // the root); markers are then located within the root.
-            partial.hydrate(document.body);
+            // Every ref comes out of the index: one traversal of the rendered content
+            // resolves elements by emission id and markers by their text.
+            partial.hydrate(new HydrationIndex(document.body));
 
             expect(partial.slots[1].ref).to.equal(document.querySelector('[data-rst-el="r1-1"]'));
             const [start, end] = partial.slots[3].ref;
@@ -170,7 +169,7 @@ describe('Partial', () => {
         it('must patch element attributes against swapped expressions', () => {
             const partial = makePartial(tag`<div class="${'a'}"></div>`);
             document.body.innerHTML = partial.toString();
-            partial.hydrate(document.body);
+            partial.hydrate(new HydrationIndex(document.body));
 
             expect(partial.slots[1].ref.getAttribute('class')).to.equal('a');
 
@@ -179,19 +178,25 @@ describe('Partial', () => {
         });
     });
 
-    describe('marker lookup', () => {
-        it('must skip nested component subtrees when locating a marker', () => {
-            // A component root carries an emission id ending in `-1`; any other
-            // element of the owner carries a later index. The lookup must skip the
-            // former and descend into the latter.
+    describe('hydration index', () => {
+        it('must index a whole subtree, nested components included', () => {
+            // An emission id carries the component's uid, so one index answers for the
+            // whole subtree: a nested component's nodes never collide with its owner's.
             document.body.innerHTML =
                 `<div ${Constants.ATTRIBUTE_ELEMENT}="r1-1">` +
-                `<section ${Constants.ATTRIBUTE_ELEMENT}="r2-1"><!--target--></section>` +
-                `<span ${Constants.ATTRIBUTE_ELEMENT}="r1-2"><!--target--></span>` +
+                `<section ${Constants.ATTRIBUTE_ELEMENT}="r2-1"><!--rst-s-r2-1--></section>` +
+                `<span ${Constants.ATTRIBUTE_ELEMENT}="r1-2"><!--rst-s-r1-1--></span>` +
                 '</div>';
 
-            const found = findComment(document.body.firstChild, 'target', isComponent);
-            expect(found).to.equal(document.querySelector('span').firstChild);
+            const index = new HydrationIndex(document.body);
+            const section = document.querySelector('section');
+            const span = document.querySelector('span');
+
+            expect(index.element('r1-1')).to.equal(document.body.firstChild);
+            expect(index.element('r2-1')).to.equal(section);
+            expect(index.element('r1-2')).to.equal(span);
+            expect(index.comment('rst-s-r2-1')).to.equal(section.firstChild);
+            expect(index.comment('rst-s-r1-1')).to.equal(span.firstChild);
         });
     });
 });
