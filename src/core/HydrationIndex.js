@@ -2,32 +2,27 @@ import Constants from './Constants.js';
 
 /**
  * Walk a rendered subtree and index what hydration resolves: elements by their
- * emission id, comments by their text. The root node is indexed too, so a subtree can
- * be indexed from the element it stands on.
+ * emission id, comments by their text. A `TreeWalker` filtered to those two node types
+ * drives the traversal, so the text nodes between them are skipped by the DOM itself.
  * @param {Node} root The node to index, itself included.
  * @param {Map<string, Element>} elements Map to fill with elements by emission id.
  * @param {Map<string, Comment>} comments Map to fill with comments by text.
  * @private
  */
 const indexNodes = (root, elements, comments) => {
-    let node = root;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_COMMENT);
+    // The walker starts on the root and never returns it, so an element root is taken
+    // first: that is what lets a subtree be indexed from the element it stands on.
+    let node = root.nodeType === Node.ELEMENT_NODE ? root : walker.nextNode();
 
     while (node) {
         if (node.nodeType === Node.COMMENT_NODE) {
             comments.set(node.data.trim(), node);
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
+        } else {
             const id = node.getAttribute(Constants.ATTRIBUTE_ELEMENT);
             if (id !== null) elements.set(id, node);
         }
-        // Descend into children if present.
-        if (node.firstChild) {
-            node = node.firstChild;
-            continue;
-        }
-        // Move to next sibling, or climb up until a sibling is found.
-        while (node !== root && !node.nextSibling) node = node.parentNode;
-        if (node === root) return;
-        node = node.nextSibling;
+        node = walker.nextNode();
     }
 };
 
