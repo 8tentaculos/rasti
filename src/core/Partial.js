@@ -78,7 +78,8 @@ class Partial {
         // slot that renders it sets the host it renders under.
         this.host = owner;
         // Whether this is the component's own root partial, set when the component
-        // adopts it. A transparent root partial is a container: see `isAnchored`.
+        // adopts it. A transparent one makes that component a container: see
+        // `isAnchored`.
         this.isRoot = false;
     }
 
@@ -121,10 +122,11 @@ class Partial {
     /**
      * Tell whether the partial stands for the component it renders: it writes no
      * markers of its own and is anchored to that component's element, which the DOM
-     * can then move around freely. True for a container, whose component adopts that
-     * element as its own, and for a lone component tag, which makes
-     * `partial`<${Comp} />`` equivalent to mounting the component. Every other
-     * partial writes markers, which is where its interpolations are patched.
+     * can then move around freely. True for a component's transparent root partial,
+     * whose component adopts that element as its own and is therefore a container, and
+     * for a lone component tag, which makes `partial`<${Comp} />`` equivalent to
+     * mounting the component. Every other partial writes markers, which is where its
+     * interpolations are patched.
      * @return {boolean} True if the partial renders anchored to a component.
      */
     isAnchored() {
@@ -215,14 +217,14 @@ class Partial {
 
     /**
      * Resolve the root element of a transparent partial's slot value, descending
-     * through a nested partial or the first item of an array.
+     * through nested transparent partials. A transparent partial stands on the element
+     * of the component it renders, so what it resolves to is a component.
      * @param {any} value The slot value.
      * @return {Node} The resolved element.
      * @private
      */
     slotElement(value) {
         if (this.isPartial(value)) return value.rootElement();
-        if (Array.isArray(value)) return this.slotElement(value[0]);
         // A child component: its own element.
         return value.el;
     }

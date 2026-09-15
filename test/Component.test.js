@@ -418,6 +418,31 @@ describe('Component', () => {
             expect(() => Tag.mount({}, document.body)).to.not.throw();
         });
 
+        it('must throw when a container resolves to markup instead of a component', () => {
+            // A container has no element of its own: it stands on the element of the
+            // component it renders, so markup leaves it with nothing to stand on.
+            const Markup = Component.create`${({ partial }) => partial`<div id="test-node"></div>`}`;
+
+            expect(() => Markup.mount({}, document.body)).to.throw(/Invalid container template/);
+        });
+
+        it('must throw when a container resolves to a plain value', () => {
+            const Text = Component.create`${({ props }) => props.label}`;
+
+            expect(() => Text.mount({ label : 'hello' }, document.body)).to.throw(/Invalid container template/);
+        });
+
+        it('must throw when a container stops resolving to a component', () => {
+            const Child = Component.create`<div id="test-node"></div>`;
+            const Toggle = Component.create`${({ state, partial }) =>
+                state.showChild ? Child.mount({ key : 'child' }) : partial`<span></span>`}`;
+
+            const state = new Model({ showChild : true });
+            Toggle.mount({ state }, document.body);
+
+            expect(() => { state.showChild = false; }).to.throw(/Invalid container template/);
+        });
+
         it('must accept a void element as the root', () => {
             const Field = Component.create`<input id="test-node">`;
 
@@ -1371,7 +1396,7 @@ describe('Component', () => {
             const Button = Component.create`<button>click me</button>`;
             const Span = Component.create`<span>hello world</span>`;
 
-            const ContainerButton = Component.create`${() => [Button.mount()]}`;
+            const ContainerButton = Component.create`${() => Button.mount()}`;
             const ContainerSpan = Component.create`${() => Span.mount({ key : 'span' })}`;
 
             const Main = Component.create`
@@ -1391,9 +1416,9 @@ describe('Component', () => {
 
             c.children[0].render();
             c.children[1].render();
-            expect(document.querySelector('button')).to.exist;
-            expect(document.querySelector('span')).to.exist;
-            expect(document.querySelector('button')).not.to.be.equal(buttonEl);
+            // A container holds a single occupant, so both are recycled in place: the
+            // unkeyed one by type and position, the keyed one by its key.
+            expect(document.querySelector('button')).to.be.equal(buttonEl);
             expect(document.querySelector('span')).to.be.equal(spanEl);
         });
 

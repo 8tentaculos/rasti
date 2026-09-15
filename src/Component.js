@@ -93,8 +93,9 @@ const isComponentClass = (expression) => !!(expression && expression.prototype i
  * Throw when a component's root template does not resolve to a single element.
  * `this.el` is the first element the root partial renders, so anything written
  * beside it is rendered once and then left out of every update, move and destroy.
- * A transparent root — a container or a lone component tag — is valid: it has no
- * element of its own and adopts the one its interpolation resolves to.
+ * A transparent root is valid: it renders no element of its own, and the component
+ * adopts the one its interpolation resolves to — which is what makes that component a
+ * container. A lone component tag is the same shape.
  *
  * Development only, as a module function so it is dropped from production builds:
  * a root template is authored, not data-driven, so the mistake surfaces the first
@@ -124,8 +125,8 @@ const checkRootStructure = (component) => {
 };
 
 /**
- * Call-site identity for the synthetic container wrapper (`${child}`). Every
- * container has that same shape, so one interned `strings` array is enough:
+ * Call-site identity for the wrapper a container's root is built from (`${child}`).
+ * Every one of them has that same shape, so one interned `strings` array is enough:
  * `Partial.create` caches a single subclass and the root stays reconcilable
  * across renders.
  * @type {Array<string>}
@@ -309,8 +310,9 @@ export default class Component extends View {
         if (this.rootPartial) return;
         this.rootPartial = this.buildRootPartial();
         if (__DEV__) checkRootStructure(this);
-        // Adopting it as the root is what makes a single-interpolation partial a
-        // container: the component borrows the element of the child it resolves to.
+        // Adopting a single-interpolation partial as the root is what makes the
+        // component a container: it borrows the element of the child that partial
+        // resolves to, and renders none of its own.
         this.rootPartial.isRoot = true;
         // The root element merges the component's `attributes` (root treatment).
         if (this.attributes) this.rootPartial.rootAttributes = () => getResult(this.attributes, this);
@@ -320,8 +322,8 @@ export default class Component extends View {
 
     /**
      * Resolve the component's root partial for this render. `template()` may return a
-     * partial, used as the root directly, or a component instance, rendered as a
-     * container: a single-slot partial that borrows the child's element.
+     * partial, used as the root directly, or a component instance, wrapped in a
+     * single-interpolation partial — which makes this component a container.
      * @return {Partial} The root partial for this render.
      * @private
      */
