@@ -31,7 +31,7 @@ const canRecycle = (prev, candidate) => {
 const listItemChild = (partial, value) => {
     if (!partial.isPartial(value)) return partial.owner.isChild(value) ? value : null;
     if (!value.isTransparent() || !value.slots) return null;
-    return listItemChild(partial, value.slots[0].previous);
+    return listItemChild(partial, value.slots[0].content);
 };
 
 /**
@@ -112,7 +112,7 @@ class InterpolationSlot extends Slot {
         super(partial, descriptor);
         this.id = null;
         this.ref = null;
-        this.previous = null;
+        this.content = null;
     }
 
     /**
@@ -161,7 +161,7 @@ class InterpolationSlot extends Slot {
         const { partial } = this;
         if (this.id == null && !this.isAnchored()) this.id = partial.owner.nextMarkerId();
         const value = this.evaluate();
-        this.previous = value;
+        this.content = value;
         const rendered = this.renderValue(value, pass);
         if (this.isAnchored()) return rendered;
         return `<!--${Constants.MARKER_START(this.id)}-->${rendered}<!--${Constants.MARKER_END(this.id)}-->`;
@@ -250,7 +250,7 @@ class InterpolationSlot extends Slot {
      * @param {boolean} [fresh=true] Hydrate child components too (see `Partial#hydrate`).
      */
     hydrateOccupant(index, fresh = true) {
-        this.hydrateValue(this.previous, index, fresh);
+        this.hydrateValue(this.content, index, fresh);
     }
 
     /**
@@ -278,7 +278,7 @@ class InterpolationSlot extends Slot {
     update() {
         const { partial } = this;
         const value = this.evaluate();
-        const prev = this.previous;
+        const prev = this.content;
         // Retained nested partial: same call site → update in place, recursively. Every
         // partial has somewhere to patch: its own markers, or, when anchored, the
         // element of the component it renders.
@@ -329,19 +329,49 @@ class InterpolationSlot extends Slot {
         if (this.isAnchored()) this.placeAnchored(fragment, pass, value);
         else this.placeBetweenMarkers(fragment, pass, value);
         this.finishPass(pass);
-        this.previous = this.resolvePrevious(value, pass);
+        this.content = this.resolveContent(value, pass);
     }
 
     /**
-     * Place a fresh fragment between the slot's markers and run `placeChildren`
-     * before the old content is removed.
+     * Place a fresh fragment between the slot's markers, put the pass's children in
+     * it, and remove the old content once they are in place.
      * @param {DocumentFragment} fragment The new content.
      * @param {object} pass The reconcile pass.
      * @param {any} value The rendered value.
      * @private
      */
     placeBetweenMarkers(fragment, pass, value) {
-        this.patchMarkers(fragment, () => this.placeChildren(pass, value));
+        const [start, end] = this.ref;
+        let divider;
+        if (start.nextSibling === end) {
+            // The slot is empty: insert directly before the end marker.
+            end.parentNode.insertBefore(fragment, end);
+        } else {
+            // Insert a divider so the old content can be removed after the children are placed.
+            divider = document.createComment('');
+            end.parentNode.insertBefore(divider, end);
+            end.parentNode.insertBefore(fragment, end);
+        }
+        // Place the children.
+        const { host } = this.partial;
+        const { index } = pass;
+        // Move the recycled children.
+        pass.recycled.forEach(found => host.moveChild(found, index.comment(Constants.MARKER_RECYCLED(found.uid))));
+        pass.next.forEach(child => host.hydrateChild(child, index));
+        // Structural pass: set the nested partials' refs, but leave the children to
+        // the reconcile above (new ones hydrated, recycled ones moved).
+        this.hydrateValue(value, index, false);
+        // Remove the old content.
+        if (divider) {
+            if (start.nextSibling === divider) {
+                divider.parentNode.removeChild(divider);
+            } else {
+                const range = document.createRange();
+                range.setStartAfter(start);
+                range.setEndAfter(divider);
+                range.deleteContents();
+            }
+        }
     }
 
     /**
@@ -357,43 +387,16 @@ class InterpolationSlot extends Slot {
         const element = this.anchorElement();
         const parent = element.parentNode;
         const divider = document.createComment('');
+        // Insert the new content.
         parent.insertBefore(divider, element.nextSibling);
         parent.insertBefore(fragment, divider.nextSibling);
-        this.placeChildren(pass, value);
+        // Place the child. An anchored slot resolves to a single component, and it is
+        // mounted anew: a retained one is recycled in place and never reaches here.
+        this.partial.host.hydrateChild(pass.next[0], pass.index);
+        this.hydrateValue(value, pass.index, false);
+        // Remove the old content.
         if (element.nextSibling === divider) parent.removeChild(element);
         parent.removeChild(divider);
-    }
-
-    /**
-     * Insert a fresh fragment between the slot's markers, run the handler to place
-     * child components, then remove the old content.
-     * @param {DocumentFragment} fragment The new content.
-     * @param {Function} handleChildren Places recycled / new children in the fragment.
-     * @private
-     */
-    patchMarkers(fragment, handleChildren) {
-        const [start, end] = this.ref;
-        let divider;
-        if (start.nextSibling === end) {
-            // The slot is empty: insert directly before the end marker.
-            end.parentNode.insertBefore(fragment, end);
-        } else {
-            // Insert a divider so the old content can be removed after the children are placed.
-            divider = document.createComment('');
-            end.parentNode.insertBefore(divider, end);
-            end.parentNode.insertBefore(fragment, end);
-        }
-        handleChildren();
-        if (divider) {
-            if (start.nextSibling === divider) {
-                divider.parentNode.removeChild(divider);
-            } else {
-                const range = document.createRange();
-                range.setStartAfter(start);
-                range.setEndAfter(divider);
-                range.deleteContents();
-            }
-        }
     }
 
     /**
@@ -408,31 +411,13 @@ class InterpolationSlot extends Slot {
      */
     makePass(value) {
         return {
-            previous : Array.isArray(value) ? this.collectChildren(this.previous) : [],
+            previous : Array.isArray(value) ? this.collectChildren(this.content) : [],
             used : new Set(),
             recycled : new Map(),
             next : [],
             // The index of the content this pass renders, built in `regenerate`.
             index : null
         };
-    }
-
-    /**
-     * Place the pass's children in the freshly inserted content: move recycled
-     * ones onto the placeholders they were rendered as, hydrate new ones, and hydrate
-     * any nested partials. Every node comes from the pass's index.
-     * @param {object} pass The reconcile pass.
-     * @param {any} value The rendered value.
-     * @private
-     */
-    placeChildren(pass, value) {
-        const { host } = this.partial;
-        const { index } = pass;
-        pass.recycled.forEach(found => host.moveChild(found, index.comment(Constants.MARKER_RECYCLED(found.uid))));
-        pass.next.forEach(child => host.hydrateChild(child, index));
-        // Structural pass: set the nested partials' refs, but leave the children to
-        // the reconcile above (new ones hydrated, recycled ones moved).
-        this.hydrateValue(value, index, false);
     }
 
     /**
@@ -461,7 +446,7 @@ class InterpolationSlot extends Slot {
     collectChildren(value) {
         if (Array.isArray(value)) return value.reduce((out, item) => out.concat(this.collectChildren(item)), []);
         if (this.partial.isPartial(value)) {
-            if (value.isTransparent()) return this.collectChildren(value.slots[0].previous);
+            if (value.isTransparent()) return this.collectChildren(value.slots[0].content);
             return [];
         }
         if (this.partial.owner.isChild(value) && value.key != null) return [value];
@@ -480,10 +465,10 @@ class InterpolationSlot extends Slot {
      * @return {any} The value with candidates replaced by retained instances.
      * @private
      */
-    resolvePrevious(value, pass) {
-        if (Array.isArray(value)) return value.map(item => this.resolvePrevious(item, pass));
+    resolveContent(value, pass) {
+        if (Array.isArray(value)) return value.map(item => this.resolveContent(item, pass));
         if (this.partial.isPartial(value)) {
-            if (value.isTransparent()) return this.resolvePrevious(value.slots[0].previous, pass);
+            if (value.isTransparent()) return this.resolveContent(value.slots[0].content, pass);
             return value;
         }
         if (this.partial.owner.isChild(value)) return pass.recycled.get(value) || value;

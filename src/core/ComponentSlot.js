@@ -55,7 +55,7 @@ class ComponentSlot extends InterpolationSlot {
      * @private
      */
     anchorElement() {
-        return this.previous.el;
+        return this.content.el;
     }
 }
 

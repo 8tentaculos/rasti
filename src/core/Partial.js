@@ -210,7 +210,7 @@ class Partial {
     rootElement() {
         if (!this.isTransparent()) return this.firstSlot(ElementSlot).ref;
         // A transparent partial is a single interpolation, so its slot is the first one.
-        return this.slotElement(this.slots[0].previous);
+        return this.slotElement(this.slots[0].content);
     }
 
     /**
