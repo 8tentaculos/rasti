@@ -1,5 +1,34 @@
 import Emitter from './Emitter.js';
 import getResult from './utils/getResult.js';
+import __DEV__ from './utils/dev.js';
+import createDevelopmentWarningMessage from './utils/createDevelopmentWarningMessage.js';
+
+/**
+ * Warn when an attribute's generated property would shadow a member the model already
+ * has: a method it inherits (`on`, `set`, `toJSON`) or a field the constructor wrote
+ * (`attributes`, `previous`). The property is defined on the instance, so it wins over
+ * the prototype and the member is gone for good — including the ones the framework
+ * itself calls. `attributePrefix` is the way out, which is what it is for.
+ * Development only.
+ * @param {Model} model The model defining the property.
+ * @param {string} property The property name about to be defined.
+ * @private
+ */
+const warnShadowedMember = (model, property) => {
+    if (!(property in model)) return;
+    const name = model.constructor.name;
+    console.warn(createDevelopmentWarningMessage(
+        `Attribute "${property}" shadows a member of ${name}\n` +
+        'The generated property is defined on the instance, so it replaces the member it\n' +
+        'is named after, and whatever calls that member stops working.\n' +
+        '\n' +
+        'Rename the attribute, or prefix the generated properties:\n' +
+        '\n' +
+        `  class ${name} extends Model {\n` +
+        '      static attributePrefix = \'attr_\';\n' +
+        '  }'
+    ));
+};
 
 /**
  * - Orchestrates data and business logic.
@@ -164,9 +193,11 @@ export default class Model extends Emitter {
      * }
      */
     defineAttribute(key) {
+        const property = `${this.constructor.attributePrefix}${key}`;
+        if (__DEV__) warnShadowedMember(this, property);
         Object.defineProperty(
             this,
-            `${this.constructor.attributePrefix}${key}`,
+            property,
             {
                 get : () => this.get(key),
                 set : (value) => { this.set(key, value); }
