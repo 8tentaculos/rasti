@@ -2525,6 +2525,37 @@ describe('Component', () => {
             expect(cardAfter).not.to.be.equal(cardBefore);
         });
 
+        // A transparent partial contributes no node of its own, so the list it holds is
+        // part of the list holding it: the children are collected by both, and whichever
+        // of the two regenerates reconciles against the same ones.
+        it('must recycle keyed components through a transparent partial holding a list', () => {
+            const Row = Component.create`<b>${({ props }) => props.text}</b>`;
+            const Main = Component.create`
+                <ul>${({ model, partial }) => model.groups.map(group => partial`${group.map(item =>
+        partial`<${Row} key="${item.id}" text="${item.text}" />`
+    )}`)}</ul>
+            `.mount({
+        model : new Model({ groups : [
+            [{ id : 'a', text : 'A' }, { id : 'b', text : 'B' }],
+            [{ id : 'c', text : 'C' }]
+        ] })
+    }, document.body);
+
+            const before = Array.from(Main.el.querySelectorAll('b'));
+
+            // Regroup and reorder: the rows keep their identity across both lists.
+            Main.model.groups = [
+                [{ id : 'c', text : 'C2' }],
+                [{ id : 'a', text : 'A2' }, { id : 'b', text : 'B2' }]
+            ];
+
+            const after = Array.from(Main.el.querySelectorAll('b'));
+            expect(after[0]).to.be.equal(before[2]);
+            expect(after[1]).to.be.equal(before[0]);
+            expect(after[2]).to.be.equal(before[1]);
+            expect(after.map(el => el.textContent.trim())).to.deep.equal(['C2', 'A2', 'B2']);
+        });
+
         // Events on slotted content (passed through renderChildren) are delegated on the
         // owner component that provides the content, and keep working after that owner
         // re-renders.

@@ -23,17 +23,18 @@ const canRecycle = (prev, candidate) => {
 };
 
 /**
- * Resolve the child component a list item stands for, seeing through transparent
- * partials, which contribute no node of their own. Development only.
- * @param {Partial} partial The partial holding the list.
- * @param {any} value The list item.
- * @return {object|null} The child component, or `null` when the item is not one.
+ * Resolve what a value stands for, seeing through transparent partials, which
+ * contribute no node of their own and resolve to whatever their single slot holds.
+ * A partial that is opaque, or that has not rendered and has no slot to look into,
+ * stands for itself.
+ * @param {Partial} partial The partial holding the value.
+ * @param {any} value The value to resolve.
+ * @return {any} The value the given one stands for.
  * @private
  */
-const listItemChild = (partial, value) => {
-    if (!partial.isPartial(value)) return partial.owner.isChild(value) ? value : null;
-    if (!value.isTransparent() || !value.slots) return null;
-    return listItemChild(partial, value.slots[0].content);
+const unwrap = (partial, value) => {
+    if (!partial.isPartial(value) || !value.isTransparent() || !value.slots) return value;
+    return unwrap(partial, value.slots[0].content);
 };
 
 /**
@@ -70,8 +71,8 @@ const checkListItems = (slot, items) => {
         // Anything that is not a partial or a child renders as content, not as
         // something with an identity of its own.
         if (!partial.isPartial(value) && !partial.owner.isChild(value)) return;
-        const child = listItemChild(partial, value);
-        if (!child || child.key == null) unstable = true;
+        const child = unwrap(partial, value);
+        if (!partial.owner.isChild(child) || child.key == null) unstable = true;
         else if (keys.has(child.key)) duplicated = child.key;
         else keys.add(child.key);
     };
@@ -101,10 +102,11 @@ const checkListItems = (slot, items) => {
  * @private
  */
 const resolvesToChild = (partial, value) => {
-    if (partial.isPartial(value)) {
-        return value.isTransparent() && (!value.slots || resolvesToChild(partial, value.slots[0].content));
-    }
-    return partial.owner.isChild(value);
+    const resolved = unwrap(partial, value);
+    // A partial that has not rendered yet stands for itself, but will resolve to
+    // whatever its slot holds once it does.
+    if (partial.isPartial(resolved)) return resolved.isTransparent() && !resolved.slots;
+    return partial.owner.isChild(resolved);
 };
 
 /**
@@ -163,6 +165,7 @@ class InterpolationSlot extends Slot {
         this.id = null;
         this.ref = null;
         this.content = null;
+        this.keyed = null;
     }
 
     /**
@@ -212,11 +215,38 @@ class InterpolationSlot extends Slot {
         if (this.id == null && !this.isAnchored()) this.id = partial.owner.nextMarkerId();
         const value = this.evaluate();
         this.content = value;
-        const rendered = this.renderValue(value, pass);
+        // A first render carries no pass of its own; a list opens one, to collect the
+        // keyed children it mounts (see `render`).
+        const rendered = this.render(value, pass || (Array.isArray(value) ? this.makePass() : null));
         // Checked after rendering, once a nested partial has resolved its own content.
         if (__DEV__ && this.isAnchored()) checkAnchoredContent(this, value);
         if (this.isAnchored()) return rendered;
         return `<!--${Constants.MARKER_START(this.id)}-->${rendered}<!--${Constants.MARKER_END(this.id)}-->`;
+    }
+
+    /**
+     * Render the slot's value, collecting the keyed children of a list as it goes. A
+     * list is the one place where a child changes position among its siblings, so the
+     * slot remembers the ones it mounted by key, to claim them again on its next
+     * render; anywhere else an occupant is either retained in place (see `update`) or
+     * mounted anew, and has no key to be found by.
+     * @param {any} value The value to render.
+     * @param {object} [pass] Reconcile pass (see `Partial#toString`).
+     * @return {string} The rendered HTML.
+     * @private
+     */
+    render(value, pass) {
+        this.keyed = Array.isArray(value) ? new Map() : null;
+        if (!this.keyed) return this.renderValue(value, pass);
+        const outer = pass.keyed;
+        pass.keyed = this.keyed;
+        const rendered = this.renderValue(value, pass);
+        // An enclosing list holds the same children, one level up, so it takes them
+        // once the nested one is closed: whichever of the two regenerates reconciles
+        // against the same children.
+        if (outer) this.keyed.forEach((child, key) => outer.set(key, child));
+        pass.keyed = outer;
+        return rendered;
     }
 
     /**
@@ -254,8 +284,10 @@ class InterpolationSlot extends Slot {
                 if (found) {
                     host.addChild(found);
                     pass.recycled.set(value, found);
+                    this.recordKeyed(pass, value.key, found);
                     return `<!--${Constants.MARKER_RECYCLED(found.uid)}-->`;
                 }
+                this.recordKeyed(pass, value.key, value);
                 pass.next.push(value);
             }
             return host.addChild(value).toString();
@@ -265,25 +297,34 @@ class InterpolationSlot extends Slot {
     }
 
     /**
-     * Claim a recyclable previous occupant for a candidate child: the first one the
-     * pass has not handed out yet (see `canRecycle`), marked as used so no other
-     * candidate takes it. Claiming is slot-local: it only considers this slot's own
-     * previous occupants.
+     * Claim a recyclable previous occupant for a candidate child: the one the slot held
+     * under the candidate's key, taken out of the pool so no other candidate claims it
+     * again. Claiming is slot-local: the pool only holds this slot's own previous
+     * occupants.
      * @param {object} candidate The candidate child component.
-     * @param {object} pass Reconcile pass holding `previous` and `used`.
+     * @param {object} pass Reconcile pass holding the pool.
      * @return {object|null} The claimed previous child, or `null`.
      * @private
      */
     claimRecyclable(candidate, pass) {
-        for (let i = 0; i < pass.previous.length; i++) {
-            const prev = pass.previous[i];
-            if (pass.used.has(prev)) continue;
-            if (canRecycle(prev, candidate)) {
-                pass.used.add(prev);
-                return prev;
-            }
-        }
-        return null;
+        if (candidate.key == null || !pass.previous) return null;
+        const prev = pass.previous.get(candidate.key);
+        if (!prev) return null;
+        pass.previous.delete(candidate.key);
+        return prev;
+    }
+
+    /**
+     * Record a child under its key in the list being collected around it (see
+     * `render`). An unkeyed child has no identity among its siblings, and outside a
+     * list there is nothing collecting: neither is recorded.
+     * @param {object} pass The reconcile pass holding the list.
+     * @param {any} key The child's key.
+     * @param {object} child The child component.
+     * @private
+     */
+    recordKeyed(pass, key, child) {
+        if (key != null && pass.keyed) pass.keyed.set(key, child);
     }
 
     /**
@@ -373,8 +414,8 @@ class InterpolationSlot extends Slot {
      * @private
      */
     regenerate(value) {
-        const pass = this.makePass(value);
-        const fragment = parseHTML(this.renderValue(value, pass));
+        const pass = this.makePass(this.keyed);
+        const fragment = parseHTML(this.render(value, pass));
         // Indexed before the fragment is inserted, so the walk covers the new content
         // alone: it answers both for the placeholders of the recycled children and for
         // the refs of everything mounted anew.
@@ -382,7 +423,11 @@ class InterpolationSlot extends Slot {
         if (this.isAnchored()) this.placeAnchored(fragment, pass, value);
         else this.placeBetweenMarkers(fragment, pass, value);
         this.finishPass(pass);
-        this.content = this.resolveContent(value, pass);
+        // A recycled candidate is discarded in `finishPass`, so the slot remembers the
+        // retained instance it matched instead: the next update reconciles against a
+        // live occupant. A list is never read back — it reconciles through the keyed
+        // pool, not through the occupant — so only a single child is resolved.
+        this.content = pass.recycled.get(value) || value;
     }
 
     /**
@@ -453,19 +498,20 @@ class InterpolationSlot extends Slot {
     }
 
     /**
-     * Build a reconcile pass. Its pool is seeded only when the new value is a list:
-     * that is the one case where a child changes position among its siblings and has
-     * to be carried over to the regenerated content. Anywhere else an occupant is
-     * either retained in place (see `update`) or mounted anew, so there is nothing to
-     * claim.
-     * @param {any} value The new value.
+     * Build a reconcile pass around a pool of claimable children, the keyed ones the
+     * slot collected on its previous render. The pool belongs to the slot doing the
+     * regenerating, and every keyed child under it claims from it, however deep;
+     * collecting is per list instead (see `render`). Null where there is nothing to
+     * claim: a first render, or a slot whose previous occupant was not a list.
+     * @param {Map<any, object>} [previous] The keyed children of the previous render.
      * @return {object} The reconcile pass.
      * @private
      */
-    makePass(value) {
+    makePass(previous = null) {
         return {
-            previous : Array.isArray(value) ? this.collectChildren(this.content) : [],
-            used : new Set(),
+            previous,
+            // The innermost list collecting this render's keyed children (see `render`).
+            keyed : null,
             recycled : new Map(),
             next : [],
             // The index of the content this pass renders, built in `regenerate`.
@@ -485,47 +531,6 @@ class InterpolationSlot extends Slot {
             host.updateChild(found, host.childProps(discarded));
             host.destroyChild(discarded);
         });
-    }
-
-    /**
-     * Collect the keyed child components a value mounted, descending through
-     * transparent partials and arrays. Used to build the slot-local pool
-     * of recyclable children: in a list a key is what identifies a child among its
-     * siblings, so an unkeyed one has no identity to be claimed by.
-     * @param {any} value The value.
-     * @return {Array<object>} The keyed child components.
-     * @private
-     */
-    collectChildren(value) {
-        if (Array.isArray(value)) return value.reduce((out, item) => out.concat(this.collectChildren(item)), []);
-        if (this.partial.isPartial(value)) {
-            if (value.isTransparent()) return this.collectChildren(value.slots[0].content);
-            return [];
-        }
-        if (this.partial.owner.isChild(value) && value.key != null) return [value];
-        return [];
-    }
-
-    /**
-     * Resolve the live occupants the slot must remember for the next render. Each
-     * recycled candidate is replaced by the retained instance it matched (the
-     * candidates are discarded in `finishPass`), and a transparent partial is
-     * unwrapped to the child it holds. Without this the slot would remember the
-     * freshly synthesized candidates, and the next render would match its
-     * candidates against those dead instances.
-     * @param {any} value The rendered value (holding the candidates).
-     * @param {object} pass The reconcile pass (holds the recycled children).
-     * @return {any} The value with candidates replaced by retained instances.
-     * @private
-     */
-    resolveContent(value, pass) {
-        if (Array.isArray(value)) return value.map(item => this.resolveContent(item, pass));
-        if (this.partial.isPartial(value)) {
-            if (value.isTransparent()) return this.resolveContent(value.slots[0].content, pass);
-            return value;
-        }
-        if (this.partial.owner.isChild(value)) return pass.recycled.get(value) || value;
-        return value;
     }
 }
 
