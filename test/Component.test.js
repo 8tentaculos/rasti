@@ -2556,6 +2556,48 @@ describe('Component', () => {
             expect(after.map(el => el.textContent.trim())).to.deep.equal(['C2', 'A2', 'B2']);
         });
 
+        // A partial that contributes markup of its own is a boundary: the components in
+        // its interpolations belong to it, not to the list holding it, so the list
+        // neither claims them nor lends it its own. The boundary holds in both
+        // directions, whichever form the component was rendered in before.
+        it('must recreate keyed components wrapped in markup when the list reorders', () => {
+            const Row = Component.create`<span>${({ props }) => props.text}</span>`;
+            const List = Component.create`
+                <ul>${({ model, partial }) => model.items.map(item =>
+        partial`<li><${Row} key="${item.id}" text="${item.text}" /></li>`
+    )}</ul>
+            `.mount({
+        model : new Model({ items : [{ id : '1', text : 'A' }, { id : '2', text : 'B' }] })
+    }, document.body);
+
+            const before = Array.from(List.el.querySelectorAll('span'));
+
+            List.model.items = [{ id : '2', text : 'B2' }, { id : '1', text : 'A2' }];
+
+            const after = Array.from(List.el.querySelectorAll('span'));
+            // The rows are local to the partial wrapping them, which is regenerated whole.
+            after.forEach(el => expect(before).to.not.include(el));
+            expect(after.map(el => el.textContent.trim())).to.deep.equal(['B2', 'A2']);
+        });
+
+        it('must recreate a keyed component that becomes wrapped in markup', () => {
+            const Row = Component.create`<span>${({ props }) => props.text}</span>`;
+            const List = Component.create`
+                <ul>${({ model, partial }) => model.wrapped
+        ? model.items.map(item => partial`<li><${Row} key="${item.id}" text="${item.text}" /></li>`)
+        : model.items.map(item => Row.mount({ key : item.id, text : item.text }))}</ul>
+            `.mount({
+        model : new Model({ wrapped : false, items : [{ id : '1', text : 'A' }] })
+    }, document.body);
+
+            const before = List.el.querySelector('span');
+
+            // Same key, same position: the list still cannot claim it into the markup.
+            List.model.wrapped = true;
+
+            expect(List.el.querySelector('span')).to.not.be.equal(before);
+        });
+
         // Events on slotted content (passed through renderChildren) are delegated on the
         // owner component that provides the content, and keep working after that owner
         // re-renders.

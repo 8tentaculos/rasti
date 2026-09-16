@@ -275,7 +275,18 @@ class InterpolationSlot extends Slot {
         if (this.partial.isPartial(value)) {
             // A nested partial renders under the same host as the partial holding it.
             value.host = host;
-            return value.toString(pass);
+            if (!pass || value.isTransparent()) return value.toString(pass);
+            // A partial that contributes markup of its own holds its children in its
+            // own interpolations, where they are local: the list being collected
+            // neither reaches them nor lends them its own, and only what lands directly
+            // in it keeps an identity there. The pass itself still descends: whatever
+            // the markup mounts is part of the fragment being placed.
+            const { previous, keyed } = pass;
+            pass.previous = pass.keyed = null;
+            const rendered = value.toString(pass);
+            pass.previous = previous;
+            pass.keyed = keyed;
+            return rendered;
         }
 
         if (owner.isChild(value)) {
@@ -300,7 +311,8 @@ class InterpolationSlot extends Slot {
      * Claim a recyclable previous occupant for a candidate child: the one the slot held
      * under the candidate's key, taken out of the pool so no other candidate claims it
      * again. Claiming is slot-local: the pool only holds this slot's own previous
-     * occupants.
+     * occupants, and is out of reach inside a partial that contributes markup, whose
+     * children are local to it (see `renderValue`).
      * @param {object} candidate The candidate child component.
      * @param {object} pass Reconcile pass holding the pool.
      * @return {object|null} The claimed previous child, or `null`.
