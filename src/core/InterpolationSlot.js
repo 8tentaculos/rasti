@@ -8,6 +8,8 @@ import formatTemplateSource from '../utils/formatTemplateSource.js';
 import createDevelopmentErrorMessage from '../utils/createDevelopmentErrorMessage.js';
 import HydrationIndex from './HydrationIndex.js';
 import parseHTML from '../utils/parseHTML.js';
+import moveNode from '../utils/moveNode.js';
+import increasingSubsequence from '../utils/increasingSubsequence.js';
 
 /**
  * Tell whether a previous child can be recycled for a candidate: keyed children
@@ -36,6 +38,20 @@ const unwrap = (partial, value) => {
     if (!partial.isPartial(value) || !value.isTransparent() || !value.slots) return value;
     return unwrap(partial, value.slots[0].content);
 };
+
+/**
+ * Tell whether every item of a list stands for a single component: a mounted child,
+ * or a component tag, which always renders one and nothing else. It is a question
+ * about the shape of the items, answered before any of them renders, so the slot
+ * knows in advance that its content will be its children's elements and nothing
+ * else. A transparent partial only answers it once evaluated, and is left out.
+ * @param {Partial} partial The partial holding the list.
+ * @param {Array<any>} items The list.
+ * @return {boolean} True if every item stands for a single component.
+ * @private
+ */
+const isComponentList = (partial, items) => items.every(item =>
+    partial.isPartial(item) ? item.isComponentTag() : partial.owner.isChild(item));
 
 /**
  * Print a warning about one interpolation, resolving its expression off the slot's
@@ -166,6 +182,7 @@ class InterpolationSlot extends Slot {
         this.ref = null;
         this.content = null;
         this.keyed = null;
+        this.order = null;
     }
 
     /**
@@ -225,11 +242,13 @@ class InterpolationSlot extends Slot {
     }
 
     /**
-     * Render the slot's value, collecting the keyed children of a list as it goes. A
-     * list is the one place where a child changes position among its siblings, so the
-     * slot remembers the ones it mounted by key, to claim them again on its next
-     * render; anywhere else an occupant is either retained in place (see `update`) or
-     * mounted anew, and has no key to be found by.
+     * Render the slot's value, collecting the children of a list as it goes. A list is
+     * the one place where a child changes position among its siblings, so the slot
+     * remembers the ones it mounted: by key, to claim them again on its next render,
+     * and, when every item stands for a component, in document order, which is then
+     * the whole of what the slot holds and is how the next render places it. Anywhere
+     * else an occupant is either retained in place (see `update`) or mounted anew, and
+     * has neither a key to be found by nor a position of its own.
      * @param {any} value The value to render.
      * @param {object} [pass] Reconcile pass (see `Partial#toString`).
      * @return {string} The rendered HTML.
@@ -237,15 +256,22 @@ class InterpolationSlot extends Slot {
      */
     render(value, pass) {
         this.keyed = Array.isArray(value) ? new Map() : null;
-        if (!this.keyed) return this.renderValue(value, pass);
-        const outer = pass.keyed;
+        if (!this.keyed) {
+            this.order = null;
+            return this.renderValue(value, pass);
+        }
+        const outerKeyed = pass.keyed;
+        const outerOrder = pass.order;
         pass.keyed = this.keyed;
+        pass.order = isComponentList(this.partial, value) ? [] : null;
         const rendered = this.renderValue(value, pass);
+        this.order = pass.order;
         // An enclosing list holds the same children, one level up, so it takes them
         // once the nested one is closed: whichever of the two regenerates reconciles
         // against the same children.
-        if (outer) this.keyed.forEach((child, key) => outer.set(key, child));
-        pass.keyed = outer;
+        if (outerKeyed) this.keyed.forEach((child, key) => outerKeyed.set(key, child));
+        pass.keyed = outerKeyed;
+        pass.order = outerOrder;
         return rendered;
     }
 
@@ -292,10 +318,14 @@ class InterpolationSlot extends Slot {
         if (owner.isChild(value)) {
             if (pass) {
                 const found = this.claimRecyclable(value, pass);
+                if (pass.order) pass.order.push(found || value);
                 if (found) {
                     host.addChild(found);
                     pass.recycled.set(value, found);
                     this.recordKeyed(pass, value.key, found);
+                    // A child the slot places itself is already standing where the walk
+                    // will find it, so it writes no placeholder to be replaced.
+                    if (pass.placed && pass.order) return '';
                     return `<!--${Constants.MARKER_RECYCLED(found.uid)}-->`;
                 }
                 this.recordKeyed(pass, value.key, value);
@@ -427,12 +457,19 @@ class InterpolationSlot extends Slot {
      */
     regenerate(value) {
         const pass = this.makePass(this.keyed);
+        // The children of a list the slot placed itself stand between its markers, in
+        // that order, so a render that resolves to a list of components again keeps
+        // them where they are instead of rendering them back into position.
+        pass.placed = this.order;
         const fragment = parseHTML(this.render(value, pass));
         // Indexed before the fragment is inserted, so the walk covers the new content
         // alone: it answers both for the placeholders of the recycled children and for
         // the refs of everything mounted anew.
         pass.index = new HydrationIndex(fragment);
+        // A walk is worth what the render kept: with nothing claimed the whole region
+        // is rewritten, which the marker path does in a single call.
         if (this.isAnchored()) this.placeAnchored(fragment, pass, value);
+        else if (pass.placed && this.order && pass.recycled.size) this.placeInOrder(fragment, pass);
         else this.placeBetweenMarkers(fragment, pass, value);
         this.finishPass(pass);
         // A recycled candidate is discarded in `finishPass`, so the slot remembers the
@@ -440,6 +477,62 @@ class InterpolationSlot extends Slot {
         // live occupant. A list is never read back — it reconciles through the keyed
         // pool, not through the occupant — so only a single child is resolved.
         this.content = pass.recycled.get(value) || value;
+    }
+
+    /**
+     * Place a list of components by walking it. What stands between the slot's markers
+     * is its children's elements and nothing else, so each child is taken to its place
+     * instead of being rendered back into one: the ones the render kept move only when
+     * the order moved them, the ones it mounted arrive in the fragment, and the ones it
+     * dropped are removed.
+     * @param {DocumentFragment} fragment The new content.
+     * @param {object} pass The reconcile pass.
+     * @private
+     */
+    placeInOrder(fragment, pass) {
+        const { host } = this.partial;
+        const { order } = this;
+        const { placed } = pass;
+        const end = this.ref[1];
+        const parent = end.parentNode;
+        // Recycle the children that stay: they are reused whether or not they move.
+        pass.recycled.forEach(found => host.moveChild(found, null));
+        // The new children arrive together at the end of the slot, where they hydrate
+        // before being taken to their place.
+        parent.insertBefore(fragment, end);
+        pass.next.forEach(child => host.hydrateChild(child, pass.index));
+        // The same children in the same order: nothing to place, nothing to remove.
+        if (placed.length === order.length && order.every((child, i) => placed[i] === child)) return;
+        // Where each child stood. A child the render mounted has none, so it never
+        // counts as being in place.
+        const previousIndex = new Map();
+        placed.forEach((child, i) => previousIndex.set(child, i));
+        const kept = [];
+        const sequence = order.map(child => {
+            const index = previousIndex.get(child);
+            if (index === undefined) return -1;
+            kept[index] = true;
+            return index;
+        });
+        // Remove what the list dropped first, so what is left is what the walk reads.
+        // Destroying a child does not touch the DOM, and the component destroys the
+        // ones this render left out of its children.
+        placed.forEach((child, i) => {
+            if (!kept[i]) child.el.parentNode.removeChild(child.el);
+        });
+        // The children whose previous positions already ascend are the ones that can
+        // stay put, and the longest such run is the fewest moves the order can be
+        // reached in. Every other child is moved before the one that follows it, which
+        // is placed by the time it is reached.
+        const stable = increasingSubsequence(sequence);
+        let last = stable.length - 1;
+        let next = end;
+        for (let i = order.length - 1; i >= 0; i--) {
+            const { el } = order[i];
+            if (last >= 0 && stable[last] === i) last--;
+            else if (el.nextSibling !== next) moveNode(el, next);
+            next = el;
+        }
     }
 
     /**
@@ -524,6 +617,10 @@ class InterpolationSlot extends Slot {
             previous,
             // The innermost list collecting this render's keyed children (see `render`).
             keyed : null,
+            // The children the slot's previous render left standing between its markers,
+            // and the ones this render resolves, both in document order (see `render`).
+            placed : null,
+            order : null,
             recycled : new Map(),
             next : [],
             // The index of the content this pass renders, built in `regenerate`.

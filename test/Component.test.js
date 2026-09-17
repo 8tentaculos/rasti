@@ -4,6 +4,20 @@ import View from '../src/View.js';
 import Component from '../src/Component.js';
 import Constants from '../src/core/Constants.js';
 
+// Count the elements an update moves inside a container, to tell a list that is
+// patched in place from one that is rendered back into position.
+const countMoves = container => {
+    const counts = { moves : 0 };
+    const method = typeof container.moveBefore === 'function' ? 'moveBefore' : 'insertBefore';
+    const original = container[method];
+    container[method] = function(node, reference) {
+        // A fragment carries the content the render produced; an element is a move.
+        if (node.nodeType === 1) counts.moves++;
+        return original.call(this, node, reference);
+    };
+    return counts;
+};
+
 describe('Component', () => {
     beforeEach(() => {
         document.body.innerHTML = '';
@@ -2062,6 +2076,166 @@ describe('Component', () => {
             expect(finalButtons[0]).to.be.equal(byText['B']);
             expect(finalButtons[1]).to.be.equal(byText['C']);
             expect(finalButtons[2]).to.be.equal(byText['A']);
+        });
+
+        it('must move only the keyed components whose position changed', () => {
+            const Button = Component.create`<button>${({ props }) => props.text}</button>`;
+            const ParentComponent = Component.create`
+                <div id="test-node">${({ model }) => model.items.map(item => Button.mount({ key : item.id, text : item.text }))}</div>
+            `.mount({ model : new Model({ items : [{ id : '1', text : 'A' }, { id : '2', text : 'B' }, { id : '3', text : 'C' }, { id : '4', text : 'D' }] }) }, document.body);
+
+            const originalButtons = Array.from(document.querySelectorAll('button'));
+            const counts = countMoves(document.getElementById('test-node'));
+
+            // Swap the first and the last item: the two in between keep their place.
+            ParentComponent.model.items = [
+                { id : '4', text : 'D' },
+                { id : '2', text : 'B' },
+                { id : '3', text : 'C' },
+                { id : '1', text : 'A' }
+            ];
+
+            expect(counts.moves).to.be.equal(2);
+            const newButtons = Array.from(document.querySelectorAll('button'));
+            expect(newButtons.map(el => el.textContent.trim())).to.deep.equal(['D', 'B', 'C', 'A']);
+            expect(newButtons[0]).to.be.equal(originalButtons[3]);
+            expect(newButtons[3]).to.be.equal(originalButtons[0]);
+        });
+
+        it('must not move any keyed component when the order does not change', () => {
+            const Button = Component.create`<button>${({ props }) => props.text}</button>`;
+            const ParentComponent = Component.create`
+                <div id="test-node">${({ model }) => model.items.map(item => Button.mount({ key : item.id, text : item.text }))}</div>
+            `.mount({ model : new Model({ items : [{ id : '1', text : 'A' }, { id : '2', text : 'B' }, { id : '3', text : 'C' }] }) }, document.body);
+
+            const counts = countMoves(document.getElementById('test-node'));
+
+            ParentComponent.model.items = [
+                { id : '1', text : 'A' },
+                { id : '2', text : 'B-updated' },
+                { id : '3', text : 'C' }
+            ];
+
+            expect(counts.moves).to.be.equal(0);
+            expect(Array.from(document.querySelectorAll('button')).map(el => el.textContent.trim()))
+                .to.deep.equal(['A', 'B-updated', 'C']);
+        });
+
+        it('must remove the elements of keyed components dropped from a list', () => {
+            const Button = Component.create`<button>${({ props }) => props.text}</button>`;
+            const ParentComponent = Component.create`
+                <div id="test-node">${({ model }) => model.items.map(item => Button.mount({ key : item.id, text : item.text }))}</div>
+            `.mount({ model : new Model({ items : [{ id : '1', text : 'A' }, { id : '2', text : 'B' }, { id : '3', text : 'C' }] }) }, document.body);
+
+            const originalButtons = Array.from(document.querySelectorAll('button'));
+
+            ParentComponent.model.items = [{ id : '1', text : 'A' }, { id : '3', text : 'C' }];
+
+            const newButtons = Array.from(document.querySelectorAll('button'));
+            expect(newButtons.map(el => el.textContent.trim())).to.deep.equal(['A', 'C']);
+            expect(newButtons[0]).to.be.equal(originalButtons[0]);
+            expect(newButtons[1]).to.be.equal(originalButtons[2]);
+            expect(originalButtons[1].parentNode).to.be.equal(null);
+            expect(ParentComponent.children.length).to.be.equal(2);
+        });
+
+        it('must place new keyed components among the ones it keeps', () => {
+            const Button = Component.create`<button>${({ props }) => props.text}</button>`;
+            const ParentComponent = Component.create`
+                <div id="test-node">${({ model }) => model.items.map(item => Button.mount({ key : item.id, text : item.text }))}</div>
+            `.mount({ model : new Model({ items : [{ id : '1', text : 'A' }, { id : '2', text : 'B' }] }) }, document.body);
+
+            const originalButtons = Array.from(document.querySelectorAll('button'));
+
+            ParentComponent.model.items = [
+                { id : '0', text : 'Z' },
+                { id : '1', text : 'A' },
+                { id : '3', text : 'C' },
+                { id : '2', text : 'B' }
+            ];
+
+            const newButtons = Array.from(document.querySelectorAll('button'));
+            expect(newButtons.map(el => el.textContent.trim())).to.deep.equal(['Z', 'A', 'C', 'B']);
+            expect(newButtons[1]).to.be.equal(originalButtons[0]);
+            expect(newButtons[3]).to.be.equal(originalButtons[1]);
+        });
+
+        it('must regenerate a list that stops resolving to components only', () => {
+            const Button = Component.create`<button>${({ props }) => props.text}</button>`;
+            const ParentComponent = Component.create`
+                <div id="test-node">${({ model }) => model.items.map(item => typeof item === 'string' ? item : Button.mount({ key : item.id, text : item.text }))}</div>
+            `.mount({ model : new Model({ items : [{ id : '1', text : 'A' }, { id : '2', text : 'B' }] }) }, document.body);
+
+            const originalButtons = Array.from(document.querySelectorAll('button'));
+
+            // A plain value among the items: the slot has content of its own again, so
+            // it goes back to patching between its markers.
+            ParentComponent.model.items = [{ id : '2', text : 'B' }, 'text', { id : '1', text : 'A' }];
+
+            const container = document.getElementById('test-node');
+            expect(container.textContent.trim()).to.be.equal('BtextA');
+            const newButtons = Array.from(document.querySelectorAll('button'));
+            expect(newButtons[0]).to.be.equal(originalButtons[1]);
+            expect(newButtons[1]).to.be.equal(originalButtons[0]);
+
+            // And back to components only, from content the slot did not place itself.
+            ParentComponent.model.items = [{ id : '1', text : 'A' }, { id : '2', text : 'B' }];
+            expect(container.textContent.trim()).to.be.equal('AB');
+            expect(Array.from(document.querySelectorAll('button'))).to.deep.equal([newButtons[1], newButtons[0]]);
+        });
+
+        it('must hydrate the keyed components a reordered list mounts', () => {
+            const clicked = [];
+            const Row = Component.create`
+                <tr class="${({ props }) => props.selected ? 'on' : ''}">
+                    <td><a onClick=${function() { clicked.push(this.props.id); }}>${({ props }) => props.label}</a></td>
+                </tr>
+            `;
+            const Table = Component.create`
+                <table><tbody>${({ model, partial }) => model.rows.map(row => partial`
+                    <${Row} key="${row.id}" id="${row.id}" label="${row.label}" selected="${model.selected === row.id}" />
+                `)}</tbody></table>
+            `.mount({ model : new Model({ rows : [{ id : '1', label : 'A' }, { id : '2', label : 'B' }], selected : null }) }, document.body);
+
+            const originalRows = Array.from(document.querySelectorAll('tr'));
+            const counts = countMoves(document.querySelector('tbody'));
+
+            // Keep both rows, move one of them, and mount a third between them.
+            Table.model.rows = [{ id : '2', label : 'B' }, { id : '3', label : 'C' }, { id : '1', label : 'A' }];
+
+            const rows = Array.from(document.querySelectorAll('tr'));
+            expect(rows.map(el => el.textContent.trim())).to.deep.equal(['B', 'C', 'A']);
+            expect(rows[0]).to.be.equal(originalRows[1]);
+            expect(rows[2]).to.be.equal(originalRows[0]);
+            // One kept row moves, and the mounted one is placed: the other stays put.
+            expect(counts.moves).to.be.equal(2);
+
+            // The mounted row is hydrated: its events are delegated and its
+            // interpolations are patched in place by a later render.
+            rows[1].querySelector('a').click();
+            expect(clicked).to.deep.equal(['3']);
+            Table.model.selected = '3';
+            expect(document.querySelectorAll('tr')[1].className).to.be.equal('on');
+            expect(document.querySelectorAll('tr')[1]).to.be.equal(rows[1]);
+        });
+
+        it('must keep slotted events working when a keyed list reorders', () => {
+            const clicked = [];
+            const Row = Component.create`<tr><td>${({ props }) => props.renderChildren()}</td></tr>`;
+            const Table = Component.create`
+                <table><tbody>${({ model, partial }) => model.rows.map(row => partial`
+                    <${Row} key="${row.id}"><a onClick=${() => clicked.push(row.id)}>${row.label}</a></${Row}>
+                `)}</tbody></table>
+            `.mount({ model : new Model({ rows : [{ id : '1', label : 'A' }, { id : '2', label : 'B' }, { id : '3', label : 'C' }] }) }, document.body);
+
+            Table.model.rows = [{ id : '3', label : 'C' }, { id : '1', label : 'A' }, { id : '2', label : 'B' }];
+
+            const links = Array.from(document.querySelectorAll('a'));
+            expect(links.map(el => el.textContent.trim())).to.deep.equal(['C', 'A', 'B']);
+            // The listener indices are positional and reset on every render of the
+            // owner, so each link must still reach the row it was written for.
+            links.forEach(link => link.click());
+            expect(clicked).to.deep.equal(['3', '1', '2']);
         });
 
         it('must recycle components in partial with array map using keys', () => {
