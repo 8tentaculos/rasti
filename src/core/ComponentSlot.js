@@ -1,6 +1,8 @@
 import InterpolationSlot from './InterpolationSlot.js';
-import __DEV__ from '../utils/dev.js';
+
 import warnUnsupportedAttribute from '../utils/warnUnsupportedAttribute.js';
+
+import __DEV__ from '../utils/dev.js';
 
 /**
  * The live state of one component tag (`<${Comp} .../>`). A component tag is an

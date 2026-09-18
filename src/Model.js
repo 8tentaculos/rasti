@@ -1,7 +1,9 @@
 import Emitter from './Emitter.js';
+
 import getResult from './utils/getResult.js';
-import __DEV__ from './utils/dev.js';
 import createDevelopmentWarningMessage from './utils/createDevelopmentWarningMessage.js';
+
+import __DEV__ from './utils/dev.js';
 
 /**
  * Warn when an attribute's generated property would shadow a member the model already

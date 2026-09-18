@@ -1,8 +1,10 @@
 import Emitter from './Emitter.js';
+
 import getResult from './utils/getResult.js';
 import validateListener from './utils/validateListener.js';
 import createDevelopmentErrorMessage from './utils/createDevelopmentErrorMessage.js';
 import createProductionErrorMessage from './utils/createProductionErrorMessage.js';
+
 import __DEV__ from './utils/dev.js';
 
 /*

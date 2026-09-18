@@ -3,6 +3,7 @@ import InterpolationDescriptor from './InterpolationDescriptor.js';
 import LiteralDescriptor from './LiteralDescriptor.js';
 import ElementSlot from './ElementSlot.js';
 import InterpolationSlot from './InterpolationSlot.js';
+
 import parseTemplate from './parseTemplate.js';
 
 /**

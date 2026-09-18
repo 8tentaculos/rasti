@@ -4,7 +4,9 @@ import InterpolationDescriptor from './InterpolationDescriptor.js';
 import ComponentDescriptor from './ComponentDescriptor.js';
 import ExpressionDescriptor from './ExpressionDescriptor.js';
 import Attribute from './Attribute.js';
+
 import isVoidElement from '../utils/isVoidElement.js';
+
 import __DEV__ from '../utils/dev.js';
 
 /**

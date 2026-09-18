@@ -6,6 +6,7 @@ import Partial from './core/Partial.js';
 import HydrationIndex from './core/HydrationIndex.js';
 import ExpressionDescriptor from './core/ExpressionDescriptor.js';
 import EventsManager from './core/EventsManager.js';
+
 import validateListener from './utils/validateListener.js';
 import getResult from './utils/getResult.js';
 import parseHTML from './utils/parseHTML.js';
@@ -14,6 +15,7 @@ import replaceNode from './utils/replaceNode.js';
 import createDevelopmentErrorMessage from './utils/createDevelopmentErrorMessage.js';
 import createProductionErrorMessage from './utils/createProductionErrorMessage.js';
 import formatTemplateSource from './utils/formatTemplateSource.js';
+
 import __DEV__ from './utils/dev.js';
 
 /**
