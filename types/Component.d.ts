@@ -227,6 +227,23 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
     template(...args: any[]): string;
 
     /**
+     * Events object for the automatic delegation of the template's `onEvent` handlers,
+     * built from the data attributes they are rendered with. Override it to add custom
+     * delegation — merge the inherited result to keep the template handlers, or leave it
+     * out to opt out of them and use declarative delegation alone.
+     *
+     * @example
+     * class Panel extends Base {
+     *     events() { return { ...super.events(), 'click .ok': 'onOk' }; }
+     * }
+     * // `super` is not available in the object form of `extend`; take the parent prototype
+     * const Panel = Base.extend(proto => ({
+     *     events() { return { ...proto.events.call(this), 'click .ok': 'onOk' }; },
+     * }));
+     */
+    events(): Record<string, string | Function>;
+
+    /**
      * @param options Component options. Keys `model`, `state`, `key`, `onCreate`, `onChange`,
      * `onHydrate`, `onBeforeRecycle`, `onRecycle`, `onBeforeUpdate`, `onUpdate`, `onDestroy`
      * are merged into `this`. Any remaining options become `this.props`.

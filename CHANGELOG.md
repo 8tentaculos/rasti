@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **TypeScript: `template` is declared as a method**, on `View` and on `Component`. It was typed as a property, so a class defining it as a method — the form both the `View.render` and `View.template` examples use — failed to compile with TS2425 (*defines instance member property, but extended class defines it as instance member function*). The member type is unchanged, so every other form keeps working: a class field, an assignment in `preinitialize` or on the prototype, and the `template` option.
 
+### Changed
+
+- **BREAKING:** **TypeScript: `tag`, `attributes`, `events` and `defaults` are declared as methods** on the instance side of `View` and `Model`, for the same reason as `template`: a subclass defining any of them as a method failed to compile, which ruled out the documented dynamic form (``events() { return { [`click .${this.model.buttonClass}`]: 'onButtonClick' }; } ``). TypeScript cannot express a member that is either a property or a method — a base property can only be overridden by a property — so the declaration has to pick one, and the method form is the one that covers both: an object is always expressible as a method returning it, while a method is not expressible as an object.
+
+  The runtime is untouched and JavaScript is unaffected. In TypeScript, an object assigned to the instance becomes its function form:
+
+  ```ts
+  this.defaults = { name: '' };            // →  this.defaults = () => ({ name: '' })
+  View.prototype.events = { click: 'onX' }; // →  View.prototype.events = () => ({ click: 'onX' })
+  ```
+
+  The option form is unchanged: `new View({ events: { click: 'onX' }, tag: 'section' })` still takes a value or a function, and so does `Component.extend({ events: { ... } })`.
+
+- **TypeScript: `Component` declares its `events()` method**, which builds the delegation of the template's `onEvent` handlers from the data attributes they are rendered with. It could not be declared while `View` typed `events` as a property, so overriding it was untypeable; an override can now merge `super.events()` to keep the template handlers, or leave it out to use declarative delegation alone.
+
+### Added
+
+- **TypeScript: `Resolvable<T>`**, exported from the package. Names the option form that takes either a value or a function returning it, and is used by `ViewOptions` for `el`, `tag`, `attributes` and `events`.
+
 ## [4.1.2] - 2026-08-29
 
 ### Fixed

@@ -1,10 +1,13 @@
 import Emitter from './Emitter.js';
 
+/** A value provided directly, or as a function returning it (called bound to the view). */
+export type Resolvable<T> = T | (() => T);
+
 export interface ViewOptions<M = any> {
-    el?: HTMLElement | (() => HTMLElement);
-    tag?: string | (() => string);
-    attributes?: Record<string, any> | (() => Record<string, any>);
-    events?: Record<string, string | Function> | (() => Record<string, string | Function>);
+    el?: Resolvable<HTMLElement>;
+    tag?: Resolvable<string>;
+    attributes?: Resolvable<Record<string, any>>;
+    events?: Resolvable<Record<string, string | Function>>;
     model?: M;
     template?: (...args: any[]) => string;
     onDestroy?: (...args: any[]) => void;
@@ -64,14 +67,23 @@ export default class View<M = any> extends Emitter {
     /** A model or any object containing data and business logic. */
     model?: M;
 
-    /** Tag used to create the root element when `el` is not provided (default `div`). */
-    tag?: string | (() => string);
+    /**
+     * Tag used to create the root element when `el` is not provided (default `div`).
+     * Declared as a method so subclasses can define it as one.
+     */
+    tag?(): string;
 
-    /** Attributes used to create the root element when `el` is not provided. */
-    attributes?: Record<string, any> | (() => Record<string, any>);
+    /**
+     * Attributes used to create the root element when `el` is not provided.
+     * Declared as a method so subclasses can define it as one.
+     */
+    attributes?(): Record<string, any>;
 
-    /** Declarative DOM event listeners in the form `{'event selector': listener}`. */
-    events?: Record<string, string | Function> | (() => Record<string, string | Function>);
+    /**
+     * Declarative DOM event listeners in the form `{'event selector': listener}`.
+     * Declared as a method so subclasses can define it as one.
+     */
+    events?(): Record<string, string | Function>;
 
     /**
      * Function returning the view's inner HTML, used by `render`.
@@ -167,9 +179,9 @@ export default class View<M = any> extends Emitter {
      *
      * @example
      * class Modal extends View {
+     *     events() { return { 'click button.ok': 'onClickOk' }; }
      *     onClickOk() { this.close(); }
      * }
-     * Modal.prototype.events = { 'click button.ok': 'onClickOk' };
      */
     delegateEvents(events?: Record<string, string | Function>): this;
 
