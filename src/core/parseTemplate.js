@@ -341,10 +341,12 @@ const expandComponents = (main, expressions, interpolations, isComponentClass) =
 const replaceElements = (template, replacer) => template.replace(RE_ELEMENT, replacer);
 
 /**
- * Parse all HTML elements with dynamic attributes and extract element descriptors.
- * Role-agnostic: no single-root validation and no forced root element (that is
- * root treatment, applied when a component adopts its root partial), so only
- * elements that carry a dynamic attribute get a descriptor.
+ * Parse the HTML elements that need a descriptor and extract them. An element carrying
+ * a dynamic attribute always gets one, and so does the template's first element, with
+ * or without attributes: it is the one the engine has to be able to find again — the
+ * element a component adopts as `this.el`, the one `rootElement` resolves to, and the
+ * node a partial begins at. Single-root validation is not done here; that is root
+ * treatment, applied when a component adopts its root partial.
  * @param {string} template Template string with placeholders.
  * @param {Array} elements Array to store element descriptors.
  * @return {string} Template with parsed attributes replaced by structural placeholders.
