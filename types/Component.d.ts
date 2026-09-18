@@ -220,8 +220,11 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
     /** The original options object passed to the constructor. */
     options: ComponentOptions<P, S, M>;
 
-    /** Template function returning the view's inner HTML. */
-    template: (...args: any[]) => string;
+    /**
+     * Template function returning the view's inner HTML.
+     * Declared as a method so subclasses can define it as one.
+     */
+    template(...args: any[]): string;
 
     /**
      * @param options Component options. Keys `model`, `state`, `key`, `onCreate`, `onChange`,

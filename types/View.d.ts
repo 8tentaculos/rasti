@@ -73,8 +73,11 @@ export default class View<M = any> extends Emitter {
     /** Declarative DOM event listeners in the form `{'event selector': listener}`. */
     events?: Record<string, string | Function> | (() => Record<string, string | Function>);
 
-    /** Function returning the view's inner HTML, used by `render`. */
-    template?: (...args: any[]) => string;
+    /**
+     * Function returning the view's inner HTML, used by `render`.
+     * Declared as a method so subclasses can define it as one.
+     */
+    template?(...args: any[]): string;
 
     /** Unique identifier for the view instance. */
     uid: string;

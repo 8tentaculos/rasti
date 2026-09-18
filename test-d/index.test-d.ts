@@ -137,6 +137,21 @@ new View<Model<UserAttrs>>({
 
 expectError(new View<Model<UserAttrs>>({ model: 'not-a-model' }));
 
+// `template` is declared as a method, so every authoring form typechecks
+class TemplateAsMethod extends View<Model<UserAttrs>> {
+    template(model: Model<UserAttrs>) { return `<h1>${model.get('name')}</h1>`; }
+}
+class TemplateAsField extends View<Model<UserAttrs>> {
+    template = (model: Model<UserAttrs>) => `<h1>${model.get('name')}</h1>`;
+}
+class TemplateInPreinitialize extends View<Model<UserAttrs>> {
+    preinitialize() { this.template = (model: Model<UserAttrs>) => `<h1>${model.get('name')}</h1>`; }
+}
+TemplateAsMethod.prototype.template = (model: Model<UserAttrs>) => `<h1>${model.get('name')}</h1>`;
+new View<Model<UserAttrs>>({ template: (model: Model<UserAttrs>) => `<h1>${model.get('name')}</h1>` });
+expectType<string>(new TemplateAsMethod().template(new Model<UserAttrs>({ name: 'x', age: 0 })));
+void TemplateAsField; void TemplateInPreinitialize;
+
 /*
  * Component: class extends pattern (props and state)
  */

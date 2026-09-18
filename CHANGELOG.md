@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **TypeScript: `template` is declared as a method**, on `View` and on `Component`. It was typed as a property, so a class defining it as a method — the form both the `View.render` and `View.template` examples use — failed to compile with TS2425 (*defines instance member property, but extended class defines it as instance member function*). The member type is unchanged, so every other form keeps working: a class field, an assignment in `preinitialize` or on the prototype, and the `template` option.
+
 ## [4.1.2] - 2026-08-29
 
 ### Fixed
