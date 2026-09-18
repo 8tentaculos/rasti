@@ -153,7 +153,7 @@ class Partial {
      * The render context travels here as the optional `pass`, invisible to a plain
      * coercion, and never crosses a component: a child component renders with its
      * own handlers (see `Component#toString`).
-     * @param {object} [pass] Reconcile pass threaded through nested partials during
+     * @param {ReconcilePass} [pass] Reconcile pass threaded through nested partials during
      *     an update, so child components rendered anywhere in the subtree are
      *     matched against the owning slot's previous occupants. Absent on a plain
      *     first render.
