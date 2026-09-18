@@ -40,18 +40,47 @@ const unwrap = (partial, value) => {
 };
 
 /**
- * Tell whether every item of a list stands for a single component: a mounted child,
- * or a component tag, which always renders one and nothing else. It is a question
- * about the shape of the items, answered before any of them renders, so the slot
- * knows in advance that its content will be its children's elements and nothing
- * else. A transparent partial only answers it once evaluated, and is left out.
- * @param {Partial} partial The partial holding the list.
- * @param {Array<any>} items The list.
- * @return {boolean} True if every item stands for a single component.
+ * The shapes a list can have, by what its items are. A <b>components</b> list holds
+ * nothing but components, each with an identity of its own, so it is placed by
+ * walking its children. A <b>uniform</b> list is one template repeated, each item
+ * owning the nodes it renders: the items have no identity, but they are
+ * interchangeable by position and can be patched where they stand. Anything else is
+ * regenerated between the slot's markers.
  * @private
  */
-const isComponentList = (partial, items) => items.every(item =>
-    partial.isPartial(item) ? item.isComponentTag() : partial.owner.isChild(item));
+const LIST_COMPONENTS = 'components';
+const LIST_UNIFORM = 'uniform';
+const LIST_OTHER = 'other';
+
+/**
+ * Classify a list by the shape of its items, in one walk. It is a question about the
+ * shape alone, answered before any item renders, which is what lets the slot decide
+ * how to reconcile before it evaluates anything: an item stands for a component when
+ * it is a mounted child or a component tag, and a transparent partial, which only
+ * answers once evaluated, is left out of both shapes. An empty list holds no content
+ * of its own and is taken as components.
+ * @param {Partial} partial The partial holding the list.
+ * @param {Array<any>} items The list.
+ * @return {string} The list's shape.
+ * @private
+ */
+const classifyList = (partial, items) => {
+    const ItemClass = items.length ? items[0].constructor : null;
+    let components = true;
+    // A transparent item stands for whatever its interpolation holds, and the
+    // components under it belong to the list holding it rather than to the item (see
+    // `renderValue`), so patching it by position would cut them off from the pool they
+    // are claimed through.
+    let uniform = items.length > 0 && partial.isPartial(items[0]) && !items[0].isTransparent();
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const isPartial = partial.isPartial(item);
+        if (components && !(isPartial ? item.isComponentTag() : partial.owner.isChild(item))) components = false;
+        if (uniform && !(isPartial && item.constructor === ItemClass)) uniform = false;
+        if (!components && !uniform) return LIST_OTHER;
+    }
+    return components ? LIST_COMPONENTS : uniform ? LIST_UNIFORM : LIST_OTHER;
+};
 
 /**
  * Print a warning about one interpolation, resolving its expression off the slot's
@@ -67,11 +96,31 @@ const warn = (slot, message) => {
 };
 
 /**
- * Warn about list items that cannot keep their identity across updates. A list is the
- * one place where a child changes position among its siblings, and a key is what
- * identifies it there: an item that is not a keyed component is regenerated on every
- * update, and two items sharing a key cannot both be recycled. Plain values are exempt
- * — a text has no identity to declare. Development only.
+ * Tell whether a value holds a keyed component somewhere under a partial's markup,
+ * without crossing into a component of its own. Development only.
+ * @param {Partial} partial The partial holding the list.
+ * @param {any} value The value to search.
+ * @return {boolean} True if a keyed component is held under markup.
+ * @private
+ */
+const holdsKeyedChild = (partial, value) => {
+    if (Array.isArray(value)) return value.some(item => holdsKeyedChild(partial, item));
+    if (partial.owner.isChild(value)) return value.key != null;
+    if (!partial.isPartial(value) || !value.slots) return false;
+    return value.slots.some(slot => holdsKeyedChild(partial, slot.content));
+};
+
+/**
+ * Warn about the keys of a list. A list is the one place where a component changes
+ * position among its siblings, and a key is what identifies it there: one without a
+ * key is built again on every update, two sharing a key cannot both be recycled, and
+ * a key written under markup identifies nothing, because the markup around it is a
+ * boundary and the component belongs to the item holding it.
+ *
+ * A list of markup carries no keys at all: its items have no identity and are updated
+ * where they stand, which is a shape of its own and not a mistake. Plain values are
+ * exempt for the same reason — a text has no identity to declare.
+ * Development only.
  * @param {InterpolationSlot} slot The slot rendering the list.
  * @param {Array<any>} items The rendered list.
  * @private
@@ -80,23 +129,26 @@ const checkListItems = (slot, items) => {
     const { partial, descriptor } = slot;
     if (descriptor.warned) return;
     const keys = new Set();
-    let unstable = false;
+    let unkeyed = false;
     let duplicated = null;
+    let underMarkup = false;
     const visit = value => {
         if (Array.isArray(value)) return value.forEach(visit);
         // Anything that is not a partial or a child renders as content, not as
         // something with an identity of its own.
         if (!partial.isPartial(value) && !partial.owner.isChild(value)) return;
         const child = unwrap(partial, value);
-        if (!partial.owner.isChild(child) || child.key == null) unstable = true;
+        if (!partial.owner.isChild(child)) underMarkup = underMarkup || holdsKeyedChild(partial, child);
+        else if (child.key == null) unkeyed = true;
         else if (keys.has(child.key)) duplicated = child.key;
         else keys.add(child.key);
     };
     items.forEach(visit);
-    if (unstable) warn(slot,
-        'List items must be keyed components\n' +
-        'An item that is not a keyed component is regenerated on every update, losing\n' +
-        'its state and its DOM nodes. Make the item itself a keyed component:\n' +
+    if (unkeyed) warn(slot,
+        'Component in a list without a key\n' +
+        'A list is where a component changes position among its siblings, and a key is\n' +
+        'what identifies it there: without one it is built again on every update, losing\n' +
+        'its state and its DOM nodes. Give each one a key:\n' +
         '\n' +
         '  items.map(item => partial`<${Row} key="${item.id}" />`)'
     );
@@ -104,6 +156,14 @@ const checkListItems = (slot, items) => {
         `Duplicate key "${duplicated}" in a list\n` +
         'Keys identify an item among its siblings, so two items sharing one cannot\n' +
         'both be recycled. Give each item a key of its own.'
+    );
+    else if (underMarkup) warn(slot,
+        'Key under markup in a list item\n' +
+        'Markup around a component is a boundary: the component belongs to the item that\n' +
+        'holds it, not to the list, so a key written there identifies nothing among the\n' +
+        'list\'s siblings. Put the component in the list itself:\n' +
+        '\n' +
+        '  items.map(item => partial`<${Row} key="${item.id}" />`)'
     );
 };
 
@@ -183,6 +243,7 @@ class InterpolationSlot extends Slot {
         this.content = null;
         this.keyed = null;
         this.order = null;
+        this.strategy = null;
     }
 
     /**
@@ -258,12 +319,14 @@ class InterpolationSlot extends Slot {
         this.keyed = Array.isArray(value) ? new Map() : null;
         if (!this.keyed) {
             this.order = null;
+            this.strategy = null;
             return this.renderValue(value, pass);
         }
+        this.strategy = classifyList(this.partial, value);
         const outerKeyed = pass.keyed;
         const outerOrder = pass.order;
         pass.keyed = this.keyed;
-        pass.order = isComponentList(this.partial, value) ? [] : null;
+        pass.order = this.strategy === LIST_COMPONENTS ? [] : null;
         const rendered = this.renderValue(value, pass);
         this.order = pass.order;
         // An enclosing list holds the same children, one level up, so it takes them
@@ -427,6 +490,12 @@ class InterpolationSlot extends Slot {
             this.recycleInPlace(prev, value);
             return;
         }
+        // Retained list of one template repeated: its items have no identity of their
+        // own, so each is patched where it stands and the content moves through the DOM.
+        if (this.canUpdateItems(value)) {
+            this.updateItems(value);
+            return;
+        }
         // Anything else: regenerate the slot's content and patch the DOM.
         this.regenerate(value);
     }
@@ -445,6 +514,77 @@ class InterpolationSlot extends Slot {
         host.moveChild(prev, null);
         host.updateChild(prev, host.childProps(next));
         host.destroyChild(next);
+    }
+
+    /**
+     * Tell whether the slot can update a new list where its items stand: both renders
+     * are the same template repeated, so the items are interchangeable by position,
+     * and a list that lost items can say where the ones it dropped begin.
+     * @param {any} value The new value.
+     * @return {boolean} True if the list can be updated in place.
+     * @private
+     */
+    canUpdateItems(value) {
+        const items = this.content;
+        if (this.strategy !== LIST_UNIFORM || !Array.isArray(value)) return false;
+        if (classifyList(this.partial, value) !== LIST_UNIFORM) return false;
+        if (value[0].constructor !== items[0].constructor) return false;
+        return value.length >= items.length || !!items[value.length].firstNode();
+    }
+
+    /**
+     * Update a list of partials where they stand. The items are one template repeated,
+     * so the ones both renders hold are patched in place with the new expressions, in
+     * order; a longer list renders what it gained before the end marker, and a shorter
+     * one drops the nodes of the items it no longer holds.
+     *
+     * Nothing is claimed by identity here, because an item has none: its DOM stays with
+     * its position and the content moves through it. An item that must keep its
+     * identity has to be a keyed component, which the list then holds directly.
+     * @param {Array<Partial>} value The new list.
+     * @private
+     */
+    updateItems(value) {
+        const items = this.content;
+        const overlap = Math.min(items.length, value.length);
+        for (let i = 0; i < overlap; i++) items[i].update(value[i].expressions);
+        if (value.length > overlap) this.appendItems(value.slice(overlap));
+        else if (items.length > overlap) this.dropItems(items[overlap]);
+        // The retained items are the live ones; the candidates that matched them are
+        // read for their expressions and discarded.
+        this.content = items.slice(0, overlap).concat(value.slice(overlap));
+    }
+
+    /**
+     * Render the items a list gained and place them at its end, before the slot's end
+     * marker.
+     * @param {Array<Partial>} items The items to add.
+     * @private
+     */
+    appendItems(items) {
+        const { host } = this.partial;
+        const pass = this.makePass();
+        const fragment = parseHTML(items.map(item => this.renderValue(item, pass)).join(''));
+        pass.index = new HydrationIndex(fragment);
+        const end = this.ref[1];
+        end.parentNode.insertBefore(fragment, end);
+        pass.next.forEach(child => host.hydrateChild(child, pass.index));
+        this.hydrateValue(items, pass.index, false);
+    }
+
+    /**
+     * Remove the nodes of the items a list dropped: everything from where the first of
+     * them begins to the slot's end marker. The components they held are destroyed with
+     * the rest of the ones this render left out of the host's children.
+     * @param {Partial} first The first item the list no longer holds.
+     * @private
+     */
+    dropItems(first) {
+        const end = this.ref[1];
+        const range = document.createRange();
+        range.setStartBefore(first.firstNode());
+        range.setEndBefore(end);
+        range.deleteContents();
     }
 
     /**

@@ -2799,6 +2799,122 @@ describe('Component', () => {
         });
     });
 
+    describe('Positional list updates', () => {
+        // Every list here is one template repeated with no keys, which warns once per
+        // call site; the warning itself is covered under `Development warnings`.
+        let consoleWarn;
+
+        beforeEach(() => {
+            consoleWarn = console.warn;
+            console.warn = () => {};
+        });
+
+        afterEach(() => {
+            console.warn = consoleWarn;
+        });
+
+        const mountList = items => Component.create`
+            <ul>${({ model, partial }) => model.items.map(item => partial`<li class="row">${item}</li>`)}</ul>
+        `.mount({ model : new Model({ items }) }, document.body);
+
+        it('must patch the items of a uniform list where they stand', () => {
+            const list = mountList(['a', 'b', 'c']);
+            const before = Array.from(document.querySelectorAll('li'));
+
+            list.model.items = ['x', 'y', 'z'];
+
+            const after = Array.from(document.querySelectorAll('li'));
+            expect(after).to.deep.equal(before);
+            expect(after.map(el => el.textContent.trim())).to.deep.equal(['x', 'y', 'z']);
+        });
+
+        it('must render only what a uniform list gained', () => {
+            const list = mountList(['a', 'b']);
+            const before = Array.from(document.querySelectorAll('li'));
+
+            list.model.items = ['a', 'b', 'c', 'd'];
+
+            const after = Array.from(document.querySelectorAll('li'));
+            expect(after.map(el => el.textContent.trim())).to.deep.equal(['a', 'b', 'c', 'd']);
+            expect(after[0]).to.be.equal(before[0]);
+            expect(after[1]).to.be.equal(before[1]);
+        });
+
+        it('must drop the nodes of the items a uniform list no longer holds', () => {
+            const list = mountList(['a', 'b', 'c']);
+            const before = Array.from(document.querySelectorAll('li'));
+
+            list.model.items = ['a'];
+
+            const after = Array.from(document.querySelectorAll('li'));
+            expect(after.length).to.be.equal(1);
+            expect(after[0]).to.be.equal(before[0]);
+            expect(before[1].parentNode).to.be.equal(null);
+            expect(before[2].parentNode).to.be.equal(null);
+            // And the list keeps working afterwards.
+            list.model.items = ['a', 'b'];
+            expect(Array.from(document.querySelectorAll('li')).map(el => el.textContent.trim())).to.deep.equal(['a', 'b']);
+        });
+
+        it('must keep DOM state the engine does not write', () => {
+            const list = Component.create`
+                <ul>${({ model, partial }) => model.items.map(item => partial`<li><input /><span>${item}</span></li>`)}</ul>
+            `.mount({ model : new Model({ items : ['a', 'b'] }) }, document.body);
+
+            // An uncontrolled value lives on the property alone: no render writes it,
+            // so it survives as long as the node does.
+            const input = document.querySelector('input');
+            input.value = 'typed';
+
+            list.model.items = ['A', 'b'];
+
+            expect(document.querySelector('input')).to.be.equal(input);
+            expect(input.value).to.be.equal('typed');
+            expect(document.querySelector('span').textContent.trim()).to.be.equal('A');
+        });
+
+        it('must move the delegated listeners with the content', () => {
+            const clicked = [];
+            const list = Component.create`
+                <ul>${({ model, partial }) => model.items.map(item => partial`<li><a onClick=${() => clicked.push(item)}>${item}</a></li>`)}</ul>
+            `.mount({ model : new Model({ items : ['a', 'b'] }) }, document.body);
+
+            const before = Array.from(document.querySelectorAll('a'));
+            list.model.items = ['x', 'y'];
+
+            const after = Array.from(document.querySelectorAll('a'));
+            expect(after).to.deep.equal(before);
+            after.forEach(link => link.click());
+            expect(clicked).to.deep.equal(['x', 'y']);
+        });
+
+        it('must regenerate a shrinking list whose items start with literal text', () => {
+            const list = Component.create`
+                <ul>${({ model, partial }) => model.items.map(item => partial`item ${item}`)}</ul>
+            `.mount({ model : new Model({ items : ['a', 'b', 'c'] }) }, document.body);
+
+            // The first node of such an item is a text node the engine never references,
+            // so there is nothing to delete from and the slot is rebuilt instead.
+            list.model.items = ['a'];
+
+            expect(document.querySelector('ul').textContent.replace(/\s+/g, ' ').trim()).to.be.equal('item a');
+        });
+
+        it('must regenerate a list that stops being one template repeated', () => {
+            const list = Component.create`
+                <ul>${({ model, partial }) => model.items.map(item =>
+        item === 'gap' ? partial`<hr />` : partial`<li class="row">${item}</li>`
+    )}</ul>
+            `.mount({ model : new Model({ items : ['a', 'b'] }) }, document.body);
+
+            list.model.items = ['a', 'gap', 'b'];
+
+            expect(document.querySelector('ul').children.length).to.be.equal(3);
+            expect(document.querySelectorAll('li').length).to.be.equal(2);
+            expect(document.querySelectorAll('hr').length).to.be.equal(1);
+        });
+    });
+
     describe('Development warnings', () => {
         const Row = Component.create`<b class="row">${({ props }) => props.text}</b>`;
         let warnings;
@@ -2814,13 +2930,21 @@ describe('Component', () => {
             console.warn = consoleWarn;
         });
 
-        it('must warn when a list item is not a keyed component', () => {
+        it('must warn when a component in a list has no key', () => {
+            Component.create`
+                <ul>${({ model, partial }) => model.items.map(item => partial`<${Row} text="${item}" />`)}</ul>
+            `.mount({ model : new Model({ items : ['a', 'b'] }) }, document.body);
+
+            expect(warnings.length).to.be.equal(1);
+            expect(warnings[0]).to.contain('Component in a list without a key');
+        });
+
+        it('must not warn for a list of markup, which keeps no identity to declare', () => {
             Component.create`
                 <ul>${({ model, partial }) => model.items.map(item => partial`<li>${item}</li>`)}</ul>
             `.mount({ model : new Model({ items : ['a', 'b'] }) }, document.body);
 
-            expect(warnings.length).to.be.equal(1);
-            expect(warnings[0]).to.contain('List items must be keyed components');
+            expect(warnings.length).to.be.equal(0);
         });
 
         it('must warn when the key of a list item sits under markup', () => {
@@ -2830,7 +2954,7 @@ describe('Component', () => {
             `.mount({ model : new Model({ items : ['a', 'b'] }) }, document.body);
 
             expect(warnings.length).to.be.equal(1);
-            expect(warnings[0]).to.contain('List items must be keyed components');
+            expect(warnings[0]).to.contain('Key under markup in a list item');
         });
 
         it('must warn when two list items share a key', () => {
@@ -2858,7 +2982,7 @@ describe('Component', () => {
 
         it('must warn once per call site, not on every render', () => {
             const c = Component.create`
-                <ul>${({ model, partial }) => model.items.map(item => partial`<li>${item}</li>`)}</ul>
+                <ul>${({ model, partial }) => model.items.map(item => partial`<${Row} text="${item}" />`)}</ul>
             `.mount({ model : new Model({ items : ['a', 'b'] }) }, document.body);
 
             c.model.items = ['c', 'd'];

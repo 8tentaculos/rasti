@@ -1,8 +1,18 @@
 import ComponentDescriptor from './ComponentDescriptor.js';
 import InterpolationDescriptor from './InterpolationDescriptor.js';
+import LiteralDescriptor from './LiteralDescriptor.js';
 import ElementSlot from './ElementSlot.js';
 import InterpolationSlot from './InterpolationSlot.js';
 import parseTemplate from './parseTemplate.js';
+
+/**
+ * A literal holding nothing but the opening of the element that follows it, up to the
+ * attributes that element's descriptor carries. It writes no node of its own, so the
+ * element is still the first node the template renders.
+ * @type {RegExp}
+ * @private
+ */
+const OPENING_TAG = /^<[a-zA-Z][^>]*$/;
 
 /**
  * The object through which a partial reaches the component world. The engine never
@@ -227,6 +237,28 @@ class Partial {
         if (this.isPartial(value)) return value.rootElement();
         // A child component: its own element.
         return value.el;
+    }
+
+    /**
+     * The first DOM node the partial renders, or `null` when the template starts with
+     * literal markup: the engine writes a literal out and keeps no reference to it, so
+     * a node it renders cannot be located afterwards. The usual shape does have one —
+     * a template opening with an element or an interpolation, both of which own their
+     * nodes.
+     * @return {Node|null} The first node, or `null` when it cannot be located.
+     */
+    firstNode() {
+        const { parts } = this.constructor;
+        for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
+            if (!(part instanceof LiteralDescriptor)) {
+                const slot = this.slots[i];
+                // An element stands on its own node; every other slot writes markers.
+                return slot instanceof ElementSlot ? slot.ref : slot.ref && slot.ref[0];
+            }
+            if (part.value !== '' && !OPENING_TAG.test(part.value)) return null;
+        }
+        return null;
     }
 
     /**
