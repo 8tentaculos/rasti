@@ -269,7 +269,8 @@ export default class View extends Emitter {
      *     'submit form': 'onSubmit'
      * };
      * 
-     * // Using a function for dynamic events
+     * // Using a method for dynamic events. The TypeScript declarations type `events` as a
+     * // method on the instance, so this is also the form to use there for static events.
      * class DynamicView extends View {
      *     events() {
      *         return {

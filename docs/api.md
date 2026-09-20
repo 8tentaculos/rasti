@@ -868,7 +868,7 @@ Models should be easily passed throughout your app and used anywhere the corresp
 
 | Name | Type | Description |
 | --- | --- | --- |
-| defaults | <code>object</code> \| <code>function</code> | Default attributes for the model. If a function, it's called bound to the model instance to get defaults. |
+| defaults | <code>object</code> \| <code>function</code> | Default attributes for the model. If a function, it's called bound to the model instance to get defaults. The TypeScript declarations type it as a method on the instance, so in TypeScript it is defined as a method or assigned in its function form. |
 | previous | <code>object</code> | Object containing previous attributes when a change occurs. |
 
 **Example**  
@@ -1404,7 +1404,8 @@ Modal.prototype.events = {
     'submit form': 'onSubmit'
 };
 
-// Using a function for dynamic events
+// Using a method for dynamic events. The TypeScript declarations type `events` as a
+// method on the instance, so this is also the form to use there for static events.
 class DynamicView extends View {
     events() {
         return {

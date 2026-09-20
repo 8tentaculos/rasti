@@ -81,14 +81,13 @@ u.listenTo(u2, 'change', (m, changed) => expectType<Partial<UserAttrs>>(changed)
 u.listenTo(u2, 'change:name', (m, value) => expectType<string>(value));
 u.stopListening(u2, 'change');
 
-// `defaults` accepts both runtime forms: a plain object, or a function returning the defaults
-class WithObjectDefaults extends Model<UserAttrs> {
-    preinitialize() {
-        this.defaults = { name: '', age: 0 };
-    }
+// `defaults` is declared as a method, so a subclass can define it as one
+class WithMethodDefaults extends Model<UserAttrs> {
+    defaults() { return { name: '', age: 0 }; }
 }
-new WithObjectDefaults();
+new WithMethodDefaults();
 
+// The function form can also be assigned in `preinitialize` or on the prototype
 class WithFnDefaults extends Model<UserAttrs> {
     preinitialize() {
         this.defaults = () => ({ name: '', age: 0 });
@@ -96,8 +95,9 @@ class WithFnDefaults extends Model<UserAttrs> {
 }
 new WithFnDefaults();
 
-// Prototype assignment is allowed too
-WithObjectDefaults.prototype.defaults = { name: '', age: 0 };
+WithMethodDefaults.prototype.defaults = () => ({ name: '', age: 0 });
+
+expectError(WithMethodDefaults.prototype.defaults = { name: '', age: 0 });
 
 /*
  * View: model, root element and merged options
@@ -110,10 +110,36 @@ expectType<HTMLElement>(v.el);
 expectType<Array<() => void>>(v.destroyQueue);
 v.destroyQueue.push(() => {});
 
-// Merged view options are optional instance props
-expectType<(Record<string, any> | (() => Record<string, any>)) | undefined>(v.attributes);
-expectType<(string | (() => string)) | undefined>(v.tag);
-expectType<(Record<string, string | Function> | (() => Record<string, string | Function>)) | undefined>(v.events);
+// `tag`, `attributes` and `events` are declared as methods on the instance, so a subclass
+// can define them as such; the option form keeps accepting a value or a function
+expectType<(() => Record<string, any>) | undefined>(v.attributes);
+expectType<(() => string) | undefined>(v.tag);
+expectType<(() => Record<string, string | Function>) | undefined>(v.events);
+
+class DynamicView extends View<Model<UserAttrs>> {
+    tag() { return 'section'; }
+    attributes() { return { class: 'dynamic' }; }
+    events() { return { [`click .${this.model!.get('name')}`]: 'onClick', click: 'onRootClick' }; }
+    onClick() {}
+    onRootClick() {}
+}
+new DynamicView();
+
+// The function form can also be assigned on the prototype or in `preinitialize`
+DynamicView.prototype.events = function() { return { click: 'onRootClick' }; };
+class PreinitializedView extends View {
+    preinitialize() {
+        this.tag = () => 'section';
+        this.attributes = () => ({ class: 'dynamic' });
+        this.events = () => ({ click: 'onRootClick' });
+    }
+    onRootClick() {}
+}
+new PreinitializedView();
+
+// A plain object reaches the instance only through the options
+new View({ tag: 'section', attributes: { class: 'dynamic' }, events: { click: 'onRootClick' } });
+expectError(DynamicView.prototype.events = { click: 'onRootClick' });
 
 // `$` / `$$` default to HTMLElement, mirror querySelector nullability, and are narrowable
 expectType<HTMLElement | null>(v.$('div'));
@@ -136,6 +162,21 @@ new View<Model<UserAttrs>>({
 });
 
 expectError(new View<Model<UserAttrs>>({ model: 'not-a-model' }));
+
+// `template` is declared as a method, so every authoring form typechecks
+class TemplateAsMethod extends View<Model<UserAttrs>> {
+    template(model: Model<UserAttrs>) { return `<h1>${model.get('name')}</h1>`; }
+}
+class TemplateAsField extends View<Model<UserAttrs>> {
+    template = (model: Model<UserAttrs>) => `<h1>${model.get('name')}</h1>`;
+}
+class TemplateInPreinitialize extends View<Model<UserAttrs>> {
+    preinitialize() { this.template = (model: Model<UserAttrs>) => `<h1>${model.get('name')}</h1>`; }
+}
+TemplateAsMethod.prototype.template = (model: Model<UserAttrs>) => `<h1>${model.get('name')}</h1>`;
+new View<Model<UserAttrs>>({ template: (model: Model<UserAttrs>) => `<h1>${model.get('name')}</h1>` });
+expectType<string>(new TemplateAsMethod().template(new Model<UserAttrs>({ name: 'x', age: 0 })));
+void TemplateAsField; void TemplateInPreinitialize;
 
 /*
  * Component: class extends pattern (props and state)
@@ -260,6 +301,29 @@ const HeaderExt = Component.create<HeaderProps>`<header></header>`.extend({
     },
 });
 new HeaderExt({ handleAddTodo: (t) => t }).helper();
+
+// `events()` builds the delegation of the template's handlers; an override may merge
+// `super.events()` to keep them, or leave it out to use declarative delegation alone
+class WithMergedEvents extends Component<CounterProps> {
+    events() { return Object.assign({}, super.events(), { 'click .ok': 'onOk' }); }
+    onOk() {}
+}
+new WithMergedEvents({ initial: 1, label: 'x' });
+
+class WithOwnEvents extends Component<CounterProps> {
+    events() { return { 'click .ok': 'onOk' }; }
+    onOk() {}
+}
+new WithOwnEvents({ initial: 1, label: 'x' });
+
+// `extend` takes either form, since its members are added to the instance type.
+// `super` is not available in the object form, so the function form takes the parent prototype
+Component.extend({ events() { return { 'click .ok': 'onOk' }; }, onOk() {} });
+Component.extend({ events: { 'click .ok': 'onOk' }, onOk() {} });
+Component.extend(proto => ({
+    events() { return Object.assign({}, proto.events.call(this), { 'click .ok': 'onOk' }); },
+    onOk() {},
+}));
 
 /*
  * Helper types: EventHandler, RenderExpression, ModelAttrs, ComponentProps, ComponentState, ComponentModel

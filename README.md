@@ -407,9 +407,7 @@ import { Model } from 'rasti';
 interface TodoAttrs { title: string; completed: boolean; }
 
 class Todo extends Model<TodoAttrs> {
-    preinitialize() {
-        this.defaults = { title: '', completed: false };
-    }
+    defaults() { return { title: '', completed: false }; }
     toggle() { this.completed = !this.completed; }
 }
 interface Todo extends TodoAttrs {} // Exposes this.title, this.completed
@@ -503,6 +501,7 @@ handleChange=${((checked) => model.toggleAll(checked)) satisfies ToggleAllProps[
 - **`state` / `model` are raw generics, `props` is not**. `this.props` is *always* a `Model` built by rasti, so it's typed `Model<P> & P` (direct access to `P`'s keys). But `state` and `model` can be anything you provide — a Rasti `Model`, a Backbone model, a store, or a plain object — so they stay the raw generic. To read a typed `Model` state/model directly, define it as a named subclass with declaration merging and pass it as the `S`/`M` generic (see the `Scoreboard` example above) — no casts needed.
 - **Weak-type error on narrow props**. If a component's `P` has no required keys and you pass only options not declared in it, TypeScript reports *"has no properties in common"* (weak-type check). Fix: declare those options in `P` — non-reserved options become props at runtime.
 - **Instance fields set in `.extend` hooks need predeclaration**. `.extend` infers the instance type from the object's members only, so a field first assigned in `onCreate` (`this.router = ...`) isn't known. Predeclare it in the object: `router: null as unknown as Router`. For components with many instance fields, `class MyComponent extends Component<P, S>` is usually cleaner than `.extend`.
+- **`defaults`, `tag`, `attributes` and `events` are declared as methods**. TypeScript can't type a member as both a property and a method, so the declarations pick the method — the form a `class extends` can define. A plain object still typechecks as a constructor option (`new View({ events: { ... } })`) or in `Component.extend({ events: { ... } })`; on the instance or prototype, assign a function (`this.defaults = () => ({ ... })`) or define the method. The runtime still accepts both; JavaScript is unaffected.
 
 ## Working with LLMs
 

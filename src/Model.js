@@ -52,7 +52,7 @@ const warnShadowedMember = (model, property) => {
  * @extends Emitter
  * @param {object} [attributes={}] Primary data object containing model attributes
  * @param {...*} [args] Additional arguments passed to `preinitialize` and `parse` methods
- * @property {object|Function} defaults Default attributes for the model. If a function, it's called bound to the model instance to get defaults.
+ * @property {object|Function} defaults Default attributes for the model. If a function, it's called bound to the model instance to get defaults. The TypeScript declarations type it as a method on the instance, so in TypeScript it is defined as a method or assigned in its function form.
  * @property {object} previous Object containing previous attributes when a change occurs.
  * @example
  * import { Model } from 'rasti';

@@ -29,8 +29,8 @@ export type ModelEvents<A> =
  * @example
  * import { Model } from 'rasti';
  * class User extends Model {
- *     preinitialize() {
- *         this.defaults = { name: '', email: '', role: 'user' };
+ *     defaults() {
+ *         return { name: '', email: '', role: 'user' };
  *     }
  * }
  */
@@ -44,11 +44,10 @@ export default class Model<A = any> extends Emitter<ModelEvents<A>> {
 
     /**
      * Default attributes for the model, merged into `this.attributes` during construction.
-     * Can be a plain object, or a function (called bound to the instance) that returns the
-     * defaults. Assign it on the prototype, or via `this.defaults` inside
-     * `preinitialize`.
+     * Declared as a method so subclasses can define it as one; the function form can also
+     * be assigned on the prototype, or via `this.defaults` inside `preinitialize`.
      */
-    defaults?: Partial<A> | (() => Partial<A>);
+    defaults?(): Partial<A>;
 
     /** Primary data object holding the model attributes. */
     attributes: A;
@@ -69,7 +68,7 @@ export default class Model<A = any> extends Emitter<ModelEvents<A>> {
      * @example
      * class User extends Model {
      *     preinitialize(attributes, options = {}) {
-     *         this.defaults = { name: '', role: options.defaultRole || 'user' };
+     *         this.defaults = () => ({ name: '', role: options.defaultRole || 'user' });
      *         this.apiEndpoint = options.apiEndpoint || '/users';
      *     }
      * }
