@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **An interpolated value keeps its leading and trailing whitespace when it updates.** `parseHTML` trimmed the string it parsed. On a component's first render that string is the whole markup, which the template parser already emits without surrounding whitespace, so the trim did nothing; on an update it is the rendered value alone, so ` hola ` reached the DOM as `hola` and a whitespace-only value as an empty string — while the same value rendered correctly the first time.
+
 - **TypeScript: `template` is declared as a method**, on `View` and on `Component`. It was typed as a property, so a class defining it as a method — the form both the `View.render` and `View.template` examples use — failed to compile with TS2425 (*defines instance member property, but extended class defines it as instance member function*). The member type is unchanged, so every other form keeps working: a class field, an assignment in `preinitialize` or on the prototype, and the `template` option.
 
 ### Changed
