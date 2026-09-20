@@ -39,6 +39,7 @@ const OPENING_TAG = /^<[a-zA-Z][^>]*$/;
  * @property {Function} nextElementId Mint the owner's next element id.
  * @property {Function} nextMarkerId Mint the owner's next interpolation marker id.
  * @property {Function} isChild Tell whether a value is a child component.
+ * @property {Function} childElementId Read the emission id of a child component's root element.
  * @property {Function} sanitize Escape a plain value for HTML.
  * @property {Function} addChild Adopt a child component into the host, returning it to render.
  * @property {Function} moveChild Move a recycled child onto its placeholder, `(child, placeholder)`.
@@ -238,6 +239,32 @@ class Partial {
         if (this.isPartial(value)) return value.rootElement();
         // A child component: its own element.
         return value.el;
+    }
+
+    /**
+     * The emission id of the element this partial resolves to: the id counterpart of
+     * `rootElement`, reading the ids the render assigned instead of the refs hydration
+     * resolves. It is what lets that element be located in the DOM before anything is
+     * hydrated.
+     * @return {string} The emission id.
+     */
+    rootElementId() {
+        if (!this.isTransparent()) return this.firstSlot(ElementSlot).id;
+        // A transparent partial is a single interpolation, so its slot is the first one.
+        return this.slotElementId(this.slots[0].content);
+    }
+
+    /**
+     * Resolve the root emission id of a transparent partial's slot value, descending
+     * through nested transparent partials. The id counterpart of `slotElement`.
+     * @param {any} value The slot value.
+     * @return {string} The emission id.
+     * @private
+     */
+    slotElementId(value) {
+        if (this.isPartial(value)) return value.rootElementId();
+        // A child component: the id of its own root element.
+        return this.owner.childElementId(value);
     }
 
     /**

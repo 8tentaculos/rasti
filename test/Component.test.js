@@ -2689,6 +2689,52 @@ describe('Component', () => {
             expect(client.children[0].el).to.be.equal(document.querySelector('button'));
         });
 
+        // Hydrating into a container indexes the component's own root element, not the
+        // whole container: a component's template has a single root, so everything it
+        // rendered is inside that element. A stray comment beside it carrying a marker's
+        // text would otherwise be indexed over the real one.
+        it('must index only its own subtree when hydrating into a container', () => {
+            let label = 'a';
+            const Main = Component.create`<div>${() => label}</div>`;
+
+            Component.resetUid();
+            const serverHtml = Main.mount({}).toString();
+            document.body.innerHTML =
+                `<p>outside</p>${serverHtml}<!--${Constants.MARKER_END('r1-1')}-->`;
+
+            Component.resetUid();
+            const client = Main.mount({}, document.body, true);
+            expect(client.el).to.be.equal(document.querySelector('div'));
+
+            label = 'b';
+            client.render();
+            expect(client.el.textContent).to.be.equal('b');
+            expect(document.querySelector('p')).to.exist;
+        });
+
+        // A container renders no element of its own, so what gets indexed is the element
+        // of the child it adopts, resolved through the root partial before hydration.
+        it('must index the adopted element when hydrating a container into a container', () => {
+            let label = 'a';
+            const Child = Component.create`<button>${() => label}</button>`;
+            const Container = Component.create`${() => Child.mount()}`;
+
+            Component.resetUid();
+            const serverHtml = Container.mount({}).toString();
+            document.body.innerHTML =
+                `<p>outside</p>${serverHtml}<!--${Constants.MARKER_END('r2-1')}-->`;
+
+            Component.resetUid();
+            const client = Container.mount({}, document.body, true);
+            expect(client.el).to.be.equal(document.querySelector('button'));
+            expect(client.el).to.be.equal(client.children[0].el);
+
+            label = 'b';
+            client.children[0].render();
+            expect(client.el.textContent).to.be.equal('b');
+            expect(document.querySelector('p')).to.exist;
+        });
+
         // The default mount renders to string, parses a fragment and hydrates it on a host
         // element that is still detached from the document. Element lookups must resolve
         // inside that fragment before it is appended to the live DOM.

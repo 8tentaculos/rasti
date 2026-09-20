@@ -145,6 +145,7 @@ const CONTAINER_STRINGS = ['', ''];
  */
 const childHandlers = {
     isChild : (value) => value instanceof Component,
+    childElementId : (child) => child.rootPartial.rootElementId(),
     sanitize : (value) => Component.sanitize(value),
     moveChild : (child, placeholder) => child.recycle(placeholder),
     hydrateChild : (child, index) => child.hydrate(index),
@@ -179,6 +180,23 @@ const buildComponentAdapter = (component) => {
         addChild : (child) => component.addChild(child),
         updateChild : (child, props) => component.propsQueue.push([child, props])
     });
+};
+
+/**
+ * The node to index when hydrating a component the server rendered into a container:
+ * the component's root element, located by the emission id its render assigned it. A
+ * component's template has a single root, so everything it rendered is inside that
+ * element and the walk skips whatever else the container holds — the rest of the page,
+ * when the container is `document.body`. Falls back to the container when the element
+ * is not found there.
+ * @param {Component} component The component being hydrated, already rendered.
+ * @param {Node} container The element the server rendered the component into.
+ * @return {Node} The node to index.
+ * @private
+ */
+const hydrationRoot = (component, container) => {
+    const selector = `[${Constants.ATTRIBUTE_ELEMENT}="${component.rootPartial.rootElementId()}"]`;
+    return container.querySelector(selector) || container;
 };
 
 /*
@@ -857,8 +875,9 @@ export default class Component extends View {
             if (hydrate) {
                 // Hydrate existing DOM, only generate subcomponents calling `toString`.
                 component.toString();
-                // The server wrote the content into `el`, so that is what to index.
-                index = new HydrationIndex(el);
+                // The server wrote the content into `el`, which may hold anything else
+                // besides: the component's own root element is what gets indexed.
+                index = new HydrationIndex(hydrationRoot(component, el));
             } else {
                 // Render the component and append it to the provided element. The
                 // fragment is indexed before it is appended, so the walk covers the
