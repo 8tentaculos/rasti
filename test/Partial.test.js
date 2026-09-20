@@ -154,8 +154,8 @@ describe('Partial', () => {
             const partial = makePartial(tag`<div class="${'btn'}">${'hi'}</div>`);
             document.body.innerHTML = partial.toString();
 
-            // Every ref comes out of the index: one traversal of the rendered content
-            // resolves elements by emission id and markers by their text.
+            // Every ref comes out of the index: the elements in the order the render
+            // wrote them, the markers by their text.
             partial.hydrate(new HydrationIndex(document.body));
 
             expect(partial.slots[1].ref).to.equal(document.querySelector('[data-rst-el="r1-1"]'));
@@ -179,24 +179,58 @@ describe('Partial', () => {
     });
 
     describe('hydration index', () => {
-        it('must index a whole subtree, nested components included', () => {
-            // An emission id carries the component's uid, so one index answers for the
-            // whole subtree: a nested component's nodes never collide with its owner's.
-            document.body.innerHTML =
-                `<div ${Constants.ATTRIBUTE_ELEMENT}="r1-1">` +
-                `<section ${Constants.ATTRIBUTE_ELEMENT}="r2-1"><!--rst-s-r2-1--></section>` +
-                `<span ${Constants.ATTRIBUTE_ELEMENT}="r1-2"><!--rst-s-r1-1--></span>` +
-                '</div>';
+        const markup =
+            `<div ${Constants.ATTRIBUTE_ELEMENT}="r1-1">` +
+            `<section ${Constants.ATTRIBUTE_ELEMENT}="r2-1"><!--rst-s-r2-1--></section>` +
+            `<span ${Constants.ATTRIBUTE_ELEMENT}="r1-2"><!--rst-s-r1-1--></span>` +
+            '</div>';
+
+        it('must hand out a whole subtree in document order, nested components included', () => {
+            // Hydration walks the render in document order, so one index answers for the
+            // whole subtree: a nested component's elements are the ones its owner wrote
+            // around them, taken in turn.
+            document.body.innerHTML = markup;
 
             const index = new HydrationIndex(document.body);
+            const root = document.body.firstChild;
             const section = document.querySelector('section');
             const span = document.querySelector('span');
 
-            expect(index.element('r1-1')).to.equal(document.body.firstChild);
-            expect(index.element('r2-1')).to.equal(section);
-            expect(index.element('r1-2')).to.equal(span);
+            expect(index.nextElement()).to.equal(root);
+            expect(index.nextElement()).to.equal(section);
+            expect(index.nextElement()).to.equal(span);
+            expect(index.nextElement()).to.be.undefined;
             expect(index.comment('rst-s-r2-1')).to.equal(section.firstChild);
             expect(index.comment('rst-s-r1-1')).to.equal(span.firstChild);
+        });
+
+        it('must hand out an element root before the elements under it', () => {
+            // Server-rendered markup is indexed from the component's own element, which
+            // `querySelectorAll` leaves out: it is the first element the render wrote.
+            document.body.innerHTML = markup;
+            const root = document.body.firstChild;
+
+            const index = new HydrationIndex(root);
+
+            expect(index.nextElement()).to.equal(root);
+            expect(index.nextElement()).to.equal(document.querySelector('section'));
+            expect(index.nextElement()).to.equal(document.querySelector('span'));
+        });
+
+        it('must keep the elements a render wrote when the DOM changes under it', () => {
+            // The snapshot is taken before anything is hydrated, so moving nodes in
+            // (a recycled child, or the user's `onHydrate`) cannot shift what is left.
+            document.body.innerHTML = markup;
+            const index = new HydrationIndex(document.body);
+            const span = document.querySelector('span');
+
+            index.nextElement();
+            const intruder = document.createElement('p');
+            intruder.setAttribute(Constants.ATTRIBUTE_ELEMENT, 'r3-1');
+            document.querySelector('div').insertBefore(intruder, span);
+
+            expect(index.nextElement()).to.equal(document.querySelector('section'));
+            expect(index.nextElement()).to.equal(span);
         });
     });
 });

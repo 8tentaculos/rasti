@@ -4,6 +4,7 @@ import Constants from './Constants.js';
 import getAttributesHTML from '../utils/getAttributesHTML.js';
 import getAttributesDiff from '../utils/getAttributesDiff.js';
 import warnUnsupportedAttribute from '../utils/warnUnsupportedAttribute.js';
+import createDevelopmentErrorMessage from '../utils/createDevelopmentErrorMessage.js';
 
 import __DEV__ from '../utils/dev.js';
 
@@ -58,6 +59,29 @@ const expandEvents = (attributes, owner) => {
 };
 
 /**
+ * Reject a node that is not the one the slot wrote. Elements are handed out in
+ * document order (see `HydrationIndex`), so a DOM that does not hold what the render
+ * produced shifts every slot after it and the mistake surfaces far from its cause.
+ * The emission id is still written on every element, and comparing it here keeps the
+ * failure where it happens. Development only.
+ * @param {ElementSlot} slot The slot being hydrated.
+ * @private
+ */
+const checkHydratedRef = (slot) => {
+    const { ref, id } = slot;
+    if (ref && ref.getAttribute(Constants.ATTRIBUTE_ELEMENT) === id) return;
+    const found = ref ? `"${ref.getAttribute(Constants.ATTRIBUTE_ELEMENT)}"` : 'nothing';
+    throw new Error(createDevelopmentErrorMessage(
+        'Hydration mismatch\n' +
+        'Hydration takes the elements a render wrote in document order, and the DOM\n' +
+        `does not hold them: in the place of "${id}" it found ${found}.\n\n` +
+        'Hydrating server-rendered markup requires the server and the client to render\n' +
+        'the same template from the same version of rasti, so the markup they produce\n' +
+        'matches node for node.'
+    ));
+};
+
+/**
  * The live state of one element with dynamic attributes, paired by position with the
  * `ElementDescriptor` it renders from. It holds the emission id assigned when the
  * element is written out, the DOM node hydration resolves that id to, and the
@@ -91,11 +115,12 @@ class ElementSlot extends Slot {
     }
 
     /**
-     * Resolve the rendered node by its emission id.
+     * Take the rendered node: the next element the render wrote (see `HydrationIndex`).
      * @param {HydrationIndex} index The hydration's node index.
      */
     hydrate(index) {
-        this.ref = index.element(this.id);
+        this.ref = index.nextElement();
+        if (__DEV__) checkHydratedRef(this);
     }
 
     /**

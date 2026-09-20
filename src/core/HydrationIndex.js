@@ -1,37 +1,50 @@
 import Constants from './Constants.js';
 
 /**
- * Walk a rendered subtree and index what hydration resolves: elements by their
- * emission id, comments by their text. A `TreeWalker` filtered to those two node types
- * drives the traversal, so the text nodes between them are skipped by the DOM itself.
- * @param {Node} root The node to index, itself included.
- * @param {Map<string, Element>} elements Map to fill with elements by emission id.
+ * Index the comments a render wrote, by their text. A `TreeWalker` filtered to
+ * comments drives the traversal, so the elements and text nodes between them are
+ * skipped by the DOM itself.
+ * @param {Node} root The node to index.
  * @param {Map<string, Comment>} comments Map to fill with comments by text.
  * @private
  */
-const indexNodes = (root, elements, comments) => {
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_COMMENT);
-    // The walker starts on the root and never returns it, so an element root is taken
-    // first: that is what lets a subtree be indexed from the element it stands on.
-    let node = root.nodeType === Node.ELEMENT_NODE ? root : walker.nextNode();
+const indexComments = (root, comments) => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_COMMENT);
+    let node = walker.nextNode();
 
     while (node) {
-        if (node.nodeType === Node.COMMENT_NODE) {
-            comments.set(node.data.trim(), node);
-        } else {
-            const id = node.getAttribute(Constants.ATTRIBUTE_ELEMENT);
-            if (id !== null) elements.set(id, node);
-        }
+        comments.set(node.data.trim(), node);
         node = walker.nextNode();
     }
 };
 
 /**
+ * The elements a render wrote, in document order. `querySelectorAll` returns a static
+ * snapshot and never returns the node it is called on, so an element root carrying an
+ * id of its own — the element a server rendered the component into — is put back in
+ * front, where the render wrote it.
+ * @param {Node} root The node holding the rendered content, itself included.
+ * @return {NodeList|Array<Element>} The elements, in document order.
+ * @private
+ */
+const indexElements = (root) => {
+    const elements = root.querySelectorAll(`[${Constants.ATTRIBUTE_ELEMENT}]`);
+    if (root.nodeType !== Node.ELEMENT_NODE) return elements;
+    return root.getAttribute(Constants.ATTRIBUTE_ELEMENT) === null ? elements : [root, ...elements];
+};
+
+/**
  * The index of one hydration: a snapshot of the nodes a render produced, taken before
- * anything is hydrated, so each slot resolves its own nodes with a lookup instead of a
- * search. One traversal answers for the whole subtree — an emission id carries the
- * component's uid, so it is unique across the page and nested components index into
- * the same maps.
+ * anything is hydrated, so each slot attaches to its own nodes instead of searching
+ * for them.
+ *
+ * The two kinds are read differently, because a slot knows them differently.
+ * <b>Elements</b> are handed out in order: hydration walks the render in document
+ * order (see `Partial#hydrate`), which is the order the elements were written in, so
+ * a cursor over the snapshot answers every slot in turn. <b>Comments</b> are looked
+ * up by their text — an interpolation's markers, and the placeholder a recycled child
+ * stands on — because the slot that wrote them may find them anywhere between the
+ * elements.
  *
  * It belongs to the hydration rather than to a component: it is built where the
  * content is — a freshly parsed fragment, or the element a server rendered — handed
@@ -40,24 +53,25 @@ const indexNodes = (root, elements, comments) => {
  *
  * Taking the snapshot up front is also what frees hydration from the DOM's current
  * shape: hydrating an occupant runs the user's `onHydrate`, which may move nodes, and
- * the refs resolved after it still come out right.
+ * placing the content moves the recycled children into it, yet the elements handed out
+ * afterwards are still the ones the render wrote.
  * @param {Node} node The node holding the rendered content, itself included.
  * @private
  */
 class HydrationIndex {
     constructor(node) {
-        this.elements = new Map();
         this.comments = new Map();
-        indexNodes(node, this.elements, this.comments);
+        indexComments(node, this.comments);
+        this.elements = indexElements(node);
+        this.cursor = 0;
     }
 
     /**
-     * The element written out under an emission id.
-     * @param {string} id The element's emission id.
+     * The next element the render wrote, in document order.
      * @return {Element|undefined} The element.
      */
-    element(id) {
-        return this.elements.get(id);
+    nextElement() {
+        return this.elements[this.cursor++];
     }
 
     /**

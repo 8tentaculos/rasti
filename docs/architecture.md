@@ -198,9 +198,11 @@ Every part has a slot. `part.constructor.Slot` names the class. Position in `par
 
 **Emit** (`Partial#toString`). Walk slots, concatenate HTML. Elements get `data-rst-el="${uid}-${n}"` in emission order. Interpolations are wrapped in comment markers, except on an **anchored** partial (see below), which writes no markers of its own.
 
-**Hydrate.** Bind those ids and markers to live nodes, then recurse. Nothing is searched for: whoever enters the hydration builds a `HydrationIndex` — one traversal of the rendered content, mapping elements by emission id and comments by text — and hands it down through the whole subtree. One index answers for all of it, nested components included, because an emission id carries the component's uid and is unique across the page.
+**Hydrate.** Bind those nodes to the slots that wrote them, then recurse. Nothing is searched for: whoever enters the hydration builds a `HydrationIndex` — a snapshot of the rendered content, its elements in document order and its comments mapped by text — and hands it down through the whole subtree. One index answers for all of it, nested components included.
 
-It is one walk, in document order: each slot resolves its own nodes — `index.element(id)` for an element, the start and end `index.comment(text)` for an interpolation — and then descends into what it holds, so nested partials and the child components the render mounted are attached where the walk reaches them (`onHydrate`). A child claimed from the previous render is left alone: it is already live, and the reconcile pass moves it onto the placeholder that stands for it.
+It is one walk, in document order: each slot takes its own nodes — `index.nextElement()` for an element, the start and end `index.comment(text)` for an interpolation — and then descends into what it holds, so nested partials and the child components the render mounted are attached where the walk reaches them (`onHydrate`). A child claimed from the previous render is left alone: it is already live, and the reconcile pass moves it onto the placeholder that stands for it.
+
+Elements need no lookup because the walk and the render agree on the order, which is what makes the two cheap: a cursor over a static `NodeList`. The emission ids are still written out — they locate a server-rendered component's root element, and in development they are checked against the node the cursor hands back, so a DOM that does not match the render fails where it happens instead of shifting every slot after it.
 
 The index belongs to the hydration, not to a component: built where the content is (a freshly parsed fragment, or the element a server rendered), dropped when the hydration ends. Nothing holds it afterwards, so it cannot go stale and it keeps no DOM alive. Because it is a snapshot taken up front, the refs it resolves are right even though `onHydrate` runs in the middle of the walk and may move nodes.
 
@@ -350,7 +352,7 @@ Warnings (lists without keyed components, duplicate keys, unsupported attribute 
 | **anchored**    | A partial that stands on a component's element and writes no interpolation markers (container or lone component tag). |
 | **marker**      | HTML comment delimiting an interpolation (`rst-s-` / `rst-e-`), or a recycle placeholder (`rst-r-`). |
 | **pass**        | Reconcile context for one regeneration: previous keyed children, used set, recycled children, newly mounted ones, and the index of the content it rendered. |
-| **index**       | `HydrationIndex`: snapshot of one render's nodes — elements by emission id, comments by text — built before hydrating and shared by the subtree. |
+| **index**       | `HydrationIndex`: snapshot of one render's nodes — elements in document order, comments by text — built before hydrating and shared by the subtree. |
 | **emission id** | `${uid}-${n}` assigned when an element or interpolation is first written out. Root element is `-1`. |
 | **wire format** | What hits the DOM: data attributes, dataset keys, comment markers, emission-id convention. |
 

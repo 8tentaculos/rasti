@@ -2689,6 +2689,26 @@ describe('Component', () => {
             expect(client.children[0].el).to.be.equal(document.querySelector('button'));
         });
 
+        it('must report a hydration mismatch instead of attaching to the wrong node', () => {
+            const Main = Component.create`<div><span class="${() => 'a'}"></span></div>`;
+
+            // An element the client's template writes but the markup does not hold: the
+            // walk runs out before the slot that wrote it.
+            document.body.innerHTML = `<div ${Constants.ATTRIBUTE_ELEMENT}="r1-1"></div>`;
+            Component.resetUid();
+            expect(() => Main.mount({}, document.body, true)).to.throw(/Hydration mismatch/);
+
+            // An element the markup holds but the template does not write: every slot
+            // after it would take the node of the one before.
+            document.body.innerHTML =
+                `<div ${Constants.ATTRIBUTE_ELEMENT}="r1-1">` +
+                `<p ${Constants.ATTRIBUTE_ELEMENT}="r1-9"></p>` +
+                `<span ${Constants.ATTRIBUTE_ELEMENT}="r1-2"></span>` +
+                '</div>';
+            Component.resetUid();
+            expect(() => Main.mount({}, document.body, true)).to.throw(/Hydration mismatch/);
+        });
+
         // Hydrating into a container indexes the component's own root element, not the
         // whole container: a component's template has a single root, so everything it
         // rendered is inside that element. A stray comment beside it carrying a marker's

@@ -10,8 +10,8 @@
  * Emission ids are part of the wire format too, by convention rather than by entry
  * here: an element id is `${uid}-${n}` with `n` counting from 1 in emission order, so
  * a component's root element — emitted first — always carries the `-1` suffix. The uid
- * makes the id unique across the page, which is what lets one index resolve a whole
- * subtree of nested components.
+ * makes the id unique across the page, which is what lets a server-rendered component
+ * be located in the container it was rendered into.
  * @property {string} ATTRIBUTE_ELEMENT Data-attribute carrying an element's emission id.
  * @property {Function} ATTRIBUTE_EVENT Event data-attribute, given event type and component uid.
  * @property {Function} MARKER_START Interpolation start marker, given the emission id.
