@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   The option form is unchanged: `new View({ events: { click: 'onX' }, tag: 'section' })` still takes a value or a function, and so does `Component.extend({ events: { ... } })`.
 
+  **It ships as a minor release, not a major.** The declarations it replaces were added in 4.1.0, two patch releases ago, and the break is compile-time only: the compiler names every site, and the rewrite is the one shown above. The declaration being replaced also rejected the form the documentation uses, which makes this closer to correcting a declaration than to withdrawing a working one.
+
 - **TypeScript: `Component` declares its `events()` method**, which builds the delegation of the template's `onEvent` handlers from the data attributes they are rendered with. It could not be declared while `View` typed `events` as a property, so overriding it was untypeable; an override can now merge `super.events()` to keep the template handlers, or leave it out to use declarative delegation alone.
 
 ### Added
