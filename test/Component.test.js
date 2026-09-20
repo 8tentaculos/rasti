@@ -2518,6 +2518,60 @@ describe('Component', () => {
     // node identity that reflects how partials update today (they regenerate their markup);
     // they document current behavior rather than a guarantee.
     describe('DOM patching and hydration behavior', () => {
+        // An interpolation resolving to text patches the node the previous render left
+        // instead of rendering the region again, so the text node survives an update —
+        // and with it anything the browser attaches to it, such as a selection.
+        it('must patch text in place, keeping the text node', () => {
+            const model = new Model({ a : 'one', b : 'two' });
+            const c = Component.create`<div id="test-node"><span>${({ model }) => model.a}</span><i>${({ model }) => model.b}</i></div>`
+                .mount({ model }, document.body);
+            const textOf = tag => [...c.el.querySelector(tag).childNodes].find(n => n.nodeType === Node.TEXT_NODE);
+            const a = textOf('span');
+            const b = textOf('i');
+
+            // A render that changes nothing leaves both nodes alone.
+            c.render();
+            expect(textOf('span') === a, 'the unchanged span text node was replaced').to.be.true;
+            expect(textOf('i') === b, 'the unchanged i text node was replaced').to.be.true;
+
+            // A render that changes one of them patches that node and leaves the other.
+            model.a = 'changed';
+            expect(textOf('span') === a, 'the patched span text node was replaced').to.be.true;
+            expect(textOf('i') === b, 'the untouched i text node was replaced').to.be.true;
+            expect(a.nodeValue).to.be.equal('changed');
+            expect(c.el.textContent).to.be.equal('changedtwo');
+        });
+
+        it('must keep updating a value whose string form changes without its identity', () => {
+            // A mutable value is not patched by identity: the same reference can render
+            // different characters, so it is rendered again like any other value.
+            const date = new Date(0);
+            const model = new Model({ v : date });
+            const c = Component.create`<div id="test-node">${({ model }) => model.v}</div>`
+                .mount({ model }, document.body);
+            const before = c.el.textContent;
+            date.setFullYear(1999);
+            c.render();
+            expect(c.el.textContent).to.not.be.equal(before);
+            expect(c.el.textContent).to.contain('1999');
+        });
+
+        it('must render every transition between text and nothing', () => {
+            // A value that renders nothing leaves no text node, so the moves in and out
+            // of that state render the region again rather than patching a node.
+            const model = new Model({ v : 'hello' });
+            const c = Component.create`<div id="test-node">${({ model }) => model.v}</div>`
+                .mount({ model }, document.body);
+            const transitions = [
+                [null, ''], ['back', 'back'], ['', ''], ['again', 'again'], [undefined, ''],
+                [false, ''], [0, '0'], [true, ''], ['end', 'end']
+            ];
+            transitions.forEach(([value, expected]) => {
+                model.v = value;
+                expect(c.el.textContent).to.be.equal(expected);
+            });
+        });
+
         // A component's own-template attributes are patched with an attribute diff, so the
         // DOM node is kept in place. User state on that node (focus, typed value, caret
         // position) therefore survives a re-render.

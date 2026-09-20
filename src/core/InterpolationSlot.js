@@ -49,6 +49,42 @@ const canRecycle = (prev, candidate) => {
 };
 
 /**
+ * Tell whether a value is safe to compare by identity: an immutable value renders the
+ * same characters for as long as it is `===` to itself, which an object or a function
+ * does not — its string form can change while the reference stays the same.
+ * @param {any} value The value to test.
+ * @return {boolean} True if the value is immutable.
+ * @private
+ */
+const isImmutable = (value) => {
+    const type = typeof value;
+    return value === null || type === 'undefined' || type === 'boolean' ||
+        type === 'string' || type === 'number' || type === 'bigint';
+};
+
+/**
+ * Tell whether a value renders to a text node. Nullish and boolean values render
+ * nothing (see `valueToString`), so they leave no node to patch.
+ * @param {any} value The value to test.
+ * @return {boolean} True if the value renders as non-empty text.
+ * @private
+ */
+const rendersText = (value) => {
+    const type = typeof value;
+    return type === 'number' || type === 'bigint' || (type === 'string' && value !== '');
+};
+
+/**
+ * Render a value as the text a parsed render would have produced. The HTML parser
+ * normalizes carriage returns to line feeds while reading its input, and patching a
+ * text node writes the value straight into the DOM, bypassing that pass.
+ * @param {any} value The value to render.
+ * @return {string} The text to write.
+ * @private
+ */
+const toText = (value) => `${value}`.replace(/\r\n?/g, '\n');
+
+/**
  * Resolve what a value stands for, seeing through transparent partials, which
  * contribute no node of their own and resolve to whatever their single slot holds.
  * A partial that is opaque, or that has not rendered and has no slot to look into,
@@ -520,6 +556,16 @@ class InterpolationSlot extends Slot {
         const value = this.evaluate();
         if (__DEV__ && this.isAnchored()) checkAnchoredContent(this, value);
         const prev = this.content;
+        // Retained text: an immutable value renders the same characters for as long as
+        // it is `===` to itself, so an unchanged one leaves the DOM already correct —
+        // whether it holds a text node or, for a value that renders nothing, no node at
+        // all. A changed one is written into the node the previous render left, which
+        // both values having text to render is what guarantees is there. An anchored
+        // slot never takes this path: it resolves to a component, which is not immutable.
+        if (isImmutable(value) && isImmutable(prev)) {
+            if (value === prev) return;
+            if (rendersText(value) && rendersText(prev) && this.updateText(value)) return;
+        }
         // Retained nested partial: same call site → update in place, recursively. Every
         // partial has somewhere to patch: its own markers, or, when anchored, the
         // element of the component it renders.
@@ -540,6 +586,23 @@ class InterpolationSlot extends Slot {
         }
         // Anything else: regenerate the slot's content and patch the DOM.
         this.regenerate(value);
+    }
+
+    /**
+     * Write a value into the text node the slot's previous render left between its
+     * markers. The region has to be that node and nothing else: a render that put
+     * anything more there is not one this can patch.
+     * @param {any} value The new value.
+     * @return {boolean} True if the text was patched.
+     * @private
+     */
+    updateText(value) {
+        const [start, end] = this.ref;
+        const node = start.nextSibling;
+        if (node !== end.previousSibling || node.nodeType !== Node.TEXT_NODE) return false;
+        node.nodeValue = toText(value);
+        this.content = value;
+        return true;
     }
 
     /**
