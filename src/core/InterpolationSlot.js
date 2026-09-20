@@ -28,9 +28,8 @@ import __DEV__ from '../utils/dev.js';
  * @property {Array<object>|null} order The children the innermost list resolves, in the
  *     order this render puts them in.
  * @property {Map<object, object>} recycled The previous children this render claimed, by
- *     the candidate each replaced.
- * @property {Array<object>} next The children this render mounts anew, to be hydrated
- *     once placed.
+ *     the candidate each replaced. A child this render mounts anew is the complement:
+ *     hydration takes whatever the pass did not claim.
  * @property {HydrationIndex|null} index The index of the content this pass renders.
  * @private
  */
@@ -470,7 +469,6 @@ class InterpolationSlot extends Slot {
                     return `<!--${Constants.MARKER_RECYCLED(found.uid)}-->`;
                 }
                 this.recordKeyed(pass, value.key, value);
-                pass.next.push(value);
             }
             return host.addChild(value).toString();
         }
@@ -511,41 +509,38 @@ class InterpolationSlot extends Slot {
     }
 
     /**
-     * Resolve the slot's comment markers out of the hydration index. An anchored slot
-     * writes no markers, so there is nothing to locate.
+     * Resolve the slot's comment markers and recurse into its occupant. An anchored
+     * slot writes no markers, so there is nothing to locate.
      * @param {HydrationIndex} index The hydration's node index.
+     * @param {ReconcilePass} [pass] The reconcile pass (see `Partial#hydrate`).
      */
-    hydrateMarkers(index) {
-        if (this.isAnchored()) return;
-        this.ref = [index.comment(Constants.MARKER_START(this.id)), index.comment(Constants.MARKER_END(this.id))];
+    hydrate(index, pass) {
+        if (!this.isAnchored()) {
+            this.ref = [index.comment(Constants.MARKER_START(this.id)), index.comment(Constants.MARKER_END(this.id))];
+        }
+        this.hydrateValue(this.content, index, pass);
     }
 
     /**
-     * Recurse hydration into the slot's occupant (see `hydrateValue`).
-     * @param {HydrationIndex} index The hydration's node index.
-     * @param {boolean} [fresh=true] Hydrate child components too (see `Partial#hydrate`).
-     */
-    hydrateOccupant(index, fresh = true) {
-        this.hydrateValue(this.content, index, fresh);
-    }
-
-    /**
-     * Recurse hydration into a value: a nested partial hydrates its own refs and,
-     * on a fresh subtree, a child component is hydrated in place through the owner's
-     * handlers; arrays recurse. Primitives carry no refs and are skipped.
+     * Recurse hydration into a value, hydrating the child components it holds where the
+     * walk reaches them: a nested partial hydrates its own slots and arrays recurse,
+     * so the whole occupant is attached in document order. Primitives carry no refs
+     * and are skipped.
      *
-     * A child component hydrates from the same index: its nodes were written out by
-     * the same render, so they are already in it.
+     * A child the render claimed from the previous one is left alone: it is already
+     * live, and the pass moves it onto the placeholder that stands for it. Every other
+     * child was mounted by this render and hydrates from the same index, its nodes
+     * having been written out by it.
      * @param {any} value The value to hydrate.
      * @param {HydrationIndex} index The hydration's node index.
-     * @param {boolean} [fresh=true] Hydrate child components too (see `Partial#hydrate`).
+     * @param {ReconcilePass} [pass] The reconcile pass (see `Partial#hydrate`).
      * @private
      */
-    hydrateValue(value, index, fresh = true) {
+    hydrateValue(value, index, pass) {
         const { owner } = this.partial;
-        if (this.partial.isPartial(value)) value.hydrate(index, fresh);
-        else if (Array.isArray(value)) value.forEach(item => this.hydrateValue(item, index, fresh));
-        else if (fresh && owner.isChild(value)) owner.hydrateChild(value, index);
+        if (this.partial.isPartial(value)) value.hydrate(index, pass);
+        else if (Array.isArray(value)) value.forEach(item => this.hydrateValue(item, index, pass));
+        else if (owner.isChild(value) && !(pass && pass.recycled.has(value))) owner.hydrateChild(value, index);
     }
 
     /**
@@ -667,14 +662,12 @@ class InterpolationSlot extends Slot {
      * @private
      */
     appendItems(items) {
-        const { host } = this.partial;
         const pass = this.makePass();
         const fragment = parseHTML(items.map(item => this.renderValue(item, pass)).join(''));
         pass.index = new HydrationIndex(fragment);
         const end = this.ref[1];
         end.parentNode.insertBefore(fragment, end);
-        pass.next.forEach(child => host.hydrateChild(child, pass.index));
-        this.hydrateValue(items, pass.index, false);
+        this.hydrateValue(items, pass.index, pass);
     }
 
     /**
@@ -720,7 +713,7 @@ class InterpolationSlot extends Slot {
         if (this.isAnchored()) this.placeAnchored(fragment, pass, value);
         // Both renders resolved to a list of components and this one kept some of the
         // previous children: the walk moves them instead of rewriting the region.
-        else if (pass.placed && this.order && pass.recycled.size) this.placeInOrder(fragment, pass);
+        else if (pass.placed && this.order && pass.recycled.size) this.placeInOrder(fragment, pass, value);
         else this.placeBetweenMarkers(fragment, pass, value);
         this.finishPass(pass);
         // A recycled candidate is discarded in `finishPass`, so the slot remembers the
@@ -738,9 +731,10 @@ class InterpolationSlot extends Slot {
      * dropped are removed.
      * @param {DocumentFragment} fragment The new content.
      * @param {ReconcilePass} pass The reconcile pass.
+     * @param {any} value The rendered value.
      * @private
      */
-    placeInOrder(fragment, pass) {
+    placeInOrder(fragment, pass, value) {
         const { host } = this.partial;
         // The order this render resolved, against the one standing in the DOM.
         const { order } = this;
@@ -752,7 +746,7 @@ class InterpolationSlot extends Slot {
         // The new children arrive together at the end of the slot, where they hydrate
         // before being taken to their place.
         parent.insertBefore(fragment, end);
-        pass.next.forEach(child => host.hydrateChild(child, pass.index));
+        this.hydrateValue(value, pass.index, pass);
         // The same children in the same order: nothing to place, nothing to remove.
         if (placed.length === order.length && order.every((child, i) => placed[i] === child)) return;
         // Where each child stood. A child the render mounted has none, so it never
@@ -814,12 +808,11 @@ class InterpolationSlot extends Slot {
         // Place the children.
         const { host } = this.partial;
         const { index } = pass;
-        // Move the recycled children.
+        // Move the recycled children onto the placeholders that stand for them.
         pass.recycled.forEach(found => host.moveChild(found, index.comment(Constants.MARKER_RECYCLED(found.uid))));
-        pass.next.forEach(child => host.hydrateChild(child, index));
-        // Structural pass: set the nested partials' refs, but leave the children to
-        // the reconcile above (new ones hydrated, recycled ones moved).
-        this.hydrateValue(value, index, false);
+        // Attach the new content: the nested partials' refs and the children this
+        // render mounted, which the walk hydrates where it reaches them.
+        this.hydrateValue(value, index, pass);
         // Remove the old content.
         if (divider) {
             if (start.nextSibling === divider) {
@@ -851,8 +844,7 @@ class InterpolationSlot extends Slot {
         parent.insertBefore(fragment, divider.nextSibling);
         // Place the child. An anchored slot resolves to a single component, and it is
         // mounted anew: a retained one is recycled in place and never reaches here.
-        this.partial.host.hydrateChild(pass.next[0], pass.index);
-        this.hydrateValue(value, pass.index, false);
+        this.hydrateValue(value, pass.index, pass);
         // Remove the old content.
         if (element.nextSibling === divider) parent.removeChild(element);
         parent.removeChild(divider);
@@ -869,16 +861,15 @@ class InterpolationSlot extends Slot {
      * @private
      */
     makePass(previous = null) {
-        // `previous` is what the last render left; `keyed`, `order`, `recycled` and
-        // `next` are filled as this one walks (see `render` and `renderValue`);
-        // `placed` and `index` are set by `regenerate`, around the render.
+        // `previous` is what the last render left; `keyed`, `order` and `recycled` are
+        // filled as this one walks (see `render` and `renderValue`); `placed` and
+        // `index` are set by `regenerate`, around the render.
         return {
             previous,
             keyed : null,
             placed : null,
             order : null,
             recycled : new Map(),
-            next : [],
             index : null
         };
     }

@@ -21,6 +21,11 @@ class Slot {
     }
 
     /**
+     * Nothing to attach by default: the part renders no node the engine keeps.
+     */
+    hydrate() {}
+
+    /**
      * Nothing to reconcile by default: the part cannot change between renders.
      */
     update() {}

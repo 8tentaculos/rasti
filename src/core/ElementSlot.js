@@ -94,7 +94,7 @@ class ElementSlot extends Slot {
      * Resolve the rendered node by its emission id.
      * @param {HydrationIndex} index The hydration's node index.
      */
-    hydrateRef(index) {
+    hydrate(index) {
         this.ref = index.element(this.id);
     }
 

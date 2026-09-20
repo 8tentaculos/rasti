@@ -2,7 +2,6 @@ import ComponentDescriptor from './ComponentDescriptor.js';
 import InterpolationDescriptor from './InterpolationDescriptor.js';
 import LiteralDescriptor from './LiteralDescriptor.js';
 import ElementSlot from './ElementSlot.js';
-import InterpolationSlot from './InterpolationSlot.js';
 
 import parseTemplate from './parseTemplate.js';
 
@@ -171,19 +170,6 @@ class Partial {
     }
 
     /**
-     * Run a callback over the slots of one kind, in document order. `ComponentSlot`
-     * extends `InterpolationSlot`, so selecting the latter takes component tags along.
-     * @param {Function} Slot The slot class selecting the slots to visit.
-     * @param {Function} callback Called with each matching slot.
-     * @private
-     */
-    eachSlot(Slot, callback) {
-        this.slots.forEach(slot => {
-            if (slot instanceof Slot) callback(slot);
-        });
-    }
-
-    /**
      * The first slot of a given kind, or `undefined` when the template has none.
      * @param {Function} Slot The slot class selecting the slot.
      * @return {object|undefined} The slot.
@@ -195,24 +181,18 @@ class Partial {
 
     /**
      * Attach the partial's slots to the rendered DOM and recurse into them: the nested
-     * partials and, on a fresh hydrate, the child components they hold — so a whole new
-     * subtree hydrates from one call. Each slot resolves its own nodes out of the
-     * index, which already holds every node the render produced.
+     * partials and the child components they hold, so a whole new subtree hydrates from
+     * one call. One walk, in document order — each slot resolves its own nodes and then
+     * descends into what it holds, so the index is read in the order the render wrote
+     * it.
      * @param {HydrationIndex} index The hydration's node index, shared by the whole
      *     subtree.
-     * @param {boolean} [fresh=true] Whether this is a brand-new subtree, in which case
-     *     the child components in the slots are hydrated too. False during an update's
-     *     slot replacement, where the reconcile pass hydrates new children and moves
-     *     recycled ones, so only structural refs are set here.
+     * @param {ReconcilePass} [pass] The reconcile pass the hydration runs under, which
+     *     tells the children this render mounted from the ones it claimed. Absent on a
+     *     brand-new subtree, where every child is mounted anew.
      */
-    hydrate(index, fresh = true) {
-        // The occupants are hydrated in a pass of their own, after every ref in the
-        // partial is resolved: hydrating one runs the user's `onHydrate`, which may
-        // move nodes around, and the partial's own structure is better read whole.
-        this.eachSlot(ElementSlot, slot => slot.hydrateRef(index));
-        // Each slot knows whether it wrote markers: an anchored one has none to locate.
-        this.eachSlot(InterpolationSlot, slot => slot.hydrateMarkers(index));
-        this.eachSlot(InterpolationSlot, slot => slot.hydrateOccupant(index, fresh));
+    hydrate(index, pass) {
+        this.slots.forEach(slot => slot.hydrate(index, pass));
     }
 
     /**

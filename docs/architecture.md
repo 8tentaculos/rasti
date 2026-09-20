@@ -200,11 +200,9 @@ Every part has a slot. `part.constructor.Slot` names the class. Position in `par
 
 **Hydrate.** Bind those ids and markers to live nodes, then recurse. Nothing is searched for: whoever enters the hydration builds a `HydrationIndex` — one traversal of the rendered content, mapping elements by emission id and comments by text — and hands it down through the whole subtree. One index answers for all of it, nested components included, because an emission id carries the component's uid and is unique across the page.
 
-1. **Element refs** — `index.element(id)`.
-2. **Markers** — `index.comment(text)`, start and end.
-3. **Occupants** — nested partials hydrate; on a fresh tree, child components hydrate too (`onHydrate`).
+It is one walk, in document order: each slot resolves its own nodes — `index.element(id)` for an element, the start and end `index.comment(text)` for an interpolation — and then descends into what it holds, so nested partials and the child components the render mounted are attached where the walk reaches them (`onHydrate`). A child claimed from the previous render is left alone: it is already live, and the reconcile pass moves it onto the placeholder that stands for it.
 
-The index belongs to the hydration, not to a component: built where the content is (a freshly parsed fragment, or the element a server rendered), dropped when the hydration ends. Nothing holds it afterwards, so it cannot go stale and it keeps no DOM alive. Because it is a snapshot taken up front, the refs resolved in pass 3 are right even though `onHydrate` runs in the middle of it and may move nodes.
+The index belongs to the hydration, not to a component: built where the content is (a freshly parsed fragment, or the element a server rendered), dropped when the hydration ends. Nothing holds it afterwards, so it cannot go stale and it keeps no DOM alive. Because it is a snapshot taken up front, the refs it resolves are right even though `onHydrate` runs in the middle of the walk and may move nodes.
 
 **Update.** Swap expressions, then each slot patches itself: elements diff attributes; interpolations reconcile the occupant.
 
