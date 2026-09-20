@@ -2960,6 +2960,78 @@ describe('Component', () => {
             document.querySelector('button').dispatchEvent(new MouseEvent('click', { bubbles : true }));
             expect(clicks).to.be.equal(2);
         });
+
+        // A render places its new content through more than one traversal: the child
+        // components it mounted, and the markup holding them. Each slot must come out
+        // of hydration holding the node it emitted, whatever order the traversals run
+        // in, so the patches that follow reach it.
+        it('must resolve the refs of an appended item that wraps a child in its markup', () => {
+            const Row = Component.create`<span class="row-${({ props }) => props.tone}">${({ props }) => props.label}</span>`;
+            const List = Component.create`
+                <ul>${({ model, partial }) => model.items.map(item => partial`<li class="item-${item}"><${Row} tone="${model.tone}" label="${item}" /></li>`)}</ul>
+            `.mount({ model : new Model({ items : ['a', 'b'], tone : 'plain' }) }, document.body);
+
+            // The items the list gains are rendered apart and placed at its end.
+            List.model.items = ['a', 'b', 'c', 'd'];
+            // Patching is what reads the refs back: the item's class and the row's.
+            List.model.tone = 'bold';
+
+            const items = Array.from(List.el.querySelectorAll('li'));
+            const rows = Array.from(List.el.querySelectorAll('span'));
+            expect(items.map(el => el.className)).to.deep.equal(['item-a', 'item-b', 'item-c', 'item-d']);
+            expect(rows.map(el => el.className)).to.deep.equal(['row-bold', 'row-bold', 'row-bold', 'row-bold']);
+        });
+
+        it('must resolve the refs of a regenerated list whose items wrap a child', () => {
+            const Row = Component.create`<span class="row-${({ props }) => props.tone}">${({ props }) => props.label}</span>`;
+            const List = Component.create`
+                <ul>${({ model, partial }) => model.loading ? 'loading' : model.items.map(item => partial`<li class="item-${item}"><${Row} tone="${model.tone}" label="${item}" /></li>`)}</ul>
+            `.mount({ model : new Model({ loading : true, items : ['a', 'b'], tone : 'plain' }) }, document.body);
+
+            // The slot held a plain value, so the whole list is rendered and placed at
+            // once: its markup and the rows it wraps come out of the same fragment.
+            List.model.loading = false;
+            List.model.tone = 'bold';
+
+            const items = Array.from(List.el.querySelectorAll('li'));
+            const rows = Array.from(List.el.querySelectorAll('span'));
+            expect(items.map(el => el.className)).to.deep.equal(['item-a', 'item-b']);
+            expect(rows.map(el => el.className)).to.deep.equal(['row-bold', 'row-bold']);
+        });
+
+        it('must resolve the refs of the children a keyed list mounts while it reorders', () => {
+            const Row = Component.create`<li class="row-${({ props }) => props.tone}">${({ props }) => props.label}</li>`;
+            const List = Component.create`
+                <ul>${({ model, partial }) => model.rows.map(row => partial`<${Row} key="${row.id}" tone="${model.tone}" label="${row.label}" />`)}</ul>
+            `.mount({ model : new Model({ rows : [{ id : '1', label : 'A' }, { id : '2', label : 'B' }], tone : 'plain' }) }, document.body);
+
+            const before = Array.from(List.el.querySelectorAll('li'));
+
+            // A kept row is already standing where the walk finds it and writes no node,
+            // so the fragment the refs come out of holds the mounted ones alone.
+            List.model.rows = [{ id : '3', label : 'C' }, { id : '2', label : 'B' }, { id : '4', label : 'D' }, { id : '1', label : 'A' }];
+            List.model.tone = 'bold';
+
+            const rows = Array.from(List.el.querySelectorAll('li'));
+            expect(rows.map(el => el.textContent.trim())).to.deep.equal(['C', 'B', 'D', 'A']);
+            expect(rows.map(el => el.className)).to.deep.equal(['row-bold', 'row-bold', 'row-bold', 'row-bold']);
+            expect(rows[1]).to.be.equal(before[1]);
+            expect(rows[3]).to.be.equal(before[0]);
+        });
+
+        it('must resolve the refs of the elements written after an interpolation holding a child', () => {
+            const Row = Component.create`<b>${({ props }) => props.label}</b>`;
+            const Parent = Component.create`
+                <div>${({ model }) => Row.mount({ label : model.label })}<span class="tone-${({ model }) => model.tone}"></span></div>
+            `.mount({ model : new Model({ label : 'x', tone : 'plain' }) }, document.body);
+
+            // The child's nodes stand between the two elements of the template, so the
+            // one written after it must still resolve to its own node.
+            Parent.model.tone = 'bold';
+
+            expect(Parent.el.querySelector('span').className).to.be.equal('tone-bold');
+            expect(Parent.el.querySelector('b').className).to.be.equal('');
+        });
     });
 
     describe('Positional list updates', () => {
