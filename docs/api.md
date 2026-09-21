@@ -237,6 +237,10 @@ Render the component as a string.
 Used internally on the render process.
 Use it for server-side rendering or static site generation.
 
+Rendering is the `toString` contract: every piece Rasti emits answers it with
+the markup it stands for, so a component goes straight into any HTML string —
+interpolated into a server-side layout, or concatenated with it.
+
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 **Returns**: <code>string</code> - The rendered component.  
 **Example**  
