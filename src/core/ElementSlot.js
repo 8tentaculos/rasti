@@ -76,7 +76,7 @@ const checkHydratedRef = (slot) => {
         'Hydration takes the elements a render wrote in document order, and the DOM\n' +
         `does not hold them: in the place of "${id}" it found ${found}.\n\n` +
         'Hydrating server-rendered markup requires the server and the client to render\n' +
-        'the same template from the same version of rasti, so the markup they produce\n' +
+        'the same template from the same version of Rasti, so the markup they produce\n' +
         'matches node for node.'
     ));
 };
