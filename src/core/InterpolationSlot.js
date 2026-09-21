@@ -744,9 +744,11 @@ class InterpolationSlot extends Slot {
         // Recycle the children that stay: they are reused whether or not they move.
         pass.recycled.forEach(found => host.moveChild(found, null));
         // The new children arrive together at the end of the slot, where they hydrate
-        // before being taken to their place.
+        // before being taken to their place. A list that claimed every child mounted
+        // none, and an item here is a component tag or a mounted child, neither of which
+        // writes a node of its own: there is nothing left to attach.
         parent.insertBefore(fragment, end);
-        this.hydrateValue(value, pass.index, pass);
+        if (pass.recycled.size < order.length) this.hydrateValue(value, pass.index, pass);
         // The same children in the same order: nothing to place, nothing to remove.
         if (placed.length === order.length && order.every((child, i) => placed[i] === child)) return;
         // Where each child stood. A child the render mounted has none, so it never
