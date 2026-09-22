@@ -257,8 +257,8 @@ export default class Component extends View {
                 props[key] = options[key];
             }
         });
-        // Store props as Model for reactive updates.
-        this.props = new Model(props);
+        // Store props as a Model for reactive updates.
+        this.ensureProps(props);
         // Store options by default.
         this.options = options;
         // Bind `partial` method to `this`.
@@ -310,6 +310,28 @@ export default class Component extends View {
      * are set up here.
      * @private
      */
+    /**
+     * Build the `Model` the component keeps its props in. Called once per component,
+     * from the constructor, with the options the parent passed that are not component
+     * or view options.
+     *
+     * A `Model` generates its accessors once for the set of attributes it holds and
+     * shares them with every other model of that set (see `Model`), so the props of
+     * every instance of a component are read through the same properties. Override it
+     * to give props a model of your own — one with `defaults`, or one that validates
+     * what a parent passes.
+     * @param {object} props The props the component was mounted with.
+     * @example
+     * const Button = Component.create`<button>${({ props }) => props.label}</button>`.extend({
+     *     ensureProps(props) {
+     *         this.props = new ButtonProps(props);
+     *     }
+     * });
+     */
+    ensureProps(props) {
+        this.props = new Model(props);
+    }
+
     ensureElement() {
         // Store data event listeners.
         this.eventsManager = new EventsManager();

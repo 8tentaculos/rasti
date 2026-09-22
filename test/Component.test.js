@@ -1698,6 +1698,70 @@ describe('Component', () => {
         });
     });
 
+    describe('Props model', () => {
+        it('must share one props model shape across the instances of a component', () => {
+            const Button = Component.create`<button>${({ props }) => props.label}</button>`;
+
+            const a = Button.mount({ label : 'a' });
+            const b = Button.mount({ label : 'b' });
+
+            // The accessors are generated once for the component, not once per instance.
+            expect(Object.getPrototypeOf(a.props)).to.be.equal(Object.getPrototypeOf(b.props));
+            expect(Object.prototype.hasOwnProperty.call(a.props, 'label')).to.be.false;
+            expect(a.props.label).to.be.equal('a');
+            expect(b.props.label).to.be.equal('b');
+            expect(a.props).to.be.instanceOf(Model);
+        });
+
+        it('must tell the props of components holding different ones apart', () => {
+            const One = Component.create`<i>${({ props }) => props.a}</i>`;
+            const Two = Component.create`<b>${({ props }) => props.b}</b>`;
+
+            const one = One.mount({ a : 1 });
+            const two = Two.mount({ b : 2 });
+
+            expect(Object.getPrototypeOf(one.props)).to.not.be.equal(Object.getPrototypeOf(two.props));
+            expect(one.props.a).to.be.equal(1);
+            expect(two.props.b).to.be.equal(2);
+            expect(one.props.b).to.be.undefined;
+        });
+
+        it('must accept a prop the component was not first mounted with', () => {
+            const Button = Component.create`<button>${({ props }) => props.label}</button>`;
+
+            Button.mount({ label : 'a' });
+            const later = Button.mount({ label : 'b', title : 'hint' });
+
+            // Undeclared, so it gets its accessors on the model itself.
+            expect(later.props.title).to.be.equal('hint');
+            later.props.title = 'other';
+            expect(later.props.get('title')).to.be.equal('other');
+        });
+
+        it('must let a component build a props model of its own', () => {
+            class Strict extends Model {}
+            const Button = Component.create`<button>${({ props }) => props.label}</button>`.extend({
+                ensureProps(props) {
+                    this.props = new Strict(props);
+                }
+            });
+
+            const button = Button.mount({ label : 'a' }, document.body);
+
+            expect(button.props).to.be.instanceOf(Strict);
+            expect(button.el.textContent.trim()).to.be.equal('a');
+        });
+
+        it('must re-render when a prop changes, whatever model holds it', () => {
+            const Button = Component.create`<button>${({ props }) => props.label}</button>`;
+            const button = Button.mount({ label : 'a' }, document.body);
+
+            button.props.set({ label : 'b' });
+
+            expect(button.el.textContent.trim()).to.be.equal('b');
+        });
+    });
+
     describe('Lifecycle methods', () => {
         it('must call onHydrate lifecycle method', () => {
             let calls = 0;
