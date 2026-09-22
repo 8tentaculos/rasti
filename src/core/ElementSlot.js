@@ -103,7 +103,9 @@ class ElementSlot extends Slot {
 
     /**
      * Render the element's opening attributes, assigning its emission id on the first
-     * render and capturing the attributes for later diffing.
+     * render and capturing the attributes for later diffing. The id is written beside
+     * them rather than through them: it never changes, so it needs neither escaping
+     * nor a place in the diff.
      * @return {string} The attributes HTML.
      */
     toString() {
@@ -111,7 +113,11 @@ class ElementSlot extends Slot {
         if (__DEV__) warnUnsupportedAttribute(this.partial.constructor, this.descriptor);
         const { attributes, sourceKeys } = this.buildAttributes();
         this.previousAttributes = attributes;
-        return getAttributesHTML(attributes, sourceKeys);
+        // The emission id is written straight out: it never changes, so it is neither
+        // escaped nor diffed, and it stays out of what the update compares.
+        const html = getAttributesHTML(attributes, sourceKeys);
+        const id = `${Constants.ATTRIBUTE_ELEMENT}="${this.id}"`;
+        return html ? `${html} ${id}` : id;
     }
 
     /**
@@ -145,9 +151,10 @@ class ElementSlot extends Slot {
     }
 
     /**
-     * Build the complete attributes object the element is rendered and diffed against:
-     * its descriptors resolved against the current expressions, events expanded, the
-     * root treatment, and the emission id.
+     * Build the attributes object the element is rendered and diffed against: its
+     * descriptors resolved against the current expressions, events expanded, and the
+     * root treatment. The emission id is not among them — it is written out beside
+     * them and never changes, so it is nothing to diff.
      *
      * Root treatment: the component's root element — the root partial's first element
      * slot — merges the owner's `attributes`. Only the root partial carries
@@ -158,10 +165,10 @@ class ElementSlot extends Slot {
      * Alongside the attributes it returns the keys whose values are HTML source (pure
      * template literals) — kept beside the object, not inside it, so `getAttributesDiff`
      * keeps comparing primitive values by identity. Everything added after the
-     * descriptors — events, `rootAttributes`, the element id — is plain text, and a
+     * descriptors — events and `rootAttributes` — is plain text, and a
      * `rootAttributes` key colliding with a literal-marked one drops the mark.
-     * @return {{ attributes: object, sourceKeys: Set<string> }} Attributes (including
-     *     the emission id) and the HTML-source key set.
+     * @return {{ attributes: object, sourceKeys: Set<string> }} The attributes and the
+     *     HTML-source key set.
      * @private
      */
     buildAttributes() {
@@ -175,7 +182,6 @@ class ElementSlot extends Slot {
             Object.assign(out, rootAttributes);
             Object.keys(rootAttributes).forEach(key => sourceKeys.delete(key));
         }
-        out[Constants.ATTRIBUTE_ELEMENT] = this.id;
         return { attributes : out, sourceKeys };
     }
 }
