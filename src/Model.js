@@ -6,11 +6,60 @@ import createDevelopmentWarningMessage from './utils/createDevelopmentWarningMes
 import __DEV__ from './utils/dev.js';
 
 /**
+ * The prototypes a class keeps for the sets of attributes its models hold, by class and
+ * then by that set. Two models of a class holding the same attributes take the same one.
+ * @type {WeakMap<Function, Map<string, object>>}
+ * @private
+ */
+const shapes = new WeakMap();
+
+/**
+ * The keys each of those prototypes already carries, so the accessors are generated for
+ * the first model of a shape and never again.
+ * @type {WeakMap<object, Set<string>>}
+ * @private
+ */
+const defined = new WeakMap();
+
+/**
+ * The prototype a model takes: the one its class already gives it, with the accessors
+ * for this set of attributes on top. It goes between the model and its class rather
+ * than replacing anything, so methods, `instanceof` and `constructor` are untouched.
+ *
+ * One per class and set of attributes, which is what keeps each of them small — an
+ * engine stops treating a prototype as a fixed shape once it carries a few dozen
+ * properties, and the sharing is worth nothing after that.
+ * @param {Model} model The model being constructed, still on its class's prototype.
+ * @param {Array<string>} keys The attribute names it holds.
+ * @return {object} The prototype to give the model.
+ * @private
+ */
+const shapeFor = (model, keys) => {
+    const Class = model.constructor;
+    let byShape = shapes.get(Class);
+    if (!byShape) shapes.set(Class, byShape = new Map());
+    // Joined on a character an attribute name cannot hold, so `{ 'a,b' : 1 }` and
+    // `{ a : 1, b : 1 }` are different shapes rather than the same one. The prefix is
+    // part of it: it names the properties, so changing it makes for a different shape.
+    const id = `${Class.attributePrefix}\u0000${keys.join('\u0000')}`;
+    let shape = byShape.get(id);
+
+    if (!shape) {
+        shape = Object.create(Object.getPrototypeOf(model));
+        defined.set(shape, new Set());
+        byShape.set(id, shape);
+    }
+
+    return shape;
+};
+
+/**
  * Warn when an attribute's generated property would shadow a member the model already
  * has: a method it inherits (`on`, `set`, `toJSON`) or a field the constructor wrote
- * (`attributes`, `previous`). The property is defined on the instance, so it wins over
- * the prototype and the member is gone for good — including the ones the framework
- * itself calls. `attributePrefix` is the way out, which is what it is for.
+ * (`attributes`, `previous`). A method is gone for good — the generated property sits
+ * closer than it does, including for the ones the framework itself calls; a field wins
+ * instead, and the attribute is left with no property at all (see `defineAttribute`).
+ * `attributePrefix` is the way out of both, which is what it is for.
  * Development only.
  * @param {Model} model The model defining the property.
  * @param {string} property The property name about to be defined.
@@ -21,8 +70,8 @@ const warnShadowedMember = (model, property) => {
     const name = model.constructor.name;
     console.warn(createDevelopmentWarningMessage(
         `Attribute "${property}" shadows a member of ${name}\n` +
-        'The generated property is defined on the instance, so it replaces the member it\n' +
-        'is named after, and whatever calls that member stops working.\n' +
+        'The generated property is reached before the member it is named after, so\n' +
+        'whatever calls that member stops working.\n' +
         '\n' +
         'Rename the attribute, or prefix the generated properties:\n' +
         '\n' +
@@ -147,8 +196,12 @@ export default class Model extends Emitter {
         this.attributes = Object.assign({}, getResult(this.defaults, this), this.parse.apply(this, arguments));
         // Object to store previous attributes when a change occurs.
         this.previous = {};
+        const keys = Object.keys(this.attributes);
+        // Take the prototype this class keeps for these attributes, so every model of
+        // the same shape reads them through the same properties.
+        Object.setPrototypeOf(this, shapeFor(this, keys));
         // Generate getters/setters for every attribute.
-        Object.keys(this.attributes).forEach(this.defineAttribute.bind(this));
+        keys.forEach(this.defineAttribute, this);
     }
 
     /**
@@ -173,7 +226,11 @@ export default class Model extends Emitter {
      * The property name uses `attributePrefix` + key (e.g., with prefix 'attr_', key 'name' becomes 'attr_name').
      * Called internally by the constructor for each key in `this.attributes`.
      * Override with an empty method if you don't want automatic getters/setters.
-     * 
+     *
+     * A subclass generates them on its prototype, once for the class and shared by every
+     * model of it; `Model` used directly generates them on each model, since its
+     * prototype is shared by every model in the application.
+     *
      * @param {string} key Attribute key from `this.attributes`
      * @example
      * // Custom prefix for all attributes
@@ -195,16 +252,28 @@ export default class Model extends Emitter {
      * }
      */
     defineAttribute(key) {
+        // The prototype the model took for its attributes (see `shapeFor`): the accessors
+        // go there, generated for the first model of a shape and shared by the rest.
+        const target = Object.getPrototypeOf(this);
+        const keys = defined.get(target);
+        if (keys.has(key)) return;
+        keys.add(key);
+
         const property = `${this.constructor.attributePrefix}${key}`;
+
         if (__DEV__) warnShadowedMember(this, property);
-        Object.defineProperty(
-            this,
-            property,
-            {
-                get : () => this.get(key),
-                set : (value) => { this.set(key, value); }
-            }
-        );
+        // A field the constructor wrote is not one an accessor can take over: from the
+        // prototype it would catch the next model's `this.attributes = ...` in its
+        // setter, which reads `this.attributes` back and never returns. The attribute
+        // keeps its place in `attributes` and is reached through `get` and `set`. The
+        // key is in the class's set either way, so the choice is made once, not per
+        // model.
+        if (Object.prototype.hasOwnProperty.call(this, property)) return;
+
+        Object.defineProperty(target, property, {
+            get() { return this.get(key); },
+            set(value) { this.set(key, value); }
+        });
     }
 
     /**
