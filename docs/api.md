@@ -2,6 +2,7 @@
 
 * [Component](#module_component) ⇐ <code>View</code>
     * _instance_
+        * [.ensureProps(props)](#module_component__ensureprops)
         * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>ComponentPartial</code>](#componentpartial)
         * [.template()](#module_component__template) ⇒ [<code>ComponentPartial</code>](#componentpartial) \| <code>Component</code>
@@ -112,6 +113,7 @@ setInterval(() => model.seconds++, 1000);
 
 * [Component](#module_component) ⇐ <code>View</code>
     * _instance_
+        * [.ensureProps(props)](#module_component__ensureprops)
         * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>ComponentPartial</code>](#componentpartial)
         * [.template()](#module_component__template) ⇒ [<code>ComponentPartial</code>](#componentpartial) \| <code>Component</code>
@@ -131,6 +133,32 @@ setInterval(() => model.seconds++, 1000);
         * [.mount([options], [el], [hydrate])](#module_component_mount) ⇒ <code>Component</code>
         * [.create(strings, ...expressions)](#module_component_create) ⇒ <code>Component</code>
 
+<a name="module_component__ensureprops" id="module_component__ensureprops" class="anchor"></a>
+### component.ensureProps(props)
+Build the `Model` the component keeps its props in. Called once per component,
+from the constructor, with the options the parent passed that are not component
+or view options.
+
+A `Model` generates its accessors once for the set of attributes it holds and
+shares them with every other model of that set (see `Model`), so the props of
+every instance of a component are read through the same properties. Override it
+to give props a model of your own — one with `defaults`, or one that validates
+what a parent passes.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| props | <code>object</code> | The props the component was mounted with. |
+
+**Example**  
+```js
+const Button = Component.create`<button>${({ props }) => props.label}</button>`.extend({
+    ensureProps(props) {
+        this.props = new ButtonProps(props);
+    }
+});
+```
 <a name="module_component__subscribe" id="module_component__subscribe" class="anchor"></a>
 ### component.subscribe(model, [type], [listener]) ⇒ <code>Component</code>
 Subscribes to a `change` event on a model or emitter object and invokes the `onChange` lifecycle method.
@@ -1001,6 +1029,10 @@ Generate getter/setter for the given attribute key to emit `change` events.
 The property name uses `attributePrefix` + key (e.g., with prefix 'attr_', key 'name' becomes 'attr_name').
 Called internally by the constructor for each key in `this.attributes`.
 Override with an empty method if you don't want automatic getters/setters.
+
+A subclass generates them on its prototype, once for the class and shared by every
+model of it; `Model` used directly generates them on each model, since its
+prototype is shared by every model in the application.
 
 **Kind**: instance method of [<code>Model</code>](#module_model)  
 
