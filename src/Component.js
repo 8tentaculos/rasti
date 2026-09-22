@@ -149,7 +149,7 @@ const childHandlers = {
     sanitize : (value) => Component.sanitize(value),
     moveChild : (child, placeholder) => child.recycle(placeholder),
     hydrateChild : (child, index) => child.hydrate(index),
-    childProps : (child) => child.props.toJSON(),
+    childProps : (child) => child.propsAttributes,
     destroyChild : (child) => child.destroy()
 };
 
@@ -257,8 +257,10 @@ export default class Component extends View {
                 props[key] = options[key];
             }
         });
-        // Store props as a Model for reactive updates.
-        this.ensureProps(props);
+        // The options a parent passed that the component did not take as its own. They
+        // become a `Model` the first time anything reads `props`, which is what keeps a
+        // component that is built and discarded without ever rendering cheap.
+        this.propsAttributes = props;
         // Store options by default.
         this.options = options;
         // Bind `partial` method to `this`.
@@ -303,17 +305,29 @@ export default class Component extends View {
     }
 
     /**
-     * Override super method. A component's root element is produced by its template,
-     * which runs on the first render rather than on instantiation (so it sees `state`,
-     * `props` and anything set up in the constructor). The element is therefore created
-     * later, in `render`; only the render-time collaborators that every render relies on
-     * are set up here.
-     * @private
+     * The `Model` the component's props live in, built the first time it is read. A
+     * component that a render builds and then discards — a candidate for a child that
+     * turns out to be recyclable — never reads them, and never pays for them.
+     * @return {Model} The props model.
      */
+    get props() {
+        if (!this.propsModel) this.ensureProps(this.propsAttributes);
+        return this.propsModel;
+    }
+
     /**
-     * Build the `Model` the component keeps its props in. Called once per component,
-     * from the constructor, with the options the parent passed that are not component
-     * or view options.
+     * Replace the model the props live in. Assigning is what `ensureProps` does, and
+     * what an override of it is expected to do.
+     * @param {Model} value The model to keep the props in.
+     */
+    set props(value) {
+        this.propsModel = value;
+    }
+
+    /**
+     * Build the `Model` the component keeps its props in, and assign it to `this.props`.
+     * Called the first time anything reads them, with the options the parent passed that
+     * are not component or view options.
      *
      * A `Model` generates its accessors once for the set of attributes it holds and
      * shares them with every other model of that set (see `Model`), so the props of
@@ -332,7 +346,28 @@ export default class Component extends View {
         this.props = new Model(props);
     }
 
-    ensureElement() {
+    /**
+     * Override super method, as a no-op. A view creates its root element while it is
+     * being constructed; a component's comes from its template, which runs on the first
+     * render so that it sees `state`, `props` and whatever the constructor set up. The
+     * element is therefore created in `render`, and there is nothing to ensure here.
+     * @private
+     */
+    ensureElement() {}
+
+    /**
+     * Build what a render needs, once, on the first one: the listener store, the queue
+     * of recycled children's props, the adapter the partials reach the component world
+     * through, and the root partial itself.
+     *
+     * None of it exists until then. A component that is built and discarded without
+     * rendering — the candidate a render synthesizes for a child that turns out to be
+     * recyclable — is then little more than its options, which is what makes rebuilding
+     * a list cheap.
+     * @private
+     */
+    ensureEngine() {
+        if (this.eventsManager) return;
         // Store data event listeners.
         this.eventsManager = new EventsManager();
         // Recycled children whose props are reconciled after the render's destroy sweep,
@@ -340,16 +375,7 @@ export default class Component extends View {
         this.propsQueue = [];
         // Build the adapter shared by the root partial and every nested partial.
         this.adapter = buildComponentAdapter(this);
-    }
-
-    /**
-     * Build the root partial from the template on first use and adopt it: the root
-     * element merges the component's `attributes`, and the template source is exposed
-     * for expression error messages. Runs once; later renders reconcile against it.
-     * @private
-     */
-    ensureRootPartial() {
-        if (this.rootPartial) return;
+        // Build the root partial from the template and adopt it.
         this.rootPartial = this.buildRootPartial();
         if (__DEV__) checkRootStructure(this);
         // Adopting a single-interpolation partial as the root is what makes the
@@ -591,8 +617,8 @@ export default class Component extends View {
      * // <div data-rst-el="r1-1"><!--rst-s-r1-1--><button class="button" data-rst-el="r2-1">Click me</button><!--rst-e-r1-1--></div>
      */
     toString() {
-        // Build the root partial from the template on first render.
-        this.ensureRootPartial();
+        // Everything a render needs is built here, on the first one.
+        this.ensureEngine();
         // Normally there won't be any children, but if there are, destroy them.
         this.destroyChildren();
         // Normally there won't be any data event listeners, but if there are, clear them.

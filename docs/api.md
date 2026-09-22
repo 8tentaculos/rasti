@@ -2,6 +2,8 @@
 
 * [Component](#module_component) ⇐ <code>View</code>
     * _instance_
+        * [.props](#module_component__props) ⇒ <code>Model</code>
+        * [.props](#module_component__props)
         * [.ensureProps(props)](#module_component__ensureprops)
         * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>ComponentPartial</code>](#componentpartial)
@@ -113,6 +115,8 @@ setInterval(() => model.seconds++, 1000);
 
 * [Component](#module_component) ⇐ <code>View</code>
     * _instance_
+        * [.props](#module_component__props) ⇒ <code>Model</code>
+        * [.props](#module_component__props)
         * [.ensureProps(props)](#module_component__ensureprops)
         * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>ComponentPartial</code>](#componentpartial)
@@ -133,11 +137,30 @@ setInterval(() => model.seconds++, 1000);
         * [.mount([options], [el], [hydrate])](#module_component_mount) ⇒ <code>Component</code>
         * [.create(strings, ...expressions)](#module_component_create) ⇒ <code>Component</code>
 
+<a name="module_component__props" id="module_component__props" class="anchor"></a>
+### component.props ⇒ <code>Model</code>
+The `Model` the component's props live in, built the first time it is read. A
+component that a render builds and then discards — a candidate for a child that
+turns out to be recyclable — never reads them, and never pays for them.
+
+**Kind**: instance property of [<code>Component</code>](#module_component)  
+**Returns**: <code>Model</code> - The props model.  
+<a name="module_component__props" id="module_component__props" class="anchor"></a>
+### component.props
+Replace the model the props live in. Assigning is what `ensureProps` does, and
+what an override of it is expected to do.
+
+**Kind**: instance property of [<code>Component</code>](#module_component)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| value | <code>Model</code> | The model to keep the props in. |
+
 <a name="module_component__ensureprops" id="module_component__ensureprops" class="anchor"></a>
 ### component.ensureProps(props)
-Build the `Model` the component keeps its props in. Called once per component,
-from the constructor, with the options the parent passed that are not component
-or view options.
+Build the `Model` the component keeps its props in, and assign it to `this.props`.
+Called the first time anything reads them, with the options the parent passed that
+are not component or view options.
 
 A `Model` generates its accessors once for the set of attributes it holds and
 shares them with every other model of that set (see `Model`), so the props of

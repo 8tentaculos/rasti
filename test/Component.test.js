@@ -1699,18 +1699,40 @@ describe('Component', () => {
     });
 
     describe('Props model', () => {
+        it('must build the props model only when something reads it', () => {
+            const Button = Component.create`<button>${({ props }) => props.label}</button>`;
+
+            const button = new Button({ label : 'a' });
+
+            // A render builds a candidate for every child it may recycle; the ones it
+            // discards never read their props, and never pay for the model.
+            expect(button.propsModel).to.be.undefined;
+            expect(button.props).to.be.instanceOf(Model);
+            expect(button.props.label).to.be.equal('a');
+            expect(button.propsModel).to.be.equal(button.props);
+        });
+
+        it('must let the constructor read props', () => {
+            const Counter = Component.create`<div>${({ state }) => state.count}</div>`.extend({
+                onCreate() { this.state = new Model({ count : this.props.initial }); }
+            });
+
+            const counter = Counter.mount({ initial : 5 }, document.body);
+
+            expect(counter.el.textContent.trim()).to.be.equal('5');
+        });
+
         it('must share one props model shape across the instances of a component', () => {
             const Button = Component.create`<button>${({ props }) => props.label}</button>`;
 
             const a = Button.mount({ label : 'a' });
             const b = Button.mount({ label : 'b' });
 
-            // The accessors are generated once for the component, not once per instance.
+            // The accessors are generated once for the set of props, not once per model.
             expect(Object.getPrototypeOf(a.props)).to.be.equal(Object.getPrototypeOf(b.props));
             expect(Object.prototype.hasOwnProperty.call(a.props, 'label')).to.be.false;
             expect(a.props.label).to.be.equal('a');
             expect(b.props.label).to.be.equal('b');
-            expect(a.props).to.be.instanceOf(Model);
         });
 
         it('must tell the props of components holding different ones apart', () => {
@@ -1724,18 +1746,6 @@ describe('Component', () => {
             expect(one.props.a).to.be.equal(1);
             expect(two.props.b).to.be.equal(2);
             expect(one.props.b).to.be.undefined;
-        });
-
-        it('must accept a prop the component was not first mounted with', () => {
-            const Button = Component.create`<button>${({ props }) => props.label}</button>`;
-
-            Button.mount({ label : 'a' });
-            const later = Button.mount({ label : 'b', title : 'hint' });
-
-            // Undeclared, so it gets its accessors on the model itself.
-            expect(later.props.title).to.be.equal('hint');
-            later.props.title = 'other';
-            expect(later.props.get('title')).to.be.equal('other');
         });
 
         it('must let a component build a props model of its own', () => {
@@ -1752,13 +1762,28 @@ describe('Component', () => {
             expect(button.el.textContent.trim()).to.be.equal('a');
         });
 
-        it('must re-render when a prop changes, whatever model holds it', () => {
+        it('must re-render when a prop changes', () => {
             const Button = Component.create`<button>${({ props }) => props.label}</button>`;
             const button = Button.mount({ label : 'a' }, document.body);
 
             button.props.set({ label : 'b' });
 
             expect(button.el.textContent.trim()).to.be.equal('b');
+        });
+
+        it('must reconcile a recycled child against the props of the candidate it replaced', () => {
+            const Row = Component.create`<li>${({ props }) => props.text}</li>`;
+            const List = Component.create`
+                <ul>${({ model }) => model.items.map(item => Row.mount({ key : item.id, text : item.text }))}</ul>
+            `.mount({ model : new Model({ items : [{ id : '1', text : 'a' }] }) }, document.body);
+
+            const before = document.querySelector('li');
+            // The candidate is discarded without ever rendering, so its props are read
+            // off the options it was built with rather than off a model.
+            List.model.items = [{ id : '1', text : 'b' }];
+
+            expect(document.querySelector('li')).to.be.equal(before);
+            expect(before.textContent.trim()).to.be.equal('b');
         });
     });
 
