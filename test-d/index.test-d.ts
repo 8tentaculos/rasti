@@ -11,6 +11,7 @@ import {
     ComponentState,
     ComponentModel,
     ComponentPartial,
+    Resolvable,
 } from '../types/index.js';
 
 /*
@@ -110,14 +111,13 @@ expectType<HTMLElement>(v.el);
 expectType<Array<() => void>>(v.destroyQueue);
 v.destroyQueue.push(() => {});
 
-// `tag`, `attributes` and `events` are declared as methods on the instance, so a subclass
-// can define them as such; the option form keeps accepting a value or a function
+// `attributes` and `events` are declared as methods, so a subclass can define them as
+// such; `tag` keeps the union, a string or a function returning one
 expectType<(() => Record<string, any>) | undefined>(v.attributes);
-expectType<(() => string) | undefined>(v.tag);
+expectType<Resolvable<string> | undefined>(v.tag);
 expectType<(() => Record<string, string | Function>) | undefined>(v.events);
 
 class DynamicView extends View<Model<UserAttrs>> {
-    tag() { return 'section'; }
     attributes() { return { class: 'dynamic' }; }
     events() { return { [`click .${this.model!.get('name')}`]: 'onClick', click: 'onRootClick' }; }
     onClick() {}
@@ -125,11 +125,18 @@ class DynamicView extends View<Model<UserAttrs>> {
 }
 new DynamicView();
 
-// The function form can also be assigned on the prototype or in `preinitialize`
+// Their function form can also be assigned on the prototype or in `preinitialize`
 DynamicView.prototype.events = function() { return { click: 'onRootClick' }; };
+DynamicView.prototype.attributes = () => ({ class: 'dynamic' });
+expectError(DynamicView.prototype.events = { click: 'onRootClick' });
+expectError(DynamicView.prototype.attributes = { class: 'dynamic' });
+
+// `tag` takes either form everywhere: prototype, `preinitialize`, options
+DynamicView.prototype.tag = 'section';
+DynamicView.prototype.tag = () => 'section';
 class PreinitializedView extends View {
     preinitialize() {
-        this.tag = () => 'section';
+        this.tag = 'section';
         this.attributes = () => ({ class: 'dynamic' });
         this.events = () => ({ click: 'onRootClick' });
     }
@@ -137,9 +144,8 @@ class PreinitializedView extends View {
 }
 new PreinitializedView();
 
-// A plain object reaches the instance only through the options
+// A plain object still reaches the instance through the options
 new View({ tag: 'section', attributes: { class: 'dynamic' }, events: { click: 'onRootClick' } });
-expectError(DynamicView.prototype.events = { click: 'onRootClick' });
 
 // `$` / `$$` default to HTMLElement, mirror querySelector nullability, and are narrowable
 expectType<HTMLElement | null>(v.$('div'));

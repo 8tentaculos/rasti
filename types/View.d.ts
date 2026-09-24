@@ -74,9 +74,9 @@ export default class View<M = any> extends Emitter {
 
     /**
      * Tag used to create the root element when `el` is not provided (default `div`).
-     * Declared as a method so subclasses can define it as one.
+     * Read through `getResult`, so it may be a string or a function returning one.
      */
-    tag?(): string;
+    tag?: Resolvable<string>;
 
     /**
      * Attributes used to create the root element when `el` is not provided.
