@@ -66,8 +66,13 @@ export default class View<M = any> extends Emitter {
      */
     static resetUid(): void;
 
-    /** Root DOM element of the view. */
-    el: HTMLElement;
+    /**
+     * Root DOM element of the view. Read as the element `ensureElement` resolved it to when
+     * the view was created; set it before that — on the prototype or in `preinitialize` — as
+     * an element or as a function returning one.
+     */
+    get el(): HTMLElement;
+    set el(value: Resolvable<HTMLElement>);
 
     /** A model or any object containing data and business logic. */
     model?: M;

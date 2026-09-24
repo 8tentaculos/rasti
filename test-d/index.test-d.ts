@@ -106,7 +106,23 @@ expectError(WithMethodDefaults.prototype.defaults = { name: '', age: 0 });
 const v = new View<Model<UserAttrs>>({ model: new Model<UserAttrs>({ name: 'Alice', age: 1 }) });
 // `model` is optional
 expectType<Model<UserAttrs> | undefined>(v.model);
+
+// `el` reads as the resolved element, and takes an element or a function returning one.
+// A class field is rejected: it lands after `ensureElement` has already run
 expectType<HTMLElement>(v.el);
+class ElOnPrototype extends View {}
+ElOnPrototype.prototype.el = document.createElement('section');
+ElOnPrototype.prototype.el = () => document.createElement('section');
+class ElInPreinitialize extends View {
+    preinitialize() { this.el = () => document.createElement('section'); }
+}
+new ElInPreinitialize();
+class ElAsField extends View {
+    // `expectError` does not cover TS2610, so the directive itself asserts the error
+    // @ts-expect-error `el` is an accessor on `View`, so a class field is rejected
+    el = document.createElement('section');
+}
+new ElAsField();
 
 expectType<Array<() => void>>(v.destroyQueue);
 v.destroyQueue.push(() => {});
