@@ -15,19 +15,19 @@ export interface ComponentReservedOptions<S = any, M = any> extends ViewOptions<
      */
     state?: S;
     /** Lifecycle hook called at the end of the constructor. */
-    onCreate?: (...args: any[]) => void;
+    onCreate?: (this: Component<any, S, M>, ...args: any[]) => void;
     /** Lifecycle hook called when `model`, `state` or `props` emits `change`. */
-    onChange?: (...args: any[]) => void;
+    onChange?: (this: Component<any, S, M>, ...args: any[]) => void;
     /** Lifecycle hook called after the first render (client only). */
-    onHydrate?: () => void;
+    onHydrate?: (this: Component<any, S, M>) => void;
     /** Lifecycle hook called at the start of `recycle`, before any recycling happens. */
-    onBeforeRecycle?: () => void;
+    onBeforeRecycle?: (this: Component<any, S, M>) => void;
     /** Lifecycle hook called after the component is recycled and props are updated. */
-    onRecycle?: () => void;
+    onRecycle?: (this: Component<any, S, M>) => void;
     /** Lifecycle hook called at the start of `render` on update. */
-    onBeforeUpdate?: () => void;
+    onBeforeUpdate?: (this: Component<any, S, M>) => void;
     /** Lifecycle hook called at the end of `render` on update. */
-    onUpdate?: () => void;
+    onUpdate?: (this: Component<any, S, M>) => void;
 }
 
 export type ComponentOptions<P = {}, S = any, M = any> = P & ComponentReservedOptions<S, M>;

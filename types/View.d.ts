@@ -3,19 +3,26 @@ import Emitter from './Emitter.js';
 /** A value provided directly, or as a function returning it (called bound to the view). */
 export type Resolvable<T> = T | (() => T);
 
+/**
+ * A `Resolvable` on the options side, where the function form is called with the view as
+ * `this`. It carries `this` explicitly because an option has no assignment target for
+ * TypeScript to infer it from, unlike the matching member on the instance.
+ */
+export type ResolvableOption<T, V> = T | ((this: V) => T);
+
 export interface ViewOptions<M = any> {
-    el?: Resolvable<HTMLElement>;
-    tag?: Resolvable<string>;
-    attributes?: Resolvable<Record<string, any>>;
-    events?: Resolvable<Record<string, string | Function>>;
+    el?: ResolvableOption<HTMLElement, View<M>>;
+    tag?: ResolvableOption<string, View<M>>;
+    attributes?: ResolvableOption<Record<string, any>, View<M>>;
+    events?: ResolvableOption<Record<string, string | Function>, View<M>>;
     model?: M;
     /**
      * Function returning the view's inner HTML. `View.render` assigns its result to
      * `innerHTML`, so a plain view returns a string; `Component` narrows this to return
      * a partial (or a component instance) instead.
      */
-    template?: (...args: any[]) => any;
-    onDestroy?: (...args: any[]) => void;
+    template?: (this: View<M>, ...args: any[]) => any;
+    onDestroy?: (this: View<M>, ...args: any[]) => void;
 }
 
 /**

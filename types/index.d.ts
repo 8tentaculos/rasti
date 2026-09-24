@@ -1,6 +1,6 @@
 export { default as Emitter, EventMap } from './Emitter.js';
 export { default as Model, ModelEvents, ModelAttrs } from './Model.js';
-export { default as View, ViewOptions, Resolvable } from './View.js';
+export { default as View, ViewOptions, Resolvable, ResolvableOption } from './View.js';
 export {
     default as Component,
     ComponentOptions,

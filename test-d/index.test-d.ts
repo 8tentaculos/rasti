@@ -163,6 +163,14 @@ new PreinitializedView();
 // A plain object still reaches the instance through the options
 new View({ tag: 'section', attributes: { class: 'dynamic' }, events: { click: 'onRootClick' } });
 
+// Rasti calls the option's function form with the view as `this`, so a `function` sees the
+// instance. Arrows and plain values keep compiling
+new View({ attributes: function() { return { 'data-uid': this.uid }; } });
+new View({ tag: function() { return this.uid ? 'section' : 'div'; } });
+new View({ template: function() { return this.uid; } });
+new View({ onDestroy: function() { this.destroyChildren(); } });
+new View({ attributes: () => ({ class: 'dynamic' }) });
+
 // `$` / `$$` default to HTMLElement, mirror querySelector nullability, and are narrowable
 expectType<HTMLElement | null>(v.$('div'));
 expectType<HTMLInputElement | null>(v.$<HTMLInputElement>('input'));
@@ -346,6 +354,16 @@ Component.extend(proto => ({
     events() { return Object.assign({}, proto.events.call(this), { 'click .ok': 'onOk' }); },
     onOk() {},
 }));
+
+// A component reads `attributes` at render, so an arrow class field reaches it in time
+class WithFieldAttributes extends Component<CounterProps> {
+    attributes = () => ({ 'data-label': this.props.label });
+}
+new WithFieldAttributes({ initial: 1, label: 'x' });
+
+// Lifecycle hooks passed as options are called with the component as `this`
+Component.mount({ onCreate() { this.render(); }, onHydrate() { this.render(); } });
+Component.mount({ onCreate: () => {} });
 
 /*
  * Helper types: EventHandler, RenderExpression, ModelAttrs, ComponentProps, ComponentState, ComponentModel
