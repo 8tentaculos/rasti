@@ -1,4 +1,4 @@
-import View, { ViewOptions } from './View.js';
+import View, { ViewOptions, Resolvable } from './View.js';
 import Model from './Model.js';
 
 export interface ComponentReservedOptions<S = any, M = any> extends ViewOptions<M> {
@@ -258,21 +258,16 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
     template(): ComponentPartial | Component<any, any, any>;
 
     /**
-     * Events object for the automatic delegation of the template's `onEvent` handlers,
-     * built from the data attributes they are rendered with. Override it to add custom
-     * delegation — merge the inherited result to keep the template handlers, or leave it
-     * out to opt out of them and use declarative delegation alone.
+     * A component builds this member from the template's `onEvent` handlers, delegating them
+     * through the data attributes they are rendered with. Overriding it replaces them: call
+     * the inherited member and merge its result to keep them, or leave it out to use
+     * declarative delegation alone.
      *
-     * @example
-     * class Panel extends Base {
-     *     events() { return { ...super.events(), 'click .ok': 'onOk' }; }
-     * }
-     * // `super` is not available in the object form of `extend`; take the parent prototype
-     * const Panel = Base.extend(proto => ({
-     *     events() { return { ...proto.events.call(this), 'click .ok': 'onOk' }; },
-     * }));
+     * Since `View` declares the member as a value or a function, an override goes on the
+     * prototype or through `extend` rather than in the class body, and calling the inherited
+     * member needs a cast to its function form.
      */
-    events(): Record<string, string | Function>;
+    events?: Resolvable<Record<string, string | Function>>;
 
     /**
      * @param options Component options. Keys `model`, `state`, `key`, `onCreate`, `onChange`,

@@ -82,13 +82,14 @@ u.listenTo(u2, 'change', (m, changed) => expectType<Partial<UserAttrs>>(changed)
 u.listenTo(u2, 'change:name', (m, value) => expectType<string>(value));
 u.stopListening(u2, 'change');
 
-// `defaults` is declared as a method, so a subclass can define it as one
-class WithMethodDefaults extends Model<UserAttrs> {
-    defaults() { return { name: '', age: 0 }; }
+// `defaults` takes an object or a function, on the prototype or in `preinitialize`
+class WithObjectDefaults extends Model<UserAttrs> {
+    preinitialize() {
+        this.defaults = { name: '', age: 0 };
+    }
 }
-new WithMethodDefaults();
+new WithObjectDefaults();
 
-// The function form can also be assigned in `preinitialize` or on the prototype
 class WithFnDefaults extends Model<UserAttrs> {
     preinitialize() {
         this.defaults = () => ({ name: '', age: 0 });
@@ -96,9 +97,16 @@ class WithFnDefaults extends Model<UserAttrs> {
 }
 new WithFnDefaults();
 
-WithMethodDefaults.prototype.defaults = () => ({ name: '', age: 0 });
+WithObjectDefaults.prototype.defaults = { name: '', age: 0 };
+WithObjectDefaults.prototype.defaults = () => ({ name: '', age: 0 });
 
-expectError(WithMethodDefaults.prototype.defaults = { name: '', age: 0 });
+// A method in the class body does not compile, since the member is declared as a value or
+// a function (TS2425). `expectError` does not cover that code, so the directive asserts it
+class WithMethodDefaults extends Model<UserAttrs> {
+    // @ts-expect-error
+    defaults() { return { name: '', age: 0 }; }
+}
+new WithMethodDefaults();
 
 /*
  * View: model, root element and merged options
@@ -107,58 +115,45 @@ const v = new View<Model<UserAttrs>>({ model: new Model<UserAttrs>({ name: 'Alic
 // `model` is optional
 expectType<Model<UserAttrs> | undefined>(v.model);
 
-// `el` reads as the resolved element, and takes an element or a function returning one.
-// A class field is rejected: it lands after `ensureElement` has already run
+// `el` reads as the element `ensureElement` resolved it to. The function form is carried by
+// the option, which is where the runtime resolves it from
 expectType<HTMLElement>(v.el);
+new View({ el: () => document.createElement('section') });
 class ElOnPrototype extends View {}
 ElOnPrototype.prototype.el = document.createElement('section');
-ElOnPrototype.prototype.el = () => document.createElement('section');
-class ElInPreinitialize extends View {
-    preinitialize() { this.el = () => document.createElement('section'); }
-}
-new ElInPreinitialize();
-class ElAsField extends View {
-    // `expectError` does not cover TS2610, so the directive itself asserts the error
-    // @ts-expect-error `el` is an accessor on `View`, so a class field is rejected
-    el = document.createElement('section');
-}
-new ElAsField();
 
 expectType<Array<() => void>>(v.destroyQueue);
 v.destroyQueue.push(() => {});
 
-// `attributes` and `events` are declared as methods, so a subclass can define them as
-// such; `tag` keeps the union, a string or a function returning one
-expectType<(() => Record<string, any>) | undefined>(v.attributes);
+// `tag`, `attributes` and `events` take a value or a function returning one
+expectType<Resolvable<Record<string, any>> | undefined>(v.attributes);
 expectType<Resolvable<string> | undefined>(v.tag);
-expectType<(() => Record<string, string | Function>) | undefined>(v.events);
+expectType<Resolvable<Record<string, string | Function>> | undefined>(v.events);
 
+// Either form, on the prototype or in `preinitialize`
 class DynamicView extends View<Model<UserAttrs>> {
-    attributes() { return { class: 'dynamic' }; }
-    events() { return { [`click .${this.model!.get('name')}`]: 'onClick', click: 'onRootClick' }; }
-    onClick() {}
-    onRootClick() {}
-}
-new DynamicView();
-
-// Their function form can also be assigned on the prototype or in `preinitialize`
-DynamicView.prototype.events = function() { return { click: 'onRootClick' }; };
-DynamicView.prototype.attributes = () => ({ class: 'dynamic' });
-expectError(DynamicView.prototype.events = { click: 'onRootClick' });
-expectError(DynamicView.prototype.attributes = { class: 'dynamic' });
-
-// `tag` takes either form everywhere: prototype, `preinitialize`, options
-DynamicView.prototype.tag = 'section';
-DynamicView.prototype.tag = () => 'section';
-class PreinitializedView extends View {
     preinitialize() {
         this.tag = 'section';
         this.attributes = () => ({ class: 'dynamic' });
-        this.events = () => ({ click: 'onRootClick' });
+        this.events = () => ({ [`click .${this.model!.get('name')}`]: 'onClick' });
     }
-    onRootClick() {}
+    onClick() {}
 }
-new PreinitializedView();
+new DynamicView();
+
+DynamicView.prototype.tag = 'section';
+DynamicView.prototype.tag = () => 'section';
+DynamicView.prototype.attributes = { class: 'dynamic' };
+DynamicView.prototype.attributes = () => ({ class: 'dynamic' });
+DynamicView.prototype.events = { click: 'onRootClick' };
+DynamicView.prototype.events = function() { return { click: 'onRootClick' }; };
+
+// As with `defaults`, a method in the class body does not compile (TS2425)
+class MethodAttributes extends View {
+    // @ts-expect-error
+    attributes() { return { class: 'dynamic' }; }
+}
+new MethodAttributes();
 
 // A plain object still reaches the instance through the options
 new View({ tag: 'section', attributes: { class: 'dynamic' }, events: { click: 'onRootClick' } });
@@ -332,28 +327,28 @@ const HeaderExt = Component.create<HeaderProps>`<header></header>`.extend({
 });
 new HeaderExt({ handleAddTodo: (t) => t }).helper();
 
-// `events()` builds the delegation of the template's handlers; an override may merge
-// `super.events()` to keep them, or leave it out to use declarative delegation alone
+// `events` builds the delegation of the template's handlers. An override goes on the
+// prototype, and merging the inherited handlers needs a cast to its function form
 class WithMergedEvents extends Component<CounterProps> {
-    events() { return Object.assign({}, super.events(), { 'click .ok': 'onOk' }); }
     onOk() {}
 }
+WithMergedEvents.prototype.events = function() {
+    const inherited = Component.prototype.events as () => Record<string, string | Function>;
+    return Object.assign({}, inherited.call(this), { 'click .ok': 'onOk' });
+};
 new WithMergedEvents({ initial: 1, label: 'x' });
 
+// As on a view, a method in the class body does not compile (TS2425)
 class WithOwnEvents extends Component<CounterProps> {
+    // @ts-expect-error
     events() { return { 'click .ok': 'onOk' }; }
     onOk() {}
 }
 new WithOwnEvents({ initial: 1, label: 'x' });
 
-// `extend` takes either form, since its members are added to the instance type.
-// `super` is not available in the object form, so the function form takes the parent prototype
+// `extend` takes either form, since its members are added to the instance type
 Component.extend({ events() { return { 'click .ok': 'onOk' }; }, onOk() {} });
 Component.extend({ events: { 'click .ok': 'onOk' }, onOk() {} });
-Component.extend(proto => ({
-    events() { return Object.assign({}, proto.events.call(this), { 'click .ok': 'onOk' }); },
-    onOk() {},
-}));
 
 // A component reads `attributes` at render, so an arrow class field reaches it in time
 class WithFieldAttributes extends Component<CounterProps> {

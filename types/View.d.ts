@@ -74,38 +74,43 @@ export default class View<M = any> extends Emitter {
     static resetUid(): void;
 
     /**
-     * Root DOM element of the view. Read as the element `ensureElement` resolved it to when
-     * the view was created; set it before that — on the prototype or in `preinitialize` — as
-     * an element or as a function returning one.
+     * Root DOM element of the view. `ensureElement` resolves it when the view is created,
+     * so the member reads as the element. To provide it lazily, pass the function form as
+     * the `el` option, which is where the declaration carries it.
      */
-    get el(): HTMLElement;
-    set el(value: Resolvable<HTMLElement>);
+    el: HTMLElement;
 
     /** A model or any object containing data and business logic. */
     model?: M;
 
     /**
      * Tag used to create the root element when `el` is not provided (default `div`).
-     * Read through `getResult`, so it may be a string or a function returning one.
+     * A string, or a function returning one, called bound to the view. Assign it on the
+     * prototype, or via `this.tag` inside `preinitialize`: the constructor reads it before
+     * a class field would be assigned.
      */
     tag?: Resolvable<string>;
 
     /**
      * Attributes used to create the root element when `el` is not provided.
-     * Declared as a method so subclasses can define it as one.
+     * An object, or a function returning one, called bound to the view. Assign it on the
+     * prototype, or via `this.attributes` inside `preinitialize`: the constructor reads it
+     * before a class field would be assigned.
      */
-    attributes?(): Record<string, any>;
+    attributes?: Resolvable<Record<string, any>>;
 
     /**
      * Declarative DOM event listeners in the form `{'event selector': listener}`.
-     * Declared as a method so subclasses can define it as one.
+     * An object, or a function returning one, called bound to the view. Assign it on the
+     * prototype, or via `this.events` inside `preinitialize`: `delegateEvents` reads it
+     * before a class field would be assigned.
      */
-    events?(): Record<string, string | Function>;
+    events?: Resolvable<Record<string, string | Function>>;
 
     /**
      * Function returning the view's inner HTML, used by `render`. A plain view returns a
      * string assigned to `innerHTML`; `Component` narrows this to return a partial.
-     * Declared as a method so subclasses can define it as one.
+     * Declared as a method, the form it always takes.
      */
     template?(...args: any[]): any;
 
@@ -197,9 +202,9 @@ export default class View<M = any> extends Emitter {
      *
      * @example
      * class Modal extends View {
-     *     events() { return { 'click button.ok': 'onClickOk' }; }
      *     onClickOk() { this.close(); }
      * }
+     * Modal.prototype.events = { 'click button.ok': 'onClickOk' };
      */
     delegateEvents(events?: Record<string, string | Function>): this;
 
