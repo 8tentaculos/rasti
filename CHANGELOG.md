@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **An interpolated value keeps its leading and trailing whitespace when it updates.** `parseHTML` trimmed the string it parsed. On a component's first render that string is the whole markup, which the template parser already emits without surrounding whitespace, so the trim did nothing; on an update it is the rendered value alone, so ` hola ` reached the DOM as `hola` and a whitespace-only value as an empty string — while the same value rendered correctly the first time.
+
+- **TypeScript: `View`'s `template` is declared as a method.** It was typed as a property, so a subclass defining `template()` — the form the `View` example uses — failed to compile with TS2425 (*defines instance member property, but extended class defines it as instance member function*). A view's template is a function and nothing else, so this only widens what the declaration accepts: assigning a function to the instance, to the prototype or through the `template` option keeps working as before. Its return type is `any` rather than `string`: a view is render-agnostic and `View` never reads the member, so what it returns is whatever the view's own `render` does with it.
+
+- **TypeScript: `Component`'s `template` is declared as the internal member it is.** It was typed as `(...args: any[]) => string`, borrowed from `View`, but a component's template is not a view-style template function: `Component.create` installs a method returning the parsed structure the render pipeline walks, and the member is replaced by that structure when the instance is created — so on an instance it holds an object, not a function. It is declared as `any` and documented as internal; a component's markup is defined with `Component.create`.
+
+- **TypeScript: a function passed through the options is typed with the view as `this`.** Rasti calls the function form of `el`, `tag`, `attributes`, `events`, `template` and `onDestroy` with the instance, and so it does with the `Component` lifecycle hooks, but the declarations left `this` as the options object — so ``new View({ attributes: function () { return { 'data-uid': this.uid }; } })`` failed with TS2339 (*Property 'uid' does not exist on type 'ViewOptions'*). The annotation is additive: arrow functions, method shorthand and plain values keep compiling unchanged.
+
+### Added
+
+- **TypeScript: `Resolvable<T>` and `ResolvableOption<T, V>`**, exported from the package. Both name the form that takes either a value or a function returning it: `Resolvable` on the instance, where TypeScript infers `this` from the assignment target, and `ResolvableOption` on the options side, where it carries `this` explicitly because an option has nothing to infer it from. They type `tag`, `attributes` and `events` on the instance, and `el`, `tag`, `attributes` and `events` in `ViewOptions`.
+
 ## [4.1.2] - 2026-08-29
 
 ### Fixed
