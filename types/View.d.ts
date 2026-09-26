@@ -1,13 +1,24 @@
 import Emitter from './Emitter.js';
 
+/** A value provided directly, or as a function returning it (called bound to the view). */
+export type Resolvable<T> = T | (() => T);
+
+/**
+ * A `Resolvable` on the options side, where the function form is called with the view as
+ * `this`. It carries `this` explicitly because an option has no assignment target for
+ * TypeScript to infer it from, unlike the matching member on the instance.
+ */
+export type ResolvableOption<T, V> = T | ((this: V) => T);
+
 export interface ViewOptions<M = any> {
-    el?: HTMLElement | (() => HTMLElement);
-    tag?: string | (() => string);
-    attributes?: Record<string, any> | (() => Record<string, any>);
-    events?: Record<string, string | Function> | (() => Record<string, string | Function>);
+    el?: ResolvableOption<HTMLElement, View<M>>;
+    tag?: ResolvableOption<string, View<M>>;
+    attributes?: ResolvableOption<Record<string, any>, View<M>>;
+    events?: ResolvableOption<Record<string, string | Function>, View<M>>;
     model?: M;
-    template?: (...args: any[]) => string;
-    onDestroy?: (...args: any[]) => void;
+    /** Function for the view's own `render` to call. `View` never reads it itself. */
+    template?: (this: View<M>, ...args: any[]) => any;
+    onDestroy?: (this: View<M>, ...args: any[]) => void;
 }
 
 /**
@@ -58,23 +69,47 @@ export default class View<M = any> extends Emitter {
      */
     static resetUid(): void;
 
-    /** Root DOM element of the view. */
+    /**
+     * Root DOM element of the view. `ensureElement` resolves it when the view is created,
+     * so the member reads as the element. To provide it lazily, pass the function form as
+     * the `el` option, which is where the declaration carries it.
+     */
     el: HTMLElement;
 
     /** A model or any object containing data and business logic. */
     model?: M;
 
-    /** Tag used to create the root element when `el` is not provided (default `div`). */
-    tag?: string | (() => string);
+    /**
+     * Tag used to create the root element when `el` is not provided (default `div`).
+     * A string, or a function returning one, called bound to the view. Assign it on the
+     * prototype, or via `this.tag` inside `preinitialize`: the constructor reads it before
+     * a class field would be assigned.
+     */
+    tag?: Resolvable<string>;
 
-    /** Attributes used to create the root element when `el` is not provided. */
-    attributes?: Record<string, any> | (() => Record<string, any>);
+    /**
+     * Attributes used to create the root element when `el` is not provided.
+     * An object, or a function returning one, called bound to the view. Assign it on the
+     * prototype, or via `this.attributes` inside `preinitialize`: the constructor reads it
+     * before a class field would be assigned.
+     */
+    attributes?: Resolvable<Record<string, any>>;
 
-    /** Declarative DOM event listeners in the form `{'event selector': listener}`. */
-    events?: Record<string, string | Function> | (() => Record<string, string | Function>);
+    /**
+     * Declarative DOM event listeners in the form `{'event selector': listener}`.
+     * An object, or a function returning one, called bound to the view. Assign it on the
+     * prototype, or via `this.events` inside `preinitialize`: `delegateEvents` reads it
+     * before a class field would be assigned.
+     */
+    events?: Resolvable<Record<string, string | Function>>;
 
-    /** Function returning the view's inner HTML, used by `render`. */
-    template?: (...args: any[]) => string;
+    /**
+     * Function for your own `render` to call. A view is render-agnostic: `View` never reads
+     * this member, so what it returns is whatever your `render` does with it — hence `any`.
+     * Declared as a method, the form it always takes; the function can also be assigned to
+     * the instance, to the prototype or as a class field.
+     */
+    template?(...args: any[]): any;
 
     /** Unique identifier for the view instance. */
     uid: string;

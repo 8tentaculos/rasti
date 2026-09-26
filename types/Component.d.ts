@@ -1,4 +1,4 @@
-import View, { ViewOptions } from './View.js';
+import View, { ViewOptions, Resolvable } from './View.js';
 import Model from './Model.js';
 
 export interface ComponentReservedOptions<S = any, M = any> extends ViewOptions<M> {
@@ -14,19 +14,19 @@ export interface ComponentReservedOptions<S = any, M = any> extends ViewOptions<
      */
     state?: S;
     /** Lifecycle hook called at the end of the constructor. */
-    onCreate?: (...args: any[]) => void;
+    onCreate?: (this: Component<any, S, M>, ...args: any[]) => void;
     /** Lifecycle hook called when `model`, `state` or `props` emits `change`. */
-    onChange?: (...args: any[]) => void;
+    onChange?: (this: Component<any, S, M>, ...args: any[]) => void;
     /** Lifecycle hook called after the first render (client only). */
-    onHydrate?: () => void;
+    onHydrate?: (this: Component<any, S, M>) => void;
     /** Lifecycle hook called at the start of `recycle`, before any recycling happens. */
-    onBeforeRecycle?: () => void;
+    onBeforeRecycle?: (this: Component<any, S, M>) => void;
     /** Lifecycle hook called after the component is recycled and props are updated. */
-    onRecycle?: () => void;
+    onRecycle?: (this: Component<any, S, M>) => void;
     /** Lifecycle hook called at the start of `render` on update. */
-    onBeforeUpdate?: () => void;
+    onBeforeUpdate?: (this: Component<any, S, M>) => void;
     /** Lifecycle hook called at the end of `render` on update. */
-    onUpdate?: () => void;
+    onUpdate?: (this: Component<any, S, M>) => void;
 }
 
 export type ComponentOptions<P = {}, S = any, M = any> = P & ComponentReservedOptions<S, M>;
@@ -220,8 +220,25 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
     /** The original options object passed to the constructor. */
     options: ComponentOptions<P, S, M>;
 
-    /** Template function returning the view's inner HTML. */
-    template: (...args: any[]) => string;
+    /**
+     * Internal. Not a view-style template function returning HTML: `Component.create`
+     * installs a method returning the parsed structure the render pipeline walks, and the
+     * member is replaced by that structure when the instance is created. Define a
+     * component's markup with {@link Component.create}, not by assigning here.
+     */
+    template: any;
+
+    /**
+     * A component builds this member from the template's `onEvent` handlers, delegating them
+     * through the data attributes they are rendered with. Overriding it replaces them: call
+     * the inherited member and merge its result to keep them, or leave it out to use
+     * declarative delegation alone.
+     *
+     * Since `View` declares the member as a value or a function, an override goes on the
+     * prototype or through `extend` rather than in the class body, and calling the inherited
+     * member needs a cast to its function form.
+     */
+    events?: Resolvable<Record<string, string | Function>>;
 
     /**
      * @param options Component options. Keys `model`, `state`, `key`, `onCreate`, `onChange`,

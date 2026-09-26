@@ -44,9 +44,9 @@ export default class Model<A = any> extends Emitter<ModelEvents<A>> {
 
     /**
      * Default attributes for the model, merged into `this.attributes` during construction.
-     * Can be a plain object, or a function (called bound to the instance) that returns the
-     * defaults. Assign it on the prototype, or via `this.defaults` inside
-     * `preinitialize`.
+     * An object, or a function returning one, called bound to the model. Assign it on the
+     * prototype, or via `this.defaults` inside `preinitialize`: the constructor reads it
+     * before a class field would be assigned.
      */
     defaults?: Partial<A> | (() => Partial<A>);
 
