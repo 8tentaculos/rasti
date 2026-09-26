@@ -923,7 +923,7 @@ Models should be easily passed throughout your app and used anywhere the corresp
 
 | Name | Type | Description |
 | --- | --- | --- |
-| defaults | <code>object</code> \| <code>function</code> | Default attributes for the model. If a function, it's called bound to the model instance to get defaults. The TypeScript declarations type it as a method on the instance, so in TypeScript it is defined as a method or assigned in its function form. |
+| defaults | <code>object</code> \| <code>function</code> | Default attributes for the model. If a function, it's called bound to the model instance to get defaults. |
 | previous | <code>object</code> | Object containing previous attributes when a change occurs. |
 
 **Example**  
@@ -1247,9 +1247,9 @@ If `this.el` is not present, an element will be created using `this.tag` (defaul
 
 | Name | Type | Description |
 | --- | --- | --- |
-| el | <code>node</code> \| <code>function</code> | Every view has a root DOM element stored at `this.el`. If not present, it will be created. If `this.el` is a function, it will be called to get the element at `this.ensureElement`, bound to the view instance. The TypeScript declarations type it as a getter/setter pair, reading as the resolved element, so in TypeScript it is set on the prototype or in `preinitialize` — a class field lands after `ensureElement` has run. See [View.ensureElement](module_view__ensureelement). |
+| el | <code>node</code> \| <code>function</code> | Every view has a root DOM element stored at `this.el`. If not present, it will be created. If `this.el` is a function, it will be called to get the element at `this.ensureElement`, bound to the view instance. See [View.ensureElement](module_view__ensureelement). |
 | tag | <code>string</code> \| <code>function</code> | If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. Default is `div`. If it is a function, it will be called to get the tag, bound to the view instance. See [View.ensureElement](module_view__ensureelement). |
-| attributes | <code>object</code> \| <code>function</code> | If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. If it is a function, it will be called to get the attributes object, bound to the view instance. The TypeScript declarations type it as a method on the instance, so in TypeScript it is defined as a method or assigned in its function form. See [View.ensureElement](module_view__ensureelement). |
+| attributes | <code>object</code> \| <code>function</code> | If `this.el` is not present, an element will be created using `this.tag` and `this.attributes`. If it is a function, it will be called to get the attributes object, bound to the view instance. See [View.ensureElement](module_view__ensureelement). |
 | events | <code>object</code> \| <code>function</code> | Object in the format `{'event selector' : 'listener'}`. It will be used to bind delegated event listeners to the root element. If it is a function, it will be called to get the events object, bound to the view instance. See [View.delegateEvents](module_view_delegateevents). |
 | model | <code>object</code> | A model or any object containing data and business logic. |
 | template | <code>function</code> | A function that returns a string with the view's inner HTML. See [View.render](module_view__render). |
@@ -1463,8 +1463,7 @@ Modal.prototype.events = {
     'submit form': 'onSubmit'
 };
 
-// Using a method for dynamic events. The TypeScript declarations type `events` as a
-// method on the instance, so this is also the form to use there for static events.
+// Using a function for dynamic events
 class DynamicView extends View {
     events() {
         return {
