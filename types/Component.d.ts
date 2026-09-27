@@ -229,18 +229,6 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
     template: any;
 
     /**
-     * A component builds this member from the template's `onEvent` handlers, delegating them
-     * through the data attributes they are rendered with. Overriding it replaces them: call
-     * the inherited member and merge its result to keep them, or leave it out to use
-     * declarative delegation alone.
-     *
-     * Since `View` declares the member as a value or a function, an override goes on the
-     * prototype or through `extend` rather than in the class body, and calling the inherited
-     * member needs a cast to its function form.
-     */
-    events?: Resolvable<Record<string, string | Function>>;
-
-    /**
      * @param options Component options. Keys `model`, `state`, `key`, `onCreate`, `onChange`,
      * `onHydrate`, `onBeforeRecycle`, `onRecycle`, `onBeforeUpdate`, `onUpdate`, `onDestroy`
      * are merged into `this`. Any remaining options become `this.props`.
@@ -296,6 +284,26 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
 
     /** Lifecycle. Called at the end of `render` on update. */
     onUpdate(): void;
+}
+
+/**
+ * Declared apart from the class body so a subclass can provide `events` as a getter. See
+ * {@link View}'s own declaration for why the form matters.
+ */
+interface Component<P = {}, S = any, M = any> {
+    /**
+     * A component builds this member from the template's `onEvent` handlers, delegating them
+     * through the data attributes they are rendered with. Overriding it replaces them: call
+     * the inherited member and merge its result to keep them, or leave it out to use
+     * declarative delegation alone.
+     *
+     * `Component` installs it as a method, so merging the inherited handlers means calling
+     * that function with the component as `this`: `super.events` from a getter in the class
+     * body, or `Component.prototype.events` from an override on the prototype or through
+     * `extend`. Either one needs a cast to the function form, which the declared value or
+     * function union does not narrow on its own.
+     */
+    events?: Resolvable<Record<string, string | Function>>;
 }
 
 declare const _default: typeof Component;

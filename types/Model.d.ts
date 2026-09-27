@@ -34,21 +34,13 @@ export type ModelEvents<A> =
  *     }
  * }
  */
-export default class Model<A = any> extends Emitter<ModelEvents<A>> {
+declare class Model<A = any> extends Emitter<ModelEvents<A>> {
     /**
      * Static property that defines a prefix for generated getters/setters.
      * When set, all attribute properties will be prefixed (e.g., 'attr_name' instead of 'name').
      * @default ''
      */
     static attributePrefix: string;
-
-    /**
-     * Default attributes for the model, merged into `this.attributes` during construction.
-     * An object, or a function returning one, called bound to the model. Assign it on the
-     * prototype, or via `this.defaults` inside `preinitialize`: the constructor reads it
-     * before a class field would be assigned.
-     */
-    defaults?: Partial<A> | (() => Partial<A>);
 
     /** Primary data object holding the model attributes. */
     attributes: A;
@@ -121,3 +113,21 @@ export default class Model<A = any> extends Emitter<ModelEvents<A>> {
      */
     toJSON(): A;
 }
+
+/**
+ * Declared apart from the class body so a subclass can provide `defaults` as a getter: a
+ * getter lives on the prototype, where it is in place before the constructor reads the
+ * member, and TypeScript rejects an accessor that overrides a member declared in a base
+ * class body.
+ */
+interface Model<A = any> {
+    /**
+     * Default attributes for the model, merged into `this.attributes` during construction.
+     * An object, or a function returning one, called bound to the model. Provide it on the
+     * prototype, as a getter, or via `this.defaults` inside `preinitialize`: the constructor
+     * reads it before a class field would be assigned.
+     */
+    defaults?: Partial<A> | (() => Partial<A>);
+}
+
+export default Model;

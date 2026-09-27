@@ -47,7 +47,7 @@ export interface ViewOptions<M = any> {
  *     }
  * }
  */
-export default class View<M = any> extends Emitter {
+declare class View<M = any> extends Emitter {
     /**
      * Counter for generating unique IDs for view instances.
      * For server-side rendering, reset it to `0` on every request (see `resetUid`) so the
@@ -78,30 +78,6 @@ export default class View<M = any> extends Emitter {
 
     /** A model or any object containing data and business logic. */
     model?: M;
-
-    /**
-     * Tag used to create the root element when `el` is not provided (default `div`).
-     * A string, or a function returning one, called bound to the view. Assign it on the
-     * prototype, or via `this.tag` inside `preinitialize`: the constructor reads it before
-     * a class field would be assigned.
-     */
-    tag?: Resolvable<string>;
-
-    /**
-     * Attributes used to create the root element when `el` is not provided.
-     * An object, or a function returning one, called bound to the view. Assign it on the
-     * prototype, or via `this.attributes` inside `preinitialize`: the constructor reads it
-     * before a class field would be assigned.
-     */
-    attributes?: Resolvable<Record<string, any>>;
-
-    /**
-     * Declarative DOM event listeners in the form `{'event selector': listener}`.
-     * An object, or a function returning one, called bound to the view. Assign it on the
-     * prototype, or via `this.events` inside `preinitialize`: `delegateEvents` reads it
-     * before a class field would be assigned.
-     */
-    events?: Resolvable<Record<string, string | Function>>;
 
     /**
      * Function for your own `render` to call. A view is render-agnostic: `View` never reads
@@ -214,3 +190,37 @@ export default class View<M = any> extends Emitter {
      */
     render(): this;
 }
+
+/**
+ * Members the view resolves while it is being created, declared apart from the class body so
+ * a subclass can provide them as a getter: a getter lives on the prototype, where it is in
+ * place before the constructor reads the member, and TypeScript rejects an accessor that
+ * overrides a member declared in a base class body.
+ */
+interface View<M = any> {
+    /**
+     * Tag used to create the root element when `el` is not provided (default `div`).
+     * A string, or a function returning one, called bound to the view. Provide it on the
+     * prototype, as a getter, or via `this.tag` inside `preinitialize`: the constructor reads
+     * it before a class field would be assigned.
+     */
+    tag?: Resolvable<string>;
+
+    /**
+     * Attributes used to create the root element when `el` is not provided.
+     * An object, or a function returning one, called bound to the view. Provide it on the
+     * prototype, as a getter, or via `this.attributes` inside `preinitialize`: the constructor
+     * reads it before a class field would be assigned.
+     */
+    attributes?: Resolvable<Record<string, any>>;
+
+    /**
+     * Declarative DOM event listeners in the form `{'event selector': listener}`.
+     * An object, or a function returning one, called bound to the view. Provide it on the
+     * prototype, as a getter, or via `this.events` inside `preinitialize`: `delegateEvents`
+     * reads it before a class field would be assigned.
+     */
+    events?: Resolvable<Record<string, string | Function>>;
+}
+
+export default View;

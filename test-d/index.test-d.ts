@@ -62,6 +62,14 @@ interface UserAttrs {
 const u = new Model<UserAttrs>({ name: 'Alice', age: 30 });
 
 expectType<UserAttrs>(u.attributes);
+
+// The constructor writes `attributes`, so a getter throws when it is assigned. The accessor
+// form is rejected (TS2611), unlike on `defaults`, which is only read
+class GetterAttributes extends Model<UserAttrs> {
+    // @ts-expect-error
+    get attributes() { return { name: '', age: 0 }; }
+}
+new GetterAttributes();
 expectType<Partial<UserAttrs>>(u.previous);
 expectType<string>(u.get('name'));
 expectType<number>(u.get('age'));
@@ -108,6 +116,12 @@ class WithMethodDefaults extends Model<UserAttrs> {
 }
 new WithMethodDefaults();
 
+// A getter lives on the prototype, so it is in place when the constructor reads the member
+class WithGetterDefaults extends Model<UserAttrs> {
+    override get defaults() { return { name: '', age: 0 }; }
+}
+new WithGetterDefaults();
+
 /*
  * View: model, root element and merged options
  */
@@ -121,6 +135,13 @@ expectType<HTMLElement>(v.el);
 new View({ el: () => document.createElement('section') });
 class ElOnPrototype extends View {}
 ElOnPrototype.prototype.el = document.createElement('section');
+
+// `ensureElement` writes `el`, so the accessor form is rejected here too (TS2611)
+class GetterEl extends View {
+    // @ts-expect-error
+    get el() { return document.createElement('section'); }
+}
+new GetterEl();
 
 expectType<Array<() => void>>(v.destroyQueue);
 v.destroyQueue.push(() => {});
@@ -147,6 +168,27 @@ DynamicView.prototype.attributes = { class: 'dynamic' };
 DynamicView.prototype.attributes = () => ({ class: 'dynamic' });
 DynamicView.prototype.events = { click: 'onRootClick' };
 DynamicView.prototype.events = function() { return { click: 'onRootClick' }; };
+
+// The getter form, for the same reason it works on a model's `defaults`
+class GetterView extends View<Model<UserAttrs>> {
+    override get tag() { return 'section'; }
+    override get attributes() { return { class: 'dynamic' }; }
+    override get events() { return { 'click .ok': 'onOk' }; }
+    onOk() {}
+}
+new GetterView();
+
+// Narrowing through a merged interface leaves the getter available to further subclasses,
+// which redeclaring the member in the class body would not
+class NarrowedView extends View {}
+interface NarrowedView { events: { 'click .ok': string }; }
+expectType<{ 'click .ok': string }>(new NarrowedView().events);
+
+class NarrowedViewChild extends NarrowedView {
+    override get events() { return { 'click .ok': 'onOk' }; }
+    onOk() {}
+}
+new NarrowedViewChild();
 
 // As with `defaults`, a method in the class body does not compile (TS2425)
 class MethodAttributes extends View {
@@ -302,6 +344,16 @@ WithMergedEvents.prototype.events = function() {
 };
 new WithMergedEvents({ initial: 1, label: 'x' });
 
+// From a getter, the inherited member is reachable through `super`
+class WithSuperEvents extends Component<CounterProps> {
+    override get events() {
+        const inherited = super.events as () => Record<string, string | Function>;
+        return Object.assign({}, inherited.call(this), { 'click .ok': 'onOk' });
+    }
+    onOk() {}
+}
+new WithSuperEvents({ initial: 1, label: 'x' });
+
 // As on a view, a method in the class body does not compile (TS2425)
 class WithEvents extends Component<CounterProps> {
     // @ts-expect-error
@@ -326,6 +378,14 @@ Component.mount({ onCreate: () => {} });
 
 // `template` is internal on a component: it holds the parsed structure, not a function
 expectType<any>(new WithEvents({ initial: 1, label: 'x' }).template);
+
+// The instance holds that structure because `ensureElement` writes it, so a getter is
+// rejected (TS2611)
+class GetterTemplate extends Component<CounterProps> {
+    // @ts-expect-error
+    get template() { return () => 'x'; }
+}
+new GetterTemplate({ initial: 1, label: 'x' });
 
 /*
  * Helper types: EventHandler, RenderExpression, ModelAttrs, ComponentProps, ComponentState, ComponentModel
