@@ -265,6 +265,10 @@ expectError(new Counter({ initial: 'not-a-number', label: 'x' }));
 // `key` is merged from options onto the instance
 expectType<string | undefined>(new Counter({ initial: 1, label: 'x', key: 'k' }).key);
 
+// The exported name is also the instance type, as it is for a view or a model
+const counterInstance: Component<CounterProps, CounterState> = new Counter({ initial: 1, label: 'x' });
+expectType<number>(counterInstance.props.initial);
+
 /*
  * Component.create<P, S, M>
  */

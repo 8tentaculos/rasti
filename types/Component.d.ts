@@ -306,6 +306,13 @@ interface Component<P = {}, S = any, M = any> {
     events?: Resolvable<Record<string, string | Function>>;
 }
 
+/**
+ * The module's default export is a component created from `<div></div>`, not the class, so it
+ * is declared as a value of the constructor's shape. The type alias gives the same name the
+ * instance type, as a class declaration would.
+ */
 declare const _default: typeof Component;
+type _default<P = {}, S = any, M = any> = Component<P, S, M>;
+
 export default _default;
 export { Component };
