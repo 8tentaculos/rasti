@@ -1192,6 +1192,17 @@ describe('Component', () => {
     });
 
     describe('Lifecycle methods', () => {
+        it('must let an option override a getter declared by a subclass', () => {
+            class Main extends Component.create`<div></div>` {
+                get state() {
+                    return 'from-getter';
+                }
+            }
+
+            expect(new Main().state).to.be.equal('from-getter');
+            expect(new Main({ state : 'from-option' }).state).to.be.equal('from-option');
+        });
+
         it('must call onHydrate lifecycle method', () => {
             let calls = 0;
             const onHydrate = function() {

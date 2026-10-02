@@ -207,7 +207,7 @@ interface View<M = any> {
      * Tag used to create the root element when `el` is not provided (default `div`).
      * A string, or a function returning one, called bound to the view. Provide it on the
      * prototype, as a getter, or via `this.tag` inside `preinitialize`: the constructor reads
-     * it before a class field would be assigned.
+     * it before a class field would be assigned. The `tag` option still overrides it.
      */
     tag?: Resolvable<string>;
 
@@ -215,7 +215,7 @@ interface View<M = any> {
      * Attributes used to create the root element when `el` is not provided.
      * An object, or a function returning one, called bound to the view. Provide it on the
      * prototype, as a getter, or via `this.attributes` inside `preinitialize`: the constructor
-     * reads it before a class field would be assigned.
+     * reads it before a class field would be assigned. The `attributes` option still overrides it.
      */
     attributes?: Resolvable<Record<string, any>>;
 
@@ -223,7 +223,7 @@ interface View<M = any> {
      * Declarative DOM event listeners in the form `{'event selector': listener}`.
      * An object, or a function returning one, called bound to the view. Provide it on the
      * prototype, as a getter, or via `this.events` inside `preinitialize`: `delegateEvents`
-     * reads it before a class field would be assigned.
+     * reads it before a class field would be assigned. The `events` option still overrides it.
      */
     events?: Resolvable<Record<string, string | Function>>;
 }

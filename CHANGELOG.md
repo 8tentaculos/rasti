@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Interpolation whitespace**: an interpolated value keeps its leading and trailing whitespace when it updates. `parseHTML` trimmed the rendered value, so ` hola ` reached the DOM as `hola` on update while rendering correctly the first time.
 
+- **An option overrides a getter declared by a subclass.** The options merged into a `View` or `Component` were assigned to the instance, so one matching a getter with no setter (`get tag() { … }`) threw `TypeError: Cannot set property tag … which has only a getter`. They are now defined as own properties, which shadow the getter.
+
 - **TypeScript: `Component` is usable as a type.** `const c: Component<P>` failed with TS2749 because the default export is a value, not a class; a type alias now gives the exported name the instance type too, as `View` and `Model` have.
 
 - **TypeScript: a `Component` subclass without type arguments accepts any props.** `class X extends Component {}` defaulted `P` to `{}`, so `new X({ foo: 1 })` failed with TS2353 while the same component created with `Component.create` accepted it. Both default to `Record<string, any>` now, like `Model` and `View` do without type arguments.
