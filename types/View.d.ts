@@ -10,15 +10,20 @@ export type Resolvable<T> = T | (() => T);
  */
 export type ResolvableOption<T, V> = T | ((this: V) => T);
 
-export interface ViewOptions<M = any> {
-    el?: ResolvableOption<HTMLElement, View<M>>;
-    tag?: ResolvableOption<string, View<M>>;
-    attributes?: ResolvableOption<Record<string, any>, View<M>>;
-    events?: ResolvableOption<Record<string, string | Function>, View<M>>;
+/**
+ * Options merged into the view instance. `V` is the instance the function forms are called
+ * with as `this`, so a subclass with its own options (see `ComponentReservedOptions`) can
+ * substitute its own instance type.
+ */
+export interface ViewOptions<M = any, V = View<M>> {
+    el?: ResolvableOption<HTMLElement, V>;
+    tag?: ResolvableOption<string, V>;
+    attributes?: ResolvableOption<Record<string, any>, V>;
+    events?: ResolvableOption<Record<string, string | Function>, V>;
     model?: M;
     /** Function for the view's own `render` to call. `View` never reads it itself. */
-    template?: (this: View<M>, ...args: any[]) => any;
-    onDestroy?: (this: View<M>, ...args: any[]) => void;
+    template?: (this: V, ...args: any[]) => any;
+    onDestroy?: (this: V, ...args: any[]) => void;
 }
 
 /**

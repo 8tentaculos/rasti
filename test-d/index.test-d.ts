@@ -380,6 +380,12 @@ new WithFieldAttributes({ initial: 1, label: 'x' });
 Component.mount({ onCreate() { this.render(); }, onHydrate() { this.render(); } });
 Component.mount({ onCreate: () => {} });
 
+// So are the options inherited from `View`: `this` is the component, not a bare view
+new Counter({ initial: 1, label: 'x', attributes() { return { 'data-label': this.props.label }; } });
+new Counter({ initial: 1, label: 'x', events() { return { click: this.props.label }; } });
+new Counter({ initial: 1, label: 'x', onDestroy() { expectType<CounterState | undefined>(this.state); } });
+new Counter({ initial: 1, label: 'x', tag() { return this.state ? 'section' : 'div'; } });
+
 // `template` is internal on a component: it holds the parsed structure, not a function
 expectType<any>(new WithEvents({ initial: 1, label: 'x' }).template);
 

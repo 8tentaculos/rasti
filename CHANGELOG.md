@@ -19,11 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **TypeScript: `Component`'s `template` is declared as `any` and documented as internal.** It held a view-style `(...args) => string` signature, but on an instance it is the parsed structure the render pipeline walks, not a function.
 
-- **TypeScript: the function form of an option is typed with the instance as `this`.** `el`, `tag`, `attributes`, `events`, `template`, `onDestroy` and the `Component` lifecycle hooks left `this` as the options object, so `new View({ attributes() { return { 'data-uid': this.uid }; } })` failed with TS2339. Arrow functions and plain values compile unchanged.
+- **TypeScript: the function form of an option is typed with the instance as `this`.** `el`, `tag`, `attributes`, `events`, `template`, `onDestroy` and the `Component` lifecycle hooks left `this` as the options object, so `new View({ attributes() { return { 'data-uid': this.uid }; } })` failed with TS2339. In a component's options `this` is the component, so `this.props` and `this.state` are reachable from them. Arrow functions and plain values compile unchanged.
 
 ### Added
 
-- **TypeScript: `Resolvable<T>` and `ResolvableOption<T, V>`**, exported from the package. They name a value or a function returning it: `Resolvable` for instance members (`tag`, `attributes`, `events`), `ResolvableOption` for options, where it carries `this` explicitly.
+- **TypeScript: `Resolvable<T>` and `ResolvableOption<T, V>`**, exported from the package. They name a value or a function returning it: `Resolvable` for instance members (`tag`, `attributes`, `events`), `ResolvableOption` for options, where it carries `this` explicitly. `ViewOptions` takes the instance type as a second parameter, which `ComponentReservedOptions` uses to type `this` as the component.
 
 ## [4.1.2] - 2026-08-29
 

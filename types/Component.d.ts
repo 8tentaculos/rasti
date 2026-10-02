@@ -1,7 +1,7 @@
 import View, { ViewOptions, Resolvable } from './View.js';
 import Model from './Model.js';
 
-export interface ComponentReservedOptions<S = any, M = any> extends ViewOptions<M> {
+export interface ComponentReservedOptions<S = any, M = any> extends ViewOptions<M, Component<any, S, M>> {
     /**
      * A unique key to identify the component.
      * Components with keys are recycled when the same key is found in the previous render.
