@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **TypeScript: `Component` is usable as a type.** `const c: Component<P>` failed with TS2749 because the default export is a value, not a class; a type alias now gives the exported name the instance type too, as `View` and `Model` have.
 
+- **TypeScript: a `Component` subclass without type arguments accepts any props.** `class X extends Component {}` defaulted `P` to `{}`, so `new X({ foo: 1 })` failed with TS2353 while the same component created with `Component.create` accepted it. Both default to `Record<string, any>` now, like `Model` and `View` do without type arguments.
+
 - **TypeScript: `tag`, `attributes`, `events` and `defaults` accept a getter in a subclass.** Overriding them as an accessor failed with TS2611, and `super.events` from a getter with TS2855. They are now declared apart from the class body. The prototype, `preinitialize`, option and class field forms compile unchanged; a method in the class body is still rejected.
 
 - **TypeScript: `View`'s `template` is declared as a method**, so a subclass defining `template()` no longer fails with TS2425. Its return type is `any`: a view is render-agnostic and `View` never reads the member.

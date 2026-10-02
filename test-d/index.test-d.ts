@@ -285,9 +285,14 @@ const Header = Component.create<HeaderProps>`<header></header>`;
 new Header({ handleAddTodo: (t) => expectType<string>(t) });
 expectError(new Header({ handleAddTodo: 'not-a-fn' }));
 
-// `Component.create` without generics — permissive (parity with JS)
+// Without generics the props are permissive (parity with JS), through `create` or a subclass
 const Plain = Component.create`<div></div>`;
 new Plain({ anything: 'goes', other: 123 });
+
+class PlainClass extends Component {
+    read() { return this.props.anything; }
+}
+new PlainClass({ anything: 'goes', other: 123 }).read();
 
 // A component that receives inner content declares `renderChildren` in its props
 class Card extends Component<{ title: string; renderChildren?: () => any }> {

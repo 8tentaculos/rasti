@@ -29,7 +29,7 @@ export interface ComponentReservedOptions<S = any, M = any> extends ViewOptions<
     onUpdate?: (this: Component<any, S, M>) => void;
 }
 
-export type ComponentOptions<P = {}, S = any, M = any> = P & ComponentReservedOptions<S, M>;
+export type ComponentOptions<P = Record<string, any>, S = any, M = any> = P & ComponentReservedOptions<S, M>;
 
 /** Marker type for strings that are safe to inject as HTML without sanitization. */
 export interface SafeHTML {
@@ -127,7 +127,7 @@ export type ExtendedComponent<T extends new (...args: any[]) => any, O> =
  * Timer.mount({ model }, document.body);
  * setInterval(() => model.seconds++, 1000);
  */
-declare class Component<P = {}, S = any, M = any> extends View<M> {
+declare class Component<P = Record<string, any>, S = any, M = any> extends View<M> {
     /**
      * Mark a string as safe HTML to be rendered.
      * Rasti marks string literals as safe automatically when a component is created or when
@@ -290,7 +290,7 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
  * Declared apart from the class body so a subclass can provide `events` as a getter. See
  * {@link View}'s own declaration for why the form matters.
  */
-interface Component<P = {}, S = any, M = any> {
+interface Component<P = Record<string, any>, S = any, M = any> {
     /**
      * A component builds this member from the template's `onEvent` handlers, delegating them
      * through the data attributes they are rendered with. Overriding it replaces them: call
@@ -312,7 +312,7 @@ interface Component<P = {}, S = any, M = any> {
  * instance type, as a class declaration would.
  */
 declare const _default: typeof Component;
-type _default<P = {}, S = any, M = any> = Component<P, S, M>;
+type _default<P = Record<string, any>, S = any, M = any> = Component<P, S, M>;
 
 export default _default;
 export { Component };
