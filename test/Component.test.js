@@ -902,6 +902,28 @@ describe('Component', () => {
             expect(c2.bar).to.be.a('function');
         });
 
+        it('must create a component from a subclass, keeping its methods and hooks', () => {
+            class Base extends Component {
+                onCreate() {
+                    this.state = new Model({ count : 1 });
+                }
+
+                renderLabel() {
+                    return this.partial`<b>${this.props.label}</b>`;
+                }
+            }
+
+            const C = Base.create`<div>${(self) => self.renderLabel()}<i>${({ state }) => state.count}</i></div>`;
+            const c = C.mount({ label : 'x' }, document.body);
+
+            expect(c).to.be.an.instanceof(Base);
+            expect(c.el.textContent).to.be.equal('x1');
+
+            c.state.count = 2;
+
+            expect(c.el.textContent).to.be.equal('x2');
+        });
+
         it('must return this from chainable methods', () => {
             const m = new Model();
             const c = new Component();

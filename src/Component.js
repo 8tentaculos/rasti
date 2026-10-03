@@ -1307,6 +1307,17 @@ class Component extends View {
      *       renderChildren : () => 'Cancel'
      *   }));
      *   ```
+     * - Called on a subclass, the new component extends it, so the template can use its methods.
+     *   ```javascript
+     *   class ListBase extends Component {
+     *       renderItems() {
+     *           return this.props.items.map(item => this.partial`<li>${item}</li>`);
+     *       }
+     *   }
+     *   const List = ListBase.create`
+     *       <ul>${(self) => self.renderItems()}</ul>
+     *   `;
+     *   ```
      * @static
      * @param {string|Function} strings - HTML template for the component or a function that mounts a sub component.
      * @param {...*} expressions - The expressions to be interpolated within the template.

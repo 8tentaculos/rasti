@@ -519,6 +519,17 @@ Takes a tagged template string or a function that returns another component, and
       renderChildren : () => 'Cancel'
   }));
   ```
+- Called on a subclass, the new component extends it, so the template can use its methods.
+  ```javascript
+  class ListBase extends Component {
+      renderItems() {
+          return this.props.items.map(item => this.partial`<li>${item}</li>`);
+      }
+  }
+  const List = ListBase.create`
+      <ul>${(self) => self.renderItems()}</ul>
+  `;
+  ```
 
 **Kind**: static method of [<code>Component</code>](#module_component)  
 **Returns**: <code>Component</code> - The newly created component class.  

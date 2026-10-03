@@ -342,6 +342,21 @@ const HeaderExt = Component.create<HeaderProps>`<header></header>`.extend({
 });
 new HeaderExt({ handleAddTodo: (t) => t }).helper();
 
+// create() on a subclass returns that subclass, so its template can be typed with it
+// and call its methods
+class CounterBase extends Component<CounterProps, CounterState> {
+    renderLabel() { return this.partial`<b>${this.props.label}</b>`; }
+    increment() { this.state!.count++; }
+}
+const CounterView = CounterBase.create`
+    <div onClick=${(function() { this.increment(); }) satisfies EventHandler<CounterBase, MouseEvent>}>
+        ${((self) => self.renderLabel()) satisfies RenderExpression<CounterBase>}
+    </div>
+`;
+const counterView = CounterView.mount({ initial: 1, label: 'x' });
+expectType<ComponentPartial>(counterView.renderLabel());
+expectError(CounterView.mount({ initial: 'not-a-number', label: 'x' }));
+
 // `events` builds the delegation of the template's handlers. An override goes on the
 // prototype, and merging the inherited handlers needs a cast to its function form
 class WithMergedEvents extends Component<CounterProps> {
