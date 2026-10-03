@@ -466,6 +466,51 @@ removeTodo(todo) {
 
 ---
 
+## 🔷 TypeScript
+
+Types ship with the package. Full guide: [TypeScript section in the README](https://github.com/8tentaculos/rasti#typescript).
+
+Template functions are `any`. Type each one inline with `satisfies` and the matching helper, which types its parameters and `this`:
+
+| Interpolation | Helper |
+|---|---|
+| Content `${fn}` or quoted attribute `attr="${fn}"` | `RenderExpression<C>` |
+| Unquoted handler `onX=${fn}` | `EventHandler<C, E>` |
+| Function passed to a child `handler=${fn}` | The child's prop type: `satisfies ChildProps['handler']` |
+
+```ts
+interface ToggleProps { label: string; }
+class ToggleState extends Model<{ active: boolean }> {}
+interface ToggleState { active: boolean; } // exposes state.active
+type ToggleComponent = Component<ToggleProps, ToggleState>;
+
+const Toggle = Component.create<ToggleProps, ToggleState>`
+    <button onClick=${(function() { this.state!.active = !this.state!.active; }) satisfies EventHandler<ToggleComponent, MouseEvent>}>
+        ${(({ props, state }) => `${props.label}: ${state!.active ? 'on' : 'off'}`) satisfies RenderExpression<ToggleComponent>}
+    </button>
+`.extend({
+    onCreate() { this.state = new ToggleState({ active: false }); }
+});
+```
+
+`C` is the component type, chosen by where the function is:
+
+- **In the component's own template:** a `Component<P, S, M>` alias with the same generics passed to `create` (`ToggleComponent` above).
+- **In its own template, calling its own methods** (`(self) => self.renderItems()`): declare them in a class and call `create` on it, `class ListBase extends Component<P> { renderItems() { … } }` then ``ListBase.create`…` ``. The class is `C`.
+- **Outside the component:** `type X = InstanceType<typeof X>`.
+
+In an arrow function, annotating the parameter also works (`({ props }: ToggleComponent) => props.label`). It does not type `this`, so a `function` needs `satisfies`.
+
+| Error | Cause | Fix |
+|---|---|---|
+| TS7031 / TS7006 | Untyped template function under `strict` | `satisfies` with the helper |
+| TS7022 / TS2456 | `InstanceType<typeof X>` used inside `X`'s own template | `Component<P, S, M>` alias |
+| TS2339 on the component's own method | `Component<P, S, M>` has no `.extend` members | Methods in a class, `create` called on it |
+| TS18048 on `state` / `model` | Both are optional | `this.state!` or `this.state?.` |
+| TS2339 on a model attribute | Attributes need declaration merging | `interface X extends Attrs {}` next to `class X extends Model<Attrs>` |
+
+---
+
 ## ⚠️ Best Practices
 
 ### Component Structure
