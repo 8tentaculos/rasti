@@ -248,13 +248,18 @@ new Plain({ anything: 'goes' }); // ✅
 When a component is used with inner content (`<${Card}>...</${Card}>`), rasti injects a `renderChildren` function into its props at runtime. Declare it in `P` to use it:
 
 ```ts
-const Card = Component.create<{ title: string; renderChildren?: () => any }>`
+interface CardProps { title: string; renderChildren?: () => any; }
+type CardComponent = Component<CardProps>;
+
+const Card = Component.create<CardProps>`
     <div class="card">
-        <h2>${({ props }) => props.title}</h2>
-        ${({ props }) => props.renderChildren?.()}
+        <h2>${(({ props }) => props.title) satisfies RenderExpression<CardComponent>}</h2>
+        ${(({ props }) => props.renderChildren?.()) satisfies RenderExpression<CardComponent>}
     </div>
 `;
 ```
+
+The interpolations are typed with `satisfies` (see [Typing template interpolations](#typing-template-interpolations)).
 
 `Component.extend` adds the object members to the instance type. Inside its methods, `this` is the extended component, and lifecycle overrides get their parameters typed automatically:
 
@@ -338,13 +343,13 @@ type P = ComponentProps<Counter>; // pass the instance; `ComponentProps<typeof C
 type S = ComponentState<Counter>;
 ```
 
-> Components made with `Component.create` are **values**, not types. To use one as a type — as with `Counter` above — add `type X = InstanceType<typeof X>` next to the definition, or write `InstanceType<typeof X>` inline. A `Model` subclass needs no alias, since `class` already declares both a value and a type.
+> Components made with `Component.create` are **values**, not types. To use one as a type outside its own template — as with `Counter` above — add `type X = InstanceType<typeof X>` next to the definition, or write `InstanceType<typeof X>` inline. Inside its own template, use `Component<P, S, M>` instead (see [Typing template interpolations](#typing-template-interpolations)). A `Model` subclass needs no alias, since `class` already declares both a value and a type.
 
 ### Typing template interpolations
 
-Functions inside a template are `any` — rasti can't infer them from the surrounding string. Which type to use depends on how rasti treats the function (quoted attribute or content → run on render; unquoted attribute → passed as-is):
+Functions inside a template are `any` — rasti can't infer them from the surrounding string. Type each one inline with `satisfies` and the helper that matches how rasti treats it. `satisfies` types the function's parameters and `this` from the helper, and checks the function against it.
 
-> Under `strict` / `noImplicitAny`, every interpolation callback **must** be annotated — an untyped parameter is an error (TS7031/TS7006), not a silent `any`. In non-strict mode typing is opt-in: annotate where you want safety and leave trivial ones as `any`.
+> Under `strict` / `noImplicitAny`, an untyped interpolation callback is an error (TS7031/TS7006), not a silent `any`. In non-strict mode typing is opt-in.
 
 | Interpolation | What it is | Type to use |
 |---|---|---|
@@ -352,27 +357,58 @@ Functions inside a template are `any` — rasti can't infer them from the surrou
 | Unquoted `onX=${fn}` | DOM handler, called `(event, component, matched)` | `EventHandler<C, E>` |
 | Function passed to a child (`handler=${fn}`) | Becomes the child's prop; typed by the child, not this component | the child's prop signature |
 
-Three ways to apply them:
+The component type `C` is `Component<P, S, M>` with the same generics passed to `create`, aliased next to the component. It is not a copy: it is the exact type of the component's instances.
 
 ```ts
-// `Home` is a value (made with Component.create), so alias it to use the name as a type:
-const Home = Component.create<{}, { location: string }>`<div></div>`.extend({
-    close() { /* ... */ },
+interface ToggleProps { label: string; }
+class ToggleState extends Model<{ active: boolean }> {}
+interface ToggleState { active: boolean; }
+type ToggleComponent = Component<ToggleProps, ToggleState>;
+
+const Toggle = Component.create<ToggleProps, ToggleState>`
+    <button onClick=${(function() { this.state!.active = !this.state!.active; }) satisfies EventHandler<ToggleComponent, MouseEvent>}>
+        ${(({ props, state }) => `${props.label}: ${state!.active ? 'on' : 'off'}`) satisfies RenderExpression<ToggleComponent>}
+    </button>
+`.extend({
+    onCreate() { this.state = new ToggleState({ active: false }); }
 });
-type Home = InstanceType<typeof Home>;
-
-// 1. Named const — cleanest for non-trivial handlers
-const onClick: EventHandler<Home, MouseEvent> = function(ev, self) {
-    ev.preventDefault();
-    self.close();
-};
-
-// 2. Inline with `satisfies` — checks + types the params without widening
-${(({ state }) => state?.location) satisfies RenderExpression<Home>}
-
-// 3. Bare annotation — lightest, just types the argument
-${({ state }: Home) => state?.location}
 ```
+
+Inside its own template, a component can't use `InstanceType<typeof Toggle>`: the type of `Toggle` depends on the template itself, so TypeScript reports a circular reference (TS7022).
+
+In an arrow function, annotating the parameter is a lighter alternative. It types the argument but not `this`, so a `function` still needs `satisfies`:
+
+```ts
+${({ props, state }: ToggleComponent) => `${props.label}: ${state!.active ? 'on' : 'off'}`}
+```
+
+#### Templates that call the component's own methods
+
+When the template calls the component's own methods, as in `(self) => self.renderItems()`, `Component<P, S, M>` doesn't have them. Declare them in a class and call `create` on it. The new component extends that class, so the class is the type to use:
+
+```ts
+interface ListProps { items: string[]; handleSelect: (item: string) => void; }
+
+class ListBase extends Component<ListProps> {
+    renderItems() {
+        return this.props.items.map((item) => this.partial`<li>${item}</li>`);
+    }
+    select(ev: MouseEvent) {
+        const li = (ev.target as HTMLElement).closest('li');
+        if (li) this.props.handleSelect(li.textContent!);
+    }
+}
+
+const List = ListBase.create`
+    <ul onClick=${(function(ev) { this.select(ev); }) satisfies EventHandler<ListBase, MouseEvent>}>
+        ${((self) => self.renderItems()) satisfies RenderExpression<ListBase>}
+    </ul>
+`;
+
+List.mount({ items: ['a', 'b'], handleSelect: (item) => console.log(item) }, document.body);
+```
+
+#### Functions passed to a child
 
 For a function passed to a child, neither helper fits — its type comes from the child's prop. Type it against that prop's declared type (rasti can't connect the attribute to the child, since both live inside the template string):
 
@@ -383,13 +419,14 @@ handleChange=${((checked) => model.toggleAll(checked)) satisfies ToggleAllProps[
 
 ### Known limitations
 
-- **Template interpolation callbacks are `any`**. Functions in `Component.create\`...\`` templates can't be inferred from the surrounding string — type them opt-in (see [Typing template interpolations](#typing-template-interpolations)).
+- **Template interpolation callbacks are `any`**. Functions in `Component.create\`...\`` templates can't be inferred from the surrounding string — type them with `satisfies` (see [Typing template interpolations](#typing-template-interpolations)).
+- **A component can't name its own type in its template**. `InstanceType<typeof X>` is circular there (TS7022). Use `Component<P, S, M>` (see [Typing template interpolations](#typing-template-interpolations)), or the class `create` is called on when the template calls its methods (see [Templates that call the component's own methods](#templates-that-call-the-components-own-methods)).
 - **`Model<A>` instance keys require declaration merging**. TypeScript can't add `A`'s keys to a `class extends Model<A>` automatically — see the `interface Todo extends TodoAttrs {}` pattern above.
 - **`this.$()` can return `null`**. It mirrors `querySelector`, so handle the empty case (`?.`) and pass a type argument to narrow the element: `this.$<HTMLInputElement>('input.edit')?.focus()`. `this.$$()` returns a `NodeListOf<HTMLElement>` (also narrowable).
 - **`this.model` / `this.state` are optional**. Both are `undefined` unless provided, so guard (`this.model?.foo`) or assert (`this.model!`) when you know one was passed. Both accept a Rasti `Model` or a model from another library (e.g. Backbone); Components subscribe to `change` events automatically when the object exposes `on`/`off`.
 - **`state` / `model` are raw generics, `props` is not**. `this.props` is *always* a `Model` built by rasti, so it's typed `Model<P> & P` (direct access to `P`'s keys). But `state` and `model` can be anything you provide — a Rasti `Model`, a Backbone model, a store, or a plain object — so they stay the raw generic. To read a typed `Model` state/model directly, define it as a named subclass with declaration merging and pass it as the `S`/`M` generic (see the `Scoreboard` example above) — no casts needed.
 - **Weak-type error on narrow props**. If a component's `P` has no required keys and you pass only options not declared in it, TypeScript reports *"has no properties in common"* (weak-type check). Fix: declare those options in `P` — non-reserved options become props at runtime.
-- **Instance fields set in `.extend` hooks need predeclaration**. `.extend` infers the instance type from the object's members only, so a field first assigned in `onCreate` (`this.router = ...`) isn't known. Predeclare it in the object: `router: null as unknown as Router`. For components with many instance fields, `class MyComponent extends Component<P, S>` is usually cleaner than `.extend`.
+- **Instance fields set in `.extend` hooks need predeclaration**. `.extend` infers the instance type from the object's members only, so a field first assigned in `onCreate` (`this.router = ...`) isn't known. Predeclare it in the object: `router: null as unknown as Router`. For components with many instance fields, a class is usually cleaner than `.extend`: `declare router: Router` in the class body, assigned in `onCreate`, and `create` called on the class (see [Templates that call the component's own methods](#templates-that-call-the-components-own-methods)).
 
 ## Working with LLMs
 
