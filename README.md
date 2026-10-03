@@ -419,7 +419,7 @@ handleChange=${((checked) => model.toggleAll(checked)) satisfies ToggleAllProps[
 
 ### Known limitations
 
-- **Template interpolation callbacks are `any`**. Functions in `Component.create\`...\`` templates can't be inferred from the surrounding string — type them with `satisfies` (see [Typing template interpolations](#typing-template-interpolations)).
+- **Template interpolation callbacks are `any`**. Functions in ``Component.create`...` `` templates can't be inferred from the surrounding string — type them with `satisfies` (see [Typing template interpolations](#typing-template-interpolations)).
 - **A component can't name its own type in its template**. `InstanceType<typeof X>` is circular there (TS7022). Use `Component<P, S, M>` (see [Typing template interpolations](#typing-template-interpolations)), or the class `create` is called on when the template calls its methods (see [Templates that call the component's own methods](#templates-that-call-the-components-own-methods)).
 - **`Model<A>` instance keys require declaration merging**. TypeScript can't add `A`'s keys to a `class extends Model<A>` automatically — see the `interface Todo extends TodoAttrs {}` pattern above.
 - **`this.$()` can return `null`**. It mirrors `querySelector`, so handle the empty case (`?.`) and pass a type argument to narrow the element: `this.$<HTMLInputElement>('input.edit')?.focus()`. `this.$$()` returns a `NodeListOf<HTMLElement>` (also narrowable).
