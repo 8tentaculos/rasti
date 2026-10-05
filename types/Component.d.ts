@@ -1,7 +1,12 @@
 import View, { ViewOptions, Resolvable } from './View.js';
 import Model from './Model.js';
 
-export interface ComponentReservedOptions<S = any, M = any> extends ViewOptions<M, Component<any, S, M>> {
+/** `P` types `this` in the hooks. It goes last so `ComponentReservedOptions<S, M>` keeps state and model first. */
+export interface ComponentReservedOptions<
+    S = any,
+    M = any,
+    P = Record<string, any>,
+> extends ViewOptions<M, Component<P, S, M>> {
     /**
      * A unique key to identify the component.
      * Components with keys are recycled when the same key is found in the previous render.
@@ -14,22 +19,22 @@ export interface ComponentReservedOptions<S = any, M = any> extends ViewOptions<
      */
     state?: S;
     /** Lifecycle hook called at the end of the constructor. */
-    onCreate?: (this: Component<any, S, M>, ...args: any[]) => void;
+    onCreate?: (this: Component<P, S, M>, ...args: any[]) => void;
     /** Lifecycle hook called when `model`, `state` or `props` emits `change`. */
-    onChange?: (this: Component<any, S, M>, ...args: any[]) => void;
+    onChange?: (this: Component<P, S, M>, ...args: any[]) => void;
     /** Lifecycle hook called after the first render (client only). */
-    onHydrate?: (this: Component<any, S, M>) => void;
+    onHydrate?: (this: Component<P, S, M>) => void;
     /** Lifecycle hook called at the start of `recycle`, before any recycling happens. */
-    onBeforeRecycle?: (this: Component<any, S, M>) => void;
+    onBeforeRecycle?: (this: Component<P, S, M>) => void;
     /** Lifecycle hook called after the component is recycled and props are updated. */
-    onRecycle?: (this: Component<any, S, M>) => void;
+    onRecycle?: (this: Component<P, S, M>) => void;
     /** Lifecycle hook called at the start of `render` on update. */
-    onBeforeUpdate?: (this: Component<any, S, M>) => void;
+    onBeforeUpdate?: (this: Component<P, S, M>) => void;
     /** Lifecycle hook called at the end of `render` on update. */
-    onUpdate?: (this: Component<any, S, M>) => void;
+    onUpdate?: (this: Component<P, S, M>) => void;
 }
 
-export type ComponentOptions<P = Record<string, any>, S = any, M = any> = P & ComponentReservedOptions<S, M>;
+export type ComponentOptions<P = Record<string, any>, S = any, M = any> = P & ComponentReservedOptions<S, M, P>;
 
 /** Marker type for strings that are safe to inject as HTML without sanitization. */
 export interface SafeHTML {

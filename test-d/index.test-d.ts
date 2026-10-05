@@ -400,11 +400,25 @@ new WithFieldAttributes({ initial: 1, label: 'x' });
 Component.mount({ onCreate() { this.render(); }, onHydrate() { this.render(); } });
 Component.mount({ onCreate: () => {} });
 
-// So are the options inherited from `View`: `this` is the component, not a bare view
-new Counter({ initial: 1, label: 'x', attributes() { return { 'data-label': this.props.label }; } });
-new Counter({ initial: 1, label: 'x', events() { return { click: this.props.label }; } });
-new Counter({ initial: 1, label: 'x', onDestroy() { expectType<CounterState | undefined>(this.state); } });
-new Counter({ initial: 1, label: 'x', tag() { return this.state ? 'section' : 'div'; } });
+// So are the options inherited from `View`: `this` is the component, not a bare view.
+// `this.props` is `P` and `this.state` is `S`.
+new Counter({
+    initial: 1,
+    label: 'x',
+    attributes() {
+        expectType<string>(this.props.label);
+        return { 'data-label': this.props.label };
+    },
+    events() { return { click: this.props.label }; },
+    onCreate() {
+        expectType<number>(this.props.initial);
+        expectType<string>(this.props.label);
+        // @ts-expect-error
+        void this.props.lable;
+    },
+    onDestroy() { expectType<CounterState | undefined>(this.state); },
+    tag() { return this.state ? 'section' : 'div'; },
+});
 
 // `template` is internal on a component: it holds the parsed structure, not a function
 expectType<any>(new WithEvents({ initial: 1, label: 'x' }).template);
