@@ -190,7 +190,10 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
      * - DOM event handlers via camelCased attributes (`onClick=${handler}`), delegated to the root.
      * - Returning a component instance (or array of them) adds it as a child.
      * - Use `<${Sub}>…</${Sub}>` syntax for child component tags.
-     * - Called on a subclass, the new component extends it, so the template can use its methods.
+     * - Called on a subclass, the new component extends it and the result is that subclass,
+     *   so the template can use its methods. `P`, `S` and `M` type the result when `create`
+     *   is called on `Component`. A subclass does not take them: declare the arguments on
+     *   the class (`class X extends Component<P, S, M>`) and call `X.create`.
      *
      * @example
      * const Button = Component.create`
@@ -205,11 +208,9 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
         strings: string | TemplateStringsArray | ((...args: any[]) => any),
         ...expressions: any[]
     ): T;
-    /**
-     * Creates a component from a template, typing its props, state and model explicitly.
-     * See the overload above for the template syntax.
-     */
+    /** Types props, state and model. Only `Component.create` takes these arguments; see above. */
     static create<P = Record<string, any>, S = any, M = any>(
+        this: typeof Component,
         strings: string | TemplateStringsArray | ((...args: any[]) => any),
         ...expressions: any[]
     ): typeof Component<P, S, M>;

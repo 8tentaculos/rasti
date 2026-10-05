@@ -357,6 +357,20 @@ const counterView = CounterView.mount({ initial: 1, label: 'x' });
 expectType<ComponentPartial>(counterView.renderLabel());
 expectError(CounterView.mount({ initial: 'not-a-number', label: 'x' }));
 
+// Type arguments belong to `Component.create`. On a subclass the call is rejected:
+// declare the props on the class and call `create` with none.
+class IdBase extends Component<{ id: string }> {
+    renderItems() { return this.props.id; }
+}
+const IdList = IdBase.create`<ul></ul>`;
+expectType<string>(new IdList({ id: 'a' }).renderItems());
+expectError(IdBase.create<{ items: string[] }>`<ul></ul>`);
+expectError(new IdList({ items: ['a'] }));
+
+// create() on an extended class keeps the members extend added
+const HeaderAgain = HeaderExt.create`<header></header>`;
+new HeaderAgain({ handleAddTodo: (t) => t }).helper();
+
 // `events` builds the delegation of the template's handlers. An override goes on the
 // prototype, and merging the inherited handlers needs a cast to its function form
 class WithMergedEvents extends Component<CounterProps> {
