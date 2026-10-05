@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.3] - 2026-10-05
+
 ### Fixed
 
 - **Interpolation whitespace**: an interpolated value keeps its leading and trailing whitespace when it updates. `parseHTML` trimmed the rendered value, so ` hola ` reached the DOM as `hola` on update while rendering correctly the first time.
@@ -404,7 +406,8 @@ Unlike views, which are render-agnostic, components have a specific set of rende
 
 * **BREAKING:** Removed emitter.emitAsync method.
 
-[unreleased]: https://github.com/8tentaculos/rasti/compare/v4.1.2...HEAD
+[unreleased]: https://github.com/8tentaculos/rasti/compare/v4.1.3...HEAD
+[4.1.3]: https://github.com/8tentaculos/rasti/compare/v4.1.2...v4.1.3
 [4.1.2]: https://github.com/8tentaculos/rasti/compare/v4.1.1...v4.1.2
 [4.1.1]: https://github.com/8tentaculos/rasti/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/8tentaculos/rasti/compare/v4.0.1...v4.1.0
