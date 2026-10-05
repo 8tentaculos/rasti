@@ -409,6 +409,69 @@ describe('Component', () => {
         });
     });
 
+    describe('Text content escaping', () => {
+        // The text a value renders to must not depend on whether it arrived on the
+        // first render or on an update: both go through the same escape, and an
+        // update that patches text instead of reparsing has to land on the same
+        // characters the parser would have produced.
+        const roundTrip = (value) => {
+            const model = new Model({ v : value });
+            const c = Component.create`<div id="test-node">${({ model }) => model.v}</div>`
+                .mount({ model }, document.body);
+            const first = c.el.textContent;
+            model.v = 'other';
+            model.v = value;
+            return { first, updated : c.el.textContent };
+        };
+
+        it('must render a value as text, not as markup', () => {
+            const { first, updated } = roundTrip('<script>alert(1)</script>');
+            expect(first).to.be.equal('<script>alert(1)</script>');
+            expect(updated).to.be.equal(first);
+            expect(document.querySelector('#test-node script')).to.be.equal(null);
+        });
+
+        it('must keep an entity-looking value as written', () => {
+            const { first, updated } = roundTrip('Tom &amp; Jerry');
+            expect(first).to.be.equal('Tom &amp; Jerry');
+            expect(updated).to.be.equal(first);
+        });
+
+        it('must keep ampersands and quotes verbatim', () => {
+            const { first, updated } = roundTrip('a & b, he said "hi" and \'bye\'');
+            expect(first).to.be.equal('a & b, he said "hi" and \'bye\'');
+            expect(updated).to.be.equal(first);
+        });
+
+        it('must keep whitespace and non-ASCII text verbatim', () => {
+            ['   ', 'a\tb', 'a\nb', 'caf\u00e9 \u2014 \u00f1', 'a\u00a0b', ''].forEach(value => {
+                const { first, updated } = roundTrip(value);
+                expect(first).to.be.equal(value);
+                expect(updated).to.be.equal(first);
+            });
+        });
+
+        it('must render numbers and zero, and nothing for nullish and boolean values', () => {
+            expect(roundTrip(0).first).to.be.equal('0');
+            expect(roundTrip(12345).first).to.be.equal('12345');
+            [null, undefined, true, false].forEach(value => {
+                const { first, updated } = roundTrip(value);
+                expect(first).to.be.equal('');
+                expect(updated).to.be.equal(first);
+            });
+        });
+
+        it('must normalize carriage returns to line feeds, on first render and on update', () => {
+            // The HTML parser normalizes CR and CRLF to LF while reading the input
+            // stream, so a value carrying them never reaches the DOM as written.
+            [['a\r\nb', 'a\nb'], ['a\rb', 'a\nb'], ['ab\r', 'ab\n']].forEach(([value, expected]) => {
+                const { first, updated } = roundTrip(value);
+                expect(first).to.be.equal(expected);
+                expect(updated).to.be.equal(first);
+            });
+        });
+    });
+
     describe('Component lifecycle and destruction', () => {
         it('must call onCreate', (done) => {
             Component.create`<div></div>`.extend({
@@ -839,6 +902,28 @@ describe('Component', () => {
             expect(c2.bar).to.be.a('function');
         });
 
+        it('must create a component from a subclass, keeping its methods and hooks', () => {
+            class Base extends Component {
+                onCreate() {
+                    this.state = new Model({ count : 1 });
+                }
+
+                renderLabel() {
+                    return this.partial`<b>${this.props.label}</b>`;
+                }
+            }
+
+            const C = Base.create`<div>${(self) => self.renderLabel()}<i>${({ state }) => state.count}</i></div>`;
+            const c = C.mount({ label : 'x' }, document.body);
+
+            expect(c).to.be.an.instanceof(Base);
+            expect(c.el.textContent).to.be.equal('x1');
+
+            c.state.count = 2;
+
+            expect(c.el.textContent).to.be.equal('x2');
+        });
+
         it('must return this from chainable methods', () => {
             const m = new Model();
             const c = new Component();
@@ -1129,6 +1214,17 @@ describe('Component', () => {
     });
 
     describe('Lifecycle methods', () => {
+        it('must let an option override a getter declared by a subclass', () => {
+            class Main extends Component.create`<div></div>` {
+                get state() {
+                    return 'from-getter';
+                }
+            }
+
+            expect(new Main().state).to.be.equal('from-getter');
+            expect(new Main({ state : 'from-option' }).state).to.be.equal('from-option');
+        });
+
         it('must call onHydrate lifecycle method', () => {
             let calls = 0;
             const onHydrate = function() {

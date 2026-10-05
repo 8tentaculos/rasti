@@ -58,6 +58,24 @@ describe('View', () => {
             const v = new View({ el : () => el });
             expect(v.el).to.be.equal(el);
         });
+
+        it('must let an option override a getter declared by a subclass', () => {
+            class MyView extends View {
+                get tag() {
+                    return 'section';
+                }
+
+                get attributes() {
+                    return { id : 'from-getter' };
+                }
+            }
+
+            expect(new MyView().el.tagName.toLowerCase()).to.be.equal('section');
+
+            const v = new MyView({ tag : 'article', attributes : { id : 'from-option' } });
+            expect(v.el.tagName.toLowerCase()).to.be.equal('article');
+            expect(v.el.id).to.be.equal('from-option');
+        });
     });
 
     describe('Lifecycle and destruction', () => {

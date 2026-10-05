@@ -1,7 +1,12 @@
-import View, { ViewOptions } from './View.js';
+import View, { ViewOptions, Resolvable } from './View.js';
 import Model from './Model.js';
 
-export interface ComponentReservedOptions<S = any, M = any> extends ViewOptions<M> {
+/** `P` types `this` in the hooks. It goes last so `ComponentReservedOptions<S, M>` keeps state and model first. */
+export interface ComponentReservedOptions<
+    S = any,
+    M = any,
+    P = Record<string, any>,
+> extends ViewOptions<M, Component<P, S, M>> {
     /**
      * A unique key to identify the component.
      * Components with keys are recycled when the same key is found in the previous render.
@@ -14,22 +19,22 @@ export interface ComponentReservedOptions<S = any, M = any> extends ViewOptions<
      */
     state?: S;
     /** Lifecycle hook called at the end of the constructor. */
-    onCreate?: (...args: any[]) => void;
+    onCreate?: (this: Component<P, S, M>, ...args: any[]) => void;
     /** Lifecycle hook called when `model`, `state` or `props` emits `change`. */
-    onChange?: (...args: any[]) => void;
+    onChange?: (this: Component<P, S, M>, ...args: any[]) => void;
     /** Lifecycle hook called after the first render (client only). */
-    onHydrate?: () => void;
+    onHydrate?: (this: Component<P, S, M>) => void;
     /** Lifecycle hook called at the start of `recycle`, before any recycling happens. */
-    onBeforeRecycle?: () => void;
+    onBeforeRecycle?: (this: Component<P, S, M>) => void;
     /** Lifecycle hook called after the component is recycled and props are updated. */
-    onRecycle?: () => void;
+    onRecycle?: (this: Component<P, S, M>) => void;
     /** Lifecycle hook called at the start of `render` on update. */
-    onBeforeUpdate?: () => void;
+    onBeforeUpdate?: (this: Component<P, S, M>) => void;
     /** Lifecycle hook called at the end of `render` on update. */
-    onUpdate?: () => void;
+    onUpdate?: (this: Component<P, S, M>) => void;
 }
 
-export type ComponentOptions<P = {}, S = any, M = any> = P & ComponentReservedOptions<S, M>;
+export type ComponentOptions<P = Record<string, any>, S = any, M = any> = P & ComponentReservedOptions<S, M, P>;
 
 /** Marker type for strings that are safe to inject as HTML without sanitization. */
 export interface SafeHTML {
@@ -127,7 +132,7 @@ export type ExtendedComponent<T extends new (...args: any[]) => any, O> =
  * Timer.mount({ model }, document.body);
  * setInterval(() => model.seconds++, 1000);
  */
-declare class Component<P = {}, S = any, M = any> extends View<M> {
+declare class Component<P = Record<string, any>, S = any, M = any> extends View<M> {
     /**
      * Mark a string as safe HTML to be rendered.
      * Rasti marks string literals as safe automatically when a component is created or when
@@ -185,6 +190,10 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
      * - DOM event handlers via camelCased attributes (`onClick=${handler}`), delegated to the root.
      * - Returning a component instance (or array of them) adds it as a child.
      * - Use `<${Sub}>…</${Sub}>` syntax for child component tags.
+     * - Called on a subclass, the new component extends it and the result is that subclass,
+     *   so the template can use its methods. `P`, `S` and `M` type the result when `create`
+     *   is called on `Component`. A subclass does not take them: declare the arguments on
+     *   the class (`class X extends Component<P, S, M>`) and call `X.create`.
      *
      * @example
      * const Button = Component.create`
@@ -194,7 +203,14 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
      *     </button>
      * `;
      */
+    static create<T extends new (...args: any[]) => Component<any, any, any>>(
+        this: T,
+        strings: string | TemplateStringsArray | ((...args: any[]) => any),
+        ...expressions: any[]
+    ): T;
+    /** Types props, state and model. Only `Component.create` takes these arguments; see above. */
     static create<P = Record<string, any>, S = any, M = any>(
+        this: typeof Component,
         strings: string | TemplateStringsArray | ((...args: any[]) => any),
         ...expressions: any[]
     ): typeof Component<P, S, M>;
@@ -220,8 +236,13 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
     /** The original options object passed to the constructor. */
     options: ComponentOptions<P, S, M>;
 
-    /** Template function returning the view's inner HTML. */
-    template: (...args: any[]) => string;
+    /**
+     * Internal. Not a view-style template function returning HTML: `Component.create`
+     * installs a method returning the parsed structure the render pipeline walks, and the
+     * member is replaced by that structure when the instance is created. Define a
+     * component's markup with {@link Component.create}, not by assigning here.
+     */
+    template: any;
 
     /**
      * @param options Component options. Keys `model`, `state`, `key`, `onCreate`, `onChange`,
@@ -281,6 +302,33 @@ declare class Component<P = {}, S = any, M = any> extends View<M> {
     onUpdate(): void;
 }
 
+/**
+ * Declared apart from the class body so a subclass can provide `events` as a getter. See
+ * {@link View}'s own declaration for why the form matters.
+ */
+interface Component<P = Record<string, any>, S = any, M = any> {
+    /**
+     * A component builds this member from the template's `onEvent` handlers, delegating them
+     * through the data attributes they are rendered with. Overriding it replaces them: call
+     * the inherited member and merge its result to keep them, or leave it out to use
+     * declarative delegation alone.
+     *
+     * `Component` installs it as a method, so merging the inherited handlers means calling
+     * that function with the component as `this`: `super.events` from a getter in the class
+     * body, or `Component.prototype.events` from an override on the prototype or through
+     * `extend`. Either one needs a cast to the function form, which the declared value or
+     * function union does not narrow on its own.
+     */
+    events?: Resolvable<Record<string, string | Function>>;
+}
+
+/**
+ * The module's default export is a component created from `<div></div>`, not the class, so it
+ * is declared as a value of the constructor's shape. The type alias gives the same name the
+ * instance type, as a class declaration would.
+ */
 declare const _default: typeof Component;
+type _default<P = Record<string, any>, S = any, M = any> = Component<P, S, M>;
+
 export default _default;
 export { Component };
