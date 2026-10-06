@@ -89,6 +89,85 @@ class Greeting extends Component {
 
 Reach for a function when the value should be read lazily from a nested object (`({ model }) => model.count`); use a plain value when you already have it in scope.
 
+## Attribute values
+
+An attribute value can be quoted or unquoted, and the difference matters only when the value is a function:
+
+- **Quoted**, `title="${fn}"`: the function is **called** on every render, bound to the component and receiving it as its argument, and its result is the value.
+- **Unquoted**, `handleSelect=${fn}`: the function **is** the value, passed as it is.
+
+Any other value is passed as it is either way. Event handlers and functions meant for a child are written unquoted; values computed by a function, quoted:
+
+```javascript
+// Quoted: the function runs and its result is the value.
+class="${({ model }) => model.completed ? 'completed' : ''}"
+
+// Unquoted: the function is the value, a handler or a callback for a child.
+onClick=${() => this.save()}
+handleSelect=${this.handleSelect}
+
+// Not a function: the same either way.
+checked="${this.model.completed}"
+```
+
+A quoted value may also mix literal text with any number of interpolations, which are joined into one string; `null`, `undefined`, `true` and `false` join as nothing. A value that is exactly one interpolation keeps its raw value instead, so a boolean decides whether the attribute is present (`disabled="${this.props.locked}"`) and an object or a function reaches a child intact:
+
+```javascript
+class="row ${this.state.active ? 'active' : ''}"
+href="/items?page=${this.state.page}"
+```
+
+Attribute names can't be interpolated, and an unquoted value takes a single interpolation with no text around it. Development builds warn about both.
+
+## Event handlers
+
+An `on*` attribute on an element, such as `onClick`, `onInput` or `onKeyUp`, binds a handler for that event: a function, or a string naming a method of the component (`onSubmit="handleSubmit"`). The handler runs with `this` bound to the component and receives `(event, component, matched)`, where `matched` is the element that carries the attribute:
+
+```javascript
+class Search extends Component {
+    template() {
+        return this.partial`
+            <form onSubmit="handleSubmit">
+                <input onInput=${(event) => this.props.handleQuery(event.target.value)} />
+            </form>
+        `;
+    }
+
+    handleSubmit(event) {
+        event.preventDefault();
+    }
+}
+```
+
+On a component tag, `<${Button} onClick=${fn} />`, an `on*` attribute is not a DOM listener: it is a prop like any other, and the child decides what to do with it.
+
+## Functions across renders
+
+In the subclass and function forms, every function written in `template()` is created anew on each render. In the tagged form, a function written directly in the template is created once, with the class, but one created inside an interpolation, such as a function returned by a quoted value or one written in a partial built in a `map`, is new on every render. That costs nothing for event handlers, and it can cost a render for props.
+
+**Event handlers** are not attached to the elements. Each render writes the component's handlers into a list it keeps, and a single listener per event type on its root element looks up the one to call. A new `onClick=${() => this.save()}` on every render binds nothing and touches no DOM: the next click runs the latest one. In a list updated by position, a list of items without keys, the handler goes with the content like the text and the attributes do: the element stays where it is, and its handler is the one of the item now rendered there.
+
+**Props** are compared with the previous render's by identity, and a child re-renders when one of them changed. A function, an object or an array created during the render is a new value each time, so the child re-renders whenever its parent does. Nothing breaks, it is only extra work; where it matters, in the rows of a large list or in an expensive child, pass something that keeps its identity, such as a class field:
+
+```javascript
+class TodoList extends Component {
+    // Created once per instance, so it never re-renders the rows.
+    handleRemove = (todo) => this.model.removeTodo(todo);
+
+    template() {
+        return this.partial`
+            <ul>
+                ${this.model.todos.map(todo => this.partial`
+                    <${TodoItem} key="${todo.id}" model="${todo}" handleRemove=${this.handleRemove} />
+                `)}
+            </ul>
+        `;
+    }
+}
+```
+
+A child rendered with content between its tags, `<${Card}>…</${Card}>`, re-renders with its parent regardless: that content belongs to the parent and may have changed with it.
+
 ## Containers: returning a component
 
 If `template()` returns a **component instance** instead of a partial, the component becomes a *container*: it renders that child and adopts the child's root element as its own `this.el`. This is convenient for wrapping or picking a component:

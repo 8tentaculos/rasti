@@ -161,6 +161,10 @@ attr=x${fn}      // unquoted values take a single interpolation
 
 Component builds event delegation on top of View's delegation system. `on*` attributes in the template are compiled into delegated listeners on the component's root element. Events bubble up from descendants; `stopPropagation()` is supported.
 
+**Handlers across renders:** handlers are not bound to the elements. Each render writes the component's handlers into a list and each element refers to its handler's position there, so a handler created anew on every render (an arrow in `template()`, a quoted thunk) binds nothing and touches no DOM: the latest one runs. No memoizing is needed. In a list updated by position (items without keys), the handler goes with the content, like the text and the attributes.
+
+**On a component tag, `on*` is a prop:** `<${Button} onClick=${fn} />` passes `onClick` to `Button` as a prop, not as a DOM listener; `Button` binds it in its own template.
+
 **Handler signature:** `(event, component, matched)`
 - `event` — native DOM event
 - `component` — component instance (same as `this`)
@@ -188,7 +192,7 @@ const Form = Component.create`
 // Arrow function quoted — parent executes, passes handler thunk to child
 handleSave="${({ model, props }) => () => model.delete(props.itemId)}"
 
-// Arrow function unquoted — parent passes function reference directly to child
+// Arrow function quoted — parent executes, passes the function it returns (its own prop) to child
 handleSelect="${({ props }) => props.handleSelect}"
 ```
 
@@ -226,6 +230,20 @@ const Header = Component.create`
 - `this.model` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_model) for application data
 - `this.state` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_model) for internal component state
 - `this.props` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_model) auto-created from non-standard options
+
+**When a child re-renders:** on a parent render, a recycled child gets its props set again, compared by identity (`!==`), and re-renders only if one changed. Primitives and references that persist don't trigger it. A function, object or array built during the parent's render does, and so does slotted content, since `renderChildren` is recreated on every render. To spare the rows of a list, pass references that persist, such as a class field:
+
+```js
+class TodoList extends Component {
+    handleRemove = (todo) => this.model.removeTodo(todo); // created once per instance
+
+    template() {
+        return this.partial`<ul>${this.model.todos.map(todo => this.partial`
+            <${TodoItem} key="${todo.id}" model="${todo}" handleRemove=${this.handleRemove} />
+        `)}</ul>`;
+    }
+}
+```
 
 ---
 
@@ -645,7 +663,7 @@ In an arrow function, annotating the parameter also works (`({ props }: ToggleCo
 
 ### Handlers & Props
 - Unquoted for local handlers: `onClick=${function() { this.model.toggle(); }}`
-- Quoted when passing a thunk from parent: `handleAdd="${({ model }) => (v) => model.add(v)}"`
+- Quoted when passing a thunk from parent: `handleAdd="${({ model }) => (v) => model.add(v)}"`. The thunk returns a new function on every render, so the child re-renders with its parent; fine for a single child, not for list rows
 - Unquoted for simple pass-through callbacks: `handleChange=${(v) => model.set(v)}`
 
 ### Lifecycle
@@ -656,6 +674,7 @@ In an arrow function, annotating the parameter also works (`({ props }: ToggleCo
 
 ### Performance
 - Use `key` for list item components. Conditionally call `render()` in `onChange()` to avoid unnecessary work.
+- Pass list rows props that keep their identity (class fields, models), so a parent render doesn't re-render every row.
 
 ---
 
@@ -674,6 +693,8 @@ In an arrow function, annotating the parameter also works (`({ props }: ToggleCo
 6. **Interpolating a plain value in a tagged template**: in ``Component.create`...` `` the expressions are captured once, so a plain value freezes at its first reading. Use a function, or author the template with `create(fn)` / a subclass, where `template()` re-runs per render.
 
 7. **Subscriptions in `onCreate` instead of `onHydrate`**: `onCreate` runs on the server too — subscriptions to models, DOM events, and APIs all belong in `onHydrate`.
+
+8. **`on*` on a component tag**: `<${Button} onClick=${fn} />` passes a prop, not a DOM listener. Bind it inside the child's template: `<button onClick=${this.props.onClick}>`.
 
 ---
 

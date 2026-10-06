@@ -32,7 +32,7 @@ Underneath sits a small MVC core — **models**, **views** and **event emitters*
 - **Components as tags**  
   A component is used inside another template as a tag: `<${Link} href="${href}">${label}</${Link}>`, with props, children and a closing tag. No registry, no custom elements, no JSX.
 - **Handlers in the markup**  
-  `onClick=${function() { this.model.count++; }}` — handlers are written as attributes, run with `this` bound to the component, and are delegated from its root element, so an update never binds a listener to a node inside it.
+  `onClick=${function() { this.model.count++; }}` — handlers are written as attributes, run with `this` bound to the component, and are delegated from its root element, so an update never binds a listener to a node inside it, and a handler created anew on every render costs nothing.
 - **Updates in place**  
   A change re-evaluates every interpolation and writes only what differs. Partials are retained by call site, child components by key or position, so no element is recreated to apply a change: focus, selection and input values persist.
 - **State from anything that emits**  

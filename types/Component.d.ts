@@ -254,6 +254,8 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
     /**
      * Props passed from the parent component, stored as a `Model` for reactive updates.
      * Accessible directly (`this.props.foo`) or via `Model` API (`this.props.get('foo')`).
+     * Compared by identity on each parent render: a function, object or array created
+     * during that render re-renders the component every time.
      */
     props: Model<P> & P;
 

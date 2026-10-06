@@ -224,7 +224,7 @@ const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', '
  * @property {string} [key] A unique key to identify the component. Components with keys are recycled when the same key is found in the previous render of the same interpolation. Unkeyed components are recycled by type and position for a single value, but are never recycled inside an array.
  * @property {Model} [model] A `Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method.
  * @property {Model} [state] A `Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method.
- * @property {Model} [props] Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When a component with a `key` is recycled during parent re-render, new props are automatically updated and any changes trigger a re-render.
+ * @property {Model} [props] Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When the component is recycled during a parent re-render, its props are set again and any change triggers a re-render. Props are compared by identity, so a function, object or array created during the parent's render counts as a change every time.
  * @see {@link #module_component_create Component.create}
  * @example
  * import { Component, Model } from 'rasti';
@@ -967,7 +967,10 @@ export default class Component extends View {
      *   ```
      * - Attach DOM event handlers per element using camel-cased attributes.
      *   Event handlers are automatically bound to the component instance (`this`).
-     *   Internally, Rasti uses event delegation to the component's root element for performance.
+     *   They are not bound to the elements: one listener per event type is delegated to the
+     *   component's root element and looks the handler up on each event, so a handler created
+     *   anew on every render costs nothing. On a component tag, an `on*` attribute is a prop
+     *   for the child, not a DOM listener.
      *
      *   **Attribute Quoting:**
      *   - **Quoted attributes** (`onClick="${handler}"`) evaluate the expression first, useful for dynamic values

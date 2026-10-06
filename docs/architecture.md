@@ -158,6 +158,12 @@ destroy
 
 The inner partial is **owned** by the parent (expressions and events evaluate there) and **hosted** by whoever currently renders it (child components join that component's `children`). Owner and host are the same component except for this case.
 
+### Handlers and props across renders
+
+`on*` attributes on elements are not bound to nodes. Every render resets the owner's `EventsManager` and pushes the handlers into it in emission order; each element carries its handler's index under `ATTRIBUTE_EVENT`. `events` delegates one listener per type to `el` (again only when a new type appears), which reads the index off the matched element and calls the current handler. A handler that is a new function on every render changes only the list. The attribute is rewritten only when the index moves, because a handler emitted before it appeared or disappeared.
+
+A recycled child's props go through `props.set`, which compares with `!==`. A function, object or array created during the parent's render re-renders the child every time. `renderChildren` is a new closure on every render of the owner, so a child with slotted content re-renders with its parent.
+
 ---
 
 ## 6. The render engine
