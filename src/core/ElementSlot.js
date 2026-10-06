@@ -1,5 +1,6 @@
 import Slot from './Slot.js';
 import Constants from './Constants.js';
+import getEventType from './getEventType.js';
 
 import getAttributesHTML from '../utils/getAttributesHTML.js';
 import getAttributesDiff from '../utils/getAttributesDiff.js';
@@ -40,10 +41,9 @@ const expandEvents = (attributes, owner) => {
     const out = {};
     Object.keys(attributes).forEach(key => {
         // Check if key is an event listener.
-        const match = key.match(/on(([A-Z]{1}[a-z]+)+)/);
+        const type = getEventType(key);
 
-        if (match && match[1]) {
-            const type = match[1].toLowerCase();
+        if (type) {
             const listener = attributes[key];
             if (listener) {
                 const { attribute, index } = owner.registerListener(listener, type);

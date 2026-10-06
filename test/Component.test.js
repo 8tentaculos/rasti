@@ -1187,6 +1187,19 @@ describe('Component', () => {
             done();
         });
 
+        it('must only take a camel-cased on attribute for an event handler', () => {
+            const TestComponent = Component.create`
+                <div data-iconName="${() => 'star'}" data-sectionTitle="${() => 'Intro'}">x</div>
+            `;
+
+            const c = TestComponent.mount({}, document.body);
+            // A name holding `on` and a capital mid-word is a plain attribute.
+            expect(c.el.getAttribute('data-iconname')).to.equal('star');
+            expect(c.el.getAttribute('data-sectiontitle')).to.equal('Intro');
+            expect(c.eventsManager.types.size).to.equal(0);
+            c.destroy();
+        });
+
         it('must delegate events dynamically with partials and re-renders', (done) => {
             let eventsOrder = [];
             let currentStep = 0;
