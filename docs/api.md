@@ -78,7 +78,7 @@ Components are a special kind of `View` that is designed to be easily composable
 making it simple to add child views and build complex user interfaces.
 Unlike views, which are render-agnostic, components have a specific set of rendering
 guidelines that allow for a more declarative development style.
-A component renders from its [template](#module_component__template) method, which returns a partial (built with [partial](#module_component__partial)) or a child component. The [Component.create](#module_component_create) static method is a factory that writes this method from a tagged template string or a template function.
+A component renders from its [template](#module_component__template) method, which returns a partial (built with [partial](#module_component__partial)) or a child component. Define it in a subclass, the recommended form, or let the [Component.create](#module_component_create) static method write it from a tagged template string, the shortest form for simple components, or from a template function.
 
 **Extends**: <code>View</code>  
 **See**: [Component.create](#module_component_create)  
@@ -94,17 +94,21 @@ A component renders from its [template](#module_component__template) method, whi
 | [key] | <code>string</code> | A unique key to identify the component. Components with keys are recycled when the same key is found in the previous render of the same interpolation. Unkeyed components are recycled by type and position for a single value, but are never recycled inside an array. |
 | [model] | <code>Model</code> | A `Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method. |
 | [state] | <code>Model</code> | A `Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method. |
-| [props] | <code>Model</code> | Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When a component with a `key` is recycled during parent re-render, new props are automatically updated and any changes trigger a re-render. |
+| [props] | <code>Model</code> | Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When the component is recycled during a parent re-render, its props are set again and any change triggers a re-render. Props are compared by identity, so a function, object or array created during the parent's render counts as a change every time. |
 
 **Example**  
 ```js
 import { Component, Model } from 'rasti';
 // Create Timer component.
-const Timer = Component.create`
-    <div>
-        Seconds: <span>${({ model }) => model.seconds}</span>
-    </div>
-`;
+class Timer extends Component {
+    template() {
+        return this.partial`
+            <div>
+                Seconds: <span>${this.model.seconds}</span>
+            </div>
+        `;
+    }
+}
 // Create model to store seconds.
 const model = new Model({ seconds : 0 });
 // Mount timer on body.
@@ -527,15 +531,12 @@ const hydratedButton = Button.mount({
 ```
 <a name="module_component_create" id="module_component_create" class="anchor"></a>
 ### Component.create(strings, ...expressions) ⇒ <code>Component</code>
-Takes a tagged template string, or a template function that returns a partial or a component, and returns a new `Component` class. It is sugar for defining the component's [template](#module_component__template) method: the tagged form captures its expressions once, while the function form is used as `template()` itself and re-runs on every render (so it may interpolate plain values, not only functions).
-- The tagged template becomes the component's root partial; its outer element
-  becomes `this.el` and is retained across updates.
-- Interpolations become dynamic regions that the engine patches, recycles, or
-  regenerates according to their current occupant.
-  ```javascript
-  const Button = Component.create`<button class="button">Click me</button>`;
-  ```
-- Template interpolations that are functions will be evaluated during the render process, receiving the view instance as an argument and being bound to it. If the function returns `null`, `undefined`, `false`, or an empty string, the interpolation won't render any content.
+Takes a tagged template string, or a template function, and returns a new `Component` class. Both are sugar for defining the component's [template](#module_component__template) method. A component with methods, state or several hooks reads better as a subclass that defines `template()` itself; `create` suits simple components.
+- **Tagged template**: the template becomes the component's root partial, and its outer
+  element becomes `this.el`. The expressions are captured once, so anything dynamic must
+  be a function: it is called on every render, bound to the component and receiving it as
+  its argument. A function that returns `null`, `undefined`, `false` or an empty string
+  renders nothing.
   ```javascript
   const Button = Component.create`
       <button class="${({ props }) => props.className}">
@@ -543,108 +544,68 @@ Takes a tagged template string, or a template function that returns a partial or
       </button>
   `;
   ```
-- Attach DOM event handlers per element using camel-cased attributes.
-  Event handlers are automatically bound to the component instance (`this`).
-  Internally, Rasti uses event delegation to the component's root element for performance.
-
-  **Attribute Quoting:**
-  - **Quoted attributes** (`onClick="${handler}"`) evaluate the expression first, useful for dynamic values
-  - **Unquoted attributes** (`onClick=${handler}`) pass the function reference directly
-
-  **Listener Signature:** `(event, component, matched)`
-  - `event`: The native DOM event object
-  - `component`: The component instance (same as `this`)
-  - `matched`: The element that matched the event (useful for delegation)
-
+- **Template function**: the function is used as `template()` itself, so it re-runs on
+  every render and may interpolate plain values. It returns a partial, or a component to
+  contain.
   ```javascript
-  const Button = Component.create`
-      <button
-          onClick=${function(event, component, matched) {
-              // this === component
-              console.log('Button clicked:', matched);
-          }}
-          onMouseOver="${({ model }) => () => model.isHovered = true}"
-          onMouseOut="${({ model }) => () => model.isHovered = false}"
-      >
-          Click me
-      </button>
-  `;
+  const Greeting = Component.create(function() {
+      return this.partial`<h1>Hello ${this.props.name}</h1>`;
+  });
   ```
-
-  If you need custom delegation (e.g., `{'click .selector': 'handler'}`),
-  you may override the `events` property as described in [View.delegateEvents](#module_view__delegateevents).
-- Boolean attributes should be passed in the format `attribute="${() => true}"`. `false` attributes won't be rendered. `true` attributes will be rendered without a value.
+- **Attributes**: a quoted value that is a function is called and its result used; an
+  unquoted one is passed as it is. A boolean decides whether the attribute is present.
   ```javascript
   const Input = Component.create`
-      <input type="text" disabled=${({ props }) => props.disabled} />
+      <input type="text" disabled="${({ props }) => props.disabled}" />
   `;
   ```
-- If the interpolated function returns a component instance, it will be added as a child component.
-- If the interpolated function returns an array, each item will be evaluated as above.
+- **Event handlers**: camel-cased `on*` attributes bind a function, or a string naming a
+  method of the component. The handler runs with `this` bound to the component and
+  receives `(event, component, matched)`, `matched` being the element that carries the
+  attribute. Handlers are not bound to the elements: one listener per event type is
+  delegated to the component's root element and looks the handler up on each event, so a
+  handler created anew on every render costs nothing. On a component tag, an `on*`
+  attribute is a prop for the child, not a DOM listener.
   ```javascript
-  // Create a button component.
-  const Button = Component.create`
-      <button class="button">
-          ${({ props }) => props.renderChildren()}
-      </button>
-  `;
-  // Create a navigation component. Add buttons as children. Iterate over items.
+  const Counter = Component.create`
+      <div>
+          <span>${({ model }) => model.count}</span>
+          <button onClick=${function() { this.model.count++; }}>+</button>
+          <button onClick=${function() { this.reset(); }}>Reset</button>
+      </div>
+  `.extend({
+      reset() {
+          this.model.count = 0;
+      }
+  });
+  ```
+  If you need custom delegation (e.g., `{'click .selector': 'handler'}`),
+  you may override the `events` property as described in [View.delegateEvents](#module_view__delegateevents).
+- **Child components** are written as tags: attributes become props, and the content
+  between the tags becomes `props.renderChildren`. In a list, give each one a `key`, so it
+  is reused and moved instead of built again on every update.
+  ```javascript
   const Navigation = Component.create`
       <nav>
-          ${({ props }) => props.items.map(
-              item => Button.mount({ renderChildren : () => item.label })
-          )}
+          ${({ props, partial }) => props.items.map(item => partial`
+              <${Button} key="${item.id}" className="nav">${item.label}</${Button}>
+          `)}
       </nav>
   `;
-  // Create a header component. Add navigation as a child.
-  const Header = Component.create`
-      <header>
-          ${({ props }) => Navigation.mount({ items : props.items})}
-      </header>
-  `;
   ```
-- Child components can be added using a component tag.
+- **Containers**: a template that is a single component, written as a tag or returned by
+  the function, makes the component a <b>container</b>: `this.el` is the child's element,
+  with no wrapper around it.
   ```javascript
-  // Create a button component.
-  const Button = Component.create`
-      <button class="button">
-           ${({ props }) => props.renderChildren()}
-      </button>
-  `;
-  // Create a navigation component. Add buttons as children. Iterate over items.
-  const Navigation = Component.create`
-      <nav>
-          ${({ props, partial }) => props.items.map(
-              item => partial`<${Button}>${item.label}</${Button}>`
-          )}
-      </nav>
-  `;
-  // Create a header component. Add navigation as a child.
-  const Header = Component.create`
-      <header>
-          <${Navigation} items="${({ props }) => props.items}" />
-      </header>
-  `;
-  ```
-- If the tagged template contains only one expression that mounts a component, or the tags are references to a component, the component will be considered a <b>container</b>. It will render a single component as a child. `this.el` will be a reference to that child component's element.
-  ```javascript
-  // Create a button component.
-  const Button = Component.create`
-      <button class="${({ props }) => props.className}">
-          ${({ props }) => props.renderChildren()}
-      </button>
-  `;
-  // Create a container that renders a Button component.
   const ButtonOk = Component.create`
       <${Button} className="ok">Ok</${Button}>
   `;
-  // Create a container that renders a Button component, using a function.
   const ButtonCancel = Component.create(() => Button.mount({
       className : 'cancel',
       renderChildren : () => 'Cancel'
   }));
   ```
-- Called on a subclass, the new component extends it, so the template can use its methods.
+- **Called on a subclass**, the new component extends it, so the template can use its methods.
   ```javascript
   class ListBase extends Component {
       renderItems() {
