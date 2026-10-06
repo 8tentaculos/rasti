@@ -480,7 +480,7 @@ const counter: Counter = Counter.mount({ initial: 0, label: 'Clicks' }, document
 
 With the tagged form, interpolation callbacks are `any` and need opt-in typing (`RenderExpression<C>` for content and quoted attributes, `EventHandler<C, E>` for unquoted handlers), and the class is a value only — alias it with `type X = InstanceType<typeof X>` to use the name as a type.
 
-Full details (generics, helper types, declaration merging, known limitations): [TypeScript section in the README](https://github.com/8tentaculos/rasti#typescript).
+Full details (generics, helper types, declaration merging, known limitations): [TypeScript guide](./typescript.md).
 
 ---
 
@@ -581,7 +581,7 @@ removeTodo(todo) {
 
 ## 🔷 TypeScript
 
-Types ship with the package. Full guide: [TypeScript section in the README](https://github.com/8tentaculos/rasti#typescript).
+Types ship with the package. Full guide: [TypeScript guide](./typescript.md).
 
 A subclass defining `template()` types best: its template is ordinary code the compiler checks, so it needs no helpers. In a tagged ``Component.create`…` `` template, functions are `any`. Type each one inline with `satisfies` and the matching helper, which types its parameters and `this`:
 
@@ -673,5 +673,5 @@ In an arrow function, annotating the parameter also works (`({ props }: ToggleCo
 
 - **Full API Documentation**: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md)
 - **Architecture**: [architecture.md](./architecture.md) — render engine, recycling, SSR, development mode
-- **TypeScript usage** (generics, helpers, declaration merging, known limitations): see the [TypeScript section in the README](https://github.com/8tentaculos/rasti#typescript)
+- **TypeScript usage** (generics, helpers, declaration merging, known limitations): see the [TypeScript guide](./typescript.md)
 - **GitHub Repository**: [8tentaculos/rasti](https://github.com/8tentaculos/rasti)
