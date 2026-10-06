@@ -321,6 +321,9 @@ expectType<ComponentPartial>(counterExt.partial`<div></div>`);
 expectType<number>(counterExt.props.initial);
 expectError(new CounterExt({ initial: 'not-a-number', label: 'x' }));
 
+// So is `ensureProps`, which builds the props model rather than being a lifecycle hook
+Counter.extend({ ensureProps(props) { expectType<object>(props); } });
+
 // mount() on an extended class returns the extended instance
 const mountedExt = CounterExt.mount({ initial: 1, label: 'x' });
 expectType<string>(mountedExt.extra());

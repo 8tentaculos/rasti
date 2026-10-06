@@ -111,6 +111,13 @@ export interface ComponentLifecycle {
     onUpdate?(): void;
     /** Lifecycle. Called when the component is destroyed. */
     onDestroy?(...args: any[]): void;
+}
+
+/**
+ * Methods a component calls to build what it needs, made available for contextual typing
+ * inside `Component.extend({ ... })` so overrides don't need parameter annotations.
+ */
+interface ComponentOverrides {
     /** Called the first time `props` is read, to build the model the component keeps them in. */
     ensureProps?(props: object): void;
 }
@@ -174,7 +181,7 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
     ): ExtendedComponent<T, O>;
     static extend<T extends new (...args: any[]) => Component<any, any, any>, O extends object>(
         this: T,
-        object: O & ComponentLifecycle & ThisType<InstanceType<T> & O>,
+        object: O & ComponentLifecycle & ComponentOverrides & ThisType<InstanceType<T> & O>,
     ): ExtendedComponent<T, O>;
 
     /**
