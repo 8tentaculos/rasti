@@ -9,6 +9,7 @@ import EventsManager from './core/EventsManager.js';
 
 import validateListener from './utils/validateListener.js';
 import getResult from './utils/getResult.js';
+import defineOwn from './utils/defineOwn.js';
 import parseHTML from './utils/parseHTML.js';
 import isVoidElement from './utils/isVoidElement.js';
 import replaceNode from './utils/replaceNode.js';
@@ -243,10 +244,11 @@ const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', '
 export default class Component extends View {
     constructor(options = {}) {
         super(...arguments);
-        // Extend "this" with options.
+        // Extend "this" with options, as own properties so an option overrides
+        // a getter declared by a subclass instead of being assigned through it.
         componentOptions.forEach(key => {
             if (key in options) {
-                this[key] = options[key];
+                defineOwn(this, key, options[key]);
                 this.optionKeys.add(key);
             }
         });
@@ -1059,6 +1061,17 @@ export default class Component extends View {
      *       className : 'cancel',
      *       renderChildren : () => 'Cancel'
      *   }));
+     *   ```
+     * - Called on a subclass, the new component extends it, so the template can use its methods.
+     *   ```javascript
+     *   class ListBase extends Component {
+     *       renderItems() {
+     *           return this.props.items.map(item => this.partial`<li>${item}</li>`);
+     *       }
+     *   }
+     *   const List = ListBase.create`
+     *       <ul>${(self) => self.renderItems()}</ul>
+     *   `;
      *   ```
      * @static
      * @param {string|Function} strings - A tagged template string for the component, or a template function that returns a partial or a child component.

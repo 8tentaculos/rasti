@@ -43,6 +43,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Quoted attribute values holding quotes or `>`**: a quoted value like `data-json='{"a":1}'` or `title="x > y"` no longer terminates the attribute early — a quoted value is everything up to its closing quote. Component tags parse the same way, so a quoted value holding `>` no longer breaks tag expansion.
 - **Single-root validation**: a component's template must resolve to a single root element, or render a single component — anything written beside the root is rendered once and then left out of every update, move and destroy. Two cases the check got wrong are fixed: a repeated root tag (`<div></div><div></div>`) is now detected instead of passing as a single root, and a void root element (`<input>`) is accepted instead of being rejected. The check now runs in development only, where templates are written; it adds nothing to production builds.
 
+## [4.1.3] - 2026-10-05
+
+### Fixed
+
+- **Interpolation whitespace**: an interpolated value keeps its leading and trailing whitespace when it updates. `parseHTML` trimmed the rendered value, so ` hola ` reached the DOM as `hola` on update while rendering correctly the first time.
+
+- **An option overrides a getter declared by a subclass.** The options merged into a `View` or `Component` were assigned to the instance, so one matching a getter with no setter (`get tag() { … }`) threw `TypeError: Cannot set property tag … which has only a getter`. They are now defined as own properties, which shadow the getter.
+
+- **TypeScript: `Component` is usable as a type.** `const c: Component<P>` failed with TS2749 because the default export is a value, not a class; a type alias now gives the exported name the instance type too, as `View` and `Model` have.
+
+- **TypeScript: a `Component` subclass without type arguments accepts any props.** `class X extends Component {}` defaulted `P` to `{}`, so `new X({ foo: 1 })` failed with TS2353 while the same component created with `Component.create` accepted it. Both default to `Record<string, any>` now, like `Model` and `View` do without type arguments.
+
+- **TypeScript: `tag`, `attributes`, `events` and `defaults` accept a getter in a subclass.** Overriding them as an accessor failed with TS2611, and `super.events` from a getter with TS2855. They are now declared apart from the class body. The prototype, `preinitialize`, option and class field forms compile unchanged; a method in the class body is still rejected.
+
+- **TypeScript: `View`'s `template` is declared as a method**, so a subclass defining `template()` no longer fails with TS2425. Its return type is `any`: a view is render-agnostic and `View` never reads the member.
+
+- **TypeScript: `Component`'s `template` is declared as `any` and documented as internal.** It held a view-style `(...args) => string` signature, but on an instance it is the parsed structure the render pipeline walks, not a function.
+
+- **TypeScript: the function form of an option is typed with the instance as `this`.** `el`, `tag`, `attributes`, `events`, `template`, `onDestroy` and the `Component` lifecycle hooks left `this` as the options object, so `new View({ attributes() { return { 'data-uid': this.uid }; } })` failed with TS2339. In a component's options `this` is `Component<P, S, M>`, so `this.props` is checked against `P` and `this.state` against `S`. Arrow functions and plain values compile unchanged.
+
+- **TypeScript: `create` called on a subclass returns that subclass.** It returned `typeof Component<P, S, M>`, dropping the methods the runtime does inherit, so `XBase.create` could not type a template that calls them. Now `class XBase extends Component<P> { renderX() { … } }` followed by `XBase.create\`…\`` keeps `XBase`, and the template's interpolations can be typed against it. Type arguments stay on `Component.create<P, S, M>`: `XBase.create<Q>` is now a type error, where it compiled and silently returned `typeof Component<Q>`, dropping `XBase`. Declare `Q` on the class instead.
+
+### Added
+
+- **TypeScript: `Resolvable<T>` and `ResolvableOption<T, V>`**, exported from the package. They name a value or a function returning it: `Resolvable` for instance members (`tag`, `attributes`, `events`), `ResolvableOption` for options, where it carries `this` explicitly. `ViewOptions` takes the instance type as a second parameter, which `ComponentReservedOptions` uses to type `this` as the component.
+
 ## [4.1.2] - 2026-08-29
 
 ### Fixed
@@ -416,7 +442,8 @@ Unlike views, which are render-agnostic, components have a specific set of rende
 
 * **BREAKING:** Removed emitter.emitAsync method.
 
-[unreleased]: https://github.com/8tentaculos/rasti/compare/v4.1.2...HEAD
+[unreleased]: https://github.com/8tentaculos/rasti/compare/v4.1.3...HEAD
+[4.1.3]: https://github.com/8tentaculos/rasti/compare/v4.1.2...v4.1.3
 [4.1.2]: https://github.com/8tentaculos/rasti/compare/v4.1.1...v4.1.2
 [4.1.1]: https://github.com/8tentaculos/rasti/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/8tentaculos/rasti/compare/v4.0.1...v4.1.0

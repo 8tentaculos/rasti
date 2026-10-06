@@ -1340,6 +1340,28 @@ describe('Component', () => {
             expect(c2.bar).to.be.a('function');
         });
 
+        it('must create a component from a subclass, keeping its methods and hooks', () => {
+            class Base extends Component {
+                onCreate() {
+                    this.state = new Model({ count : 1 });
+                }
+
+                renderLabel() {
+                    return this.partial`<b>${this.props.label}</b>`;
+                }
+            }
+
+            const C = Base.create`<div>${(self) => self.renderLabel()}<i>${({ state }) => state.count}</i></div>`;
+            const c = C.mount({ label : 'x' }, document.body);
+
+            expect(c).to.be.an.instanceof(Base);
+            expect(c.el.textContent).to.be.equal('x1');
+
+            c.state.count = 2;
+
+            expect(c.el.textContent).to.be.equal('x2');
+        });
+
         it('must return this from chainable methods', () => {
             const m = new Model();
             const c = new Component();
@@ -1788,6 +1810,17 @@ describe('Component', () => {
     });
 
     describe('Lifecycle methods', () => {
+        it('must let an option override a getter declared by a subclass', () => {
+            class Main extends Component.create`<div></div>` {
+                get state() {
+                    return 'from-getter';
+                }
+            }
+
+            expect(new Main().state).to.be.equal('from-getter');
+            expect(new Main({ state : 'from-option' }).state).to.be.equal('from-option');
+        });
+
         it('must call onHydrate lifecycle method', () => {
             let calls = 0;
             const onHydrate = function() {

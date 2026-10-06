@@ -62,6 +62,14 @@ interface UserAttrs {
 const u = new Model<UserAttrs>({ name: 'Alice', age: 30 });
 
 expectType<UserAttrs>(u.attributes);
+
+// The constructor writes `attributes`, so a getter throws when it is assigned. The accessor
+// form is rejected (TS2611), unlike on `defaults`, which is only read
+class GetterAttributes extends Model<UserAttrs> {
+    // @ts-expect-error
+    get attributes() { return { name: '', age: 0 }; }
+}
+new GetterAttributes();
 expectType<Partial<UserAttrs>>(u.previous);
 expectType<string>(u.get('name'));
 expectType<number>(u.get('age'));
@@ -108,6 +116,12 @@ class WithMethodDefaults extends Model<UserAttrs> {
 }
 new WithMethodDefaults();
 
+// A getter lives on the prototype, so it is in place when the constructor reads the member
+class WithGetterDefaults extends Model<UserAttrs> {
+    override get defaults() { return { name: '', age: 0 }; }
+}
+new WithGetterDefaults();
+
 /*
  * View: model, root element and merged options
  */
@@ -121,6 +135,13 @@ expectType<HTMLElement>(v.el);
 new View({ el: () => document.createElement('section') });
 class ElOnPrototype extends View {}
 ElOnPrototype.prototype.el = document.createElement('section');
+
+// `ensureElement` writes `el`, so the accessor form is rejected here too (TS2611)
+class GetterEl extends View {
+    // @ts-expect-error
+    get el() { return document.createElement('section'); }
+}
+new GetterEl();
 
 expectType<Array<() => void>>(v.destroyQueue);
 v.destroyQueue.push(() => {});
@@ -147,6 +168,27 @@ DynamicView.prototype.attributes = { class: 'dynamic' };
 DynamicView.prototype.attributes = () => ({ class: 'dynamic' });
 DynamicView.prototype.events = { click: 'onRootClick' };
 DynamicView.prototype.events = function() { return { click: 'onRootClick' }; };
+
+// The getter form, for the same reason it works on a model's `defaults`
+class GetterView extends View<Model<UserAttrs>> {
+    override get tag() { return 'section'; }
+    override get attributes() { return { class: 'dynamic' }; }
+    override get events() { return { 'click .ok': 'onOk' }; }
+    onOk() {}
+}
+new GetterView();
+
+// Narrowing through a merged interface leaves the getter available to further subclasses,
+// which redeclaring the member in the class body would not
+class NarrowedView extends View {}
+interface NarrowedView { events: { 'click .ok': string }; }
+expectType<{ 'click .ok': string }>(new NarrowedView().events);
+
+class NarrowedViewChild extends NarrowedView {
+    override get events() { return { 'click .ok': 'onOk' }; }
+    onOk() {}
+}
+new NarrowedViewChild();
 
 // As with `defaults`, a method in the class body does not compile (TS2425)
 class MethodAttributes extends View {
@@ -223,6 +265,10 @@ expectError(new Counter({ initial: 'not-a-number', label: 'x' }));
 // `key` is merged from options onto the instance
 expectType<string | undefined>(new Counter({ initial: 1, label: 'x', key: 'k' }).key);
 
+// The exported name is also the instance type, as it is for a view or a model
+const counterInstance: Component<CounterProps, CounterState> = new Counter({ initial: 1, label: 'x' });
+expectType<number>(counterInstance.props.initial);
+
 /*
  * Component.create<P, S, M>
  */
@@ -239,9 +285,14 @@ const Header = Component.create<HeaderProps>`<header></header>`;
 new Header({ handleAddTodo: (t) => expectType<string>(t) });
 expectError(new Header({ handleAddTodo: 'not-a-fn' }));
 
-// `Component.create` without generics — permissive (parity with JS)
+// Without generics the props are permissive (parity with JS), through `create` or a subclass
 const Plain = Component.create`<div></div>`;
 new Plain({ anything: 'goes', other: 123 });
+
+class PlainClass extends Component {
+    read() { return this.props.anything; }
+}
+new PlainClass({ anything: 'goes', other: 123 }).read();
 
 // A component that receives inner content declares `renderChildren` in its props
 class Card extends Component<{ title: string; renderChildren?: () => any }> {
@@ -327,6 +378,35 @@ const HeaderExt = Component.create<HeaderProps>`<header></header>`.extend({
 });
 new HeaderExt({ handleAddTodo: (t) => t }).helper();
 
+// create() on a subclass returns that subclass, so its template can be typed with it
+// and call its methods
+class CounterBase extends Component<CounterProps, CounterState> {
+    renderLabel() { return this.partial`<b>${this.props.label}</b>`; }
+    increment() { this.state!.count++; }
+}
+const CounterView = CounterBase.create`
+    <div onClick=${(function() { this.increment(); }) satisfies EventHandler<CounterBase, MouseEvent>}>
+        ${((self) => self.renderLabel()) satisfies RenderExpression<CounterBase>}
+    </div>
+`;
+const counterView = CounterView.mount({ initial: 1, label: 'x' });
+expectType<ComponentPartial>(counterView.renderLabel());
+expectError(CounterView.mount({ initial: 'not-a-number', label: 'x' }));
+
+// Type arguments belong to `Component.create`. On a subclass the call is rejected:
+// declare the props on the class and call `create` with none.
+class IdBase extends Component<{ id: string }> {
+    renderItems() { return this.props.id; }
+}
+const IdList = IdBase.create`<ul></ul>`;
+expectType<string>(new IdList({ id: 'a' }).renderItems());
+expectError(IdBase.create<{ items: string[] }>`<ul></ul>`);
+expectError(new IdList({ items: ['a'] }));
+
+// create() on an extended class keeps the members extend added
+const HeaderAgain = HeaderExt.create`<header></header>`;
+new HeaderAgain({ handleAddTodo: (t) => t }).helper();
+
 // `events` builds the delegation of the template's handlers. An override goes on the
 // prototype, and merging the inherited handlers needs a cast to its function form
 class WithMergedEvents extends Component<CounterProps> {
@@ -337,6 +417,16 @@ WithMergedEvents.prototype.events = function() {
     return Object.assign({}, inherited.call(this), { 'click .ok': 'onOk' });
 };
 new WithMergedEvents({ initial: 1, label: 'x' });
+
+// From a getter, the inherited member is reachable through `super`
+class WithSuperEvents extends Component<CounterProps> {
+    override get events() {
+        const inherited = super.events as () => Record<string, string | Function>;
+        return Object.assign({}, inherited.call(this), { 'click .ok': 'onOk' });
+    }
+    onOk() {}
+}
+new WithSuperEvents({ initial: 1, label: 'x' });
 
 // As on a view, a method in the class body does not compile (TS2425)
 class WithOwnEvents extends Component<CounterProps> {
@@ -359,6 +449,26 @@ new WithFieldAttributes({ initial: 1, label: 'x' });
 // Lifecycle hooks passed as options are called with the component as `this`
 Component.mount({ onCreate() { this.render(); }, onHydrate() { this.render(); } });
 Component.mount({ onCreate: () => {} });
+
+// So are the options inherited from `View`: `this` is the component, not a bare view.
+// `this.props` is `P` and `this.state` is `S`.
+new Counter({
+    initial: 1,
+    label: 'x',
+    attributes() {
+        expectType<string>(this.props.label);
+        return { 'data-label': this.props.label };
+    },
+    events() { return { click: this.props.label }; },
+    onCreate() {
+        expectType<number>(this.props.initial);
+        expectType<string>(this.props.label);
+        // @ts-expect-error
+        void this.props.lable;
+    },
+    onDestroy() { expectType<CounterState | undefined>(this.state); },
+    tag() { return this.state ? 'section' : 'div'; },
+});
 
 /*
  * Helper types: EventHandler, RenderExpression, ModelAttrs, ComponentProps, ComponentState, ComponentModel
