@@ -217,7 +217,7 @@ const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', '
  * making it simple to add child views and build complex user interfaces.
  * Unlike views, which are render-agnostic, components have a specific set of rendering
  * guidelines that allow for a more declarative development style.
- * A component renders from its {@link #module_component__template template} method, which returns a partial (built with {@link #module_component__partial partial}) or a child component. The {@link #module_component_create Component.create} static method is a factory that writes this method from a tagged template string or a template function.
+ * A component renders from its {@link #module_component__template template} method, which returns a partial (built with {@link #module_component__partial partial}) or a child component. Define it in a subclass, the recommended form, or let the {@link #module_component_create Component.create} static method write it from a tagged template string, the shortest form for simple components, or from a template function.
  * @module
  * @extends View
  * @param {object} options Object containing options. The following keys will be merged to `this`: model, state, key, onDestroy, onHydrate, onBeforeRecycle, onRecycle, onBeforeUpdate, onUpdate, onCreate, onChange. Any additional options not in the component or view options list will be automatically extracted as props and stored as `this.props`.
@@ -229,11 +229,15 @@ const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', '
  * @example
  * import { Component, Model } from 'rasti';
  * // Create Timer component.
- * const Timer = Component.create`
- *     <div>
- *         Seconds: <span>${({ model }) => model.seconds}</span>
- *     </div>
- * `;
+ * class Timer extends Component {
+ *     template() {
+ *         return this.partial`
+ *             <div>
+ *                 Seconds: <span>${this.model.seconds}</span>
+ *             </div>
+ *         `;
+ *     }
+ * }
  * // Create model to store seconds.
  * const model = new Model({ seconds : 0 });
  * // Mount timer on body.

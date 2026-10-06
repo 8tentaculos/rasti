@@ -123,24 +123,28 @@ const Link = Component.create`
 const Navigation = Component.create`
     <nav>
         ${({ props, partial }) => props.routes.map(
-            ({ label, href }) => partial`<${Link} href="${href}">${label}</${Link}>`
+            ({ label, href }) => partial`<${Link} key="${href}" href="${href}">${label}</${Link}>`
         )}
     </nav>
 `;
 
 // Create a Main component that includes the Navigation and displays the current route's label as the title.
-const Main = Component.create`
-    <main>
-        <${Navigation} routes="${({ props }) => props.routes}" />
-        <section>
-            <h1>
-                ${({ model, props }) => props.routes.find(
-                    ({ href }) => href === (model.location || '#')
-                ).label}
-            </h1>
-        </section>
-    </main>
-`;
+class Main extends Component {
+    template() {
+        return this.partial`
+            <main>
+                <${Navigation} routes="${this.props.routes}" />
+                <section>
+                    <h1>${this.currentRoute().label}</h1>
+                </section>
+            </main>
+        `;
+    }
+
+    currentRoute() {
+        return this.props.routes.find(({ href }) => href === (this.model.location || '#'));
+    }
+}
 
 // Initialize a model to store the current location.
 const model = new Model({ location : document.location.hash });
@@ -161,26 +165,38 @@ Main.mount({ routes, model }, document.body);
 const model = new Model({ count : 0 });
 
 // Create a Counter component with increment and decrement buttons.
-const Counter = Component.create`
-    <div>
-        <div>Counter: ${({ model }) => model.count}</div>
-        <button onClick=${function() { this.model.count++; }}>Increment</button>
-        <button onClick=${function() { this.model.count--; }}>Decrement</button>
-    </div>
-`;
+class Counter extends Component {
+    template() {
+        return this.partial`
+            <div>
+                <div>Counter: ${this.model.count}</div>
+                <button onClick=${() => this.increment()}>Increment</button>
+                <button onClick=${() => this.decrement()}>Decrement</button>
+            </div>
+        `;
+    }
+
+    increment() {
+        this.model.count++;
+    }
+
+    decrement() {
+        this.model.count--;
+    }
+}
 
 // Mount the Counter component to the body and pass the model as an option.
 Counter.mount({ model }, document.body);
 
-// Event listeners are bound to 'this' and use delegation from the root element.
+// Event listeners are delegated from the component's root element.
 // When buttons are clicked, only the text node gets updated, not the entire component.
 ```
 
 [Try it on CodePen](https://codepen.io/8tentaculos/pen/XJXVQOR?editors=0010)
 
-### Defining a component's template
+### Writing components
 
-Every component renders from its **`template()` method**, which returns a **partial** built with `this.partial`. How to write it — as a subclass, a template function or a tagged template — and the rules of the root partial are in [Defining a component's template](/docs/components.md).
+A component renders from its **`template()` method**, which returns a **partial** built with `this.partial`. Write it in a subclass, as `Main` and `Counter` do above: it is the recommended form. `Component.create` can also write it for you from a tagged template, the shortest form for simple components like `Timer` and `Link`, or from a template function. The three forms, how they differ and when to use each are in [Writing components](/docs/components.md).
 
 ## Scaffolding a New Project
 
@@ -214,7 +230,7 @@ To scaffold a real-world project, use [`create-rasti`](#scaffolding-a-new-projec
 
 ## Documentation
 
-- [Defining a component's template](/docs/components.md) — the forms a component can be written in, interpolations, containers and the root partial.
+- [Writing components](/docs/components.md) — the three forms and which to use, interpolations, containers and the root partial.
 - [TypeScript](/docs/typescript.md) — typing components, models and template interpolations.
 - [API documentation](/docs/api.md) — every class, method and option.
 - [Architecture overview](/docs/architecture.md) — how the pieces fit together: components, the render engine, recycling and SSR.

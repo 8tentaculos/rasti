@@ -97,23 +97,23 @@ A view that renders from `template()`. The root partial that method returns is c
 
 ### Authoring
 
-Three equivalent forms:
+Three forms, all producing a `Component` subclass:
 
 ```js
-Component.create`<div>${({ model }) => model.title}</div>`;
-
-Component.create(function() {
-    return this.partial`<div>${this.model.title}</div>`;
-});
-
 class Title extends Component {
     template() {
         return this.partial`<div>${this.model.title}</div>`;
     }
 }
+
+Component.create(function() {
+    return this.partial`<div>${this.model.title}</div>`;
+});
+
+Component.create`<div>${({ model }) => model.title}</div>`;
 ```
 
-The tagged form captures expressions once, so anything dynamic must be a function. The function and subclass forms re-run `template()` every render, so plain values work.
+The subclass and function forms re-run `template()` every render, so plain values work. `create` with a tagged template writes a `template()` that rebuilds the partial from expressions captured once, so anything dynamic must be a function. Which form to use, and why the subclass is the default, is in [Writing components](./components.md).
 
 `template()` may also return a child component instance. That makes this component a **container**: no wrapper element; `this.el` is the child's.
 

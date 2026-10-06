@@ -8,44 +8,52 @@ Compact reference for developing with Rasti. Full API: [api.md](https://cdn.jsde
 
 ### Component Creation
 
-A component renders from its `template()` method, which returns a partial (or a child component — see [Container Components](#container-components)). `Component.create` is a factory that writes that method for you. The three forms below are equivalent ways to author the same component:
+A component renders from its `template()` method, which returns a partial (or a child component — see [Container Components](#container-components)). **Write components as subclasses**: the template, its handlers and the methods it calls live together, plain values interpolate directly, and TypeScript checks the template with no helpers. `Component.create` writes `template()` for you from a tagged template — the shortest form, for simple presentational components — or from a template function. All three forms produce a `Component` subclass and can be mixed in one app.
 
 ```js
 import { Component, Model } from 'rasti';
 
-// 1. Tagged template — the shortest form.
-const MyComponent = Component.create`
-    <div class="${({ props }) => props.className}">
-        <span>${({ model }) => model.title}</span>
-        <button onClick=${function() { this.model.count++; }}>+</button>
-    </div>
-`;
-
-// 2. Template function — `create(fn)` uses `fn` as the component's `template()`.
-const MyComponent = Component.create(function() {
-    return this.partial`
-        <div class="${this.props.className}">
-            <span>${this.model.title}</span>
-            <button onClick=${function() { this.model.count++; }}>+</button>
-        </div>
-    `;
-});
-
-// 3. Subclass — `template()` sits next to the other methods.
+// 1. Subclass — the recommended form. `template()` sits next to the other methods.
 class MyComponent extends Component {
+    onCreate() {
+        this.state = new Model({ editing : false });
+    }
+
     template() {
-        return this.partial`<div><span>${this.model.title}</span></div>`;
+        return this.partial`
+            <div class="${this.props.className}">
+                <span>${this.model.title}</span>
+                <button onClick=${() => this.increment()}>+</button>
+            </div>
+        `;
+    }
+
+    increment() {
+        this.model.count++;
     }
 }
 
-// Add lifecycle hooks and methods
-const MyComponent = Component.create`...`.extend({
+// 2. Tagged template — the shortest form, for simple components.
+// Captured once, so dynamic values must be functions.
+const Badge = Component.create`
+    <span class="badge">${({ props }) => props.label}</span>
+`;
+
+// Add methods and lifecycle hooks to a created component with `extend`.
+const Toggle = Component.create`
+    <button onClick=${function() { this.toggle(); }}>${({ state }) => state.active ? 'On' : 'Off'}</button>
+`.extend({
     onCreate() {
-        this.state = new Model({ editing: false });
+        this.state = new Model({ active : false });
     },
-    onUpdate() {
-        if (this.state.editing) this.$('input.edit').focus();
+    toggle() {
+        this.state.active = !this.state.active;
     }
+});
+
+// 3. Template function — `create(fn)` uses `fn` as the component's `template()`.
+const Label = Component.create(function() {
+    return this.partial`<label>${this.props.text}</label>`;
 });
 
 // Mount to DOM
@@ -627,8 +635,8 @@ In an arrow function, annotating the parameter also works (`({ props }: ToggleCo
 ## ⚠️ Best Practices
 
 ### Component Structure
-- Use `Component.create` with semantic HTML. Keep template structure visible — prefer inline `partial` over helper methods.
-- Reach for the subclass form (`class X extends Component { template() {…} }`) when a component has many methods, when plain-value interpolations read better than functions, or in TypeScript, where it types best.
+- Write components as subclasses (`class X extends Component { template() {…} }`). Use the tagged ``Component.create`…` `` form only for simple presentational components, and switch to a subclass once a component needs methods, state or several hooks.
+- Use semantic HTML. Keep template structure visible — prefer inline `partial` over helper methods.
 - Keep the root template stable and single-rooted; branch inside the interpolations.
 - Use `partial` for conditional blocks and lists. Return `null` in interpolations to render nothing.
 - Use `key` attribute when rendering arrays.
@@ -672,6 +680,7 @@ In an arrow function, annotating the parameter also works (`({ props }: ToggleCo
 ## Additional Resources
 
 - **Full API Documentation**: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md)
+- **Writing components**: [components.md](./components.md) — the three forms and which to use
 - **Architecture**: [architecture.md](./architecture.md) — render engine, recycling, SSR, development mode
 - **TypeScript usage** (generics, helpers, declaration merging, known limitations): see the [TypeScript guide](./typescript.md)
 - **GitHub Repository**: [8tentaculos/rasti](https://github.com/8tentaculos/rasti)
