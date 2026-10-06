@@ -346,6 +346,23 @@ expectAssignable<ComponentPartial | InstanceType<typeof Component>>(
 const FnContainer = Component.create(() => Card.mount({ title: 'x' }));
 new FnContainer();
 
+// `create` function form: `this` and the argument are the component, typed by the
+// arguments passed to `create`, or by the subclass `create` is called on
+const FnTimer = Component.create<{ seconds: number }>(function() {
+    expectType<number>(this.props.seconds);
+    return this.partial`<div>${this.props.seconds}</div>`;
+});
+expectError(new FnTimer({ seconds: 'not-a-number' }));
+Component.create<{ seconds: number }>(({ props, partial }) => {
+    expectType<number>(props.seconds);
+    return partial`<div>${props.seconds}</div>`;
+});
+Component.create<{ seconds: number }>(function() {
+    // @ts-expect-error `seconds` is a number
+    this.props.seconds.toUpperCase();
+    return this.partial`<div></div>`;
+});
+
 // Subclass form: `template()` is defined as a method, alongside typed fields and helpers
 class Panel extends Component<CounterProps, CounterState> {
     timer: number | null = null;
@@ -395,6 +412,10 @@ const CounterView = CounterBase.create`
 const counterView = CounterView.mount({ initial: 1, label: 'x' });
 expectType<ComponentPartial>(counterView.renderLabel());
 expectError(CounterView.mount({ initial: 'not-a-number', label: 'x' }));
+const CounterFn = CounterBase.create(function() {
+    return this.partial`<div onClick=${() => this.increment()}>${this.renderLabel()}</div>`;
+});
+expectType<ComponentPartial>(CounterFn.mount({ initial: 1, label: 'x' }).renderLabel());
 
 // Type arguments belong to `Component.create`. On a subclass the call is rejected:
 // declare the props on the class and call `create` with none.

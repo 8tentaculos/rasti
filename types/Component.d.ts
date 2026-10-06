@@ -233,13 +233,13 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
      */
     static create<T extends new (...args: any[]) => Component<any, any, any>>(
         this: T,
-        strings: TemplateStringsArray | ((...args: any[]) => ComponentPartial | Component<any, any, any>),
+        strings: TemplateStringsArray | ((this: InstanceType<T>, component: InstanceType<T>) => ComponentPartial | Component<any, any, any>),
         ...expressions: any[]
     ): T;
     /** Types props, state and model. Only `Component.create` takes these arguments; see above. */
     static create<P = Record<string, any>, S = any, M = any>(
         this: typeof Component,
-        strings: TemplateStringsArray | ((...args: any[]) => ComponentPartial | Component<any, any, any>),
+        strings: TemplateStringsArray | ((this: Component<P, S, M>, component: Component<P, S, M>) => ComponentPartial | Component<any, any, any>),
         ...expressions: any[]
     ): typeof Component<P, S, M>;
 
