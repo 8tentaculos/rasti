@@ -111,7 +111,7 @@ export interface ComponentLifecycle {
     onUpdate?(): void;
     /** Lifecycle. Called when the component is destroyed. */
     onDestroy?(...args: any[]): void;
-    /** Called once from the constructor to build the model the component keeps its props in. */
+    /** Called the first time `props` is read, to build the model the component keeps them in. */
     ensureProps?(props: object): void;
 }
 
@@ -306,6 +306,13 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
     toString(): string;
 
     /**
+     * Build the `Model` the component keeps its props in, and assign it to `this.props`.
+     * Called the first time anything reads `props`. Override it to give props a model of
+     * your own — one with `defaults`, or one that validates what a parent passes.
+     */
+    ensureProps(props: object): void;
+
+    /**
      * Render the component.
      *
      * - **First render** (before hydration): renders as a string inside a `DocumentFragment`
@@ -313,13 +320,6 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
      * - **Update render** (once hydrated): runs `template()` again and patches the DOM in place,
      *   diffing attributes and reconciling interpolations. `onBeforeUpdate` and `onUpdate` are called.
      */
-    /**
-     * Build the `Model` the component keeps its props in. Called once from the
-     * constructor. Override it to give props a model of your own — one with `defaults`,
-     * or one that validates what a parent passes.
-     */
-    ensureProps(props: object): void;
-
     render(): this;
 
     /** Lifecycle. Called at the end of the constructor. Runs on both client and server. */
