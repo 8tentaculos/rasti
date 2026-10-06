@@ -994,7 +994,7 @@ export default class Component extends View {
      * - Boolean attributes should be passed in the format `attribute="${() => true}"`. `false` attributes won't be rendered. `true` attributes will be rendered without a value.
      *   ```javascript
      *   const Input = Component.create`
-     *       <input type="text" disabled=${({ props }) => props.disabled} />
+     *       <input type="text" disabled="${({ props }) => props.disabled}" />
      *   `;
      *   ```
      * - If the interpolated function returns a component instance, it will be added as a child component.
