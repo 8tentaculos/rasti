@@ -58,6 +58,13 @@ const RE_PH = new RegExp(PH_CAPTURE);
 /** Global variant of `RE_PH`, for replaces and `exec` loops. @type {RegExp} @private */
 const RE_PH_G = new RegExp(PH_CAPTURE, 'g');
 /**
+ * A camel-cased `on*` attribute in an attributes string. It binds a delegated
+ * handler even when its value is literal (`onClick="save"`).
+ * @type {RegExp}
+ * @private
+ */
+const RE_EVENT_ATTRIBUTE = /(?:^|\s)on[A-Z][a-zA-Z]*\s*=/;
+/**
  * A placeholder in text content, with an optional `<` / `</` immediately before
  * it captured. The prefix marks a dynamic tag name (`<${tag}`, `</${tag}>`) — the
  * only placeholders legitimately inside a tag by the time interpolations are
@@ -344,11 +351,12 @@ const replaceElements = (template, replacer) => template.replace(RE_ELEMENT, rep
 
 /**
  * Parse the HTML elements that need a descriptor and extract them. An element carrying
- * a dynamic attribute always gets one, and so does the template's first element, with
- * or without attributes: it is the one the engine has to be able to find again — the
- * element a component adopts as `this.el`, the one `rootElement` resolves to, and the
- * node a partial begins at. Single-root validation is not done here; that is root
- * treatment, applied when a component adopts its root partial.
+ * a dynamic attribute or a camel-cased `on*` attribute always gets one, and so does the
+ * template's first element, with or without attributes: it is the one the engine has to
+ * be able to find again — the element a component adopts as `this.el`, the one
+ * `rootElement` resolves to, and the node a partial begins at. Single-root validation
+ * is not done here; that is root treatment, applied when a component adopts its root
+ * partial.
  * @param {string} template Template string with placeholders.
  * @param {Array} elements Array to store element descriptors.
  * @return {string} Template with parsed attributes replaced by structural placeholders.
@@ -360,10 +368,12 @@ const parseElements = (template, elements) => {
     return replaceElements(template, (match, tag, attributesStr, ending) => {
         const isFirst = first;
         first = false;
-        // Elements with dynamic attributes always get a descriptor. The first
-        // (root) element also gets one even without dynamic attributes, so a
-        // component can adopt it as `this.el` and hydration can locate it by id.
-        if (!isFirst && !attributesStr.match(RE_PH)) {
+        // Elements with dynamic attributes always get a descriptor, and so do elements
+        // naming a handler method (`onClick="save"`): the handler is delegated, so it has
+        // to be registered even though its value is literal. The first (root) element also
+        // gets one even without them, so a component can adopt it as `this.el` and
+        // hydration can locate it by id.
+        if (!isFirst && !RE_PH.test(attributesStr) && !RE_EVENT_ATTRIBUTE.test(attributesStr)) {
             return match;
         }
         // Add element descriptor to elements array.

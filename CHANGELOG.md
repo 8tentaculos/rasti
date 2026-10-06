@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Quoted attribute values holding quotes or `>`**: a quoted value like `data-json='{"a":1}'` or `title="x > y"` no longer terminates the attribute early — a quoted value is everything up to its closing quote. Component tags parse the same way, so a quoted value holding `>` no longer breaks tag expansion.
 - **Single-root validation**: a component's template must resolve to a single root element, or render a single component — anything written beside the root is rendered once and then left out of every update, move and destroy. Two cases the check got wrong are fixed: a repeated root tag (`<div></div><div></div>`) is now detected instead of passing as a single root, and a void root element (`<input>`) is accepted instead of being rejected. The check now runs in development only, where templates are written; it adds nothing to production builds.
 - **Attributes holding `on` and a capital mid-name**: an attribute such as `data-iconName` or `data-sectionTitle` was taken for an event handler, because the check matched `on` followed by a capital anywhere in the name, and it disappeared from the element. Only a name starting with `on` and a capital binds a handler.
+- **A handler named by a method on a static element**: `<button onClick="save">`, on an element carrying nothing else dynamic, was written out as the native `onclick` attribute and never called the method. It is now delegated like any other handler.
 
 ## [4.1.3] - 2026-10-05
 

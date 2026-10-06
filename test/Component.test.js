@@ -1187,6 +1187,23 @@ describe('Component', () => {
             done();
         });
 
+        it('must delegate a handler named by a method on an element with no interpolations', () => {
+            let clicks = 0;
+            const TestComponent = Component.create`
+                <div>
+                    <button onClick="handleClick">static</button>
+                </div>
+            `.extend({ handleClick() { clicks++; } });
+
+            const c = TestComponent.mount({}, document.body);
+            const button = c.$('button');
+            // Delegated, not written out as the native inline handler.
+            expect(button.hasAttribute('onclick')).to.be.false;
+            button.dispatchEvent(new MouseEvent('click', { bubbles : true }));
+            expect(clicks).to.equal(1);
+            c.destroy();
+        });
+
         it('must only take a camel-cased on attribute for an event handler', () => {
             const TestComponent = Component.create`
                 <div data-iconName="${() => 'star'}" data-sectionTitle="${() => 'Intro'}">x</div>

@@ -99,6 +99,18 @@ describe('parseTemplate', () => {
             expect(parts[1].attributes).to.be.empty;
             expect(interpolationsOf(parts)).to.be.empty;
         });
+
+        it('must give an element naming a handler method a descriptor', () => {
+            const { strings, expressions } = tag`<div><button onClick="save">x</button><i title="t">y</i></div>`;
+            const { parts } = parseTemplate(strings, expressions);
+
+            // The root and the button: a literal handler name still has to be
+            // registered, while the static <i> stays literal markup.
+            const elements = elementsOf(parts);
+            expect(elements).to.have.lengthOf(2);
+            expect(elements[1].attributes).to.have.lengthOf(1);
+            expectAttr(elements[1].attributes[0], 'onClick', 'save', true);
+        });
     });
 
     describe('template structure', () => {
