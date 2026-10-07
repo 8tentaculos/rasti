@@ -1,6 +1,6 @@
 # Writing components
 
-A component renders from its **`template()` method**, which returns a **partial**: a tagged template built with `this.partial` that describes the root element and its dynamic content. `template()` runs on **every render**.
+A component renders from its **`template()` method**, which returns a **partial**: a tagged template built with `this.html` (an alias of `this.partial`) that describes the root element and its dynamic content. `template()` runs on **every render**.
 
 ## Three ways to write a component
 
@@ -10,13 +10,13 @@ The same `Timer`, written in each form:
 // 1. A subclass, with `template()` next to the component's other methods.
 class Timer extends Component {
     template() {
-        return this.partial`<div>Seconds: <span>${this.model.seconds}</span></div>`;
+        return this.html`<div>Seconds: <span>${this.model.seconds}</span></div>`;
     }
 }
 
 // 2. A template function, which `create` uses as `template()`.
 const Timer = Component.create(function() {
-    return this.partial`<div>Seconds: <span>${this.model.seconds}</span></div>`;
+    return this.html`<div>Seconds: <span>${this.model.seconds}</span></div>`;
 });
 
 // 3. A tagged template, from which `create` writes `template()`.
@@ -52,7 +52,7 @@ Every form produces a subclass of `Component`, so they compose:
   ```javascript
   class ListBase extends Component {
       renderItems() {
-          return this.props.items.map(item => this.partial`<li>${item}</li>`);
+          return this.props.items.map(item => this.html`<li>${item}</li>`);
       }
   }
 
@@ -63,7 +63,7 @@ Every form produces a subclass of `Component`, so they compose:
 
   ```javascript
   Component.mount(
-      { template() { return this.partial`<p>Hello</p>`; } },
+      { template() { return this.html`<p>Hello</p>`; } },
       document.body,
   );
   ```
@@ -82,7 +82,7 @@ In the **function and subclass forms**, the body of `template()` re-runs on ever
 class Greeting extends Component {
     template() {
         // Read on every render, so it stays in sync with the props.
-        return this.partial`<h1>Hello ${this.props.name}</h1>`;
+        return this.html`<h1>Hello ${this.props.name}</h1>`;
     }
 }
 ```
@@ -126,7 +126,7 @@ An `on*` attribute on an element, such as `onClick`, `onInput` or `onKeyUp`, bin
 ```javascript
 class Search extends Component {
     template() {
-        return this.partial`
+        return this.html`
             <form onSubmit="handleSubmit">
                 <input onInput=${(event) => this.props.handleQuery(event.target.value)} />
             </form>
@@ -155,9 +155,9 @@ class TodoList extends Component {
     handleRemove = (todo) => this.model.removeTodo(todo);
 
     template() {
-        return this.partial`
+        return this.html`
             <ul>
-                ${this.model.todos.map(todo => this.partial`
+                ${this.model.todos.map(todo => this.html`
                     <${TodoItem} key="${todo.id}" model="${todo}" handleRemove=${this.handleRemove} />
                 `)}
             </ul>
@@ -195,7 +195,7 @@ The partial returned by `template()` becomes the component's root element, so it
 ```javascript
 class Panel extends Component {
     template() {
-        return this.partial`
+        return this.html`
             <section>${this.props.loading ? 'Loading…' : this.renderRows()}</section>
         `;
     }

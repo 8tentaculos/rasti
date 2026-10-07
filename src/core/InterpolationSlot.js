@@ -209,7 +209,7 @@ const checkListItems = (slot, items) => {
         'what identifies it there: without one it is built again on every update, losing\n' +
         'its state and its DOM nodes. Give each one a key:\n' +
         '\n' +
-        '  items.map(item => partial`<${Row} key="${item.id}" />`)'
+        '  items.map(item => html`<${Row} key="${item.id}" />`)'
     );
     else if (duplicated != null) warn(slot,
         `Duplicate key "${duplicated}" in a list\n` +
@@ -222,7 +222,7 @@ const checkListItems = (slot, items) => {
         'holds it, not to the list, so a key written there identifies nothing among the\n' +
         'list\'s siblings. Put the component in the list itself:\n' +
         '\n' +
-        '  items.map(item => partial`<${Row} key="${item.id}" />`)'
+        '  items.map(item => html`<${Row} key="${item.id}" />`)'
     );
 };
 
@@ -269,7 +269,7 @@ const checkAnchoredContent = (slot, value) => {
         '- `${({ state }) => state.open ? Dialog.mount(props) : Empty.mount(props)}`\n' +
         '- `<${MyComponent} />`\n\n' +
         'Invalid examples:\n' +
-        '- `${({ partial }) => partial`<div></div>`}`  (markup, not a component)\n' +
+        '- `${({ html }) => html`<div></div>`}`  (markup, not a component)\n' +
         '- `${({ props }) => props.label}`  (a plain value)' +
         (formattedSource ? `\n\nTemplate source:\n\n${formattedSource}` : '')
     ));

@@ -1,6 +1,6 @@
 # Rasti API Reference for AI Agents
 
-Compact reference for developing with Rasti. Full API: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md). How the engine works: [architecture.md](./architecture.md)
+Compact reference for developing with Rasti. Full API: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md). How the engine works: [architecture.md](./architecture.md)
 
 ---
 
@@ -20,7 +20,7 @@ class MyComponent extends Component {
     }
 
     template() {
-        return this.partial`
+        return this.html`
             <div class="${this.props.className}">
                 <span>${this.model.title}</span>
                 <button onClick=${() => this.increment()}>+</button>
@@ -53,7 +53,7 @@ const Toggle = Component.create`
 
 // 3. Template function — `create(fn)` uses `fn` as the component's `template()`.
 const Label = Component.create(function() {
-    return this.partial`<label>${this.props.text}</label>`;
+    return this.html`<label>${this.props.text}</label>`;
 });
 
 // Mount to DOM
@@ -63,10 +63,10 @@ MyComponent.mount({ model }, document.getElementById('root'));
 `template()` runs on **every render** — see [Interpolations](#interpolations) for what that means for the values inside it.
 
 **Key Methods:**
-- [`Component.create`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component_create) — creates component class from a tagged template or a template function
-- [`component.template`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__template) — returns the component's root partial; override it directly, via `extend`, or as a mount option
-- [`Component.extend`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component_extend) — adds methods and lifecycle hooks
-- [`Component.mount`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component_mount) — creates and mounts a component instance
+- [`Component.create`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component_create) — creates component class from a tagged template or a template function
+- [`component.template`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component__template) — returns the component's root partial; override it directly, via `extend`, or as a mount option
+- [`Component.extend`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component_extend) — adds methods and lifecycle hooks
+- [`Component.mount`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component_mount) — creates and mounts a component instance
 
 ---
 
@@ -80,19 +80,19 @@ The partial returned by `template()` becomes the component's root element, so tw
 ```js
 // ❌ Wrong — two elements at the top level; only <h1> survives
 template() {
-    return this.partial`<h1>${this.model.title}</h1><p>${this.model.body}</p>`;
+    return this.html`<h1>${this.model.title}</h1><p>${this.model.body}</p>`;
 }
 
 // ❌ Wrong — a different root template per render
 template() {
     return this.props.loading ?
-        this.partial`<p>Loading…</p>` :
-        this.partial`<ul>${this.renderRows()}</ul>`;
+        this.html`<p>Loading…</p>` :
+        this.html`<ul>${this.renderRows()}</ul>`;
 }
 
 // ✅ Correct — one root element, branching inside the interpolation
 template() {
-    return this.partial`
+    return this.html`
         <section>${this.props.loading ? 'Loading…' : this.renderRows()}</section>
     `;
 }
@@ -112,7 +112,7 @@ Component.create`<span>${({ model }) => model.title}</span>`;
 
 // Function / subclass form — `template()` re-runs, so plain values stay in sync
 template() {
-    return this.partial`<span>${this.model.title}</span>`;
+    return this.html`<span>${this.model.title}</span>`;
 }
 ```
 
@@ -196,7 +196,7 @@ handleSave="${({ model, props }) => () => model.delete(props.itemId)}"
 handleSelect="${({ props }) => props.handleSelect}"
 ```
 
-**Related:** [`delegateEvents`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_view__delegateevents)
+**Related:** [`delegateEvents`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_view__delegateevents)
 
 ---
 
@@ -227,9 +227,9 @@ const Header = Component.create`
 ```
 
 **Key properties:**
-- `this.model` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_model) for application data
-- `this.state` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_model) for internal component state
-- `this.props` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_model) auto-created from non-standard options
+- `this.model` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_model) for application data
+- `this.state` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_model) for internal component state
+- `this.props` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_model) auto-created from non-standard options
 
 **When a child re-renders:** on a parent render, a recycled child gets its props set again, compared by identity (`!==`), and re-renders only if one changed. Primitives and references that persist don't trigger it. A function, object or array built during the parent's render does, and so does slotted content, since `renderChildren` is recreated on every render. To spare the rows of a list, pass references that persist, such as a class field:
 
@@ -238,7 +238,7 @@ class TodoList extends Component {
     handleRemove = (todo) => this.model.removeTodo(todo); // created once per instance
 
     template() {
-        return this.partial`<ul>${this.model.todos.map(todo => this.partial`
+        return this.html`<ul>${this.model.todos.map(todo => this.html`
             <${TodoItem} key="${todo.id}" model="${todo}" handleRemove=${this.handleRemove} />
         `)}</ul>`;
     }
@@ -278,19 +278,19 @@ When using `Component.mount()`, pass `renderChildren` manually: `{ renderChildre
 
 ### Partials
 
-[`partial`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__partial) creates sub-templates for conditional blocks and lists. A partial is patched in place on update — attributes diffed, child components recycled — so the DOM nodes inside it, and their focus, selection and input value, survive re-renders.
+`html`, an alias of [`partial`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component__partial), creates sub-templates (partials) for conditional blocks and lists. A partial is patched in place on update — attributes diffed, child components recycled — so the DOM nodes inside it, and their focus, selection and input value, survive re-renders.
 
 ```js
 const App = Component.create`
     <main>
-        ${({ model, partial }) => !!model.todos.length && partial`
+        ${({ model, html }) => !!model.todos.length && html`
             <section class="main">
                 <${ToggleAll}
                     checked="${() => !!model.todos.length && !model.remaining.length}"
                     handleChange=${(checked) => model.toggleAll(checked)}
                 />
                 <ul class="todo-list">
-                    ${model.filtered.map(todo => partial`
+                    ${model.filtered.map(todo => html`
                         <${Todo}
                             key="${todo.id}"
                             model="${todo}"
@@ -300,7 +300,7 @@ const App = Component.create`
                 </ul>
             </section>
         `}
-        ${({ model, partial }) => model.completed.length ? partial`
+        ${({ model, html }) => model.completed.length ? html`
             <button onClick=${function() { this.model.removeCompleted(); }}>
                 Clear completed
             </button>
@@ -309,7 +309,7 @@ const App = Component.create`
 `;
 ```
 
-For very large templates, extract named sub-template helpers (use `this.partial` inside them):
+For very large templates, extract named sub-template helpers (use `this.html` inside them):
 
 ```js
 const MyComponent = Component.create`
@@ -318,7 +318,7 @@ const MyComponent = Component.create`
     </div>
 `.extend({
     renderHeader() {
-        return this.partial`<header><h1>${this.model.title}</h1></header>`;
+        return this.html`<header><h1>${this.model.title}</h1></header>`;
     }
 });
 ```
@@ -341,12 +341,12 @@ Rasti reuses component instances across renders to preserve state and improve pe
 
 ```js
 // Arrays — always key the items, or every item is recreated on each render
-${model.items.map(item => partial`
+${model.items.map(item => html`
     <${Item} key="${item.id}" model="${item}" />
 `)}
 
 // Same type, different identity — use key to force recreation instead of recycling
-${({ props }) => partial`<${TodoForm} key="${props.editingId}" model="${props.editingTodo}" />`}
+${({ props, html }) => html`<${TodoForm} key="${props.editingId}" model="${props.editingTodo}" />`}
 ```
 
 ---
@@ -429,7 +429,7 @@ const MyComponent = Component.create`...`.extend({
 **`destroyQueue`** — array of functions called on destroy. Use for external subscriptions not managed by Rasti (DOM events, timers, third-party libraries). `subscribe()` and `listenTo()` are automatically cleaned up by `View.destroy()` — no need to push those.
 
 **Related API:**
-- [`component.onCreate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__oncreate) · [`component.onHydrate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__onhydrate) · [`component.onChange`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__onchange) · [`component.onUpdate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__onupdate) · [`component.onDestroy`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__ondestroy)
+- [`component.onCreate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component__oncreate) · [`component.onHydrate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component__onhydrate) · [`component.onChange`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component__onchange) · [`component.onUpdate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component__onupdate) · [`component.onDestroy`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component__ondestroy)
 
 ---
 
@@ -463,18 +463,18 @@ const Dashboard = Component.create`...`.extend({
 ```
 
 **Related API:**
-- [`component.subscribe`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__subscribe) · [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_emitter__listento)
+- [`component.subscribe`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component__subscribe) · [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_emitter__listento)
 
 ---
 
 ### Rendering
 
-[`render()`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__render) handles both initial hydration and updates:
+[`render()`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component__render) handles both initial hydration and updates:
 
 - **First render** — runs `template()`, renders as string inside `DocumentFragment`, hydrates DOM, calls `onHydrate()`. If an `el` option was provided, hydrates onto that existing DOM instead (server-rendered markup)
 - **Update render** — runs `template()` again while retaining the component's root partial and root element. Reconciliation is recursive: elements and retained partials patch in place, matching children recycle, and an interpolation region regenerates only when its occupant changes identity or shape. Calls `onBeforeUpdate()` then `onUpdate()`
 
-Use [`Component.markAsSafeHTML`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component_markassafehtml) only for pre-sanitized trusted HTML:
+Use [`Component.markAsSafeHTML`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component_markassafehtml) only for pre-sanitized trusted HTML:
 
 ```js
 ${({ props }) => Component.markAsSafeHTML(props.trustedHTML)}
@@ -491,7 +491,7 @@ interface CounterProps { initial: number; label: string }
 
 class Counter extends Component<CounterProps> {
     template() {
-        return this.partial`
+        return this.html`
             <div>
                 <span>${this.props.label}: ${this.props.initial}</span>
                 <button onClick=${() => this.increment()}>+</button>
@@ -533,7 +533,7 @@ AppModel.prototype.defaults = {
 };
 ```
 
-**Related:** [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_model)
+**Related:** [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_model)
 
 ---
 
@@ -601,7 +601,7 @@ removeTodo(todo) {
 }
 ```
 
-**Related:** [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_emitter__listento) · [`Emitter.stopListening`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_emitter__stoplistening)
+**Related:** [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_emitter__listento) · [`Emitter.stopListening`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_emitter__stoplistening)
 
 ---
 
@@ -656,9 +656,9 @@ Never annotate the parameter of an unquoted handler: its first argument is the e
 
 ### Component Structure
 - Write components as subclasses (`class X extends Component { template() {…} }`). Use the tagged ``Component.create`…` `` form only for simple presentational components, and switch to a subclass once a component needs methods, state or several hooks.
-- Use semantic HTML. Keep template structure visible — prefer inline `partial` over helper methods.
+- Use semantic HTML. Keep template structure visible — prefer inline `html` partials over helper methods.
 - Keep the root template stable and single-rooted; branch inside the interpolations.
-- Use `partial` for conditional blocks and lists. Return `null` in interpolations to render nothing.
+- Use `html` for conditional blocks and lists. Return `null` in interpolations to render nothing.
 - Use `key` attribute when rendering arrays.
 - Extract class/style logic to helper functions (e.g. `getClassName`, `getFilterClass`).
 - Use `props.renderChildren()` when the component accepts slotted content.
@@ -702,7 +702,7 @@ Never annotate the parameter of an unquoted handler: its first argument is the e
 
 ## Additional Resources
 
-- **Full API Documentation**: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md)
+- **Full API Documentation**: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md)
 - **Writing components**: [components.md](./components.md) — the three forms and which to use
 - **Architecture**: [architecture.md](./architecture.md) — render engine, recycling, SSR, development mode
 - **TypeScript usage** (generics, helpers, declaration merging, known limitations): see the [TypeScript guide](./typescript.md)

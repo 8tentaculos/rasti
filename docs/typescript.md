@@ -13,7 +13,7 @@ class Counter extends Component<CounterProps> {
     timer: number | null = null; // instance fields declared normally
 
     template() {
-        return this.partial`
+        return this.html`
             <div>
                 <span>${this.props.label}: ${this.props.initial}</span>
                 <button onClick=${() => this.increment()}>+</button>
@@ -205,7 +205,7 @@ interface ListProps { items: string[]; handleSelect: (item: string) => void; }
 
 class ListBase extends Component<ListProps> {
     renderItems() {
-        return this.props.items.map((item) => this.partial`<li>${item}</li>`);
+        return this.props.items.map((item) => this.html`<li>${item}</li>`);
     }
     select(ev: MouseEvent) {
         const li = (ev.target as HTMLElement).closest('li');

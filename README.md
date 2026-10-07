@@ -1,7 +1,7 @@
 <p align="center">
     <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/logo-dark.svg">
-        <img alt="Rasti.js" src="https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/logo.svg" height="120">
+        <source media="(prefers-color-scheme: dark)" srcset="https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/logo-dark.svg">
+        <img alt="Rasti.js" src="https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/logo.svg" height="120">
     </picture>
 </p>
 
@@ -120,10 +120,11 @@ const Link = Component.create`
 `;
 
 // Create a Navigation component that renders Link components for each route.
+// `html` builds a partial: a sub-template for lists and conditional blocks.
 const Navigation = Component.create`
     <nav>
-        ${({ props, partial }) => props.routes.map(
-            ({ label, href }) => partial`<${Link} key="${href}" href="${href}">${label}</${Link}>`
+        ${({ props, html }) => props.routes.map(
+            ({ label, href }) => html`<${Link} key="${href}" href="${href}">${label}</${Link}>`
         )}
     </nav>
 `;
@@ -131,7 +132,7 @@ const Navigation = Component.create`
 // Create a Main component that includes the Navigation and displays the current route's label as the title.
 class Main extends Component {
     template() {
-        return this.partial`
+        return this.html`
             <main>
                 <${Navigation} routes="${this.props.routes}" />
                 <section>
@@ -167,7 +168,7 @@ const model = new Model({ count : 0 });
 // Create a Counter component with increment and decrement buttons.
 class Counter extends Component {
     template() {
-        return this.partial`
+        return this.html`
             <div>
                 <div>Counter: ${this.model.count}</div>
                 <button onClick=${() => this.increment()}>Increment</button>
@@ -196,7 +197,7 @@ Counter.mount({ model }, document.body);
 
 ### Writing components
 
-A component renders from its **`template()` method**, which returns a **partial** built with `this.partial`. Write it in a subclass, as `Main` and `Counter` do above: it is the recommended form. `Component.create` can also write it for you from a tagged template, the shortest form for simple components like `Timer` and `Link`, or from a template function. The three forms, how they differ and when to use each are in [Writing components](/docs/components.md).
+A component renders from its **`template()` method**, which returns a **partial** built with `this.html` (an alias of `this.partial`). Write it in a subclass, as `Main` and `Counter` do above: it is the recommended form. `Component.create` can also write it for you from a tagged template, the shortest form for simple components like `Timer` and `Link`, or from a template function. The three forms, how they differ and when to use each are in [Writing components](/docs/components.md).
 
 ## Scaffolding a New Project
 

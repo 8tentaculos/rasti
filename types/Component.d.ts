@@ -44,7 +44,7 @@ export interface SafeHTML {
 }
 
 /**
- * A partial template produced by `this.partial`. Return it from `template()` as the
+ * A partial template produced by `this.html` (or `this.partial`). Return it from `template()` as the
  * component's root, or from a render expression to nest structure that is patched in
  * place across renders. Treat it as an opaque token: it carries the template's structure
  * and this render's expressions for the reconciler, and is not meant to be inspected.
@@ -152,7 +152,7 @@ export type ExtendedComponent<T extends new (...args: any[]) => any, O> =
  * @example
  * class Timer extends Component<{ label: string }, Model<{ seconds: number }>> {
  *     template() {
- *         return this.partial`<div>${this.props.label}: <span>${this.state?.seconds}</span></div>`;
+ *         return this.html`<div>${this.props.label}: <span>${this.state?.seconds}</span></div>`;
  *     }
  * }
  */
@@ -160,7 +160,7 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
     /**
      * Mark a string as safe HTML to be rendered.
      * Rasti marks string literals as safe automatically when a component is created or when
-     * using `this.partial`. Only use this manually when you're sure the string is safe.
+     * using `this.html`. Only use this manually when you're sure the string is safe.
      */
     static markAsSafeHTML(value: string): SafeHTML;
 
@@ -269,7 +269,7 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
     options: ComponentOptions<P, S, M>;
 
     /**
-     * Returns the component's root for this render: a partial built with `this.partial`,
+     * Returns the component's root for this render: a partial built with `this.html`,
      * or a component instance to render as a container (whose element this component
      * borrows). Called on every render, so interpolated values are recomputed. The base
      * implementation builds `this.tag` (default `div`) with `this.attributes` and the
@@ -300,6 +300,17 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
      * }
      */
     partial(strings: TemplateStringsArray, ...expressions: any[]): ComponentPartial;
+
+    /**
+     * Alias of `partial`, bound to the component instance.
+     * Not set when a subclass defines its own `html`.
+     *
+     * @example
+     * renderHeader() {
+     *     return this.html`<header><${Title}>${this.model.title}</${Title}></header>`;
+     * }
+     */
+    html(strings: TemplateStringsArray, ...expressions: any[]): ComponentPartial;
 
     /**
      * Subscribes to a `change` event on a model or emitter and invokes `onChange`.

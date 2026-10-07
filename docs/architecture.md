@@ -102,12 +102,12 @@ Three forms, all producing a `Component` subclass:
 ```js
 class Title extends Component {
     template() {
-        return this.partial`<div>${this.model.title}</div>`;
+        return this.html`<div>${this.model.title}</div>`;
     }
 }
 
 Component.create(function() {
-    return this.partial`<div>${this.model.title}</div>`;
+    return this.html`<div>${this.model.title}</div>`;
 });
 
 Component.create`<div>${({ model }) => model.title}</div>`;
@@ -242,10 +242,10 @@ A partial cannot be keyed. A list item that should keep identity must **be** a c
 
 ```js
 // item is the component — recycled and reordered
-items.map(i => partial`<${Row} key="${i.id}" />`)
+items.map(i => html`<${Row} key="${i.id}" />`)
 
 // item is a partial with markup — regenerated every time
-items.map(i => partial`<li><${Row} key="${i.id}" /></li>`)
+items.map(i => html`<li><${Row} key="${i.id}" /></li>`)
 ```
 
 Recycle **markers** (`<!--rst-r-${uid}-->`) are emitted only when a keyed child is claimed during regeneration of a **list**, so its nodes can be moved to the new position. Outside a list, retain-in-place or mount-anew; no placeholder.

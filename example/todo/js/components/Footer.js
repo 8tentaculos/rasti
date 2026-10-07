@@ -18,8 +18,8 @@ const Footer = Component.create`
                 model.filter = filter;
             }}"
         />
-        ${({ model, partial }) => model.completed.length ?
-            partial`
+        ${({ model, html }) => model.completed.length ?
+            html`
                 <button
                     class="clear-completed"
                     onClick=${function() {

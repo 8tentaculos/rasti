@@ -95,6 +95,7 @@ A component renders from its [template](#module_component__template) method, whi
 | [model] | <code>Model</code> | A `Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method. |
 | [state] | <code>Model</code> | A `Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method. |
 | [props] | <code>Model</code> | Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When the component is recycled during a parent re-render, its props are set again and any change triggers a re-render. Props are compared by identity, so a function, object or array created during the parent's render counts as a change every time. |
+| html | <code>function</code> | Alias of [partial](#module_component__partial), bound to the component instance. Not set when a subclass defines its own `html`. |
 
 **Example**  
 ```js
@@ -102,7 +103,7 @@ import { Component, Model } from 'rasti';
 // Create Timer component.
 class Timer extends Component {
     template() {
-        return this.partial`
+        return this.html`
             <div>
                 Seconds: <span>${this.model.seconds}</span>
             </div>
@@ -209,7 +210,7 @@ It will return a `Partial`: the template's structure paired with this render's
 expressions, which the component renders and then patches in place on later renders.
 Components interpolated in it will be added as children by the parent component.
 Template strings literals will be marked as safe HTML to be rendered.
-This method is bound to the component instance by default.
+This method is bound to the component instance by default, and is also available as `this.html`.
 
 A partial used inside an interpolation may render any number of nodes, and may be
 swapped for a different template between renders. The partial returned by
@@ -355,9 +356,9 @@ When rendering child components, they can be either recreated or recycled:
   - Components with a `key` are recycled if a previous child with the same key occupied the same interpolation
 
   A `key` identifies a component among the siblings of its own interpolation, which is what lets the items
-  of a list be reordered without recreating them: ``items.map(item => partial`<${Row} key="${item.id}" />`)``
+  of a list be reordered without recreating them: ``items.map(item => html`<${Row} key="${item.id}" />`)``
   reuses the rows and moves them into place. A component wrapped in markup
-  (``partial`<li><${Row} key="…" /></li>` ``) belongs to that partial instead, and is recreated with it
+  (``html`<li><${Row} key="…" /></li>` ``) belongs to that partial instead, and is recreated with it
   whenever the partial is regenerated. Development builds warn about it.
 
   When a component is recycled:
@@ -549,7 +550,7 @@ Takes a tagged template string, or a template function, and returns a new `Compo
   contain.
   ```javascript
   const Greeting = Component.create(function() {
-      return this.partial`<h1>Hello ${this.props.name}</h1>`;
+      return this.html`<h1>Hello ${this.props.name}</h1>`;
   });
   ```
 - **Attributes**: a quoted value that is a function is called and its result used; an
@@ -587,7 +588,7 @@ Takes a tagged template string, or a template function, and returns a new `Compo
   ```javascript
   const Navigation = Component.create`
       <nav>
-          ${({ props, partial }) => props.items.map(item => partial`
+          ${({ props, html }) => props.items.map(item => html`
               <${Button} key="${item.id}" className="nav">${item.label}</${Button}>
           `)}
       </nav>
@@ -609,7 +610,7 @@ Takes a tagged template string, or a template function, and returns a new `Compo
   ```javascript
   class ListBase extends Component {
       renderItems() {
-          return this.props.items.map(item => this.partial`<li>${item}</li>`);
+          return this.props.items.map(item => this.html`<li>${item}</li>`);
       }
   }
   const List = ListBase.create`

@@ -225,13 +225,14 @@ const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', '
  * @property {Model} [model] A `Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method.
  * @property {Model} [state] A `Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method.
  * @property {Model} [props] Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When the component is recycled during a parent re-render, its props are set again and any change triggers a re-render. Props are compared by identity, so a function, object or array created during the parent's render counts as a change every time.
+ * @property {Function} html Alias of {@link #module_component__partial partial}, bound to the component instance. Not set when a subclass defines its own `html`.
  * @see {@link #module_component_create Component.create}
  * @example
  * import { Component, Model } from 'rasti';
  * // Create Timer component.
  * class Timer extends Component {
  *     template() {
- *         return this.partial`
+ *         return this.html`
  *             <div>
  *                 Seconds: <span>${this.model.seconds}</span>
  *             </div>
@@ -271,6 +272,8 @@ export default class Component extends View {
         this.options = options;
         // Bind `partial` method to `this`.
         this.partial = this.partial.bind(this);
+        // Expose `partial` as `html`, unless a subclass defines its own `html`.
+        if (!('html' in this)) this.html = this.partial;
         // Bind `onChange` method to `this`.
         this.onChange = this.onChange.bind(this);
         // Call lifecycle method.
@@ -410,7 +413,7 @@ export default class Component extends View {
         throwComponentError(
             __DEV__ &&
                 `Invalid template in ${this.constructor.name}#${this.uid}\n` +
-                '`template()` must return a partial (this.partial`...`) or a component instance.',
+                '`template()` must return a partial (this.html`...`) or a component instance.',
             `Invalid template in ${this.constructor.name}#${this.uid}`
         );
     }
@@ -502,7 +505,7 @@ export default class Component extends View {
      * expressions, which the component renders and then patches in place on later renders.
      * Components interpolated in it will be added as children by the parent component.
      * Template strings literals will be marked as safe HTML to be rendered.
-     * This method is bound to the component instance by default.
+     * This method is bound to the component instance by default, and is also available as `this.html`.
      *
      * A partial used inside an interpolation may render any number of nodes, and may be
      * swapped for a different template between renders. The partial returned by
@@ -669,9 +672,9 @@ export default class Component extends View {
      *   - Components with a `key` are recycled if a previous child with the same key occupied the same interpolation
      *
      *   A `key` identifies a component among the siblings of its own interpolation, which is what lets the items
-     *   of a list be reordered without recreating them: ``items.map(item => partial`<${Row} key="${item.id}" />`)``
+     *   of a list be reordered without recreating them: ``items.map(item => html`<${Row} key="${item.id}" />`)``
      *   reuses the rows and moves them into place. A component wrapped in markup
-     *   (``partial`<li><${Row} key="…" /></li>` ``) belongs to that partial instead, and is recreated with it
+     *   (``html`<li><${Row} key="…" /></li>` ``) belongs to that partial instead, and is recreated with it
      *   whenever the partial is regenerated. Development builds warn about it.
      *
      *   When a component is recycled:
@@ -967,7 +970,7 @@ export default class Component extends View {
      *   contain.
      *   ```javascript
      *   const Greeting = Component.create(function() {
-     *       return this.partial`<h1>Hello ${this.props.name}</h1>`;
+     *       return this.html`<h1>Hello ${this.props.name}</h1>`;
      *   });
      *   ```
      * - **Attributes**: a quoted value that is a function is called and its result used; an
@@ -1005,7 +1008,7 @@ export default class Component extends View {
      *   ```javascript
      *   const Navigation = Component.create`
      *       <nav>
-     *           ${({ props, partial }) => props.items.map(item => partial`
+     *           ${({ props, html }) => props.items.map(item => html`
      *               <${Button} key="${item.id}" className="nav">${item.label}</${Button}>
      *           `)}
      *       </nav>
@@ -1027,7 +1030,7 @@ export default class Component extends View {
      *   ```javascript
      *   class ListBase extends Component {
      *       renderItems() {
-     *           return this.props.items.map(item => this.partial`<li>${item}</li>`);
+     *           return this.props.items.map(item => this.html`<li>${item}</li>`);
      *       }
      *   }
      *   const List = ListBase.create`

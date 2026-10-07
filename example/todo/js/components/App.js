@@ -14,7 +14,7 @@ const App = Component.create`
     <main class="todoapp">
         <${Header} handleAddTodo="${({ model }) => (title) => model.addTodo({ title })}" />
 
-        ${({ model, partial }) => !!model.todos.length && partial`
+        ${({ model, html }) => !!model.todos.length && html`
             <section class="main">
                 <${ToggleAll}
                     checked="${() => !!model.todos.length && !model.remaining.length}"
@@ -22,7 +22,7 @@ const App = Component.create`
                 />
 
                 <ul class="todo-list">
-                    ${model.filtered.map(todo => partial`
+                    ${model.filtered.map(todo => html`
                         <${Todo}
                             key="${todo.id}"
                             model="${todo}"
