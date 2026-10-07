@@ -53,9 +53,17 @@ const PH_ANY = PLACEHOLDER('(?:\\d+)');
 // callbacks, so no `lastIndex` is live by then. The `exec` loops guard
 // themselves by resetting `lastIndex` on entry.
 
-/** Placeholder with its expression index captured. @type {RegExp} @private */
+/**
+ * Placeholder with its expression index captured.
+ * @type {RegExp}
+ * @private
+ */
 const RE_PH = new RegExp(PH_CAPTURE);
-/** Global variant of `RE_PH`, for replaces and `exec` loops. @type {RegExp} @private */
+/**
+ * Global variant of `RE_PH`, for replaces and `exec` loops.
+ * @type {RegExp}
+ * @private
+ */
 const RE_PH_G = new RegExp(PH_CAPTURE, 'g');
 /**
  * A camel-cased `on*` attribute in an attributes string. It binds a delegated
@@ -136,11 +144,23 @@ const RE_NODE = new RegExp(
     'gi'
 );
 
-/** Any structural slot token or surviving placeholder, index captured. @type {string} @private */
+/**
+ * Any structural slot token or surviving placeholder, index captured.
+ * @type {string}
+ * @private
+ */
 const SLOT_PATTERN = `${SLOT_ELEMENT('(\\d+)')}|${SLOT_INTERPOLATION('(\\d+)')}|${PH_CAPTURE}`;
-/** A string that is exactly one slot token. @type {RegExp} @private */
+/**
+ * A string that is exactly one slot token.
+ * @type {RegExp}
+ * @private
+ */
 const RE_SLOT = new RegExp(`^(?:${SLOT_PATTERN})$`);
-/** Global variant of `SLOT_PATTERN`, for the split `exec` loop. @type {RegExp} @private */
+/**
+ * Global variant of `SLOT_PATTERN`, for the split `exec` loop.
+ * @type {RegExp}
+ * @private
+ */
 const RE_SLOT_G = new RegExp(SLOT_PATTERN, 'g');
 
 /**
