@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.4] - 2026-10-07
+
 ### Changed
 
 - **TypeScript docs: arrows in a tagged template are typed by annotating their parameter.** In content and quoted attributes, `({ props }: C) => …` replaces `satisfies RenderExpression<C>` as the recommended form, since rasti passes them the component either way. Unquoted handlers keep `satisfies EventHandler<C, E>`: their first argument is the event, and an annotated parameter there would compile and fail at runtime.
@@ -410,7 +412,8 @@ Unlike views, which are render-agnostic, components have a specific set of rende
 
 * **BREAKING:** Removed emitter.emitAsync method.
 
-[unreleased]: https://github.com/8tentaculos/rasti/compare/v4.1.3...HEAD
+[unreleased]: https://github.com/8tentaculos/rasti/compare/v4.1.4...HEAD
+[4.1.4]: https://github.com/8tentaculos/rasti/compare/v4.1.3...v4.1.4
 [4.1.3]: https://github.com/8tentaculos/rasti/compare/v4.1.2...v4.1.3
 [4.1.2]: https://github.com/8tentaculos/rasti/compare/v4.1.1...v4.1.2
 [4.1.1]: https://github.com/8tentaculos/rasti/compare/v4.1.0...v4.1.1
