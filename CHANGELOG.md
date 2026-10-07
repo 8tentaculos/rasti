@@ -45,6 +45,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Attributes holding `on` and a capital mid-name**: an attribute such as `data-iconName` or `data-sectionTitle` was taken for an event handler, because the check matched `on` followed by a capital anywhere in the name, and it disappeared from the element. Only a name starting with `on` and a capital binds a handler.
 - **A handler named by a method on a static element**: `<button onClick="save">`, on an element carrying nothing else dynamic, was written out as the native `onclick` attribute and never called the method. It is now delegated like any other handler.
 
+## [4.1.4] - 2026-10-07
+
+### Changed
+
+- **TypeScript docs: arrows in a tagged template are typed by annotating their parameter.** In content and quoted attributes, `({ props }: C) => …` replaces `satisfies RenderExpression<C>` as the recommended form, since rasti passes them the component either way. Unquoted handlers keep `satisfies EventHandler<C, E>`: their first argument is the event, and an annotated parameter there would compile and fail at runtime.
+
 ## [4.1.3] - 2026-10-05
 
 ### Fixed
@@ -444,7 +450,8 @@ Unlike views, which are render-agnostic, components have a specific set of rende
 
 * **BREAKING:** Removed emitter.emitAsync method.
 
-[unreleased]: https://github.com/8tentaculos/rasti/compare/v4.1.3...HEAD
+[unreleased]: https://github.com/8tentaculos/rasti/compare/v4.1.4...HEAD
+[4.1.4]: https://github.com/8tentaculos/rasti/compare/v4.1.3...v4.1.4
 [4.1.3]: https://github.com/8tentaculos/rasti/compare/v4.1.2...v4.1.3
 [4.1.2]: https://github.com/8tentaculos/rasti/compare/v4.1.1...v4.1.2
 [4.1.1]: https://github.com/8tentaculos/rasti/compare/v4.1.0...v4.1.1

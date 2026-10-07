@@ -32,7 +32,7 @@ All three render the same component, and an application can mix them: a parent d
 | `template()` | a method of the class | the function passed to `create` | built by `create` from the template |
 | Interpolations | read on every render: plain values or functions | read on every render: plain values or functions | captured once: anything dynamic must be a function |
 | Methods and hooks | in the class body | added with `.extend()` | added with `.extend()` |
-| TypeScript | checked like any other method | checked like any other function | each function typed with `satisfies` |
+| TypeScript | checked like any other method | checked like any other function | each function typed by hand |
 
 ### Which one to use
 

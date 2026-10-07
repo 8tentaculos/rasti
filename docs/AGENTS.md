@@ -1,6 +1,6 @@
 # Rasti API Reference for AI Agents
 
-Compact reference for developing with Rasti. Full API: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md). How the engine works: [architecture.md](./architecture.md)
+Compact reference for developing with Rasti. Full API: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md). How the engine works: [architecture.md](./architecture.md)
 
 ---
 
@@ -63,10 +63,10 @@ MyComponent.mount({ model }, document.getElementById('root'));
 `template()` runs on **every render** — see [Interpolations](#interpolations) for what that means for the values inside it.
 
 **Key Methods:**
-- [`Component.create`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_component_create) — creates component class from a tagged template or a template function
-- [`component.template`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_component__template) — returns the component's root partial; override it directly, via `extend`, or as a mount option
-- [`Component.extend`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_component_extend) — adds methods and lifecycle hooks
-- [`Component.mount`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_component_mount) — creates and mounts a component instance
+- [`Component.create`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component_create) — creates component class from a tagged template or a template function
+- [`component.template`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__template) — returns the component's root partial; override it directly, via `extend`, or as a mount option
+- [`Component.extend`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component_extend) — adds methods and lifecycle hooks
+- [`Component.mount`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component_mount) — creates and mounts a component instance
 
 ---
 
@@ -196,7 +196,7 @@ handleSave="${({ model, props }) => () => model.delete(props.itemId)}"
 handleSelect="${({ props }) => props.handleSelect}"
 ```
 
-**Related:** [`delegateEvents`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_view__delegateevents)
+**Related:** [`delegateEvents`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_view__delegateevents)
 
 ---
 
@@ -227,9 +227,9 @@ const Header = Component.create`
 ```
 
 **Key properties:**
-- `this.model` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_model) for application data
-- `this.state` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_model) for internal component state
-- `this.props` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_model) auto-created from non-standard options
+- `this.model` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_model) for application data
+- `this.state` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_model) for internal component state
+- `this.props` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_model) auto-created from non-standard options
 
 **When a child re-renders:** on a parent render, a recycled child gets its props set again, compared by identity (`!==`), and re-renders only if one changed. Primitives and references that persist don't trigger it. A function, object or array built during the parent's render does, and so does slotted content, since `renderChildren` is recreated on every render. To spare the rows of a list, pass references that persist, such as a class field:
 
@@ -278,7 +278,7 @@ When using `Component.mount()`, pass `renderChildren` manually: `{ renderChildre
 
 ### Partials
 
-[`partial`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_component__partial) creates sub-templates for conditional blocks and lists. A partial is patched in place on update — attributes diffed, child components recycled — so the DOM nodes inside it, and their focus, selection and input value, survive re-renders.
+[`partial`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__partial) creates sub-templates for conditional blocks and lists. A partial is patched in place on update — attributes diffed, child components recycled — so the DOM nodes inside it, and their focus, selection and input value, survive re-renders.
 
 ```js
 const App = Component.create`
@@ -429,7 +429,7 @@ const MyComponent = Component.create`...`.extend({
 **`destroyQueue`** — array of functions called on destroy. Use for external subscriptions not managed by Rasti (DOM events, timers, third-party libraries). `subscribe()` and `listenTo()` are automatically cleaned up by `View.destroy()` — no need to push those.
 
 **Related API:**
-- [`component.onCreate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_component__oncreate) · [`component.onHydrate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_component__onhydrate) · [`component.onChange`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_component__onchange) · [`component.onUpdate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_component__onupdate) · [`component.onDestroy`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_component__ondestroy)
+- [`component.onCreate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__oncreate) · [`component.onHydrate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__onhydrate) · [`component.onChange`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__onchange) · [`component.onUpdate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__onupdate) · [`component.onDestroy`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__ondestroy)
 
 ---
 
@@ -463,18 +463,18 @@ const Dashboard = Component.create`...`.extend({
 ```
 
 **Related API:**
-- [`component.subscribe`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_component__subscribe) · [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_emitter__listento)
+- [`component.subscribe`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__subscribe) · [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_emitter__listento)
 
 ---
 
 ### Rendering
 
-[`render()`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_component__render) handles both initial hydration and updates:
+[`render()`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__render) handles both initial hydration and updates:
 
 - **First render** — runs `template()`, renders as string inside `DocumentFragment`, hydrates DOM, calls `onHydrate()`. If an `el` option was provided, hydrates onto that existing DOM instead (server-rendered markup)
 - **Update render** — runs `template()` again while retaining the component's root partial and root element. Reconciliation is recursive: elements and retained partials patch in place, matching children recycle, and an interpolation region regenerates only when its occupant changes identity or shape. Calls `onBeforeUpdate()` then `onUpdate()`
 
-Use [`Component.markAsSafeHTML`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_component_markassafehtml) only for pre-sanitized trusted HTML:
+Use [`Component.markAsSafeHTML`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component_markassafehtml) only for pre-sanitized trusted HTML:
 
 ```js
 ${({ props }) => Component.markAsSafeHTML(props.trustedHTML)}
@@ -504,7 +504,7 @@ class Counter extends Component<CounterProps> {
 const counter: Counter = Counter.mount({ initial: 0, label: 'Clicks' }, document.body);
 ```
 
-With the tagged form, interpolation callbacks are `any` and need opt-in typing (`RenderExpression<C>` for content and quoted attributes, `EventHandler<C, E>` for unquoted handlers), and the class is a value only — alias it with `type X = InstanceType<typeof X>` to use the name as a type.
+With the tagged form, interpolation callbacks are `any` and need opt-in typing (an annotated arrow parameter, `({ props }: C) => …`, for content and quoted attributes; `satisfies EventHandler<C, E>` for unquoted handlers), and the class is a value only — alias it with `type X = InstanceType<typeof X>` to use the name as a type.
 
 Full details (generics, helper types, declaration merging, known limitations): [TypeScript guide](./typescript.md).
 
@@ -533,7 +533,7 @@ AppModel.prototype.defaults = {
 };
 ```
 
-**Related:** [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_model)
+**Related:** [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_model)
 
 ---
 
@@ -601,7 +601,7 @@ removeTodo(todo) {
 }
 ```
 
-**Related:** [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_emitter__listento) · [`Emitter.stopListening`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md#module_emitter__stoplistening)
+**Related:** [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_emitter__listento) · [`Emitter.stopListening`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_emitter__stoplistening)
 
 ---
 
@@ -609,13 +609,13 @@ removeTodo(todo) {
 
 Types ship with the package. Full guide: [TypeScript guide](./typescript.md).
 
-A subclass defining `template()` types best: its template is ordinary code the compiler checks, so it needs no helpers. In a tagged ``Component.create`…` `` template, functions are `any`. Type each one inline with `satisfies` and the matching helper, which types its parameters and `this`:
+A subclass defining `template()` types best: its template is ordinary code the compiler checks, so it needs no helpers. In a tagged ``Component.create`…` `` template, functions are `any`. Type each one by what rasti calls it with, which depends on where it sits:
 
-| Interpolation | Helper |
-|---|---|
-| Content `${fn}` or quoted attribute `attr="${fn}"` | `RenderExpression<C>` |
-| Unquoted handler `onX=${fn}` | `EventHandler<C, E>` |
-| Function passed to a child `handler=${fn}` | The child's prop type: `satisfies ChildProps['handler']` |
+| Interpolation | Called with | Type it with |
+|---|---|---|
+| Content `${fn}` or quoted attribute `attr="${fn}"` | The component | Annotated arrow: `({ props }: C) => …` |
+| Unquoted handler `onX=${fn}` | `(event, component, matched)` | `satisfies EventHandler<C, E>` |
+| Function passed to a child `handler=${fn}` | Whatever the child passes | `satisfies ChildProps['handler']` |
 
 ```ts
 interface ToggleProps { label: string; }
@@ -625,7 +625,7 @@ type ToggleComponent = Component<ToggleProps, ToggleState>;
 
 const Toggle = Component.create<ToggleProps, ToggleState>`
     <button onClick=${(function() { this.state!.active = !this.state!.active; }) satisfies EventHandler<ToggleComponent, MouseEvent>}>
-        ${(({ props, state }) => `${props.label}: ${state!.active ? 'on' : 'off'}`) satisfies RenderExpression<ToggleComponent>}
+        ${({ props, state }: ToggleComponent) => `${props.label}: ${state!.active ? 'on' : 'off'}`}
     </button>
 `.extend({
     onCreate() { this.state = new ToggleState({ active: false }); }
@@ -638,11 +638,11 @@ const Toggle = Component.create<ToggleProps, ToggleState>`
 - **In its own template, calling its own methods** (`(self) => self.renderItems()`): declare them in a class and call `create` on it, `class ListBase extends Component<P> { renderItems() { … } }` then ``ListBase.create`…` ``. The class is `C`.
 - **Outside the component:** `type X = InstanceType<typeof X>`.
 
-In an arrow function, annotating the parameter also works (`({ props }: ToggleComponent) => props.label`). It does not type `this`, so a `function` needs `satisfies`.
+Never annotate the parameter of an unquoted handler: its first argument is the event, not the component, and the template's `any` lets the wrong annotation compile. A `function` reading `this` in content or a quoted attribute needs `satisfies RenderExpression<C>`.
 
 | Error | Cause | Fix |
 |---|---|---|
-| TS7031 / TS7006 | Untyped template function under `strict` | `satisfies` with the helper |
+| TS7031 / TS7006 | Untyped template function under `strict` | Annotate the arrow's parameter, or `satisfies` the helper for handlers |
 | TS7022 / TS2456 | `InstanceType<typeof X>` used inside `X`'s own template | `Component<P, S, M>` alias |
 | TS2339 on the component's own method | `Component<P, S, M>` has no `.extend` members | Methods in a class, `create` called on it |
 | TS18048 on `state` / `model` | Both are optional | `this.state!` or `this.state?.` |
@@ -700,7 +700,7 @@ In an arrow function, annotating the parameter also works (`({ props }: ToggleCo
 
 ## Additional Resources
 
-- **Full API Documentation**: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.3/docs/api.md)
+- **Full API Documentation**: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md)
 - **Writing components**: [components.md](./components.md) — the three forms and which to use
 - **Architecture**: [architecture.md](./architecture.md) — render engine, recycling, SSR, development mode
 - **TypeScript usage** (generics, helpers, declaration merging, known limitations): see the [TypeScript guide](./typescript.md)

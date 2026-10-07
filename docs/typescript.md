@@ -57,13 +57,13 @@ type CardComponent = Component<CardProps>;
 
 const Card = Component.create<CardProps>`
     <div class="card">
-        <h2>${(({ props }) => props.title) satisfies RenderExpression<CardComponent>}</h2>
-        ${(({ props }) => props.renderChildren?.()) satisfies RenderExpression<CardComponent>}
+        <h2>${({ props }: CardComponent) => props.title}</h2>
+        ${({ props }: CardComponent) => props.renderChildren?.()}
     </div>
 `;
 ```
 
-The interpolations are typed with `satisfies` (see [Typing template interpolations](#typing-template-interpolations)).
+The interpolations are typed by annotating their parameter with the component type (see [Typing template interpolations](#typing-template-interpolations)).
 
 `Component.extend` adds the object members to the instance type. Inside its methods, `this` is the extended component, and lifecycle overrides get their parameters typed automatically:
 
@@ -151,15 +151,15 @@ type S = ComponentState<Counter>;
 
 This section applies to the **tagged `Component.create` form**. In the subclass and `create(fn)` forms the template body is ordinary code inside a typed method, so its interpolations are checked without helpers — that is the simplest way to get full typing.
 
-Functions inside a tagged template are `any` — rasti can't infer them from the surrounding string. Type each one inline with `satisfies` and the helper that matches how rasti treats it. `satisfies` types the function's parameters and `this` from the helper, and checks the function against it.
+Functions inside a tagged template are `any` — rasti can't infer them from the surrounding string. How to type one depends on what rasti calls it with, and that depends on where it sits in the template.
 
 > Under `strict` / `noImplicitAny`, an untyped interpolation callback is an error (TS7031/TS7006), not a silent `any`. In non-strict mode typing is opt-in.
 
-| Interpolation | What it is | Type to use |
+| Interpolation | Called with | Type it with |
 |---|---|---|
-| Content `${fn}` or quoted attr `attr="${fn}"` | Run on render; `this` and the argument are the component | `RenderExpression<C>` |
-| Unquoted `onX=${fn}` | DOM handler, called `(event, component, matched)` | `EventHandler<C, E>` |
-| Function passed to a child (`handler=${fn}`) | Becomes the child's prop; typed by the child, not this component | the child's prop signature |
+| Content `${fn}` or quoted attr `attr="${fn}"` | The component, as its argument and as `this` | An arrow annotated with the component type: `({ props }: C) => …` |
+| Unquoted `onX=${fn}` | `(event, component, matched)`, with `this` the component | `satisfies EventHandler<C, E>` |
+| Function passed to a child (`handler=${fn}`) | Whatever the child calls it with | `satisfies ChildProps['handler']` |
 
 The component type `C` is `Component<P, S, M>` with the same generics passed to `create`, aliased next to the component. It is not a copy: it is the exact type of the component's instances.
 
@@ -171,7 +171,7 @@ type ToggleComponent = Component<ToggleProps, ToggleState>;
 
 const Toggle = Component.create<ToggleProps, ToggleState>`
     <button onClick=${(function() { this.state!.active = !this.state!.active; }) satisfies EventHandler<ToggleComponent, MouseEvent>}>
-        ${(({ props, state }) => `${props.label}: ${state!.active ? 'on' : 'off'}`) satisfies RenderExpression<ToggleComponent>}
+        ${({ props, state }: ToggleComponent) => `${props.label}: ${state!.active ? 'on' : 'off'}`}
     </button>
 `.extend({
     onCreate() { this.state = new ToggleState({ active: false }); }
@@ -180,10 +180,16 @@ const Toggle = Component.create<ToggleProps, ToggleState>`
 
 Inside its own template, a component can't use `InstanceType<typeof Toggle>`: the type of `Toggle` depends on the template itself, so TypeScript reports a circular reference (TS7022).
 
-In an arrow function, annotating the parameter is a lighter alternative. It types the argument but not `this`, so a `function` still needs `satisfies`:
+**Content and quoted attributes** receive the component as their argument, so annotating the parameter types everything they read. A `function` that reads `this` instead needs `satisfies RenderExpression<C>`, which types `this` as well.
+
+**Unquoted handlers** receive the event first, not the component. An annotated parameter still compiles there, since the template's expressions are `any`, and fails at runtime. `satisfies` checks the function against what rasti passes it:
 
 ```ts
-${({ props, state }: ToggleComponent) => `${props.label}: ${state!.active ? 'on' : 'off'}`}
+// Compiles, but the argument is the MouseEvent: `props` is undefined at runtime.
+onClick=${({ props }: ToggleComponent) => console.log(props.label)}
+
+// Rejected (TS2339): `props` does not exist on `MouseEvent`.
+onClick=${(({ props }) => console.log(props.label)) satisfies EventHandler<ToggleComponent, MouseEvent>}
 ```
 
 ### Templates that call the component's own methods
@@ -205,7 +211,7 @@ class ListBase extends Component<ListProps> {
 
 const List = ListBase.create`
     <ul onClick=${(function(ev) { this.select(ev); }) satisfies EventHandler<ListBase, MouseEvent>}>
-        ${((self) => self.renderItems()) satisfies RenderExpression<ListBase>}
+        ${(self: ListBase) => self.renderItems()}
     </ul>
 `;
 
@@ -225,7 +231,7 @@ handleChange=${((checked) => model.toggleAll(checked)) satisfies ToggleAllProps[
 
 ## Known limitations
 
-- **Template interpolation callbacks are `any`** *(tagged form only)*. Functions in ``Component.create`...` `` templates can't be inferred from the surrounding string — type them with `satisfies` (see [Typing template interpolations](#typing-template-interpolations)), or author the component as a subclass, where the template body is checked like any other method.
+- **Template interpolation callbacks are `any`** *(tagged form only)*. Functions in ``Component.create`...` `` templates can't be inferred from the surrounding string — type them by where they sit in the template (see [Typing template interpolations](#typing-template-interpolations)), or author the component as a subclass, where the template body is checked like any other method.
 - **A component can't name its own type in its template** *(tagged form only)*. `InstanceType<typeof X>` is circular there (TS7022). Use `Component<P, S, M>` (see [Typing template interpolations](#typing-template-interpolations)), or the class `create` is called on when the template calls its methods (see [Templates that call the component's own methods](#templates-that-call-the-components-own-methods)).
 - **`Model<A>` instance keys require declaration merging**. TypeScript can't add `A`'s keys to a `class extends Model<A>` automatically — see the `interface Todo extends TodoAttrs {}` pattern above.
 - **An attribute can't be named after a member of `Model`**. With declaration merging, an attribute such as `on`, `get` or `set` conflicts with the member it shadows, and TypeScript reports it on the merged interface (TS2320). The shadowing breaks the model at runtime too, and development builds warn about it: rename the attribute, or prefix the generated properties with `static attributePrefix`.
