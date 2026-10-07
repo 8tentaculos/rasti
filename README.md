@@ -376,7 +376,11 @@ const Toggle = Component.create<ToggleProps, ToggleState>`
 
 Inside its own template, a component can't use `InstanceType<typeof Toggle>`: the type of `Toggle` depends on the template itself, so TypeScript reports a circular reference (TS7022).
 
-**Content and quoted attributes** receive the component as their argument, so annotating the parameter types everything they read. A `function` that reads `this` instead needs `satisfies RenderExpression<C>`, which types `this` as well.
+**Content and quoted attributes** receive the component as their argument, so annotating the parameter types everything they read. A `function` that reads `this` instead needs `satisfies RenderExpression<C>`, which types `this` as well:
+
+```ts
+${(function() { return this.props.label; }) satisfies RenderExpression<ToggleComponent>}
+```
 
 **Unquoted handlers** receive the event first, not the component. An annotated parameter still compiles there, since the template's expressions are `any`, and fails at runtime. `satisfies` checks the function against what rasti passes it:
 
@@ -422,6 +426,15 @@ For a function passed to a child, neither helper fits — its type comes from th
 // where the child was created with Component.create<ToggleAllProps>`...`
 handleChange=${((checked) => model.toggleAll(checked)) satisfies ToggleAllProps['handleChange']}
 ```
+
+A quoted value is the result of a function the parent runs, so what reaches the child is what that function returns. Annotate its return type with the child's prop: that checks the value, and it types the parameters of a callback returned by a thunk, which would otherwise be an implicit `any` (TS7006):
+
+```ts
+// where the child was created with Component.create<HeaderProps>`...`
+handleAddTodo="${({ model }: AppComponent): HeaderProps['handleAddTodo'] => (title) => model!.addTodo(title)}"
+```
+
+`satisfies` on the returned callback does the same, `({ model }: AppComponent) => ((title) => model!.addTodo(title)) satisfies HeaderProps['handleAddTodo']`; the return type keeps the whole contract in the signature.
 
 ### Known limitations
 

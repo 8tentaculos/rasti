@@ -499,7 +499,9 @@ const Toggle = Component.create<ToggleProps, ToggleState>`
 - **In its own template, calling its own methods** (`(self) => self.renderItems()`): declare them in a class and call `create` on it, `class ListBase extends Component<P> { renderItems() { … } }` then ``ListBase.create`…` ``. The class is `C`.
 - **Outside the component:** `type X = InstanceType<typeof X>`.
 
-Never annotate the parameter of an unquoted handler: its first argument is the event, not the component, and the template's `any` lets the wrong annotation compile. A `function` reading `this` in content or a quoted attribute needs `satisfies RenderExpression<C>`.
+A quoted thunk passed to a child annotates its return type with the child's prop, which also types the callback's parameters: `handleAdd="${({ model }: C): ChildProps['handleAdd'] => (title) => model!.add(title)}"`.
+
+Never annotate the parameter of an unquoted handler: its first argument is the event, not the component, and the template's `any` lets the wrong annotation compile. A `function` reading `this` in content or a quoted attribute needs `satisfies RenderExpression<C>`: `${(function() { return this.props.label; }) satisfies RenderExpression<ToggleComponent>}`.
 
 | Error | Cause | Fix |
 |---|---|---|
