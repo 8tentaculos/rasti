@@ -1,4 +1,8 @@
-/** A camel-cased `on*` attribute name, its event type captured. @type {RegExp} @private */
+/**
+ * A camel-cased `on*` attribute name, its event type captured.
+ * @type {RegExp}
+ * @private
+ */
 const RE_EVENT_ATTRIBUTE = /^on([A-Z][a-zA-Z]*)$/;
 
 /**
