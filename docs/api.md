@@ -81,6 +81,7 @@ Components are defined with the [Component.create](#module_component_create) sta
 | [model] | <code>Model</code> | A `Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method. |
 | [state] | <code>Model</code> | A `Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method. |
 | [props] | <code>Model</code> | Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When a component with a `key` is recycled during parent re-render, new props are automatically updated and any changes trigger a re-render. |
+| html | <code>function</code> | Alias of [partial](#module_component__partial), bound to the component instance. Not set when a subclass defines its own `html`. |
 
 **Example**  
 ```js
@@ -141,7 +142,7 @@ Used to create a partial template.
 It will return a Partial object that preserves structure for position-based recycling.
 Components will be added as children by the parent component. Template strings literals 
 will be marked as safe HTML to be rendered.
-This method is bound to the component instance by default.
+This method is bound to the component instance by default, and is also available as `this.html`.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 **Returns**: [<code>Partial</code>](#new_partial_new) - Partial object containing strings and expressions.  
@@ -489,8 +490,8 @@ Takes a tagged template string or a function that returns another component, and
   // Create a navigation component. Add buttons as children. Iterate over items.
   const Navigation = Component.create`
       <nav>
-          ${({ props, partial }) => props.items.map(
-              item => partial`<${Button}>${item.label}</${Button}>`
+          ${({ props, html }) => props.items.map(
+              item => html`<${Button}>${item.label}</${Button}>`
           )}
       </nav>
   `;
@@ -523,7 +524,7 @@ Takes a tagged template string or a function that returns another component, and
   ```javascript
   class ListBase extends Component {
       renderItems() {
-          return this.props.items.map(item => this.partial`<li>${item}</li>`);
+          return this.props.items.map(item => this.html`<li>${item}</li>`);
       }
   }
   const List = ListBase.create`

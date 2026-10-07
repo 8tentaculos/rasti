@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`html`, an alias of `partial`.** `this.html` and `({ html }) => html`…`` build the same partial as `partial`, bound to the component, under the tag name editors and formatters recognize as HTML. A subclass that defines its own `html` keeps it. The examples and docs now use `html`.
+
 ### Changed
 
 - **TypeScript docs: a quoted value passed to a child is typed by its return type.** The function the parent runs returns what reaches the child, so annotating its return type with the child's prop checks that value, and types the parameters of a callback returned by a thunk, which are otherwise an implicit `any` (TS7006) under `strict`.

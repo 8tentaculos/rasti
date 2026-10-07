@@ -115,10 +115,11 @@ const Link = Component.create`
 `;
 
 // Create a Navigation component that renders Link components for each route.
+// `html` builds a partial: a sub-template for lists and conditional blocks.
 const Navigation = Component.create`
     <nav>
-        ${({ props, partial }) => props.routes.map(
-            ({ label, href }) => partial`<${Link} href="${href}">${label}</${Link}>`
+        ${({ props, html }) => props.routes.map(
+            ({ label, href }) => html`<${Link} href="${href}">${label}</${Link}>`
         )}
     </nav>
 `;
@@ -401,7 +402,7 @@ interface ListProps { items: string[]; handleSelect: (item: string) => void; }
 
 class ListBase extends Component<ListProps> {
     renderItems() {
-        return this.props.items.map((item) => this.partial`<li>${item}</li>`);
+        return this.props.items.map((item) => this.html`<li>${item}</li>`);
     }
     select(ev: MouseEvent) {
         const li = (ev.target as HTMLElement).closest('li');

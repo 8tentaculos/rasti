@@ -318,6 +318,7 @@ const CounterExt = Counter.extend({
 const counterExt = new CounterExt({ initial: 5, label: 'hello' });
 expectType<string>(counterExt.extra());
 expectType<ComponentPartial>(counterExt.partial`<div></div>`);
+expectType<ComponentPartial>(counterExt.html`<div></div>`);
 expectType<number>(counterExt.props.initial);
 expectError(new CounterExt({ initial: 'not-a-number', label: 'x' }));
 

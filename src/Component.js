@@ -528,6 +528,8 @@ class Component extends View {
         this.options = options;
         // Bind `partial` method to `this`.
         this.partial = this.partial.bind(this);
+        // Expose `partial` as `html`, unless a subclass defines its own `html`.
+        if (!('html' in this)) this.html = this.partial;
         // Bind `onChange` method to `this`.
         this.onChange = this.onChange.bind(this);
         // Call lifecycle method.
@@ -722,7 +724,7 @@ class Component extends View {
      * It will return a Partial object that preserves structure for position-based recycling.
      * Components will be added as children by the parent component. Template strings literals 
      * will be marked as safe HTML to be rendered.
-     * This method is bound to the component instance by default.
+     * This method is bound to the component instance by default, and is also available as `this.html`.
      * @param {TemplateStringsArray} strings - Template strings.
      * @param  {...any} expressions - Template expressions.
      * @return {Partial} Partial object containing strings and expressions.
@@ -1277,8 +1279,8 @@ class Component extends View {
      *   // Create a navigation component. Add buttons as children. Iterate over items.
      *   const Navigation = Component.create`
      *       <nav>
-     *           ${({ props, partial }) => props.items.map(
-     *               item => partial`<${Button}>${item.label}</${Button}>`
+     *           ${({ props, html }) => props.items.map(
+     *               item => html`<${Button}>${item.label}</${Button}>`
      *           )}
      *       </nav>
      *   `;
@@ -1311,7 +1313,7 @@ class Component extends View {
      *   ```javascript
      *   class ListBase extends Component {
      *       renderItems() {
-     *           return this.props.items.map(item => this.partial`<li>${item}</li>`);
+     *           return this.props.items.map(item => this.html`<li>${item}</li>`);
      *       }
      *   }
      *   const List = ListBase.create`
@@ -1410,6 +1412,7 @@ Component.MARKER_END = (uid) => `rst-e-${uid}`;
  * @property {Model} [model] A `Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method.
  * @property {Model} [state] A `Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method.
  * @property {Model} [props] Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When a component with a `key` is recycled during parent re-render, new props are automatically updated and any changes trigger a re-render.
+ * @property {Function} html Alias of {@link #module_component__partial partial}, bound to the component instance. Not set when a subclass defines its own `html`.
  * @see {@link #module_component_create Component.create}
  * @example
  * import { Component, Model } from 'rasti';
