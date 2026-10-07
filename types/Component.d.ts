@@ -264,6 +264,17 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
     partial(strings: TemplateStringsArray, ...expressions: any[]): ComponentPartial;
 
     /**
+     * Alias of `partial`, bound to the component instance.
+     * Not set when a subclass defines its own `html`.
+     *
+     * @example
+     * renderHeader() {
+     *     return this.html`<header><${Title}>${this.model.title}</${Title}></header>`;
+     * }
+     */
+    html(strings: TemplateStringsArray, ...expressions: any[]): ComponentPartial;
+
+    /**
      * Subscribes to a `change` event on a model or emitter and invokes `onChange`.
      * Cleaned up automatically on destroy. By default the component subscribes to
      * `this.model`, `this.state` and `this.props`.

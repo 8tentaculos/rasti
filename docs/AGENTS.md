@@ -181,19 +181,19 @@ When using `Component.mount()`, pass `renderChildren` manually: `{ renderChildre
 
 ### Partials
 
-[`partial`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__partial) creates sub-templates for conditional blocks and lists, preserving component recycling by position.
+`html`, an alias of [`partial`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.1.4/docs/api.md#module_component__partial), creates sub-templates (partials) for conditional blocks and lists, preserving component recycling by position.
 
 ```js
 const App = Component.create`
     <main>
-        ${({ model, partial }) => !!model.todos.length && partial`
+        ${({ model, html }) => !!model.todos.length && html`
             <section class="main">
                 <${ToggleAll}
                     checked="${() => !!model.todos.length && !model.remaining.length}"
                     handleChange=${(checked) => model.toggleAll(checked)}
                 />
                 <ul class="todo-list">
-                    ${model.filtered.map(todo => partial`
+                    ${model.filtered.map(todo => html`
                         <${Todo}
                             key="${todo.id}"
                             model="${todo}"
@@ -203,7 +203,7 @@ const App = Component.create`
                 </ul>
             </section>
         `}
-        ${({ model, partial }) => model.completed.length ? partial`
+        ${({ model, html }) => model.completed.length ? html`
             <button onClick=${function() { this.model.removeCompleted(); }}>
                 Clear completed
             </button>
@@ -212,7 +212,7 @@ const App = Component.create`
 `;
 ```
 
-For very large templates, extract named sub-template helpers (use `this.partial` inside them):
+For very large templates, extract named sub-template helpers (use `this.html` inside them):
 
 ```js
 const MyComponent = Component.create`
@@ -221,7 +221,7 @@ const MyComponent = Component.create`
     </div>
 `.extend({
     renderHeader() {
-        return this.partial`<header><h1>${this.model.title}</h1></header>`;
+        return this.html`<header><h1>${this.model.title}</h1></header>`;
     }
 });
 ```
@@ -241,12 +241,12 @@ Rasti reuses component instances across renders to preserve state and improve pe
 
 ```js
 // Use key for list items
-${model.items.map(item => partial`
+${model.items.map(item => html`
     <${Item} key="${item.id}" model="${item}" />
 `)}
 
 // Same type, different identity — use key to force recreation instead of recycling
-${({ props }) => partial`<${TodoForm} key="${props.editingId}" model="${props.editingTodo}" />`}
+${({ props, html }) => html`<${TodoForm} key="${props.editingId}" model="${props.editingTodo}" />`}
 ```
 
 ---
@@ -516,8 +516,8 @@ Never annotate the parameter of an unquoted handler: its first argument is the e
 ## ⚠️ Best Practices
 
 ### Component Structure
-- Use `Component.create` with semantic HTML. Keep template structure visible — prefer inline `partial` over helper methods.
-- Use `partial` for conditional blocks and lists. Return `null` in interpolations to render nothing.
+- Use `Component.create` with semantic HTML. Keep template structure visible — prefer inline `html` partials over helper methods.
+- Use `html` for conditional blocks and lists. Return `null` in interpolations to render nothing.
 - Use `key` attribute when rendering arrays.
 - Extract class/style logic to helper functions (e.g. `getClassName`, `getFilterClass`).
 - Use `props.renderChildren()` when the component accepts slotted content.

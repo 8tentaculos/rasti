@@ -1356,6 +1356,35 @@ describe('Component', () => {
             expect(document.querySelector('#test-node-4 div button').innerHTML).to.be.equal(`<!--${Component.MARKER_START('r10-1')}-->ok<!--${Component.MARKER_END('r10-1')}-->`);
         });
 
+        it('must expose partial as html', () => {
+            const Button = Component.create`<button>click me</button>`;
+
+            const c = Component.create`
+                <div id="test-node">${({ html }) => html`<div><${Button} /></div>`}</div>
+            `.mount({}, document.body);
+
+            expect(c.html).to.be.equal(c.partial);
+            expect(c.children.length).to.be.equal(1);
+            expect(c.children[0].el).to.be.equal(document.querySelector('#test-node div button'));
+        });
+
+        it('must not overwrite an html member defined by a subclass', () => {
+            class WithMethod extends Component {
+                html() {
+                    return 'own';
+                }
+            }
+
+            class WithGetter extends Component {
+                get html() {
+                    return 'own';
+                }
+            }
+
+            expect(new WithMethod().html()).to.be.equal('own');
+            expect(new WithGetter().html).to.be.equal('own');
+        });
+
         it('must render partial with nested component tags with opening and closing tags', () => {
             const Surface = Component.create`<div class="${({ props }) => props.className}">${({ props }) => props.renderChildren()}</div>`;
             const Table = Component.create`<table class="${({ props }) => props.className}">${({ props }) => props.renderChildren()}</table>`;
