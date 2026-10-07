@@ -470,13 +470,13 @@ removeTodo(todo) {
 
 Types ship with the package. Full guide: [TypeScript section in the README](https://github.com/8tentaculos/rasti#typescript).
 
-Template functions are `any`. Type each one inline with `satisfies` and the matching helper, which types its parameters and `this`:
+Template functions are `any`. Type each one by what rasti calls it with, which depends on where it sits:
 
-| Interpolation | Helper |
-|---|---|
-| Content `${fn}` or quoted attribute `attr="${fn}"` | `RenderExpression<C>` |
-| Unquoted handler `onX=${fn}` | `EventHandler<C, E>` |
-| Function passed to a child `handler=${fn}` | The child's prop type: `satisfies ChildProps['handler']` |
+| Interpolation | Called with | Type it with |
+|---|---|---|
+| Content `${fn}` or quoted attribute `attr="${fn}"` | The component | Annotated arrow: `({ props }: C) => …` |
+| Unquoted handler `onX=${fn}` | `(event, component, matched)` | `satisfies EventHandler<C, E>` |
+| Function passed to a child `handler=${fn}` | Whatever the child passes | `satisfies ChildProps['handler']` |
 
 ```ts
 interface ToggleProps { label: string; }
@@ -486,7 +486,7 @@ type ToggleComponent = Component<ToggleProps, ToggleState>;
 
 const Toggle = Component.create<ToggleProps, ToggleState>`
     <button onClick=${(function() { this.state!.active = !this.state!.active; }) satisfies EventHandler<ToggleComponent, MouseEvent>}>
-        ${(({ props, state }) => `${props.label}: ${state!.active ? 'on' : 'off'}`) satisfies RenderExpression<ToggleComponent>}
+        ${({ props, state }: ToggleComponent) => `${props.label}: ${state!.active ? 'on' : 'off'}`}
     </button>
 `.extend({
     onCreate() { this.state = new ToggleState({ active: false }); }
@@ -499,11 +499,11 @@ const Toggle = Component.create<ToggleProps, ToggleState>`
 - **In its own template, calling its own methods** (`(self) => self.renderItems()`): declare them in a class and call `create` on it, `class ListBase extends Component<P> { renderItems() { … } }` then ``ListBase.create`…` ``. The class is `C`.
 - **Outside the component:** `type X = InstanceType<typeof X>`.
 
-In an arrow function, annotating the parameter also works (`({ props }: ToggleComponent) => props.label`). It does not type `this`, so a `function` needs `satisfies`.
+Never annotate the parameter of an unquoted handler: its first argument is the event, not the component, and the template's `any` lets the wrong annotation compile. A `function` reading `this` in content or a quoted attribute needs `satisfies RenderExpression<C>`.
 
 | Error | Cause | Fix |
 |---|---|---|
-| TS7031 / TS7006 | Untyped template function under `strict` | `satisfies` with the helper |
+| TS7031 / TS7006 | Untyped template function under `strict` | Annotate the arrow's parameter, or `satisfies` the helper for handlers |
 | TS7022 / TS2456 | `InstanceType<typeof X>` used inside `X`'s own template | `Component<P, S, M>` alias |
 | TS2339 on the component's own method | `Component<P, S, M>` has no `.extend` members | Methods in a class, `create` called on it |
 | TS18048 on `state` / `model` | Both are optional | `this.state!` or `this.state?.` |

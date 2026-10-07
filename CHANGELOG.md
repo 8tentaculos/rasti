@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **TypeScript docs: arrows in a tagged template are typed by annotating their parameter.** In content and quoted attributes, `({ props }: C) => …` replaces `satisfies RenderExpression<C>` as the recommended form, since rasti passes them the component either way. Unquoted handlers keep `satisfies EventHandler<C, E>`: their first argument is the event, and an annotated parameter there would compile and fail at runtime.
+
 ## [4.1.3] - 2026-10-05
 
 ### Fixed
