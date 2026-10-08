@@ -227,9 +227,9 @@ export default class Model extends Emitter {
      * Called internally by the constructor for each key in `this.attributes`.
      * Override with an empty method if you don't want automatic getters/setters.
      *
-     * A subclass generates them on its prototype, once for the class and shared by every
-     * model of it; `Model` used directly generates them on each model, since its
-     * prototype is shared by every model in the application.
+     * The accessors are generated once for each class and set of attributes, on a
+     * prototype shared by every model holding them, so they are inherited rather than
+     * own properties of the model.
      *
      * @param {string} key Attribute key from `this.attributes`
      * @example
