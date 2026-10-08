@@ -157,8 +157,8 @@ class ElementSlot extends Slot {
      * root treatment. The emission id is not among them — it is written out beside
      * them and never changes, so it is nothing to diff.
      *
-     * Root treatment: the component's root element — the root partial's first element
-     * slot — merges the owner's `attributes`. Only the root partial carries
+     * Root treatment: the component's root element — the root partial's first element,
+     * marked on its descriptor — merges the owner's `attributes`. Only the root partial carries
      * `rootAttributes`; nested partials never do. Both the render and the update path
      * go through here, so the merged attributes are on both sides of the diff and
      * survive a re-render.
@@ -178,7 +178,7 @@ class ElementSlot extends Slot {
         const attributes = {};
         this.descriptor.attributes.forEach(attribute => attribute.applyTo(attributes, partial.expressions, partial.owner, sourceKeys));
         const out = expandEvents(attributes, partial.owner);
-        if (partial.rootAttributes && partial.firstSlot(ElementSlot) === this) {
+        if (partial.rootAttributes && this.descriptor.isFirst) {
             const rootAttributes = partial.rootAttributes();
             Object.assign(out, rootAttributes);
             if (sourceKeys) Object.keys(rootAttributes).forEach(key => sourceKeys.delete(key));

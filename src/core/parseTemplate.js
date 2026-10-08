@@ -400,7 +400,7 @@ const parseElements = (template, elements) => {
         }
         // Add element descriptor to elements array.
         const index = elements.length;
-        elements.push(new ElementDescriptor(parseAttributes(attributesStr)));
+        elements.push(new ElementDescriptor(parseAttributes(attributesStr), isFirst));
         // Replace attributes with structural placeholder.
         // Preserve original tag ending (> or />)
         return `<${tag} ${SLOT_ELEMENT(index)}${ending}`;

@@ -9,12 +9,15 @@ import ElementSlot from './ElementSlot.js';
  * emission counter at render time, so there is no node index or path here.
  * @param {Array<Attribute>} attributes Attribute descriptors, each holding its key
  *     and value as either a literal or an expression index.
+ * @param {boolean} isFirst Whether this is the template's first element, which is the
+ *     component's root element when the template is its root.
  * @property {Function} Slot The class of the live state this descriptor renders through.
  * @private
  */
 class ElementDescriptor {
-    constructor(attributes) {
+    constructor(attributes, isFirst) {
         this.attributes = attributes;
+        this.isFirst = isFirst;
     }
 }
 
