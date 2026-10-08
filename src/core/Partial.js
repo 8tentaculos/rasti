@@ -31,7 +31,7 @@ const OPENING_TAG = /^<[a-zA-Z][^>]*$/;
  *
  * The handlers cover what only the component can do; the wire format stays with the
  * engine, which writes it from `Constants`. A child component is the one value the
- * engine reads fields off: its `el` and its `uid`.
+ * engine reads fields off: its `el`, its `uid` and its `key`.
  * @typedef {object} ComponentAdapter
  * @property {Function} evaluate Evaluate an expression in the owner's context, `(expression, meta) => value`.
  * @property {Function} registerListener Register an event listener, `(listener, type) => ({ attribute, index })`.
@@ -205,21 +205,9 @@ class Partial {
     rootElement() {
         if (!this.isTransparent()) return this.firstSlot(ElementSlot).ref;
         // A transparent partial is a single interpolation, so its slot is the first one.
-        return this.slotElement(this.slots[0].content);
-    }
-
-    /**
-     * Resolve the root element of a transparent partial's slot value, descending
-     * through nested transparent partials. A transparent partial stands on the element
-     * of the component it renders, so what it resolves to is a component.
-     * @param {any} value The slot value.
-     * @return {Node} The resolved element.
-     * @private
-     */
-    slotElement(value) {
-        if (this.isPartial(value)) return value.rootElement();
-        // A child component: its own element.
-        return value.el;
+        // It stands on a nested partial or on the element of the component it renders.
+        const value = this.slots[0].content;
+        return this.isPartial(value) ? value.rootElement() : value.el;
     }
 
     /**
@@ -232,20 +220,8 @@ class Partial {
     rootElementId() {
         if (!this.isTransparent()) return this.firstSlot(ElementSlot).id;
         // A transparent partial is a single interpolation, so its slot is the first one.
-        return this.slotElementId(this.slots[0].content);
-    }
-
-    /**
-     * Resolve the root emission id of a transparent partial's slot value, descending
-     * through nested transparent partials. The id counterpart of `slotElement`.
-     * @param {any} value The slot value.
-     * @return {string} The emission id.
-     * @private
-     */
-    slotElementId(value) {
-        if (this.isPartial(value)) return value.rootElementId();
-        // A child component: the id of its own root element.
-        return this.owner.childElementId(value);
+        const value = this.slots[0].content;
+        return this.isPartial(value) ? value.rootElementId() : this.owner.childElementId(value);
     }
 
     /**
