@@ -179,7 +179,8 @@ const buildComponentAdapter = (component) => {
         nextElementId : () => `${component.uid}-${++elementId}`,
         nextMarkerId : () => `${component.uid}-${++markerId}`,
         addChild : (child) => component.addChild(child),
-        updateChild : (child, props) => component.propsQueue.push([child, props])
+        updateChild : (child, props) => component.propsQueue.push([child, props]),
+        rootAttributes : () => getResult(component.attributes, component)
     });
 };
 
@@ -387,12 +388,11 @@ export default class Component extends View {
         // Build the root partial from the template and adopt it.
         this.rootPartial = this.buildRootPartial();
         if (__DEV__) checkRootStructure(this);
-        // Adopting a single-interpolation partial as the root is what makes the
-        // component a container: it borrows the element of the child that partial
-        // resolves to, and renders none of its own.
+        // Adopting the partial as the root makes its first element merge the
+        // component's `attributes` (root treatment). Adopting a single-interpolation
+        // partial is what makes the component a container: it borrows the element of
+        // the child that partial resolves to, and renders none of its own.
         this.rootPartial.isRoot = true;
-        // The root element merges the component's `attributes` (root treatment).
-        if (this.attributes) this.rootPartial.rootAttributes = () => getResult(this.attributes, this);
         // Expose the template source for expression error messages (dev only).
         if (__DEV__) this.source = this.rootPartial.constructor.source;
     }

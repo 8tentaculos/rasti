@@ -158,17 +158,18 @@ class ElementSlot extends Slot {
      * them and never changes, so it is nothing to diff.
      *
      * Root treatment: the component's root element — the root partial's first element,
-     * marked on its descriptor — merges the owner's `attributes`. Only the root partial carries
-     * `rootAttributes`; nested partials never do. Both the render and the update path
-     * go through here, so the merged attributes are on both sides of the diff and
-     * survive a re-render.
+     * marked on its descriptor — merges the owner's `attributes`, which the owner
+     * resolves. Nested partials are never the root, so they never take them. Both the
+     * render and the update path go through here, so the merged attributes are on both
+     * sides of the diff and survive a re-render.
      *
      * Given a set, it collects the keys whose values are HTML source (pure template
      * literals) — kept beside the object, not inside it, so `getAttributesDiff` keeps
      * comparing primitive values by identity. Only serialization reads them: an update
      * writes through `setAttribute`, which always takes plain text. Everything added
-     * after the descriptors — events and `rootAttributes` — is plain text, and a
-     * `rootAttributes` key colliding with a literal-marked one drops the mark.
+     * after the descriptors — events and the owner's `attributes` — is plain text, and
+     * a key of the owner's `attributes` colliding with a literal-marked one drops the
+     * mark.
      * @param {Set<string>} [sourceKeys] Set collecting the HTML-source keys.
      * @return {object} The attributes.
      * @private
@@ -178,10 +179,12 @@ class ElementSlot extends Slot {
         const attributes = {};
         this.descriptor.attributes.forEach(attribute => attribute.applyTo(attributes, partial.expressions, partial.owner, sourceKeys));
         const out = expandEvents(attributes, partial.owner);
-        if (partial.rootAttributes && this.descriptor.isFirst) {
-            const rootAttributes = partial.rootAttributes();
-            Object.assign(out, rootAttributes);
-            if (sourceKeys) Object.keys(rootAttributes).forEach(key => sourceKeys.delete(key));
+        if (partial.isRoot && this.descriptor.isFirst) {
+            const rootAttributes = partial.owner.rootAttributes();
+            if (rootAttributes) {
+                Object.assign(out, rootAttributes);
+                if (sourceKeys) Object.keys(rootAttributes).forEach(key => sourceKeys.delete(key));
+            }
         }
         return out;
     }

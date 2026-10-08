@@ -46,6 +46,7 @@ const OPENING_TAG = /^<[a-zA-Z][^>]*$/;
  * @property {Function} updateChild Queue a recycled child's new props, `(child, props)`.
  * @property {Function} childProps Read the props a discarded candidate carried.
  * @property {Function} destroyChild Destroy a discarded child.
+ * @property {Function} rootAttributes Resolve the owner's `attributes`, which its root element merges.
  * @private
  */
 
@@ -89,8 +90,8 @@ class Partial {
         // slot that renders it sets the host it renders under.
         this.host = owner;
         // Whether this is the component's own root partial, set when the component
-        // adopts it. A transparent one makes that component a container: see
-        // `isAnchored`.
+        // adopts it. Its first element merges the owner's `attributes`, and a
+        // transparent one makes that component a container: see `isAnchored`.
         this.isRoot = false;
     }
 
