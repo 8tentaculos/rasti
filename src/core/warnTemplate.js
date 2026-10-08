@@ -1,5 +1,5 @@
-import createDevelopmentWarningMessage from './createDevelopmentWarningMessage.js';
-import formatTemplateSource from './formatTemplateSource.js';
+import createDevelopmentWarningMessage from '../utils/createDevelopmentWarningMessage.js';
+import formatTemplateSource from '../utils/formatTemplateSource.js';
 
 /**
  * Print a warning about one dynamic part of a template, pointing at the offending

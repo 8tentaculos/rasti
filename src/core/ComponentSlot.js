@@ -1,6 +1,5 @@
 import InterpolationSlot from './InterpolationSlot.js';
-
-import warnUnsupportedAttribute from '../utils/warnUnsupportedAttribute.js';
+import warnUnsupportedAttribute from './warnUnsupportedAttribute.js';
 
 import __DEV__ from '../utils/dev.js';
 

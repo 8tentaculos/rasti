@@ -4,7 +4,7 @@ import SafeHTML from './SafeHTML.js';
 import HydrationIndex from './HydrationIndex.js';
 
 import valueToString from './valueToString.js';
-import warnTemplate from '../utils/warnTemplate.js';
+import warnTemplate from './warnTemplate.js';
 import formatTemplateSource from '../utils/formatTemplateSource.js';
 import createDevelopmentErrorMessage from '../utils/createDevelopmentErrorMessage.js';
 import parseHTML from '../utils/parseHTML.js';
