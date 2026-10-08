@@ -111,7 +111,8 @@ class ElementSlot extends Slot {
     toString() {
         if (this.id == null) this.id = this.partial.owner.nextElementId();
         if (__DEV__) warnUnsupportedAttribute(this.partial.constructor, this.descriptor);
-        const { attributes, sourceKeys } = this.buildAttributes();
+        const sourceKeys = new Set();
+        const attributes = this.buildAttributes(sourceKeys);
         this.previousAttributes = attributes;
         // The emission id is written straight out: it never changes, so it is neither
         // escaped nor diffed, and it stays out of what the update compares.
@@ -133,8 +134,8 @@ class ElementSlot extends Slot {
      * Diff the element's attributes against the swapped expressions and patch the DOM.
      */
     update() {
-        // The source keys are ignored here: `setAttribute` always takes plain text.
-        const { attributes } = this.buildAttributes();
+        // No source keys: `setAttribute` always takes plain text.
+        const attributes = this.buildAttributes();
         const { remove, add } = getAttributesDiff(attributes, this.previousAttributes);
         this.previousAttributes = attributes;
         // Remove attributes first so later `setAttribute` overrides if needed.
@@ -162,27 +163,27 @@ class ElementSlot extends Slot {
      * go through here, so the merged attributes are on both sides of the diff and
      * survive a re-render.
      *
-     * Alongside the attributes it returns the keys whose values are HTML source (pure
-     * template literals) — kept beside the object, not inside it, so `getAttributesDiff`
-     * keeps comparing primitive values by identity. Everything added after the
-     * descriptors — events and `rootAttributes` — is plain text, and a
+     * Given a set, it collects the keys whose values are HTML source (pure template
+     * literals) — kept beside the object, not inside it, so `getAttributesDiff` keeps
+     * comparing primitive values by identity. Only serialization reads them: an update
+     * writes through `setAttribute`, which always takes plain text. Everything added
+     * after the descriptors — events and `rootAttributes` — is plain text, and a
      * `rootAttributes` key colliding with a literal-marked one drops the mark.
-     * @return {{ attributes: object, sourceKeys: Set<string> }} The attributes and the
-     *     HTML-source key set.
+     * @param {Set<string>} [sourceKeys] Set collecting the HTML-source keys.
+     * @return {object} The attributes.
      * @private
      */
-    buildAttributes() {
+    buildAttributes(sourceKeys) {
         const { partial } = this;
         const attributes = {};
-        const sourceKeys = new Set();
         this.descriptor.attributes.forEach(attribute => attribute.applyTo(attributes, partial.expressions, partial.owner, sourceKeys));
         const out = expandEvents(attributes, partial.owner);
         if (partial.rootAttributes && partial.firstSlot(ElementSlot) === this) {
             const rootAttributes = partial.rootAttributes();
             Object.assign(out, rootAttributes);
-            Object.keys(rootAttributes).forEach(key => sourceKeys.delete(key));
+            if (sourceKeys) Object.keys(rootAttributes).forEach(key => sourceKeys.delete(key));
         }
-        return { attributes : out, sourceKeys };
+        return out;
     }
 }
 
