@@ -3339,6 +3339,26 @@ describe('Component', () => {
             expect(Array.from(document.querySelectorAll('li')).map(el => el.textContent.trim())).to.deep.equal(['a', 'b']);
         });
 
+        it('must drop the items of a uniform list whose items start with a component tag', () => {
+            const Row = Component.create`<b>${({ props }) => props.text}</b>`;
+            const list = Component.create`
+                <ul>${({ model, partial }) => model.items.map(item => partial`<${Row} text="${item}" /><i>${item}</i>`)}</ul>
+            `.mount({ model : new Model({ items : ['a', 'b', 'c'] }) }, document.body);
+
+            const rows = Array.from(document.querySelectorAll('b'));
+            const marks = Array.from(document.querySelectorAll('i'));
+
+            list.model.items = ['a'];
+
+            // The first item stays where it is: the list drops the rest from where the
+            // second one's component begins.
+            expect(document.querySelector('b')).to.be.equal(rows[0]);
+            expect(document.querySelector('i')).to.be.equal(marks[0]);
+            expect(document.querySelectorAll('b').length).to.be.equal(1);
+            expect(document.querySelectorAll('i').length).to.be.equal(1);
+            expect(list.children.length).to.be.equal(1);
+        });
+
         it('must keep DOM state the engine does not write', () => {
             const list = Component.create`
                 <ul>${({ model, partial }) => model.items.map(item => partial`<li><input /><span>${item}</span></li>`)}</ul>

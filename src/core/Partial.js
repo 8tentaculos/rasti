@@ -251,8 +251,8 @@ class Partial {
      * The first DOM node the partial renders, or `null` when the template starts with
      * literal markup: the engine writes a literal out and keeps no reference to it, so
      * a node it renders cannot be located afterwards. The usual shape does have one —
-     * a template opening with an element or an interpolation, both of which own their
-     * nodes.
+     * a template opening with an element or an interpolation, which own their nodes,
+     * or with a component tag, which stands on its component's element.
      * @return {Node|null} The first node, or `null` when it cannot be located.
      */
     firstNode() {
@@ -261,8 +261,11 @@ class Partial {
             const part = parts[i];
             if (!(part instanceof LiteralDescriptor)) {
                 const slot = this.slots[i];
-                // An element stands on its own node; every other slot writes markers.
-                return slot instanceof ElementSlot ? slot.ref : slot.ref && slot.ref[0];
+                // An element stands on its own node and an anchored slot on its content's
+                // element; every other slot writes markers.
+                if (slot instanceof ElementSlot) return slot.ref;
+                if (slot.isAnchored()) return slot.anchorElement();
+                return slot.ref && slot.ref[0];
             }
             if (part.value !== '' && !OPENING_TAG.test(part.value)) return null;
         }
