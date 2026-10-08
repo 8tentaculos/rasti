@@ -519,6 +519,9 @@ class InterpolationSlot extends Slot {
             this.ref = [index.comment(Constants.MARKER_START(this.id)), index.comment(Constants.MARKER_END(this.id))];
         }
         this.hydrateValue(this.content, index, pass);
+        // A recycled candidate is discarded once the pass finishes, so a slot nested
+        // under the one regenerating keeps the retained instance it matched instead.
+        if (pass && pass.recycled.has(this.content)) this.content = pass.recycled.get(this.content);
     }
 
     /**

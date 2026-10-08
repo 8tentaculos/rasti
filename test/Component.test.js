@@ -3094,6 +3094,53 @@ describe('Component', () => {
             expect(after.map(el => el.textContent.trim())).to.deep.equal(['C2', 'A2', 'B2']);
         });
 
+        // A child claimed from the list's pool by a slot nested under the one that
+        // regenerates must stay that slot's occupant, so the next update reconciles
+        // against the live child and not against the discarded candidate.
+        it('must keep updating a keyed component recycled from a list into a component tag', () => {
+            const Row = Component.create`<b>${({ props }) => props.text}</b>`;
+            const Main = Component.create`
+                <div>${({ model, partial }) => model.solo
+        ? partial`<${Row} key="a" text="${model.text}" />`
+        : model.items.map(item => partial`<${Row} key="${item.id}" text="${item.text}" />`)}</div>
+            `.mount({
+        model : new Model({ solo : false, text : 'solo', items : [{ id : 'a', text : 'A' }, { id : 'b', text : 'B' }] })
+    }, document.body);
+
+            const before = Main.el.querySelector('b');
+
+            Main.model.solo = true;
+            expect(Main.el.querySelector('b')).to.be.equal(before);
+
+            Main.model.text = 'solo2';
+            expect(Main.el.querySelector('b')).to.be.equal(before);
+            expect(Main.el.textContent.trim()).to.be.equal('solo2');
+            expect(Main.children).to.have.lengthOf(1);
+            expect(Main.children[0].destroyed).to.not.be.true;
+        });
+
+        it('must keep updating a keyed component recycled from a list into a transparent partial', () => {
+            const Row = Component.create`<b>${({ props }) => props.text}</b>`;
+            const Main = Component.create`
+                <div>${({ model, partial }) => model.solo
+        ? partial`${Row.mount({ key : 'a', text : model.text })}`
+        : model.items.map(item => Row.mount({ key : item.id, text : item.text }))}</div>
+            `.mount({
+        model : new Model({ solo : false, text : 'solo', items : [{ id : 'a', text : 'A' }, { id : 'b', text : 'B' }] })
+    }, document.body);
+
+            const before = Main.el.querySelector('b');
+
+            Main.model.solo = true;
+            expect(Main.el.querySelector('b')).to.be.equal(before);
+
+            Main.model.text = 'solo2';
+            expect(Main.el.querySelector('b')).to.be.equal(before);
+            expect(Main.el.textContent.trim()).to.be.equal('solo2');
+            expect(Main.children).to.have.lengthOf(1);
+            expect(Main.children[0].destroyed).to.not.be.true;
+        });
+
         // A partial that contributes markup of its own is a boundary: the components in
         // its interpolations belong to it, not to the list holding it, so the list
         // neither claims them nor lends it its own. The boundary holds in both
