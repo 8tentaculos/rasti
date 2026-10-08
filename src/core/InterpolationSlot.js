@@ -4,9 +4,8 @@ import SafeHTML from './SafeHTML.js';
 import HydrationIndex from './HydrationIndex.js';
 
 import valueToString from './valueToString.js';
-import warnTemplate from './warnTemplate.js';
-import formatTemplateSource from '../utils/formatTemplateSource.js';
-import createDevelopmentErrorMessage from '../utils/createDevelopmentErrorMessage.js';
+import checkListItems from './checkListItems.js';
+import checkAnchoredContent from './checkAnchoredContent.js';
 import parseHTML from '../utils/parseHTML.js';
 import moveNode from '../utils/moveNode.js';
 import increasingSubsequence from '../utils/increasingSubsequence.js';
@@ -84,21 +83,6 @@ const rendersText = (value) => {
 const toText = (value) => `${value}`.replace(/\r\n?/g, '\n');
 
 /**
- * Resolve what a value stands for, seeing through transparent partials, which
- * contribute no node of their own and resolve to whatever their single slot holds.
- * A partial that is opaque, or that has not rendered and has no slot to look into,
- * stands for itself.
- * @param {Partial} partial The partial holding the value.
- * @param {any} value The value to resolve.
- * @return {any} The value the given one stands for.
- * @private
- */
-const unwrap = (partial, value) => {
-    if (!partial.isPartial(value) || !value.isTransparent() || !value.slots) return value;
-    return unwrap(partial, value.slots[0].content);
-};
-
-/**
  * The shapes a list can have, by what its items are. A <b>components</b> list holds
  * nothing but components, each with an identity of its own, so it is placed by
  * walking its children. A <b>uniform</b> list is one template repeated, each item
@@ -139,140 +123,6 @@ const classifyList = (partial, items) => {
         if (!components && !uniform) return LIST_OTHER;
     }
     return components ? LIST_COMPONENTS : uniform ? LIST_UNIFORM : LIST_OTHER;
-};
-
-/**
- * Print a warning about one interpolation, resolving its expression off the slot's
- * descriptor (see `warnTemplate`). Development only.
- * @param {InterpolationSlot} slot The slot the warning is about.
- * @param {string} message The warning message.
- * @private
- */
-const warn = (slot, message) => {
-    const { source } = slot.partial.constructor;
-    const expression = source && source.expressions[slot.descriptor.index];
-    warnTemplate(slot.partial.constructor, slot.descriptor, expression, message);
-};
-
-/**
- * Tell whether a value holds a keyed component somewhere under a partial's markup,
- * without crossing into a component of its own. Development only.
- * @param {Partial} partial The partial holding the list.
- * @param {any} value The value to search.
- * @return {boolean} True if a keyed component is held under markup.
- * @private
- */
-const holdsKeyedChild = (partial, value) => {
-    if (Array.isArray(value)) return value.some(item => holdsKeyedChild(partial, item));
-    if (partial.owner.isChild(value)) return value.key != null;
-    if (!partial.isPartial(value) || !value.slots) return false;
-    return value.slots.some(slot => holdsKeyedChild(partial, slot.content));
-};
-
-/**
- * Warn about the keys of a list. A list is the one place where a component changes
- * position among its siblings, and a key is what identifies it there: one without a
- * key is built again on every update, two sharing a key cannot both be recycled, and
- * a key written under markup identifies nothing, because the markup around it is a
- * boundary and the component belongs to the item holding it.
- *
- * A list of markup carries no keys at all: its items have no identity and are updated
- * where they stand, which is a shape of its own and not a mistake. Plain values are
- * exempt for the same reason — a text has no identity to declare.
- * Development only.
- * @param {InterpolationSlot} slot The slot rendering the list.
- * @param {Array<any>} items The rendered list.
- * @private
- */
-const checkListItems = (slot, items) => {
-    const { partial, descriptor } = slot;
-    if (descriptor.warned) return;
-    const keys = new Set();
-    let unkeyed = false;
-    let duplicated = null;
-    let underMarkup = false;
-    const visit = value => {
-        if (Array.isArray(value)) return value.forEach(visit);
-        // Anything that is not a partial or a child renders as content, not as
-        // something with an identity of its own.
-        if (!partial.isPartial(value) && !partial.owner.isChild(value)) return;
-        const child = unwrap(partial, value);
-        if (!partial.owner.isChild(child)) underMarkup = underMarkup || holdsKeyedChild(partial, child);
-        else if (child.key == null) unkeyed = true;
-        else if (keys.has(child.key)) duplicated = child.key;
-        else keys.add(child.key);
-    };
-    items.forEach(visit);
-    if (unkeyed) warn(slot,
-        'Component in a list without a key\n' +
-        'A list is where a component changes position among its siblings, and a key is\n' +
-        'what identifies it there: without one it is built again on every update, losing\n' +
-        'its state and its DOM nodes. Give each one a key:\n' +
-        '\n' +
-        '  items.map(item => html`<${Row} key="${item.id}" />`)'
-    );
-    else if (duplicated != null) warn(slot,
-        `Duplicate key "${duplicated}" in a list\n` +
-        'Keys identify an item among its siblings, so two items sharing one cannot\n' +
-        'both be recycled. Give each item a key of its own.'
-    );
-    else if (underMarkup) warn(slot,
-        'Key under markup in a list item\n' +
-        'Markup around a component is a boundary: the component belongs to the item that\n' +
-        'holds it, not to the list, so a key written there identifies nothing among the\n' +
-        'list\'s siblings. Put the component in the list itself:\n' +
-        '\n' +
-        '  items.map(item => html`<${Row} key="${item.id}" />`)'
-    );
-};
-
-/**
- * Tell whether a value resolves to a child component, seeing through transparent
- * partials, which contribute no node of their own. A partial that has not rendered yet
- * has no slot to look into, and is taken as resolvable rather than reported.
- * Development only.
- * @param {Partial} partial The partial holding the value.
- * @param {any} value The value to resolve.
- * @return {boolean} True if the value stands for a child component.
- * @private
- */
-const resolvesToChild = (partial, value) => {
-    const resolved = unwrap(partial, value);
-    // A partial that has not rendered yet stands for itself, but will resolve to
-    // whatever its slot holds once it does.
-    if (partial.isPartial(resolved)) return resolved.isTransparent() && !resolved.slots;
-    return partial.owner.isChild(resolved);
-};
-
-/**
- * Reject an anchored slot that resolves to no component. An anchored slot writes no
- * markers of its own: its content stands on the element of the component it renders,
- * so a value that mounts none leaves it with nothing to stand on, and the owning
- * component with no element of its own. A component tag always mounts one, so in
- * practice only a container's root interpolation reaches here with something else.
- * Development only.
- * @param {InterpolationSlot} slot The anchored slot.
- * @param {any} value The resolved value.
- * @private
- */
-const checkAnchoredContent = (slot, value) => {
-    const { partial, descriptor } = slot;
-    if (resolvesToChild(partial, value)) return;
-    const { source } = partial.constructor;
-    const formattedSource = formatTemplateSource(source, source && source.expressions[descriptor.index], 'This interpolation');
-    throw new Error(createDevelopmentErrorMessage(
-        'Invalid container template\n' +
-        'A component whose template is a single interpolation is a container: it has no\n' +
-        'element of its own and stands on the element of the component it renders, so\n' +
-        'that interpolation must resolve to a component.\n\n' +
-        'Valid examples:\n' +
-        '- `${({ state }) => state.open ? Dialog.mount(props) : Empty.mount(props)}`\n' +
-        '- `<${MyComponent} />`\n\n' +
-        'Invalid examples:\n' +
-        '- `${({ html }) => html`<div></div>`}`  (markup, not a component)\n' +
-        '- `${({ props }) => props.label}`  (a plain value)' +
-        (formattedSource ? `\n\nTemplate source:\n\n${formattedSource}` : '')
-    ));
 };
 
 /**
