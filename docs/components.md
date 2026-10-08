@@ -168,6 +168,29 @@ class TodoList extends Component {
 
 A child rendered with content between its tags, `<${Card}>…</${Card}>`, re-renders with its parent regardless: that content belongs to the parent and may have changed with it.
 
+## Switching components
+
+The class in a component tag is part of the template's structure, like an element's tag name: write a fixed one there, not an expression that changes between renders. To render one component or another, branch on the structure, with a partial for each:
+
+```javascript
+// Given `Input` and `TextArea` components:
+class Field extends Component {
+    template() {
+        return this.html`
+            <label>
+                ${this.props.multiline
+                    ? this.html`<${TextArea} value="${this.props.value}" />`
+                    : this.html`<${Input} value="${this.props.value}" />`}
+            </label>
+        `;
+    }
+}
+```
+
+Each branch is a template of its own, so each keeps its tag fixed, and switching from one to the other regenerates the content as a changed tag would.
+
+A template is parsed once, on its first render, and a component tag is paired with its closing tag by the class both name. Tags that name the same class on that render are taken as the same reference from then on: if one of them later names another class, it keeps rendering the first one's.
+
 ## Containers: returning a component
 
 If `template()` returns a **component instance** instead of a partial, the component becomes a *container*: it renders that child and adopts the child's root element as its own `this.el`. This is convenient for wrapping or picking a component:

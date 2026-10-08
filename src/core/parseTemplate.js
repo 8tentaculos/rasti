@@ -291,7 +291,9 @@ const parseAttributes = (attributesStr) => {
  * repeated tag (`<${Comp} /><${Comp} />`) pairs its opening and closing
  * placeholders and `RE_COMPONENT_TAG`'s backreference can match them. Runs once
  * per template, before parsing: the recursion into a component tag's inner
- * content receives references already normalized.
+ * content receives references already normalized. The skeleton is cached by
+ * `strings`, so the rewrite follows the classes of the first render: a tag whose
+ * class changes afterwards still reads the placeholder it was rewritten to.
  * @param {string} main The main template.
  * @param {Array<any>} expressions Array of expressions (read for structural decisions only).
  * @param {Function} isComponentClass Predicate telling whether an expression is a component class.
