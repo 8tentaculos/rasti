@@ -3,15 +3,11 @@ import Emitter from './Emitter.js';
 import getResult from './utils/getResult.js';
 import assignOption from './utils/assignOption.js';
 import validateListener from './utils/validateListener.js';
+import viewOptions from './utils/viewOptions.js';
 import createDevelopmentErrorMessage from './utils/createDevelopmentErrorMessage.js';
 import createProductionErrorMessage from './utils/createProductionErrorMessage.js';
 
 import __DEV__ from './utils/dev.js';
-
-/*
- * These option keys will be extended on the view instance.
- */
-const viewOptions = ['el', 'tag', 'attributes', 'events', 'model', 'template', 'onDestroy'];
 
 /**
  * - Listens for changes and renders the UI.
@@ -76,15 +72,11 @@ export default class View extends Emitter {
         this.children = [];
         // Mutable array to store handlers to be called on destroy.
         this.destroyQueue = [];
-        this.optionKeys = new Set();
         // Extend "this" with options. An option overrides a getter declared by a
         // subclass even when the getter has no setter.
-        viewOptions.forEach(key => {
-            if (key in options) {
-                assignOption(this, key, options[key]);
-                this.optionKeys.add(key);
-            }
-        });
+        for (const key in options) {
+            if (viewOptions.has(key)) assignOption(this, key, options[key]);
+        }
         // Ensure that the view has a unique id at `this.uid`.
         this.ensureUid();
         // Ensure that the view has a root element at `this.el`.

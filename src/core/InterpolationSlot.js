@@ -1,5 +1,4 @@
 import Slot from './Slot.js';
-import Constants from './Constants.js';
 import SafeHTML from './SafeHTML.js';
 import HydrationIndex from './HydrationIndex.js';
 
@@ -9,6 +8,8 @@ import checkAnchoredContent from './checkAnchoredContent.js';
 import parseHTML from '../utils/parseHTML.js';
 import moveNode from '../utils/moveNode.js';
 import increasingSubsequence from '../utils/increasingSubsequence.js';
+
+import Constants from './Constants.js';
 
 import __DEV__ from '../utils/dev.js';
 

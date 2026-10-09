@@ -1,11 +1,12 @@
 import Slot from './Slot.js';
-import Constants from './Constants.js';
 import getEventType from './getEventType.js';
 import warnUnsupportedAttribute from './warnUnsupportedAttribute.js';
 
 import getAttributesHTML from '../utils/getAttributesHTML.js';
 import getAttributesDiff from '../utils/getAttributesDiff.js';
 import createDevelopmentErrorMessage from '../utils/createDevelopmentErrorMessage.js';
+
+import Constants from './Constants.js';
 
 import __DEV__ from '../utils/dev.js';
 

@@ -1,7 +1,6 @@
 import View from './View.js';
 import Model from './Model.js';
 import SafeHTML from './core/SafeHTML.js';
-import Constants from './core/Constants.js';
 import Partial from './core/Partial.js';
 import HydrationIndex from './core/HydrationIndex.js';
 import ExpressionDescriptor from './core/ExpressionDescriptor.js';
@@ -10,12 +9,15 @@ import EventsManager from './core/EventsManager.js';
 import validateListener from './utils/validateListener.js';
 import getResult from './utils/getResult.js';
 import assignOption from './utils/assignOption.js';
+import viewOptions from './utils/viewOptions.js';
 import parseHTML from './utils/parseHTML.js';
 import isVoidElement from './utils/isVoidElement.js';
 import replaceNode from './utils/replaceNode.js';
 import createDevelopmentErrorMessage from './utils/createDevelopmentErrorMessage.js';
 import createProductionErrorMessage from './utils/createProductionErrorMessage.js';
 import formatTemplateSource from './utils/formatTemplateSource.js';
+
+import Constants from './core/Constants.js';
 
 import __DEV__ from './utils/dev.js';
 
@@ -244,7 +246,7 @@ const hydrationRoot = (component, container) => {
 /*
  * These option keys will be extended on the component instance.
  */
-const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', 'onBeforeRecycle', 'onRecycle', 'onBeforeUpdate', 'onUpdate'];
+const componentOptions = new Set(['key', 'state', 'onCreate', 'onChange', 'onHydrate', 'onBeforeRecycle', 'onRecycle', 'onBeforeUpdate', 'onUpdate']);
 
 /**
  * An opaque partial template produced by {@link #module_component__partial component.partial}.
@@ -290,25 +292,17 @@ const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', '
 export default class Component extends View {
     constructor(options = {}) {
         super(...arguments);
-        // Extend "this" with options. An option overrides a getter declared by a
-        // subclass even when the getter has no setter.
-        componentOptions.forEach(key => {
-            if (key in options) {
-                assignOption(this, key, options[key]);
-                this.optionKeys.add(key);
-            }
-        });
-        // Extract props from options that aren't component or view options.
-        const props = {};
-        Object.keys(options).forEach(key => {
-            if (!this.optionKeys.has(key)) {
-                props[key] = options[key];
-            }
-        });
         // The options a parent passed that the component did not take as its own. They
         // become a `Model` the first time anything reads `props`, which is what keeps a
         // component that is built and discarded without ever rendering cheap.
-        this.propsAttributes = props;
+        this.propsAttributes = {};
+        // Extend "this" with options. An option overrides a getter declared by a
+        // subclass even when the getter has no setter. Any option that is neither a
+        // component nor a view option is a prop.
+        for (const key in options) {
+            if (componentOptions.has(key)) assignOption(this, key, options[key]);
+            else if (!viewOptions.has(key)) this.propsAttributes[key] = options[key];
+        }
         // Store options by default.
         this.options = options;
         // Bind `partial` method to `this`.
