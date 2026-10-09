@@ -9,7 +9,7 @@ import EventsManager from './core/EventsManager.js';
 
 import validateListener from './utils/validateListener.js';
 import getResult from './utils/getResult.js';
-import defineOwn from './utils/defineOwn.js';
+import assignOption from './utils/assignOption.js';
 import parseHTML from './utils/parseHTML.js';
 import isVoidElement from './utils/isVoidElement.js';
 import replaceNode from './utils/replaceNode.js';
@@ -250,11 +250,11 @@ const componentOptions = ['key', 'state', 'onCreate', 'onChange', 'onHydrate', '
 export default class Component extends View {
     constructor(options = {}) {
         super(...arguments);
-        // Extend "this" with options, as own properties so an option overrides
-        // a getter declared by a subclass instead of being assigned through it.
+        // Extend "this" with options. An option overrides a getter declared by a
+        // subclass even when the getter has no setter.
         componentOptions.forEach(key => {
             if (key in options) {
-                defineOwn(this, key, options[key]);
+                assignOption(this, key, options[key]);
                 this.optionKeys.add(key);
             }
         });

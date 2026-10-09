@@ -46,6 +46,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Attributes holding `on` and a capital mid-name**: an attribute such as `data-iconName` or `data-sectionTitle` was taken for an event handler, because the check matched `on` followed by a capital anywhere in the name, and it disappeared from the element. Only a name starting with `on` and a capital binds a handler.
 - **A handler named by a method on a static element**: `<button onClick="save">`, on an element carrying nothing else dynamic, was written out as the native `onclick` attribute and never called the method. It is now delegated like any other handler.
 
+## [4.2.1] - 2026-10-09
+
+### Fixed
+
+- **Options are assigned to a view or component again.** 4.2.0 defined each one as an own property with `Object.defineProperty`, so that an option could override a getter with no setter, at a cost on every construction. Now only an assignment that throws because of such a getter falls back to defining the property, and an accessor declared with a setter receives the option through it.
+
 ## [4.2.0] - 2026-10-07
 
 ### Added
@@ -462,6 +468,7 @@ Unlike views, which are render-agnostic, components have a specific set of rende
 * **BREAKING:** Removed emitter.emitAsync method.
 
 [unreleased]: https://github.com/8tentaculos/rasti/compare/v4.2.0...HEAD
+[4.2.1]: https://github.com/8tentaculos/rasti/compare/v4.2.0...v4.2.1
 [4.2.0]: https://github.com/8tentaculos/rasti/compare/v4.1.4...v4.2.0
 [4.1.4]: https://github.com/8tentaculos/rasti/compare/v4.1.3...v4.1.4
 [4.1.3]: https://github.com/8tentaculos/rasti/compare/v4.1.2...v4.1.3

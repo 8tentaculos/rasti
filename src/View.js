@@ -1,7 +1,7 @@
 import Emitter from './Emitter.js';
 
 import getResult from './utils/getResult.js';
-import defineOwn from './utils/defineOwn.js';
+import assignOption from './utils/assignOption.js';
 import validateListener from './utils/validateListener.js';
 import createDevelopmentErrorMessage from './utils/createDevelopmentErrorMessage.js';
 import createProductionErrorMessage from './utils/createProductionErrorMessage.js';
@@ -77,11 +77,11 @@ export default class View extends Emitter {
         // Mutable array to store handlers to be called on destroy.
         this.destroyQueue = [];
         this.optionKeys = new Set();
-        // Extend "this" with options, as own properties so an option overrides
-        // a getter declared by a subclass instead of being assigned through it.
+        // Extend "this" with options. An option overrides a getter declared by a
+        // subclass even when the getter has no setter.
         viewOptions.forEach(key => {
             if (key in options) {
-                defineOwn(this, key, options[key]);
+                assignOption(this, key, options[key]);
                 this.optionKeys.add(key);
             }
         });

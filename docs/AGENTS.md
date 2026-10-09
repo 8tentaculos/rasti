@@ -1,6 +1,6 @@
 # Rasti API Reference for AI Agents
 
-Compact reference for developing with Rasti. Full API: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md). How the engine works: [architecture.md](./architecture.md)
+Compact reference for developing with Rasti. Full API: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md). How the engine works: [architecture.md](./architecture.md)
 
 ---
 
@@ -63,10 +63,10 @@ MyComponent.mount({ model }, document.getElementById('root'));
 `template()` runs on **every render** — see [Interpolations](#interpolations) for what that means for the values inside it.
 
 **Key Methods:**
-- [`Component.create`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component_create) — creates component class from a tagged template or a template function
-- [`component.template`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component__template) — returns the component's root partial; override it directly, via `extend`, or as a mount option
-- [`Component.extend`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component_extend) — adds methods and lifecycle hooks
-- [`Component.mount`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component_mount) — creates and mounts a component instance
+- [`Component.create`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_component_create) — creates component class from a tagged template or a template function
+- [`component.template`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_component__template) — returns the component's root partial; override it directly, via `extend`, or as a mount option
+- [`Component.extend`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_component_extend) — adds methods and lifecycle hooks
+- [`Component.mount`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_component_mount) — creates and mounts a component instance
 
 ---
 
@@ -196,7 +196,7 @@ handleSave="${({ model, props }) => () => model.delete(props.itemId)}"
 handleSelect="${({ props }) => props.handleSelect}"
 ```
 
-**Related:** [`delegateEvents`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_view__delegateevents)
+**Related:** [`delegateEvents`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_view__delegateevents)
 
 ---
 
@@ -227,9 +227,9 @@ const Header = Component.create`
 ```
 
 **Key properties:**
-- `this.model` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_model) for application data
-- `this.state` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_model) for internal component state
-- `this.props` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_model) auto-created from non-standard options
+- `this.model` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_model) for application data
+- `this.state` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_model) for internal component state
+- `this.props` — [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_model) auto-created from non-standard options
 
 **When a child re-renders:** on a parent render, a recycled child gets its props set again, compared by identity (`!==`), and re-renders only if one changed. Primitives and references that persist don't trigger it. A function, object or array built during the parent's render does, and so does slotted content, since `renderChildren` is recreated on every render. To spare the rows of a list, pass references that persist, such as a class field:
 
@@ -278,7 +278,7 @@ When using `Component.mount()`, pass `renderChildren` manually: `{ renderChildre
 
 ### Partials
 
-`html`, an alias of [`partial`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component__partial), creates sub-templates (partials) for conditional blocks and lists. A partial is patched in place on update — attributes diffed, child components recycled — so the DOM nodes inside it, and their focus, selection and input value, survive re-renders.
+`html`, an alias of [`partial`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_component__partial), creates sub-templates (partials) for conditional blocks and lists. A partial is patched in place on update — attributes diffed, child components recycled — so the DOM nodes inside it, and their focus, selection and input value, survive re-renders.
 
 ```js
 const App = Component.create`
@@ -429,7 +429,7 @@ const MyComponent = Component.create`...`.extend({
 **`destroyQueue`** — array of functions called on destroy. Use for external subscriptions not managed by Rasti (DOM events, timers, third-party libraries). `subscribe()` and `listenTo()` are automatically cleaned up by `View.destroy()` — no need to push those.
 
 **Related API:**
-- [`component.onCreate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component__oncreate) · [`component.onHydrate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component__onhydrate) · [`component.onChange`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component__onchange) · [`component.onUpdate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component__onupdate) · [`component.onDestroy`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component__ondestroy)
+- [`component.onCreate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_component__oncreate) · [`component.onHydrate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_component__onhydrate) · [`component.onChange`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_component__onchange) · [`component.onUpdate`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_component__onupdate) · [`component.onDestroy`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_component__ondestroy)
 
 ---
 
@@ -463,18 +463,18 @@ const Dashboard = Component.create`...`.extend({
 ```
 
 **Related API:**
-- [`component.subscribe`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component__subscribe) · [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_emitter__listento)
+- [`component.subscribe`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_component__subscribe) · [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_emitter__listento)
 
 ---
 
 ### Rendering
 
-[`render()`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component__render) handles both initial hydration and updates:
+[`render()`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_component__render) handles both initial hydration and updates:
 
 - **First render** — runs `template()`, renders as string inside `DocumentFragment`, hydrates DOM, calls `onHydrate()`. If an `el` option was provided, hydrates onto that existing DOM instead (server-rendered markup)
 - **Update render** — runs `template()` again while retaining the component's root partial and root element. Reconciliation is recursive: elements and retained partials patch in place, matching children recycle, and an interpolation region regenerates only when its occupant changes identity or shape. Calls `onBeforeUpdate()` then `onUpdate()`
 
-Use [`Component.markAsSafeHTML`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_component_markassafehtml) only for pre-sanitized trusted HTML:
+Use [`Component.markAsSafeHTML`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_component_markassafehtml) only for pre-sanitized trusted HTML:
 
 ```js
 ${({ props }) => Component.markAsSafeHTML(props.trustedHTML)}
@@ -533,7 +533,7 @@ AppModel.prototype.defaults = {
 };
 ```
 
-**Related:** [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_model)
+**Related:** [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_model)
 
 ---
 
@@ -601,7 +601,7 @@ removeTodo(todo) {
 }
 ```
 
-**Related:** [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_emitter__listento) · [`Emitter.stopListening`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md#module_emitter__stoplistening)
+**Related:** [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_emitter__listento) · [`Emitter.stopListening`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_emitter__stoplistening)
 
 ---
 
@@ -702,7 +702,7 @@ Never annotate the parameter of an unquoted handler: its first argument is the e
 
 ## Additional Resources
 
-- **Full API Documentation**: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.0/docs/api.md)
+- **Full API Documentation**: [api.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md)
 - **Writing components**: [components.md](./components.md) — the three forms and which to use
 - **Architecture**: [architecture.md](./architecture.md) — render engine, recycling, SSR, development mode
 - **TypeScript usage** (generics, helpers, declaration merging, known limitations): see the [TypeScript guide](./typescript.md)
