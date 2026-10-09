@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Options are assigned to a view or component again.** 4.2.0 defined each one as an own property with `Object.defineProperty`, so that an option could override a getter with no setter, at a cost on every construction. Now only an assignment that throws because of such a getter falls back to defining the property, and an accessor declared with a setter receives the option through it.
+
 ## [4.2.0] - 2026-10-07
 
 ### Added

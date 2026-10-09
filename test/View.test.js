@@ -76,6 +76,23 @@ describe('View', () => {
             expect(v.el.tagName.toLowerCase()).to.be.equal('article');
             expect(v.el.id).to.be.equal('from-option');
         });
+
+        it('must pass an option through the setter of an accessor declared by a subclass', () => {
+            class MyView extends View {
+                get tag() {
+                    return this.customTag || 'section';
+                }
+
+                set tag(value) {
+                    this.customTag = value;
+                }
+            }
+
+            const v = new MyView({ tag : 'article' });
+            expect(v.customTag).to.be.equal('article');
+            expect(v.el.tagName.toLowerCase()).to.be.equal('article');
+            expect(Object.prototype.hasOwnProperty.call(v, 'tag')).to.be.equal(false);
+        });
     });
 
     describe('Lifecycle and destruction', () => {
