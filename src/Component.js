@@ -157,7 +157,7 @@ const childHandlers = {
 /**
  * Build the adapter a component hands to its template engine: the same object is
  * the partial's owner and, while it renders, its host. It is created once per
- * component (in `ensureElement`) and shared by the root partial and every nested
+ * component (in `ensureEngine`) and shared by the root partial and every nested
  * partial, so the emission counters (and therefore element / marker ids) are
  * consistent across the whole component. Every component-specific concern the
  * engine needs is exposed here, so the engine never has to name `Component`:
@@ -180,7 +180,7 @@ const buildComponentAdapter = (component) => {
         nextMarkerId : () => `${component.uid}-${++markerId}`,
         addChild : (child) => component.addChild(child),
         updateChild : (child, props) => component.propsQueue.push([child, props]),
-        rootAttributes : () => getResult(component.attributes, component)
+        rootAttributes : component.attributes ? () => getResult(component.attributes, component) : null
     });
 };
 

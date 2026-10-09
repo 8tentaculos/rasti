@@ -46,7 +46,7 @@ const OPENING_TAG = /^<[a-zA-Z][^>]*$/;
  * @property {Function} updateChild Queue a recycled child's new props, `(child, props)`.
  * @property {Function} childProps Read the props a discarded candidate carried.
  * @property {Function} destroyChild Destroy a discarded child.
- * @property {Function} rootAttributes Resolve the owner's `attributes`, which its root element merges.
+ * @property {Function|null} rootAttributes Resolve the owner's `attributes`, which its root element merges; `null` when it has none.
  * @private
  */
 

@@ -179,7 +179,7 @@ class ElementSlot extends Slot {
         const attributes = {};
         this.descriptor.attributes.forEach(attribute => attribute.applyTo(attributes, partial.expressions, partial.owner, sourceKeys));
         const out = expandEvents(attributes, partial.owner);
-        if (partial.isRoot && this.descriptor.isFirst) {
+        if (partial.isRoot && partial.owner.rootAttributes && this.descriptor.isFirst) {
             const rootAttributes = partial.owner.rootAttributes();
             if (rootAttributes) {
                 Object.assign(out, rootAttributes);
