@@ -138,51 +138,91 @@ const checkRootStructure = (component) => {
 const CONTAINER_STRINGS = ['', ''];
 
 /**
- * The handlers that do not depend on which component is rendering: telling a child
- * component apart from a plain value, escaping that plain value, and driving a child
- * through its lifecycle. Shared by every component, so they are built once.
- * @type {object}
+ * Resolve a component's `attributes`, which its root element merges. Installed as the
+ * adapter's `rootAttributes` only when the component has `attributes`.
+ * @return {object} The resolved attributes.
  * @private
  */
-const childHandlers = {
-    isChild : (value) => value instanceof Component,
-    childElementId : (child) => child.rootPartial.rootElementId(),
-    sanitize : (value) => Component.sanitize(value),
-    moveChild : (child, placeholder) => child.recycle(placeholder),
-    hydrateChild : (child, index) => child.hydrate(index),
-    childProps : (child) => child.propsAttributes,
-    destroyChild : (child) => child.destroy()
-};
+function resolveRootAttributes() {
+    return getResult(this.component.attributes, this.component);
+}
 
 /**
- * Build the adapter a component hands to its template engine: the same object is
- * the partial's owner and, while it renders, its host. It is created once per
- * component (in `ensureEngine`) and shared by the root partial and every nested
- * partial, so the emission counters (and therefore element / marker ids) are
- * consistent across the whole component. Every component-specific concern the
- * engine needs is exposed here, so the engine never has to name `Component`:
- * what is bound to this component is built below, and the rest is shared
- * (see `childHandlers`).
+ * The adapter a component hands to its template engine: the same object is the
+ * partial's owner and, while it renders, its host. It is created once per component
+ * (in `ensureEngine`) and shared by the root partial and every nested partial, so the
+ * emission counters (and therefore element / marker ids) are consistent across the
+ * whole component. Every component-specific concern the engine needs is exposed here,
+ * so the engine never has to name `Component`.
  * @param {Component} component The owning component.
- * @return {object} The component adapter.
  * @private
  */
-const buildComponentAdapter = (component) => {
-    let elementId = 0;
-    let markerId = 0;
-    return Object.assign({}, childHandlers, {
-        evaluate : (expression, meta) => getExpressionResult(expression, component, meta),
-        registerListener : (listener, type) => ({
+class ComponentAdapter {
+    constructor(component) {
+        this.component = component;
+        this.elementId = 0;
+        this.markerId = 0;
+        // `null` when the component has no `attributes`, so the root element skips the call.
+        this.rootAttributes = component.attributes ? resolveRootAttributes : null;
+    }
+
+    evaluate(expression, meta) {
+        return getExpressionResult(expression, this.component, meta);
+    }
+
+    registerListener(listener, type) {
+        const { component } = this;
+        return {
             attribute : Constants.ATTRIBUTE_EVENT(type, component.uid),
             index : component.eventsManager.addListener(listener, type)
-        }),
-        nextElementId : () => `${component.uid}-${++elementId}`,
-        nextMarkerId : () => `${component.uid}-${++markerId}`,
-        addChild : (child) => component.addChild(child),
-        updateChild : (child, props) => component.propsQueue.push([child, props]),
-        rootAttributes : component.attributes ? () => getResult(component.attributes, component) : null
-    });
-};
+        };
+    }
+
+    nextElementId() {
+        return `${this.component.uid}-${++this.elementId}`;
+    }
+
+    nextMarkerId() {
+        return `${this.component.uid}-${++this.markerId}`;
+    }
+
+    addChild(child) {
+        return this.component.addChild(child);
+    }
+
+    updateChild(child, props) {
+        this.component.propsQueue.push([child, props]);
+    }
+
+    isChild(value) {
+        return value instanceof Component;
+    }
+
+    childElementId(child) {
+        return child.rootPartial.rootElementId();
+    }
+
+    // Does not read `this`: the engine passes it around unbound.
+    sanitize(value) {
+        return Component.sanitize(value);
+    }
+
+    moveChild(child, placeholder) {
+        return child.recycle(placeholder);
+    }
+
+    hydrateChild(child, index) {
+        return child.hydrate(index);
+    }
+
+    childProps(child) {
+        return child.propsAttributes;
+    }
+
+    destroyChild(child) {
+        return child.destroy();
+    }
+}
 
 /**
  * The node to index when hydrating a component the server rendered into a container:
@@ -384,7 +424,7 @@ export default class Component extends View {
         // so a prop change cannot re-enter render while the tree is still being patched.
         this.propsQueue = [];
         // Build the adapter shared by the root partial and every nested partial.
-        this.adapter = buildComponentAdapter(this);
+        this.adapter = new ComponentAdapter(this);
         // Build the root partial from the template and adopt it.
         this.rootPartial = this.buildRootPartial();
         if (__DEV__) checkRootStructure(this);
