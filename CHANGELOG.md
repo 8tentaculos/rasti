@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.1] - 2026-10-09
+
 ### Fixed
 
 - **Options are assigned to a view or component again.** 4.2.0 defined each one as an own property with `Object.defineProperty`, so that an option could override a getter with no setter, at a cost on every construction. Now only an assignment that throws because of such a getter falls back to defining the property, and an accessor declared with a setter receives the option through it.
@@ -426,7 +428,8 @@ Unlike views, which are render-agnostic, components have a specific set of rende
 
 * **BREAKING:** Removed emitter.emitAsync method.
 
-[unreleased]: https://github.com/8tentaculos/rasti/compare/v4.2.0...HEAD
+[unreleased]: https://github.com/8tentaculos/rasti/compare/v4.2.1...HEAD
+[4.2.1]: https://github.com/8tentaculos/rasti/compare/v4.2.0...v4.2.1
 [4.2.0]: https://github.com/8tentaculos/rasti/compare/v4.1.4...v4.2.0
 [4.1.4]: https://github.com/8tentaculos/rasti/compare/v4.1.3...v4.1.4
 [4.1.3]: https://github.com/8tentaculos/rasti/compare/v4.1.2...v4.1.3
