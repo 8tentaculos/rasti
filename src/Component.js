@@ -7,7 +7,7 @@ import Element from './core/Element.js';
 import Interpolation from './core/Interpolation.js';
 import validateListener from './utils/validateListener.js';
 import getResult from './utils/getResult.js';
-import defineOwn from './utils/defineOwn.js';
+import assignOption from './utils/assignOption.js';
 import deepFlat  from './utils/deepFlat.js';
 import parseHTML from './utils/parseHTML.js';
 import findComment from './utils/findComment.js';
@@ -507,11 +507,11 @@ class Component extends View {
     constructor(options = {}) {
         super(...arguments);
         this.componentOptions = [];
-        // Extend "this" with options, as own properties so an option overrides
-        // a getter declared by a subclass instead of being assigned through it.
+        // Extend "this" with options. An option overrides a getter declared by a
+        // subclass even when the getter has no setter.
         componentOptions.forEach(key => {
             if (key in options) {
-                defineOwn(this, key, options[key]);
+                assignOption(this, key, options[key]);
                 this.componentOptions.push(key);
             }
         });
