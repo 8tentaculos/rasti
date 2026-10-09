@@ -115,7 +115,7 @@ Component.create`<div>${({ model }) => model.title}</div>`;
 
 The subclass and function forms re-run `template()` every render, so plain values work. `create` with a tagged template writes a `template()` that rebuilds the partial from expressions captured once, so anything dynamic must be a function. Which form to use, and why the subclass is the default, is in [Writing components](./components.md).
 
-`template()` may also return a child component instance. That makes this component a **container**: no wrapper element; `this.el` is the child's.
+`template()` may also return a child component instance, or a partial that is a single component tag. Either makes this component a **container**: no wrapper element; `this.el` is the child's.
 
 ### Root restrictions
 
@@ -149,6 +149,8 @@ destroy
 ```
 
 `template()` first runs on render, not on construction, so `state` and anything set in `onCreate` are already there.
+
+A child written as a component tag reaches the constructor only when the parent's render mounts it. A child built in an expression (`Child.mount(options)`, `new Child(options)`) runs it on every parent render, and when the render recycles the previous child instead, the new one is destroyed without rendering (`onDestroy` included). See [Slot-based recycling](#slot-based-recycling).
 
 `subscribe(model)` is `listenTo` on `change` → `onChange`. Default `onChange` calls `render()`. Override it to skip irrelevant keys.
 
@@ -194,7 +196,7 @@ Every part has a slot. `part.constructor.Slot` names the class. Position in `par
 | `ExpressionSlot`      | `ExpressionDescriptor`       | a dynamic tag name; resolved on emit, never reconciled    |
 | `ElementSlot`         | `ElementDescriptor`          | emission id, DOM node, last attributes                    |
 | `InterpolationSlot`   | `InterpolationDescriptor`    | markers, occupant, list recycle                           |
-| `ComponentSlot`       | `ComponentDescriptor`        | same as interpolation; `evaluate` synthesizes the child   |
+| `ComponentSlot`       | `ComponentDescriptor`        | same as interpolation; builds the child only if not recycled |
 
 `ComponentSlot` extends `InterpolationSlot`. `LiteralSlot` and `ExpressionSlot` extend `Slot` (empty `update`). `ElementSlot` and `InterpolationSlot` add their fields after `super()`.
 
@@ -247,6 +249,8 @@ items.map(i => html`<${Row} key="${i.id}" />`)
 // item is a partial with markup — regenerated every time
 items.map(i => html`<li><${Row} key="${i.id}" /></li>`)
 ```
+
+What claims a previous child is a **candidate**. A component an expression built is one: it claims by its `key` or type, hands its props to the child it claims, and is destroyed. A component tag is one before any component exists: `ComponentSlot#evaluate` synthesizes only the options, which carry the `key`, and the slot builds the component (`tag.mount(options)`) only when nothing is claimed. A claimed tag builds nothing; its options become the retained child's props (`ComponentAdapter#reuseChild`, which splits them as the constructor does).
 
 Recycle **markers** (`<!--rst-r-${uid}-->`) are emitted only when a keyed child is claimed during regeneration of a **list**, so its nodes can be moved to the new position. Outside a list, retain-in-place or mount-anew; no placeholder.
 
@@ -331,7 +335,7 @@ Warnings (lists without keyed components, duplicate keys, unsupported attribute 
 
 ## 9. Internal boundary and extension points
 
-**Component adapter.** The engine's only door into the component world. Production fills it in `buildComponentAdapter` (evaluate, ids, listeners, child lifecycle). Tests pass a fake with the same shape. Adding an engine capability that needs the component means adding an adapter method, not an `import Component` — behavior only: the wire format is the engine's own, written from `Constants`, and a child component is read directly for its `el`, `uid` and `key`. Owner and host are roles played by adapters bound to different components.
+**Component adapter.** The engine's only door into the component world. The engine declares its shape as the `ComponentAdapter` typedef in `Partial.js`; production implements it in the `ComponentAdapter` class in `Component.js` (evaluate, ids, listeners, child lifecycle). Tests pass a fake with the same shape. Adding an engine capability that needs the component means adding an adapter method, not an `import Component` — behavior only: the wire format is the engine's own, written from `Constants`, and a child component is read directly for its `el`, `uid` and `key`. Owner and host are roles played by adapters bound to different components.
 
 **`Component.markAsSafeHTML(value)`.** Opt out of sanitization for a trusted HTML string. Literals in tagged templates are marked automatically.
 
@@ -357,7 +361,8 @@ Warnings (lists without keyed components, duplicate keys, unsupported attribute 
 | **transparent** | A partial that is a single interpolation with no markup. The engine sees through it. |
 | **anchored**    | A partial that stands on a component's element and writes no interpolation markers (container or lone component tag). |
 | **marker**      | HTML comment delimiting an interpolation (`rst-s-` / `rst-e-`), or a recycle placeholder (`rst-r-`). |
-| **pass**        | Reconcile context for one regeneration: previous keyed children, used set, recycled children, newly mounted ones, and the index of the content it rendered. |
+| **pass**        | Reconcile context for one regeneration: previous keyed children, the order standing in the DOM, the keyed children and order being collected, the recycled children by the candidate each replaced, and the index of the content it rendered. |
+| **candidate**   | What claims a previous child in a render: a component an expression built, or the options of a component tag, which builds its component only when nothing is claimed. |
 | **index**       | `HydrationIndex`: snapshot of one render's nodes — elements in document order, comments by text — built before hydrating and shared by the subtree. |
 | **emission id** | `${uid}-${n}` assigned when an element or interpolation is first written out. Root element is `-1`. |
 | **wire format** | What hits the DOM: data attributes, dataset keys, comment markers, emission-id convention. |

@@ -43,9 +43,7 @@ const OPENING_TAG = /^<[a-zA-Z][^>]*$/;
  * @property {Function} addChild Adopt a child component into the host, returning it to render.
  * @property {Function} moveChild Move a recycled child onto its placeholder, `(child, placeholder)`.
  * @property {Function} hydrateChild Hydrate a freshly rendered child, `(child, index)`.
- * @property {Function} updateChild Queue a recycled child's new props, `(child, props)`.
- * @property {Function} childProps Read the props a discarded candidate carried.
- * @property {Function} destroyChild Destroy a discarded child.
+ * @property {Function} reuseChild Queue a recycled child's new props, taken from the candidate it replaced, and discard that candidate, `(child, candidate)`.
  * @property {Function|null} rootAttributes Resolve the owner's `attributes`, which its root element merges; `null` when it has none.
  * @private
  */

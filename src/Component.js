@@ -129,6 +129,27 @@ const checkRootStructure = (component) => {
     ));
 };
 
+/*
+ * These option keys will be extended on the component instance.
+ */
+const componentOptions = new Set(['key', 'state', 'onCreate', 'onChange', 'onHydrate', 'onBeforeRecycle', 'onRecycle', 'onBeforeUpdate', 'onUpdate']);
+
+/**
+ * Extract the props from a component's options: every option that is neither a
+ * component nor a view option. The constructor does the same in the pass that assigns
+ * the rest.
+ * @param {object} options The component options.
+ * @return {object} The props.
+ * @private
+ */
+const extractProps = (options) => {
+    const props = {};
+    for (const key in options) {
+        if (!componentOptions.has(key) && !viewOptions.has(key)) props[key] = options[key];
+    }
+    return props;
+};
+
 /**
  * Call-site identity for the wrapper a container's root is built from (`${child}`).
  * Every one of them has that same shape, so one interned `strings` array is enough:
@@ -155,7 +176,8 @@ function resolveRootAttributes() {
  * (in `ensureEngine`) and shared by the root partial and every nested partial, so the
  * emission counters (and therefore element / marker ids) are consistent across the
  * whole component. Every component-specific concern the engine needs is exposed here,
- * so the engine never has to name `Component`.
+ * so the engine never has to name `Component`: the engine declares what it expects as
+ * the `ComponentAdapter` typedef (see `Partial`), and this class implements it.
  * @param {Component} component The owning component.
  * @private
  */
@@ -192,10 +214,6 @@ class ComponentAdapter {
         return this.component.addChild(child);
     }
 
-    updateChild(child, props) {
-        this.component.propsQueue.push([child, props]);
-    }
-
     isChild(value) {
         return value instanceof Component;
     }
@@ -217,12 +235,12 @@ class ComponentAdapter {
         return child.hydrate(index);
     }
 
-    childProps(child) {
-        return child.propsAttributes;
-    }
-
-    destroyChild(child) {
-        return child.destroy();
+    // The candidate is a component an expression built, which is then destroyed, or
+    // the options a component tag would have built one with.
+    reuseChild(child, candidate) {
+        const built = candidate instanceof Component;
+        this.component.propsQueue.push([child, built ? candidate.propsAttributes : extractProps(candidate)]);
+        if (built) candidate.destroy();
     }
 }
 
@@ -242,11 +260,6 @@ const hydrationRoot = (component, container) => {
     const selector = `[${Constants.ATTRIBUTE_ELEMENT}="${component.rootPartial.rootElementId()}"]`;
     return container.querySelector(selector) || container;
 };
-
-/*
- * These option keys will be extended on the component instance.
- */
-const componentOptions = new Set(['key', 'state', 'onCreate', 'onChange', 'onHydrate', 'onBeforeRecycle', 'onRecycle', 'onBeforeUpdate', 'onUpdate']);
 
 /**
  * An opaque partial template produced by {@link #module_component__partial component.partial}.
@@ -350,8 +363,9 @@ export default class Component extends View {
 
     /**
      * The `Model` the component's props live in, built the first time it is read. A
-     * component that a render builds and then discards — a candidate for a child that
-     * turns out to be recyclable — never reads them, and never pays for them.
+     * component that is built and then discarded — one an expression builds where the
+     * render recycles the previous child instead — never reads them, and never pays for
+     * them.
      * @return {Model} The props model.
      */
     get props() {
@@ -405,9 +419,8 @@ export default class Component extends View {
      * through, and the root partial itself.
      *
      * None of it exists until then. A component that is built and discarded without
-     * rendering — the candidate a render synthesizes for a child that turns out to be
-     * recyclable — is then little more than its options, which is what makes rebuilding
-     * a list cheap.
+     * rendering — one an expression builds where the render recycles the previous child
+     * instead — is then little more than its options.
      * @private
      */
     ensureEngine() {
@@ -580,7 +593,9 @@ export default class Component extends View {
      * Return the component's root partial. Called on every render, so interpolated
      * values are recomputed. Override it (directly, via `extend`, or through `create`)
      * to define the markup. It may also return a child component instance, in which case
-     * the component is rendered as a <b>container</b> around it.
+     * the component is rendered as a <b>container</b> around it. A root partial that is
+     * a single component tag (``this.html`<${Child} />` ``) makes a container too, and
+     * builds the child only when it cannot recycle the previous one (see `render`).
      *
      * The base implementation builds the element the way a view does: from `this.tag`
      * (defaulting to `div`) and the component's `attributes`, rendering the content the
@@ -719,6 +734,14 @@ export default class Component extends View {
      *   A recycled component may not use props at all and remain unchanged, or it may be subscribed to a different model
      *   (or even the same model as the parent) and update independently in subsequent render cycles.
      *
+     * - **Component tags and built components:** a child written as a component tag (``html`<${Row} key="…" />` ``)
+     *   is built only when it is recreated: when the render recycles a previous child instead, the tag's attributes go
+     *   straight to it as props, and no new instance is created. A child an expression builds
+     *   (`Row.mount(options)` or `new Row(options)`) is a new instance on every render, so its constructor and
+     *   `onCreate` run each time; when the render recycles the previous child in its place, the new instance takes no
+     *   part in the render: its props are handed to the previous one and it is destroyed, running `onDestroy`.
+     *   Both forms recycle the same way. Prefer the tag: it does less work on every update.
+     *
      * @return {Component} The component instance.
      */
     render() {
@@ -808,6 +831,12 @@ export default class Component extends View {
      * This method receives the same arguments passed to the constructor (options and any additional parameters).
      * It executes both on client and server.
      * Use this method to define models or state that will be used later in `onHydrate`.
+     *
+     * A child written as a component tag is only created when the parent's render does not
+     * recycle a previous one. A child built in an expression (`Child.mount(options)` or
+     * `new Child(options)`) is created on every render of its parent, and when the
+     * previous one is recycled instead, the new one is destroyed without ever rendering.
+     * Keep `onCreate` free of side effects that outlive the instance.
      * @param {...*} args The constructor arguments (options and any additional parameters).
      */
     onCreate() {}
@@ -876,6 +905,9 @@ export default class Component extends View {
     /**
      * Lifecycle method. Called when the component is destroyed.
      * Use this method to clean up resources, cancel timers, remove event listeners, etc.
+     * It also runs for a child built in an expression (`Child.mount(options)` or
+     * `new Child(options)`) that the parent's render discards because it recycles the
+     * previous one (see `render`).
      * @param {...*} args Options object or any arguments passed to `destroy` method.
      */
     onDestroy() {}
@@ -1048,18 +1080,18 @@ export default class Component extends View {
      *       </nav>
      *   `;
      *   ```
-     * - **Containers**: a template that is a single component, written as a tag or returned by
-     *   the function, makes the component a <b>container</b>: `this.el` is the child's element,
-     *   with no wrapper around it.
+     * - **Containers**: a template that is a single component makes the component a
+     *   <b>container</b>: `this.el` is the child's element, with no wrapper around it.
      *   ```javascript
      *   const ButtonOk = Component.create`
      *       <${Button} className="ok">Ok</${Button}>
      *   `;
-     *   const ButtonCancel = Component.create(() => Button.mount({
-     *       className : 'cancel',
-     *       renderChildren : () => 'Cancel'
-     *   }));
+     *   const ButtonCancel = Component.create(({ html }) => html`
+     *       <${Button} className="cancel">Cancel</${Button}>
+     *   `);
      *   ```
+     *   The function may also return a component it builds (`Button.mount(options)`), which is
+     *   then built on every render (see {@link #module_component__render render}).
      * - **Called on a subclass**, the new component extends it, so the template can use its methods.
      *   ```javascript
      *   class ListBase extends Component {

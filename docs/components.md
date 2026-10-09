@@ -191,22 +191,45 @@ Each branch is a template of its own, so each keeps its tag fixed, and switching
 
 A template is parsed once, on its first render, and a component tag is paired with its closing tag by the class both name. Tags that name the same class on that render are taken as the same reference from then on: if one of them later names another class, it keeps rendering the first one's.
 
+## Component tags and built components
+
+A child component is written as a tag, ``this.html`<${Row} key="${row.id}" model="${row}" />` ``. An interpolation may also hold a component that an expression builds, `Row.mount(options)` or `new Row(options)`, and both are recycled by the same rules: by key in a list, by type and position anywhere else. They differ in when the instance is built.
+
+A **tag** hands the render a class and the options to build it with. The render builds the component only when it has none to recycle; when it recycles the previous child, the tag's attributes go to it as its new props and nothing else is created.
+
+An **expression** has already built the component by the time the render sees it, on every render of the parent: its constructor and `onCreate` run each time. When the render recycles the previous child in its place, the new instance's props are handed to the previous one and the new instance is destroyed, running `onDestroy`, without ever rendering.
+
+```javascript
+class List extends Component {
+    template() {
+        return this.html`
+            <ul>
+                ${this.model.rows.map(row => this.html`<${Row} key="${row.id}" model="${row}" />`)}
+            </ul>
+        `;
+    }
+}
+```
+
+Written as `Row.mount({ key : row.id, model : row })`, the same list would build a `Row` for every row on every update, only to keep the ones it already had. Prefer the tag; keep the expression for when the component has to be built by code, and keep `onCreate` free of side effects that outlive the instance either way.
+
 ## Containers: returning a component
 
-If `template()` returns a **component instance** instead of a partial, the component becomes a *container*: it renders that child and adopts the child's root element as its own `this.el`. This is convenient for wrapping or picking a component:
+If `template()` returns a single component, the component becomes a *container*: it renders that child and adopts the child's root element as its own `this.el`. This is convenient for wrapping or picking a component:
 
 ```javascript
 // Given a `Button` component:
 
-// As sugar, with a component tag.
 const ButtonOk = Component.create`<${Button} className="ok">Ok</${Button}>`;
 
-// Or explicitly, by returning the mounted child.
-const ButtonCancel = Component.create(() => Button.mount({
-    className : 'cancel',
-    renderChildren : () => 'Cancel',
-}));
+class ButtonCancel extends Component {
+    template() {
+        return this.html`<${Button} className="cancel">Cancel</${Button}>`;
+    }
+}
 ```
+
+`template()` may also return a component it builds, `Button.mount(options)`, which is then built on every render as described above.
 
 ## The root partial
 
@@ -225,4 +248,4 @@ class Panel extends Component {
 }
 ```
 
-Containers follow the same rule: returning the mounted child and returning a component tag are equivalent ways to write one, but they count as different root templates, so a component must keep to one of them across renders.
+Containers follow the same rule: returning a component tag and returning a built component both make one, but they count as different root templates, so a component must keep to one of them across renders.

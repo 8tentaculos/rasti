@@ -1839,6 +1839,86 @@ describe('Component', () => {
         });
     });
 
+    describe('Building recycled children', () => {
+        const counting = () => {
+            const counts = { created : 0, destroyed : 0 };
+            const Row = Component.create`<li>${({ props }) => props.text}</li>`.extend({
+                onCreate() { counts.created++; },
+                onDestroy() { counts.destroyed++; }
+            });
+            return { Row, counts };
+        };
+
+        it('must not build a component tag whose previous child is recycled by key', () => {
+            const { Row, counts } = counting();
+            const List = Component.create`
+                <ul>${({ model, html }) => model.items.map(item => html`<${Row} key="${item.id}" text="${item.text}" />`)}</ul>
+            `;
+            const model = new Model({ items : [{ id : '1', text : 'a' }, { id : '2', text : 'b' }] });
+            List.mount({ model }, document.body);
+
+            const before = Array.from(document.querySelectorAll('li'));
+            model.items = [{ id : '2', text : 'B' }, { id : '1', text : 'A' }, { id : '3', text : 'C' }];
+
+            const after = Array.from(document.querySelectorAll('li'));
+            expect(counts.created).to.be.equal(3);
+            expect(counts.destroyed).to.be.equal(0);
+            expect(after.map(li => li.textContent.trim())).to.deep.equal(['B', 'A', 'C']);
+            expect(after[0]).to.be.equal(before[1]);
+            expect(after[1]).to.be.equal(before[0]);
+        });
+
+        it('must not build a component tag whose previous child is recycled in place', () => {
+            const { Row, counts } = counting();
+            const Main = Component.create`
+                <div><${Row} text="${({ model }) => model.text}" /></div>
+            `;
+            const model = new Model({ text : 'a' });
+            const main = Main.mount({ model }, document.body);
+
+            const before = main.el.querySelector('li');
+            model.text = 'b';
+
+            expect(counts.created).to.be.equal(1);
+            expect(counts.destroyed).to.be.equal(0);
+            expect(main.el.querySelector('li')).to.be.equal(before);
+            expect(before.textContent.trim()).to.be.equal('b');
+        });
+
+        it('must pass a recycled component tag only its props', () => {
+            let props;
+            const Row = Component.create`<li></li>`.extend({
+                onRecycle() { props = this.props.toJSON(); }
+            });
+            const Main = Component.create`
+                <ul><${Row} key="row" text="${({ model }) => model.text}" onBeforeRecycle=${() => {}} /></ul>
+            `;
+            const model = new Model({ text : 'a' });
+            Main.mount({ model }, document.body);
+
+            model.text = 'b';
+
+            expect(props).to.deep.equal({ text : 'b' });
+        });
+
+        it('must build and destroy a component built in an expression whose previous child is recycled', () => {
+            const { Row, counts } = counting();
+            const List = Component.create`
+                <ul>${({ model }) => model.items.map(item => Row.mount({ key : item.id, text : item.text }))}</ul>
+            `;
+            const model = new Model({ items : [{ id : '1', text : 'a' }] });
+            List.mount({ model }, document.body);
+
+            const before = document.querySelector('li');
+            model.items = [{ id : '1', text : 'b' }];
+
+            expect(counts.created).to.be.equal(2);
+            expect(counts.destroyed).to.be.equal(1);
+            expect(document.querySelector('li')).to.be.equal(before);
+            expect(before.textContent.trim()).to.be.equal('b');
+        });
+    });
+
     describe('Lifecycle methods', () => {
         it('must let an option override a getter declared by a subclass', () => {
             class Main extends Component.create`<div></div>` {

@@ -145,8 +145,9 @@ setInterval(() => model.seconds++, 1000);
 <a name="module_component__props" id="module_component__props" class="anchor"></a>
 ### component.props ⇒ <code>Model</code>
 The `Model` the component's props live in, built the first time it is read. A
-component that a render builds and then discards — a candidate for a child that
-turns out to be recyclable — never reads them, and never pays for them.
+component that is built and then discarded — one an expression builds where the
+render recycles the previous child instead — never reads them, and never pays for
+them.
 
 **Kind**: instance property of [<code>Component</code>](#module_component)  
 **Returns**: <code>Model</code> - The props model.  
@@ -254,7 +255,9 @@ const Main = Component.create`
 Return the component's root partial. Called on every render, so interpolated
 values are recomputed. Override it (directly, via `extend`, or through `create`)
 to define the markup. It may also return a child component instance, in which case
-the component is rendered as a <b>container</b> around it.
+the component is rendered as a <b>container</b> around it. A root partial that is
+a single component tag (``this.html`<${Child} />` ``) makes a container too, and
+builds the child only when it cannot recycle the previous one (see `render`).
 
 The base implementation builds the element the way a view does: from `this.tag`
 (defaulting to `div`) and the component's `attributes`, rendering the content the
@@ -369,6 +372,14 @@ When rendering child components, they can be either recreated or recycled:
   A recycled component may not use props at all and remain unchanged, or it may be subscribed to a different model
   (or even the same model as the parent) and update independently in subsequent render cycles.
 
+- **Component tags and built components:** a child written as a component tag (``html`<${Row} key="…" />` ``)
+  is built only when it is recreated: when the render recycles a previous child instead, the tag's attributes go
+  straight to it as props, and no new instance is created. A child an expression builds
+  (`Row.mount(options)` or `new Row(options)`) is a new instance on every render, so its constructor and
+  `onCreate` run each time; when the render recycles the previous child in its place, the new instance takes no
+  part in the render: its props are handed to the previous one and it is destroyed, running `onDestroy`.
+  Both forms recycle the same way. Prefer the tag: it does less work on every update.
+
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 **Returns**: <code>Component</code> - The component instance.  
 <a name="module_component__oncreate" id="module_component__oncreate" class="anchor"></a>
@@ -377,6 +388,12 @@ Lifecycle method. Called when the component is created, at the end of the constr
 This method receives the same arguments passed to the constructor (options and any additional parameters).
 It executes both on client and server.
 Use this method to define models or state that will be used later in `onHydrate`.
+
+A child written as a component tag is only created when the parent's render does not
+recycle a previous one. A child built in an expression (`Child.mount(options)` or
+`new Child(options)`) is created on every render of its parent, and when the
+previous one is recycled instead, the new one is destroyed without ever rendering.
+Keep `onCreate` free of side effects that outlive the instance.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 
@@ -451,6 +468,9 @@ Use this method to perform operations that need to happen on every update.
 ### component.onDestroy(...args)
 Lifecycle method. Called when the component is destroyed.
 Use this method to clean up resources, cancel timers, remove event listeners, etc.
+It also runs for a child built in an expression (`Child.mount(options)` or
+`new Child(options)`) that the parent's render discards because it recycles the
+previous one (see `render`).
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 
@@ -594,18 +614,18 @@ Takes a tagged template string, or a template function, and returns a new `Compo
       </nav>
   `;
   ```
-- **Containers**: a template that is a single component, written as a tag or returned by
-  the function, makes the component a <b>container</b>: `this.el` is the child's element,
-  with no wrapper around it.
+- **Containers**: a template that is a single component makes the component a
+  <b>container</b>: `this.el` is the child's element, with no wrapper around it.
   ```javascript
   const ButtonOk = Component.create`
       <${Button} className="ok">Ok</${Button}>
   `;
-  const ButtonCancel = Component.create(() => Button.mount({
-      className : 'cancel',
-      renderChildren : () => 'Cancel'
-  }));
+  const ButtonCancel = Component.create(({ html }) => html`
+      <${Button} className="cancel">Cancel</${Button}>
+  `);
   ```
+  The function may also return a component it builds (`Button.mount(options)`), which is
+  then built on every render (see [render](#module_component__render)).
 - **Called on a subclass**, the new component extends it, so the template can use its methods.
   ```javascript
   class ListBase extends Component {

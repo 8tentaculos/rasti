@@ -35,19 +35,6 @@ import __DEV__ from '../utils/dev.js';
  */
 
 /**
- * Tell whether a previous child can be recycled for a candidate: keyed children
- * match by key, unkeyed children by constructor (type).
- * @param {object} prev The previous child.
- * @param {object} candidate The candidate child.
- * @return {boolean} True if `prev` can be recycled.
- * @private
- */
-const canRecycle = (prev, candidate) => {
-    if (candidate.key != null || prev.key != null) return prev.key === candidate.key;
-    return prev.constructor === candidate.constructor;
-};
-
-/**
  * Tell whether a value is safe to compare by identity: an immutable value renders the
  * same characters for as long as it is `===` to itself, which an object or a function
  * does not — its string form can change while the reference stays the same.
@@ -163,8 +150,6 @@ class InterpolationSlot extends Slot {
 
     /**
      * Resolve the slot's value by evaluating its expression in the owner's context.
-     * `ComponentSlot` overrides this to synthesize a child component instead, so the
-     * rest of the algorithm never has to tell the two apart.
      * @return {any} The resolved value.
      * @private
      */
@@ -301,30 +286,52 @@ class InterpolationSlot extends Slot {
         }
 
         if (owner.isChild(value)) {
-            if (pass) {
-                // The previous child this candidate claims, when the slot held one
-                // under its key; null when there is nothing to recycle.
-                const found = this.claimRecyclable(value, pass);
-                // The list records whichever instance ends up standing here: the
-                // retained one when there is one, the candidate otherwise.
-                if (pass.order) pass.order.push(found || value);
-                if (found) {
-                    host.addChild(found);
-                    pass.recycled.set(value, found);
-                    this.recordKeyed(pass, value.key, found);
-                    // A child the slot places itself is already standing where the walk
-                    // will find it, so it writes no placeholder to be replaced. Both
-                    // orders are needed: the one standing in the DOM and the one this
-                    // render is collecting.
-                    if (pass.placed && pass.order) return '';
-                    return `<!--${Constants.MARKER_RECYCLED(found.uid)}-->`;
-                }
-                this.recordKeyed(pass, value.key, value);
-            }
-            return host.addChild(value).toString();
+            // The previous child this candidate claims, when the slot held one under
+            // its key; null when there is nothing to recycle.
+            const found = pass ? this.claimRecyclable(value, pass) : null;
+            return found ? this.renderClaimed(found, value, pass) : this.renderMounted(value, pass);
         }
 
         return valueToString(value, owner.sanitize);
+    }
+
+    /**
+     * Render a child that stands in the slot as itself, mounted by this render, and
+     * record it in the list being collected around it.
+     * @param {object} child The child component.
+     * @param {ReconcilePass} [pass] Reconcile pass (see `Partial#toString`).
+     * @return {string} The rendered HTML.
+     * @private
+     */
+    renderMounted(child, pass) {
+        if (pass) {
+            if (pass.order) pass.order.push(child);
+            this.recordKeyed(pass, child.key, child);
+        }
+        return this.partial.host.addChild(child).toString();
+    }
+
+    /**
+     * Render a previous child claimed in place of a candidate. The live child is kept
+     * and moved where the candidate would have stood; the candidate only carries its
+     * new props (see `finishPass`).
+     * @param {object} found The previous child, claimed.
+     * @param {object} candidate What claimed it: a child component, or the options a
+     *     component tag would have mounted one with.
+     * @param {ReconcilePass} pass Reconcile pass (see `Partial#toString`).
+     * @return {string} The rendered HTML: a placeholder for the child, or nothing.
+     * @private
+     */
+    renderClaimed(found, candidate, pass) {
+        if (pass.order) pass.order.push(found);
+        this.partial.host.addChild(found);
+        pass.recycled.set(candidate, found);
+        this.recordKeyed(pass, found.key, found);
+        // A child the slot places itself is already standing where the walk will find
+        // it, so it writes no placeholder to be replaced. Both orders are needed: the
+        // one standing in the DOM and the one this render is collecting.
+        if (pass.placed && pass.order) return '';
+        return `<!--${Constants.MARKER_RECYCLED(found.uid)}-->`;
     }
 
     /**
@@ -333,7 +340,8 @@ class InterpolationSlot extends Slot {
      * again. Claiming is slot-local: the pool only holds this slot's own previous
      * occupants, and is out of reach inside a partial that contributes markup, whose
      * children are local to it (see `renderValue`).
-     * @param {object} candidate The candidate child component.
+     * @param {object} candidate The candidate: a child component, or the options a
+     *     component tag would mount one with. Either carries the key it claims by.
      * @param {ReconcilePass} pass Reconcile pass holding the pool.
      * @return {object|null} The claimed previous child, or `null`.
      * @private
@@ -424,7 +432,7 @@ class InterpolationSlot extends Slot {
             return;
         }
         // Retained single child: same key/type → recycle in place, without moving the DOM.
-        if (partial.owner.isChild(value) && partial.owner.isChild(prev) && canRecycle(prev, value)) {
+        if (partial.owner.isChild(value) && partial.owner.isChild(prev) && this.canRecycle(prev, value.constructor, value.key)) {
             this.recycleInPlace(prev, value);
             return;
         }
@@ -456,19 +464,31 @@ class InterpolationSlot extends Slot {
     }
 
     /**
-     * Recycle a retained single child without moving its DOM: re-register it,
-     * run its recycle hook, queue its new props, and discard the freshly
-     * synthesized candidate.
-     * @param {object} prev The retained child (kept).
-     * @param {object} next The candidate child (discarded).
+     * Tell whether a previous child can be recycled for a candidate of a given type
+     * and key: keyed children match by key, unkeyed children by constructor (type).
+     * @param {object} prev The previous child.
+     * @param {Function} type The candidate's component class.
+     * @param {any} key The candidate's key.
+     * @return {boolean} True if `prev` can be recycled.
      * @private
      */
-    recycleInPlace(prev, next) {
+    canRecycle(prev, type, key) {
+        if (key != null || prev.key != null) return prev.key === key;
+        return prev.constructor === type;
+    }
+
+    /**
+     * Recycle a retained single child without moving its DOM: re-register it,
+     * run its recycle hook, and hand it the candidate's new props.
+     * @param {object} prev The retained child (kept).
+     * @param {object} candidate The candidate (see `renderClaimed`).
+     * @private
+     */
+    recycleInPlace(prev, candidate) {
         const { host } = this.partial;
         host.addChild(prev);
         host.moveChild(prev, null);
-        host.updateChild(prev, host.childProps(next));
-        host.destroyChild(next);
+        host.reuseChild(prev, candidate);
     }
 
     /**
@@ -732,17 +752,13 @@ class InterpolationSlot extends Slot {
     }
 
     /**
-     * Reconcile props of recycled children and discard the candidates they
-     * replaced.
+     * Hand the recycled children the props of the candidates they replaced.
      * @param {ReconcilePass} pass The reconcile pass.
      * @private
      */
     finishPass(pass) {
         const { host } = this.partial;
-        pass.recycled.forEach((found, discarded) => {
-            host.updateChild(found, host.childProps(discarded));
-            host.destroyChild(discarded);
-        });
+        pass.recycled.forEach((found, candidate) => host.reuseChild(found, candidate));
     }
 }
 

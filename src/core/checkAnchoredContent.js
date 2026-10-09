@@ -43,7 +43,7 @@ const checkAnchoredContent = (slot, value) => {
         'element of its own and stands on the element of the component it renders, so\n' +
         'that interpolation must resolve to a component.\n\n' +
         'Valid examples:\n' +
-        '- `${({ state }) => state.open ? Dialog.mount(props) : Empty.mount(props)}`\n' +
+        '- `${({ state, html }) => state.open ? html`<${Dialog} />` : html`<${Empty} />`}`\n' +
         '- `<${MyComponent} />`\n\n' +
         'Invalid examples:\n' +
         '- `${({ html }) => html`<div></div>`}`  (markup, not a component)\n' +

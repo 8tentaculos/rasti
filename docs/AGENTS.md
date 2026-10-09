@@ -339,6 +339,8 @@ Rasti reuses component instances across renders to preserve state and improve pe
 - **Recreation** — no match found; constructor runs, `onHydrate` fires
 - **Recycling** — same instance reused: `onBeforeRecycle()` → props updated → `onRecycle()`
 
+**Tags vs built components:** a component tag (`<${Row} />`) is built only when it is recreated; when recycled, its attributes go straight to the previous instance as props. A component built in an expression (`Row.mount(options)`, `new Row(options)`) is built on every parent render — constructor and `onCreate` run — and when the previous one is recycled instead, the new instance is destroyed (`onDestroy` runs) without rendering. Both recycle by the same rules; always prefer the tag.
+
 ```js
 // Arrays — always key the items, or every item is recreated on each render
 ${model.items.map(item => html`
@@ -353,27 +355,27 @@ ${({ props, html }) => html`<${TodoForm} key="${props.editingId}" model="${props
 
 ### Container Components
 
-A component whose template is a single child component expression — or whose `template()` returns a child component instance — is a **container**. `this.el` references the child's element directly (no wrapper).
+A component whose template is a single component tag — or whose `template()` returns a child component instance — is a **container**. `this.el` references the child's element directly (no wrapper).
 
 ```js
 const PrimaryButton = Component.create`
     <${Button} className="primary" variant="solid" />
 `;
 
-// Function form — returning the mounted child
-const SecondaryButton = Component.create(() =>
-    Button.mount({ className : 'secondary', variant : 'outlined' })
-);
+// Function form
+const SecondaryButton = Component.create(({ html }) => html`
+    <${Button} className="secondary" variant="outlined" />
+`);
 
 // Subclass form
 class TertiaryButton extends Component {
     template() {
-        return Button.mount({ className : 'tertiary' });
+        return this.html`<${Button} className="tertiary" />`;
     }
 }
 ```
 
-Rendering a component tag and returning the mounted child are equivalent ways to write a container, but they count as *different root templates*: alternating between them across renders throws `Root template changed`.
+`template()` may also return a built component (`Button.mount(options)`), which is then built on every render (see [Component Recycling](#component-recycling)). A component tag and a built component both make a container, but they count as *different root templates*: alternating between them across renders throws `Root template changed`.
 
 ---
 
@@ -382,14 +384,14 @@ Rendering a component tag and returning the mounted child are equivalent ways to
 | Hook | Runs | Use for |
 |------|------|---------|
 | `preinitialize()` | Very start of constructor | Instance props needed by constructor itself |
-| `onCreate()` | End of constructor (client + server) | State init, config before render |
+| `onCreate()` | End of constructor (client + server); for a built child, on every parent render | State init, config before render |
 | `onHydrate()` | After first DOM render (client only) | Subscriptions, API calls, browser APIs |
 | `onChange(model, changed)` | On subscribed model change | Conditional render (default calls `render()`) |
 | `onBeforeUpdate()` | Start of update render | Save previous state |
 | `onUpdate()` | After update render | DOM operations (focus, scroll, etc.) |
 | `onBeforeRecycle()` | Before recycling starts | Prepare for prop update |
 | `onRecycle()` | After props updated on recycle | Post-recycle setup |
-| `onDestroy()` | On component destroy | Custom cleanup |
+| `onDestroy()` | On component destroy; also for a built child discarded by recycling | Custom cleanup |
 
 `template()` first runs on render, not on construction, so everything set up in `preinitialize()` and `onCreate()` — `state` included — is already available to it.
 
