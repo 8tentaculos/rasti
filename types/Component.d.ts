@@ -118,8 +118,8 @@ export interface ComponentLifecycle {
  * inside `Component.extend({ ... })` so overrides don't need parameter annotations.
  */
 interface ComponentOverrides {
-    /** Called the first time `props` is read, to build the model the component keeps them in. */
-    ensureProps?(props: object): void;
+    /** Called on the first render, to build the model the component keeps its props in. */
+    createProps?(props: object): Model;
 }
 
 /**
@@ -254,6 +254,8 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
     /**
      * Props passed from the parent component, stored as a `Model` for reactive updates.
      * Accessible directly (`this.props.foo`) or via `Model` API (`this.props.get('foo')`).
+     * The model is built on the first render; in the constructor `props` is still the plain
+     * object of props, and the options are the place to read them.
      * Compared by identity on each parent render: a function, object or array created
      * during that render re-renders the component every time.
      */
@@ -326,11 +328,11 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
     toString(): string;
 
     /**
-     * Build the `Model` the component keeps its props in, and assign it to `this.props`.
-     * Called the first time anything reads `props`. Override it to give props a model of
-     * your own — one with `defaults`, or one that validates what a parent passes.
+     * Build the `Model` the component keeps its props in. Called once, on the first render.
+     * Override it to give props a model of your own — one with `defaults`, or one that
+     * validates what a parent passes.
      */
-    ensureProps(props: object): void;
+    createProps(props: object): Model;
 
     /**
      * Render the component.

@@ -239,7 +239,7 @@ class ComponentAdapter {
     // the options a component tag would have built one with.
     reuseChild(child, candidate) {
         const built = candidate instanceof Component;
-        this.component.propsQueue.push([child, built ? candidate.propsAttributes : extractProps(candidate)]);
+        this.component.propsQueue.push([child, built ? candidate.props : extractProps(candidate)]);
         if (built) candidate.destroy();
     }
 }
@@ -280,7 +280,7 @@ const hydrationRoot = (component, container) => {
  * @property {string} [key] A unique key to identify the component. Components with keys are recycled when the same key is found in the previous render of the same interpolation. Unkeyed components are recycled by type and position for a single value, but are never recycled inside an array.
  * @property {Model} [model] A `Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method.
  * @property {Model} [state] A `Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method.
- * @property {Model} [props] Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When the component is recycled during a parent re-render, its props are set again and any change triggers a re-render. Props are compared by identity, so a function, object or array created during the parent's render counts as a change every time.
+ * @property {Model} props Automatically created from any options not merged to the component instance. Contains props passed from parent component, to be read. A plain object in the constructor, then a `Model` from the first render on, built by {@link #module_component__createprops createProps}: the component will listen to `change` events on props and call `onChange` lifecycle method. When the component is recycled during a parent re-render, its props are set again and any change triggers a re-render. Props are compared by identity, so a function, object or array created during the parent's render counts as a change every time.
  * @property {Function} html Alias of {@link #module_component__partial partial}, bound to the component instance. Not set when a subclass defines its own `html`.
  * @see {@link #module_component_create Component.create}
  * @example
@@ -306,15 +306,14 @@ export default class Component extends View {
     constructor(options = {}) {
         super(...arguments);
         // The options a parent passed that the component did not take as its own. They
-        // become a `Model` the first time anything reads `props`, which is what keeps a
-        // component that is built and discarded without ever rendering cheap.
-        this.propsAttributes = {};
+        // stay a plain object until the first render, where `createProps` builds their model.
+        this.props = {};
         // Extend "this" with options. An option overrides a getter declared by a
         // subclass even when the getter has no setter. Any option that is neither a
         // component nor a view option is a prop.
         for (const key in options) {
             if (componentOptions.has(key)) assignOption(this, key, options[key]);
-            else if (!viewOptions.has(key)) this.propsAttributes[key] = options[key];
+            else if (!viewOptions.has(key)) this.props[key] = options[key];
         }
         // Store options by default.
         this.options = options;
@@ -362,46 +361,23 @@ export default class Component extends View {
     }
 
     /**
-     * The `Model` the component's props live in, built the first time it is read. A
-     * component that is built and then discarded — one an expression builds where the
-     * render recycles the previous child instead — never reads them, and never pays for
-     * them.
-     * @return {Model} The props model.
-     */
-    get props() {
-        if (!this.propsModel) this.ensureProps(this.propsAttributes);
-        return this.propsModel;
-    }
-
-    /**
-     * Replace the model the props live in. Assigning is what `ensureProps` does, and
-     * what an override of it is expected to do.
-     * @param {Model} value The model to keep the props in.
-     */
-    set props(value) {
-        this.propsModel = value;
-    }
-
-    /**
-     * Build the `Model` the component keeps its props in, and assign it to `this.props`.
-     * Called the first time anything reads them, with the options the parent passed that
-     * are not component or view options.
+     * Build the `Model` the component keeps its props in. Called once, on the first
+     * render, with the options the parent passed that are not component or view
+     * options; until then `this.props` is that plain object.
      *
-     * A `Model` generates its accessors once for the set of attributes it holds and
-     * shares them with every other model of that set (see `Model`), so the props of
-     * every instance of a component are read through the same properties. Override it
-     * to give props a model of your own — one with `defaults`, or one that validates
-     * what a parent passes.
+     * Override it to give props a model of your own — one with `defaults`, or one that
+     * validates what a parent passes.
      * @param {object} props The props the component was mounted with.
+     * @return {Model} The model to keep the props in.
      * @example
      * const Button = Component.create`<button>${({ props }) => props.label}</button>`.extend({
-     *     ensureProps(props) {
-     *         this.props = new ButtonProps(props);
+     *     createProps(props) {
+     *         return new ButtonProps(props);
      *     }
      * });
      */
-    ensureProps(props) {
-        this.props = new Model(props);
+    createProps(props) {
+        return new Model(props);
     }
 
     /**
@@ -414,9 +390,9 @@ export default class Component extends View {
     ensureElement() {}
 
     /**
-     * Build what a render needs, once, on the first one: the listener store, the queue
-     * of recycled children's props, the adapter the partials reach the component world
-     * through, and the root partial itself.
+     * Build what a render needs, once, on the first one: the props model, the listener
+     * store, the queue of recycled children's props, the adapter the partials reach the
+     * component world through, and the root partial itself.
      *
      * None of it exists until then. A component that is built and discarded without
      * rendering — one an expression builds where the render recycles the previous child
@@ -425,6 +401,8 @@ export default class Component extends View {
      */
     ensureEngine() {
         if (this.eventsManager) return;
+        // Build the props model, before the template reads it.
+        this.props = this.createProps(this.props);
         // Store data event listeners.
         this.eventsManager = new EventsManager();
         // Recycled children whose props are reconciled after the render's destroy sweep,
@@ -493,7 +471,7 @@ export default class Component extends View {
     hydrate(index) {
         if (this.model) this.subscribe(this.model);
         if (this.state) this.subscribe(this.state);
-        if (this.props) this.subscribe(this.props);
+        this.subscribe(this.props);
 
         // Hydrate the root partial: it recursively hydrates its structure, the nested
         // partials and the child components in its slots, so the whole subtree hydrates

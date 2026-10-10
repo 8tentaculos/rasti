@@ -1751,17 +1751,20 @@ describe('Component', () => {
     });
 
     describe('Props model', () => {
-        it('must build the props model only when something reads it', () => {
+        it('must keep props a plain object until the first render', () => {
             const Button = Component.create`<button>${({ props }) => props.label}</button>`;
 
             const button = new Button({ label : 'a' });
 
             // A render builds a candidate for every child it may recycle; the ones it
-            // discards never read their props, and never pay for the model.
-            expect(button.propsModel).to.be.undefined;
+            // discards never render, and never pay for the model.
+            expect(button.props).to.not.be.instanceOf(Model);
+            expect(button.props.label).to.be.equal('a');
+
+            button.toString();
+
             expect(button.props).to.be.instanceOf(Model);
             expect(button.props.label).to.be.equal('a');
-            expect(button.propsModel).to.be.equal(button.props);
         });
 
         it('must let the constructor read props', () => {
@@ -1777,8 +1780,8 @@ describe('Component', () => {
         it('must share one props model shape across the instances of a component', () => {
             const Button = Component.create`<button>${({ props }) => props.label}</button>`;
 
-            const a = Button.mount({ label : 'a' });
-            const b = Button.mount({ label : 'b' });
+            const a = Button.mount({ label : 'a' }, document.body);
+            const b = Button.mount({ label : 'b' }, document.body);
 
             // The accessors are generated once for the set of props, not once per model.
             expect(Object.getPrototypeOf(a.props)).to.be.equal(Object.getPrototypeOf(b.props));
@@ -1791,8 +1794,8 @@ describe('Component', () => {
             const One = Component.create`<i>${({ props }) => props.a}</i>`;
             const Two = Component.create`<b>${({ props }) => props.b}</b>`;
 
-            const one = One.mount({ a : 1 });
-            const two = Two.mount({ b : 2 });
+            const one = One.mount({ a : 1 }, document.body);
+            const two = Two.mount({ b : 2 }, document.body);
 
             expect(Object.getPrototypeOf(one.props)).to.not.be.equal(Object.getPrototypeOf(two.props));
             expect(one.props.a).to.be.equal(1);
@@ -1801,17 +1804,20 @@ describe('Component', () => {
         });
 
         it('must let a component build a props model of its own', () => {
-            class Strict extends Model {}
+            class ButtonProps extends Model {
+                get defaults() { return { label : 'default' }; }
+            }
             const Button = Component.create`<button>${({ props }) => props.label}</button>`.extend({
-                ensureProps(props) {
-                    this.props = new Strict(props);
+                createProps(props) {
+                    return new ButtonProps(props);
                 }
             });
 
-            const button = Button.mount({ label : 'a' }, document.body);
+            const button = Button.mount({}, document.body);
 
-            expect(button.props).to.be.instanceOf(Strict);
-            expect(button.el.textContent.trim()).to.be.equal('a');
+            // The template reads the model from the first render on.
+            expect(button.props).to.be.instanceOf(ButtonProps);
+            expect(button.el.textContent.trim()).to.be.equal('default');
         });
 
         it('must re-render when a prop changes', () => {

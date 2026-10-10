@@ -2,9 +2,7 @@
 
 * [Component](#module_component) ⇐ <code>View</code>
     * _instance_
-        * [.props](#module_component__props) ⇒ <code>Model</code>
-        * [.props](#module_component__props)
-        * [.ensureProps(props)](#module_component__ensureprops)
+        * [.createProps(props)](#module_component__createprops) ⇒ <code>Model</code>
         * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>ComponentPartial</code>](#componentpartial)
         * [.template()](#module_component__template) ⇒ [<code>ComponentPartial</code>](#componentpartial) \| <code>Component</code>
@@ -94,7 +92,7 @@ A component renders from its [template](#module_component__template) method, whi
 | [key] | <code>string</code> | A unique key to identify the component. Components with keys are recycled when the same key is found in the previous render of the same interpolation. Unkeyed components are recycled by type and position for a single value, but are never recycled inside an array. |
 | [model] | <code>Model</code> | A `Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method. |
 | [state] | <code>Model</code> | A `Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method. |
-| [props] | <code>Model</code> | Automatically created from any options not merged to the component instance. Contains props passed from parent component as a `Model`. The component will listen to `change` events on props and call `onChange` lifecycle method. When the component is recycled during a parent re-render, its props are set again and any change triggers a re-render. Props are compared by identity, so a function, object or array created during the parent's render counts as a change every time. |
+| props | <code>Model</code> | Automatically created from any options not merged to the component instance. Contains props passed from parent component, to be read. A plain object in the constructor, then a `Model` from the first render on, built by [createProps](#module_component__createprops): the component will listen to `change` events on props and call `onChange` lifecycle method. When the component is recycled during a parent re-render, its props are set again and any change triggers a re-render. Props are compared by identity, so a function, object or array created during the parent's render counts as a change every time. |
 | html | <code>function</code> | Alias of [partial](#module_component__partial), bound to the component instance. Not set when a subclass defines its own `html`. |
 
 **Example**  
@@ -120,9 +118,7 @@ setInterval(() => model.seconds++, 1000);
 
 * [Component](#module_component) ⇐ <code>View</code>
     * _instance_
-        * [.props](#module_component__props) ⇒ <code>Model</code>
-        * [.props](#module_component__props)
-        * [.ensureProps(props)](#module_component__ensureprops)
+        * [.createProps(props)](#module_component__createprops) ⇒ <code>Model</code>
         * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>ComponentPartial</code>](#componentpartial)
         * [.template()](#module_component__template) ⇒ [<code>ComponentPartial</code>](#componentpartial) \| <code>Component</code>
@@ -142,39 +138,17 @@ setInterval(() => model.seconds++, 1000);
         * [.mount([options], [el], [hydrate])](#module_component_mount) ⇒ <code>Component</code>
         * [.create(strings, ...expressions)](#module_component_create) ⇒ <code>Component</code>
 
-<a name="module_component__props" id="module_component__props" class="anchor"></a>
-### component.props ⇒ <code>Model</code>
-The `Model` the component's props live in, built the first time it is read. A
-component that is built and then discarded — one an expression builds where the
-render recycles the previous child instead — never reads them, and never pays for
-them.
+<a name="module_component__createprops" id="module_component__createprops" class="anchor"></a>
+### component.createProps(props) ⇒ <code>Model</code>
+Build the `Model` the component keeps its props in. Called once, on the first
+render, with the options the parent passed that are not component or view
+options; until then `this.props` is that plain object.
 
-**Kind**: instance property of [<code>Component</code>](#module_component)  
-**Returns**: <code>Model</code> - The props model.  
-<a name="module_component__props" id="module_component__props" class="anchor"></a>
-### component.props
-Replace the model the props live in. Assigning is what `ensureProps` does, and
-what an override of it is expected to do.
-
-**Kind**: instance property of [<code>Component</code>](#module_component)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| value | <code>Model</code> | The model to keep the props in. |
-
-<a name="module_component__ensureprops" id="module_component__ensureprops" class="anchor"></a>
-### component.ensureProps(props)
-Build the `Model` the component keeps its props in, and assign it to `this.props`.
-Called the first time anything reads them, with the options the parent passed that
-are not component or view options.
-
-A `Model` generates its accessors once for the set of attributes it holds and
-shares them with every other model of that set (see `Model`), so the props of
-every instance of a component are read through the same properties. Override it
-to give props a model of your own — one with `defaults`, or one that validates
-what a parent passes.
+Override it to give props a model of your own — one with `defaults`, or one that
+validates what a parent passes.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
+**Returns**: <code>Model</code> - The model to keep the props in.  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -183,8 +157,8 @@ what a parent passes.
 **Example**  
 ```js
 const Button = Component.create`<button>${({ props }) => props.label}</button>`.extend({
-    ensureProps(props) {
-        this.props = new ButtonProps(props);
+    createProps(props) {
+        return new ButtonProps(props);
     }
 });
 ```
