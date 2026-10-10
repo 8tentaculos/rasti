@@ -491,9 +491,9 @@ export default class Component extends View {
      * @private
      */
     hydrate(index) {
-        ['model', 'state', 'props'].forEach(key => {
-            if (this[key]) this.subscribe(this[key]);
-        });
+        if (this.model) this.subscribe(this.model);
+        if (this.state) this.subscribe(this.state);
+        if (this.props) this.subscribe(this.props);
 
         // Hydrate the root partial: it recursively hydrates its structure, the nested
         // partials and the child components in its slots, so the whole subtree hydrates
@@ -811,11 +811,12 @@ export default class Component extends View {
         if (this.rootPartial.isTransparent()) this.el = this.rootPartial.rootElement();
         // Destroy unused children: those not re-added to `children` during the reconcile.
         const liveChildren = new Set(this.children);
-        previousChildren.forEach(prev => {
-            if (!liveChildren.has(prev)) prev.destroy();
-        });
+        for (let i = 0; i < previousChildren.length; i++) {
+            if (!liveChildren.has(previousChildren[i])) previousChildren[i].destroy();
+        }
         // Update recycled children props.
-        this.propsQueue.forEach(([child, props]) => child.updateProps(props));
+        const { propsQueue } = this;
+        for (let i = 0; i < propsQueue.length; i++) propsQueue[i][0].updateProps(propsQueue[i][1]);
         // If there are pending event types, delegate events again.
         if (this.eventsManager.hasPendingTypes()) {
             this.delegateEvents();

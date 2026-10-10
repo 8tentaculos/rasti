@@ -32,6 +32,8 @@ const escapeAttributeValue = (value, isSource) => {
 /**
  * Generate HTML string from attributes object. Values are plain text unless
  * their key is in `sourceKeys` (pure template literals, serialized as written).
+ * The object is plain, walked with `for-in`: inherited enumerable keys would be
+ * serialized as attributes.
  * @param {Object} attributes Object containing attribute names and values.
  * @param {Set<string>} [sourceKeys] Keys whose values are HTML source.
  * @return {string} HTML string of attributes.
@@ -41,10 +43,10 @@ const escapeAttributeValue = (value, isSource) => {
 export default function getAttributesHTML(attributes, sourceKeys) {
     const html = [];
 
-    Object.keys(attributes).forEach(key => {
+    for (const key in attributes) {
         let value = attributes[key];
         // Skip invalid names, they can't be serialized as an attribute.
-        if (!VALID_ATTRIBUTE_NAME.test(key)) return;
+        if (!VALID_ATTRIBUTE_NAME.test(key)) continue;
 
         if (value === true) {
             html.push(key);
@@ -52,7 +54,7 @@ export default function getAttributesHTML(attributes, sourceKeys) {
             if (value === null || typeof value === 'undefined') value = '';
             html.push(`${key}="${escapeAttributeValue(value, !!sourceKeys && sourceKeys.has(key))}"`);
         }
-    });
+    }
 
     return html.join(' ');
 }

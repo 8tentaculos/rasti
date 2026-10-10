@@ -1,5 +1,6 @@
 /**
- * Get difference between current and previous attributes.
+ * Get difference between current and previous attributes. Both are plain objects,
+ * walked with `for-in`: inherited enumerable keys would be taken as attributes.
  * @param {Object} attributes Current attributes object.
  * @param {Object} previous Previous attributes object.
  * @return {Object} Object with add and remove properties.
@@ -10,7 +11,7 @@ export default function getAttributesDiff(attributes, previous = {}) {
     const add = {};
     const remove = [];
     // Find attributes to add/update.
-    Object.keys(attributes).forEach(key => {
+    for (const key in attributes) {
         let value = attributes[key];
         // Only add if the value is different from previous.
         if (value !== previous[key]) {
@@ -21,13 +22,13 @@ export default function getAttributesDiff(attributes, previous = {}) {
                 add[key] = value;
             }
         }
-    });
+    }
     // Find attributes to remove.
-    Object.keys(previous).forEach(key => {
+    for (const key in previous) {
         if (!(key in attributes) || ((previous[key] !== attributes[key]) && attributes[key] === false)) {
             remove.push(key);
         }
-    });
+    }
 
     return { add, remove };
 }

@@ -330,22 +330,22 @@ export default class Model extends Emitter {
         if (!changing) {
             this.previous = Object.assign({}, this.attributes);
         }
+        let hasChanged = false;
         // Set attributes.
         Object.keys(attrs).forEach(key => {
             // Use equality to determine if value changed.
             if (attrs[key] !== this.attributes[key]) {
                 changed[key] = attrs[key];
                 this.attributes[key] = attrs[key];
+                hasChanged = true;
             }
         });
-
-        const changedKeys = Object.keys(changed);
         // Pending `change` event arguments.
-        if (changedKeys.length) this._pending = ['change', this, changed, ...args];
+        if (hasChanged) this._pending = ['change', this, changed, ...args];
         // Emit `change:attribute` events.
-        changedKeys.forEach(key => {
+        for (const key in changed) {
             this.emit(`change:${key}`, this, attrs[key], ...args);
-        });
+        }
         // Don't emit `change` event until the end of the nested 
         // `set` calls inside `change:attribute` event listeners.
         if (changing) return this;

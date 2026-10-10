@@ -71,6 +71,21 @@ const rendersText = (value) => {
 const toText = (value) => `${value}`.replace(/\r\n?/g, '\n');
 
 /**
+ * Tell whether two lists hold the same items in the same order.
+ * @param {Array<any>} a The first list.
+ * @param {Array<any>} b The second list.
+ * @return {boolean} True if both lists match item by item.
+ * @private
+ */
+const isSameOrder = (a, b) => {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+        if (a[i] !== b[i]) return false;
+    }
+    return true;
+};
+
+/**
  * The shapes a list can have, by what its items are. A <b>components</b> list holds
  * nothing but components, each with an identity of its own, so it is placed by
  * walking its children. A <b>uniform</b> list is one template repeated, each item
@@ -401,9 +416,13 @@ class InterpolationSlot extends Slot {
      */
     hydrateValue(value, index, pass) {
         const { owner } = this.partial;
-        if (this.partial.isPartial(value)) value.hydrate(index, pass);
-        else if (Array.isArray(value)) value.forEach(item => this.hydrateValue(item, index, pass));
-        else if (owner.isChild(value) && !(pass && pass.recycled.has(value))) owner.hydrateChild(value, index);
+        if (this.partial.isPartial(value)) {
+            value.hydrate(index, pass);
+        } else if (Array.isArray(value)) {
+            for (let i = 0; i < value.length; i++) this.hydrateValue(value[i], index, pass);
+        } else if (owner.isChild(value) && !(pass && pass.recycled.has(value))) {
+            owner.hydrateChild(value, index);
+        }
     }
 
     /**
@@ -523,11 +542,17 @@ class InterpolationSlot extends Slot {
         const items = this.content;
         const overlap = Math.min(items.length, value.length);
         for (let i = 0; i < overlap; i++) items[i].update(value[i].expressions);
-        if (value.length > overlap) this.appendItems(value.slice(overlap));
-        else if (items.length > overlap) this.dropItems(items[overlap]);
         // The retained items are the live ones; the candidates that matched them are
-        // read for their expressions and discarded.
-        this.content = items.slice(0, overlap).concat(value.slice(overlap));
+        // read for their expressions and discarded. A list of the same length keeps
+        // holding the same array.
+        if (value.length > overlap) {
+            const added = value.slice(overlap);
+            this.appendItems(added);
+            this.content = items.concat(added);
+        } else if (items.length > overlap) {
+            this.dropItems(items[overlap]);
+            this.content = items.slice(0, overlap);
+        }
     }
 
     /**
@@ -625,11 +650,11 @@ class InterpolationSlot extends Slot {
         parent.insertBefore(fragment, end);
         if (pass.recycled.size < order.length) this.hydrateValue(value, pass.index, pass);
         // The same children in the same order: nothing to place, nothing to remove.
-        if (placed.length === order.length && order.every((child, i) => placed[i] === child)) return;
+        if (isSameOrder(placed, order)) return;
         // Where each child stood. A child the render mounted has none, so it never
         // counts as being in place.
         const previousIndex = new Map();
-        placed.forEach((child, i) => previousIndex.set(child, i));
+        for (let i = 0; i < placed.length; i++) previousIndex.set(placed[i], i);
         // The new order read as previous positions, and a mark on every previous child
         // the render kept; a mounted child has no position and reads as -1.
         const kept = [];
@@ -642,9 +667,9 @@ class InterpolationSlot extends Slot {
         // Remove what the list dropped first, so what is left is what the walk reads.
         // Destroying a child does not touch the DOM, and the component destroys the
         // ones this render left out of its children.
-        placed.forEach((child, i) => {
-            if (!kept[i]) child.el.parentNode.removeChild(child.el);
-        });
+        for (let i = 0; i < placed.length; i++) {
+            if (!kept[i]) placed[i].el.parentNode.removeChild(placed[i].el);
+        }
         // The children whose previous positions already ascend are the ones that can
         // stay put, and the longest such run is the fewest moves the order can be
         // reached in. Every other child is moved before the one that follows it, which

@@ -46,7 +46,8 @@ class ComponentSlot extends InterpolationSlot {
         const { partial, descriptor } = this;
         if (__DEV__) warnUnsupportedAttribute(partial.constructor, descriptor);
         const options = {};
-        descriptor.attributes.forEach(attribute => attribute.applyTo(options, partial.expressions, partial.owner));
+        const { attributes } = descriptor;
+        for (let i = 0; i < attributes.length; i++) attributes[i].applyTo(options, partial.expressions, partial.owner);
         if (descriptor.inner) {
             const InnerPartial = partial.constructor.fromSkeleton(descriptor.inner);
             // Slotted content is evaluated in the partial's context (its expressions and

@@ -191,7 +191,8 @@ class Partial {
      *     brand-new subtree, where every child is mounted anew.
      */
     hydrate(index, pass) {
-        this.slots.forEach(slot => slot.hydrate(index, pass));
+        const { slots } = this;
+        for (let i = 0; i < slots.length; i++) slots[i].hydrate(index, pass);
     }
 
     /**
@@ -256,7 +257,8 @@ class Partial {
      */
     update(expressions) {
         this.expressions = expressions;
-        this.slots.forEach(slot => slot.update());
+        const { slots } = this;
+        for (let i = 0; i < slots.length; i++) slots[i].update();
     }
 
     /**

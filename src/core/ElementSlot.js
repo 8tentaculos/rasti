@@ -40,7 +40,8 @@ const syncProperty = (ref, attr, value) => {
  */
 const expandEvents = (attributes, owner) => {
     const out = {};
-    Object.keys(attributes).forEach(key => {
+    // `attributes` is a plain object built by the descriptors: no inherited keys.
+    for (const key in attributes) {
         // Check if key is an event listener.
         const type = getEventType(key);
 
@@ -55,7 +56,7 @@ const expandEvents = (attributes, owner) => {
             // Add attribute.
             out[key] = attributes[key];
         }
-    });
+    }
     return out;
 };
 
@@ -140,16 +141,17 @@ class ElementSlot extends Slot {
         const { remove, add } = getAttributesDiff(attributes, this.previousAttributes);
         this.previousAttributes = attributes;
         // Remove attributes first so later `setAttribute` overrides if needed.
-        remove.forEach(attr => {
+        for (let i = 0; i < remove.length; i++) {
+            const attr = remove[i];
             this.ref.removeAttribute(attr);
             syncProperty(this.ref, attr, attr === 'value' ? '' : false);
-        });
+        }
         // Add / update attributes.
-        Object.keys(add).forEach(attr => {
+        for (const attr in add) {
             const value = add[attr];
             this.ref.setAttribute(attr, value);
             syncProperty(this.ref, attr, value);
-        });
+        }
     }
 
     /**
@@ -178,7 +180,8 @@ class ElementSlot extends Slot {
     buildAttributes(sourceKeys) {
         const { partial } = this;
         const attributes = {};
-        this.descriptor.attributes.forEach(attribute => attribute.applyTo(attributes, partial.expressions, partial.owner, sourceKeys));
+        const descriptors = this.descriptor.attributes;
+        for (let i = 0; i < descriptors.length; i++) descriptors[i].applyTo(attributes, partial.expressions, partial.owner, sourceKeys);
         const out = expandEvents(attributes, partial.owner);
         if (partial.isRoot && partial.owner.rootAttributes && this.descriptor.isFirst) {
             const rootAttributes = partial.owner.rootAttributes();
