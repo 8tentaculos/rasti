@@ -7,6 +7,7 @@ import checkListItems from './checkListItems.js';
 import checkAnchoredContent from './checkAnchoredContent.js';
 import parseHTML from '../utils/parseHTML.js';
 import moveNode from '../utils/moveNode.js';
+import flatten from '../utils/flatten.js';
 import increasingSubsequence from '../utils/increasingSubsequence.js';
 
 import Constants from './Constants.js';
@@ -162,13 +163,16 @@ class InterpolationSlot extends Slot {
     }
 
     /**
-     * Resolve the slot's value by evaluating its expression in the owner's context.
+     * Resolve the slot's value by evaluating its expression in the owner's context. A
+     * list comes out flat: a nested array is not a boundary but part of the same list,
+     * so its items are siblings of the rest.
      * @return {any} The resolved value.
      * @private
      */
     evaluate() {
         const { partial, descriptor } = this;
-        return partial.owner.evaluate(partial.expressions[descriptor.index], 'interpolation');
+        const value = partial.owner.evaluate(partial.expressions[descriptor.index], 'interpolation');
+        return Array.isArray(value) ? flatten(value) : value;
     }
 
     /**
@@ -243,15 +247,19 @@ class InterpolationSlot extends Slot {
         // Positions are only worth collecting for a list of components: it is the one
         // shape whose children are placed by walking them (see `placeInOrder`).
         this.order = pass.order = this.strategy === LIST_COMPONENTS ? [] : null;
-        return this.renderValue(value, pass);
+        const rendered = value.map(item => this.renderValue(item, pass)).join('');
+        // Checked after rendering, when the items have resolved their own occupants.
+        if (__DEV__) checkListItems(this, value);
+        return rendered;
     }
 
     /**
-     * Render a dynamic value to a string. Handles the engine's own types
-     * (`SafeHTML`, nested `Partial`, arrays); a child component is added to the host
-     * (matched against the pass's previous occupants during an update); any other
-     * value is sanitized. The engine's own types render through `toString`, called
-     * directly: only a value with no such contract is coerced (see `valueToString`).
+     * Render a single value to a string: the slot's occupant, or one item of a list
+     * (see `render`). Handles the engine's own types (`SafeHTML`, nested `Partial`);
+     * a child component is added to the host (matched against the pass's previous
+     * occupants during an update); any other value is sanitized. The engine's own
+     * types render through `toString`, called directly: only a value with no such
+     * contract is coerced (see `valueToString`).
      * @param {any} value The value to render.
      * @param {ReconcilePass} [pass] Reconcile pass (see `Partial#toString`).
      * @return {string} The rendered HTML.
@@ -259,13 +267,6 @@ class InterpolationSlot extends Slot {
      */
     renderValue(value, pass) {
         if (value instanceof SafeHTML) return value.toString();
-
-        if (Array.isArray(value)) {
-            const rendered = value.map(item => this.renderValue(item, pass)).join('');
-            // Checked after rendering, when the items have resolved their own occupants.
-            if (__DEV__) checkListItems(this, value);
-            return rendered;
-        }
 
         const { owner, host } = this.partial;
 

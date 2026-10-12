@@ -42,7 +42,7 @@ const holdsKeyedChild = (partial, value) => {
  * exempt for the same reason — a text has no identity to declare.
  * Development only.
  * @param {InterpolationSlot} slot The slot rendering the list.
- * @param {Array<any>} items The rendered list.
+ * @param {Array<any>} items The rendered list, flat (see `InterpolationSlot#evaluate`).
  * @private
  */
 const checkListItems = (slot, items) => {
@@ -53,7 +53,6 @@ const checkListItems = (slot, items) => {
     let duplicated = null;
     let insidePartial = false;
     const visit = value => {
-        if (Array.isArray(value)) return value.forEach(visit);
         // Anything that is not a partial or a child renders as content, not as
         // something with an identity of its own.
         if (!partial.isPartial(value) && !partial.owner.isChild(value)) return;

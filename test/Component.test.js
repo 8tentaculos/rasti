@@ -2451,6 +2451,55 @@ describe('Component', () => {
                 .to.deep.equal(['A', 'B-updated', 'C']);
         });
 
+        // Nested arrays are one list: their components are siblings, placed by walking
+        // them like those of a flat list.
+        it('must move only the keyed components whose position changed across nested arrays', () => {
+            const Button = Component.create`<button>${({ props }) => props.text}</button>`;
+            const ParentComponent = Component.create`
+                <div id="test-node">${({ model }) => model.groups.map(group => group.map(item => Button.mount({ key : item.id, text : item.text })))}</div>
+            `.mount({ model : new Model({ groups : [
+        [{ id : '1', text : 'A' }, { id : '2', text : 'B' }],
+        [{ id : '3', text : 'C' }, { id : '4', text : 'D' }]
+    ] }) }, document.body);
+
+            const originalButtons = Array.from(document.querySelectorAll('button'));
+            const counts = countMoves(document.getElementById('test-node'));
+
+            // Swap the first and the last item, across groups.
+            ParentComponent.model.groups = [
+                [{ id : '4', text : 'D' }, { id : '2', text : 'B' }],
+                [{ id : '3', text : 'C' }, { id : '1', text : 'A' }]
+            ];
+
+            expect(counts.moves).to.be.equal(2);
+            const newButtons = Array.from(document.querySelectorAll('button'));
+            expect(newButtons.map(el => el.textContent.trim())).to.deep.equal(['D', 'B', 'C', 'A']);
+            newButtons.forEach((el, i) => expect(el).to.be.equal(originalButtons[[3, 1, 2, 0][i]]));
+        });
+
+        it('must render nested arrays that are or become empty', () => {
+            const Button = Component.create`<button>${({ props }) => props.text}</button>`;
+            const ParentComponent = Component.create`
+                <div id="test-node">${({ model, partial }) => model.groups.map(group => group.map(item =>
+        partial`<${Button} key="${item}" text="${item}" />`))}</div>
+            `.mount({ model : new Model({ groups : [[], []] }) }, document.body);
+
+            const texts = () => Array.from(document.querySelectorAll('button')).map(el => el.textContent.trim());
+            expect(texts()).to.deep.equal([]);
+
+            ParentComponent.model.groups = [['a'], [], ['b']];
+            const a = document.querySelector('button');
+            expect(texts()).to.deep.equal(['a', 'b']);
+
+            ParentComponent.model.groups = [[], ['a']];
+            expect(texts()).to.deep.equal(['a']);
+            expect(document.querySelector('button')).to.be.equal(a);
+
+            ParentComponent.model.groups = [[]];
+            expect(texts()).to.deep.equal([]);
+            expect(ParentComponent.children).to.have.lengthOf(0);
+        });
+
         it('must remove the elements of keyed components dropped from a list', () => {
             const Button = Component.create`<button>${({ props }) => props.text}</button>`;
             const ParentComponent = Component.create`
@@ -3445,6 +3494,19 @@ describe('Component', () => {
             expect(after.map(el => el.textContent.trim())).to.deep.equal(['x', 'y', 'z']);
         });
 
+        it('must patch the items of a uniform list held in nested arrays where they stand', () => {
+            const list = Component.create`
+                <ul>${({ model, partial }) => model.groups.map(group => group.map(item => partial`<li class="row">${item}</li>`))}</ul>
+            `.mount({ model : new Model({ groups : [['a', 'b'], ['c']] }) }, document.body);
+            const before = Array.from(document.querySelectorAll('li'));
+
+            list.model.groups = [['x'], ['y', 'z']];
+
+            const after = Array.from(document.querySelectorAll('li'));
+            expect(after).to.deep.equal(before);
+            expect(after.map(el => el.textContent.trim())).to.deep.equal(['x', 'y', 'z']);
+        });
+
         it('must render only what a uniform list gained', () => {
             const list = mountList(['a', 'b']);
             const before = Array.from(document.querySelectorAll('li'));
@@ -3616,6 +3678,29 @@ describe('Component', () => {
             `.mount({ model : new Model({ sections : [['a', 'b'], ['c']] }) }, document.body);
 
             expect(warnings).to.be.empty;
+        });
+
+        it('must check the keys of a list held in nested arrays as one list', () => {
+            Component.create`
+                <ul>${({ model, partial }) => model.groups.map(group => group.map(item =>
+        partial`<${Row} key="${item}" text="${item}" />`))}</ul>
+            `.mount({ model : new Model({ groups : [['a', 'b'], ['c']] }) }, document.body);
+
+            expect(warnings).to.be.empty;
+
+            Component.create`
+                <ul>${({ model, partial }) => model.groups.map(group => group.map(item =>
+        partial`<${Row} text="${item}" />`))}</ul>
+            `.mount({ model : new Model({ groups : [['a', 'b'], ['c']] }) }, document.body);
+
+            Component.create`
+                <ul>${({ model, partial }) => model.groups.map(group => group.map(item =>
+        partial`<${Row} key="${item}" text="${item}" />`))}</ul>
+            `.mount({ model : new Model({ groups : [['a', 'b'], ['a']] }) }, document.body);
+
+            expect(warnings.length).to.be.equal(2);
+            expect(warnings[0]).to.contain('Component in a list without a key');
+            expect(warnings[1]).to.contain('Duplicate key "a" in a list');
         });
 
         it('must warn when two list items share a key', () => {
