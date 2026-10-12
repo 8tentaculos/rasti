@@ -117,13 +117,17 @@ const classifyList = (partial, items) => {
     const ItemClass = items.length ? items[0].constructor : null;
     let components = true;
     let uniform = items.length > 0 && partial.isPartial(items[0]);
+
     for (let i = 0; i < items.length; i++) {
         const item = items[i];
         const isPartial = partial.isPartial(item);
+        // Each shape is dropped on the first item that breaks it.
         if (components && !(isPartial ? item.isComponentTag() : partial.owner.isChild(item))) components = false;
         if (uniform && !(isPartial && item.constructor === ItemClass)) uniform = false;
+        // Neither shape holds: the rest of the list cannot change the answer.
         if (!components && !uniform) return LIST_OTHER;
     }
+
     return components ? LIST_COMPONENTS : uniform ? LIST_UNIFORM : LIST_OTHER;
 };
 
@@ -149,6 +153,7 @@ const classifyList = (partial, items) => {
 class InterpolationSlot extends Slot {
     constructor(partial, descriptor) {
         super(partial, descriptor);
+        // The emission id, the markers hydration resolves it to, and the occupant.
         this.id = null;
         this.ref = null;
         this.content = null;
@@ -206,7 +211,9 @@ class InterpolationSlot extends Slot {
      */
     toString() {
         const { partial } = this;
+        // The marker id is assigned once, on the first render that writes markers.
         if (this.id == null && !this.isAnchored()) this.id = partial.owner.nextMarkerId();
+
         const value = this.evaluate();
         this.content = value;
         // The pass of a slot regenerating stops at the partial holding this one (see
@@ -215,6 +222,7 @@ class InterpolationSlot extends Slot {
         const rendered = this.render(value, Array.isArray(value) ? this.makePass() : null);
         // Checked after rendering, once a nested partial has resolved its own content.
         if (__DEV__ && this.isAnchored()) checkAnchoredContent(this, value);
+        // An anchored slot stands on its element; any other wraps its content in markers.
         if (this.isAnchored()) return rendered;
         return `<!--${Constants.MARKER_START(this.id)}-->${rendered}<!--${Constants.MARKER_END(this.id)}-->`;
     }
@@ -241,12 +249,14 @@ class InterpolationSlot extends Slot {
             this.strategy = null;
             return this.renderValue(value, pass);
         }
+        // A list is classified by its shape before any item renders.
         this.strategy = classifyList(this.partial, value);
         // What the render collects is what the slot holds from here on.
         pass.keyed = this.keyed;
         // Positions are only worth collecting for a list of components: it is the one
         // shape whose children are placed by walking them (see `placeInOrder`).
         this.order = pass.order = this.strategy === LIST_COMPONENTS ? [] : null;
+
         const rendered = value.map(item => this.renderValue(item, pass)).join('');
         // Checked after rendering, when the items have resolved their own occupants.
         if (__DEV__) checkListItems(this, value);
@@ -287,6 +297,7 @@ class InterpolationSlot extends Slot {
             return found ? this.renderClaimed(found, value, pass) : this.renderMounted(value, pass);
         }
 
+        // Anything else renders as sanitized text.
         return valueToString(value, owner.sanitize);
     }
 
@@ -318,6 +329,7 @@ class InterpolationSlot extends Slot {
      * @private
      */
     renderClaimed(found, candidate, pass) {
+        // The live child takes the candidate's place in everything the pass collects.
         if (pass.order) pass.order.push(found);
         this.partial.host.addChild(found);
         pass.recycled.set(candidate, found);
@@ -342,8 +354,10 @@ class InterpolationSlot extends Slot {
      */
     claimRecyclable(candidate, pass) {
         if (candidate.key == null || !pass.previous) return null;
+
         const prev = pass.previous.get(candidate.key);
         if (!prev) return null;
+        // A key is claimed once.
         pass.previous.delete(candidate.key);
         return prev;
     }
@@ -393,10 +407,13 @@ class InterpolationSlot extends Slot {
     hydrateValue(value, index, pass) {
         const { owner } = this.partial;
         if (this.partial.isPartial(value)) {
+            // A nested partial hydrates its own slots.
             value.hydrate(index);
         } else if (Array.isArray(value)) {
+            // A list hydrates item by item, in document order.
             for (let i = 0; i < value.length; i++) this.hydrateValue(value[i], index, pass);
         } else if (owner.isChild(value) && !(pass && pass.recycled.has(value))) {
+            // A child this render mounted; a claimed one is already live.
             owner.hydrateChild(value, index);
         }
     }
@@ -452,7 +469,9 @@ class InterpolationSlot extends Slot {
     updateText(value) {
         const [start, end] = this.ref;
         const node = start.nextSibling;
+        // The region must be a single text node.
         if (node !== end.previousSibling || node.nodeType !== Node.TEXT_NODE) return false;
+
         node.nodeValue = toText(value);
         this.content = value;
         return true;
@@ -496,9 +515,11 @@ class InterpolationSlot extends Slot {
      */
     canUpdateItems(value) {
         const items = this.content;
+        // Both renders are one template repeated, and the same one.
         if (this.strategy !== LIST_UNIFORM || !Array.isArray(value)) return false;
         if (classifyList(this.partial, value) !== LIST_UNIFORM) return false;
         if (value[0].constructor !== items[0].constructor) return false;
+        // A shorter list needs the node where its dropped items begin.
         return value.length >= items.length || !!items[value.length].firstNode();
     }
 
@@ -517,6 +538,7 @@ class InterpolationSlot extends Slot {
     updateItems(value) {
         const items = this.content;
         const overlap = Math.min(items.length, value.length);
+        // Patch the items both renders hold, in place.
         for (let i = 0; i < overlap; i++) items[i].update(value[i].expressions);
         // The retained items are the live ones; the candidates that matched them are
         // read for their expressions and discarded. A list of the same length keeps
@@ -539,8 +561,10 @@ class InterpolationSlot extends Slot {
      */
     appendItems(items) {
         const pass = this.makePass();
+        // Render the new items and index them before they are inserted.
         const fragment = parseHTML(items.map(item => this.renderValue(item, pass)).join(''));
         pass.index = new HydrationIndex(fragment);
+        // Insert them before the end marker, then attach what they hold.
         const end = this.ref[1];
         end.parentNode.insertBefore(fragment, end);
         this.hydrateValue(items, pass.index, pass);
@@ -555,6 +579,7 @@ class InterpolationSlot extends Slot {
      */
     dropItems(first) {
         const end = this.ref[1];
+        // From the first dropped item up to, but not including, the end marker.
         const range = document.createRange();
         range.setStartBefore(first.firstNode());
         range.setEndBefore(end);
@@ -594,6 +619,7 @@ class InterpolationSlot extends Slot {
         // previous children: the walk moves them instead of rewriting the region.
         else if (pass.placed && pass.recycled.size) this.placeInOrder(fragment, pass, value);
         else this.placeBetweenMarkers(fragment, pass, value);
+        // Hand the recycled children their new props.
         this.finishPass(pass);
         // A recycled candidate is discarded in `finishPass`, so the slot remembers the
         // retained instance it matched instead: the next update reconciles against a
@@ -676,6 +702,7 @@ class InterpolationSlot extends Slot {
      */
     placeBetweenMarkers(fragment, pass, value) {
         const [start, end] = this.ref;
+        // Insert the new content.
         let divider;
         if (start.nextSibling === end) {
             // The slot is empty: insert directly before the end marker.
