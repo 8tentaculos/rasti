@@ -240,19 +240,22 @@ The unit of identity is the **partial**, by call site (`strings`). Each interpol
 
 Position inside a partial keeps an unkeyed component stable. A **key** identifies a child among the siblings of **that interpolation** — in practice, the items of a list. Keys are not a global namespace. A keyed child that moves to a different interpolation is created fresh.
 
-A partial cannot be keyed. A list item that should keep identity must **be** a component, directly or through transparent partials (they add no node of their own):
+A partial cannot be keyed, and every partial but a component tag is a **boundary**, with or without markup of its own: the components in its interpolations belong to its own slots, and the pool and keys of the list holding it never reach them. A list item that should keep identity must **be** a component — a component tag, which is the component itself, or a child an expression built:
 
 ```js
 // item is the component — recycled and reordered
 items.map(i => html`<${Row} key="${i.id}" />`)
 
-// item is a partial with markup — regenerated every time
+// item is a partial — Row belongs to it, and is recreated when the list reorders
 items.map(i => html`<li><${Row} key="${i.id}" /></li>`)
+items.map(i => html`${Row.mount({ key : i.id })}`)
 ```
+
+The items of a list are its value with nested arrays flattened (`flatten`, in `InterpolationSlot#evaluate`). A nested array is not a boundary: `groups.map(g => g.map(…))` is one list, whose components are siblings, keyed and placed like those of a flat list.
 
 What claims a previous child is a **candidate**. A component an expression built is one: it claims by its `key` or type, hands its props to the child it claims, and is destroyed. A component tag is one before any component exists: `ComponentSlot#evaluate` synthesizes only the options, which carry the `key`, and the slot builds the component (`tag.mount(options)`) only when nothing is claimed. A claimed tag builds nothing; its options become the retained child's props (`ComponentAdapter#reuseChild`, which splits them as the constructor does).
 
-Recycle **markers** (`<!--rst-r-${uid}-->`) are emitted only when a keyed child is claimed during regeneration of a **list**, so its nodes can be moved to the new position. Outside a list, retain-in-place or mount-anew; no placeholder.
+A list places the keyed children it claims in one of two ways. When the previous render and this one are both lists of components only, the slot's region holds nothing but their elements, so the regeneration **walks** the new order (`placeInOrder`): children arrive and leave, and only the ones out of place move, the longest run already in order staying put. Otherwise recycle **markers** (`<!--rst-r-${uid}-->`) are emitted for the claimed children, and each is moved onto its placeholder (`placeBetweenMarkers`). Outside a list, retain-in-place or mount-anew; no placeholder.
 
 The engine writes those markers and reads them back: the regeneration indexes its fresh fragment before inserting it, and that same index resolves the placeholder of every claimed child. The component is handed the node to replace and never searches for it.
 
@@ -262,8 +265,8 @@ These are different predicates. Do not collapse them.
 
 | Predicate         | Means                                                                 | Used for                                      |
 |-------------------|-----------------------------------------------------------------------|-----------------------------------------------|
-| `isTransparent()` | skeleton is exactly one interpolation, no markup                      | see-through for `collectChildren` / `rootElement` |
-| `isComponentTag()`| skeleton is exactly one component tag                                 | `partial\`<${Comp} />\`` ≡ mounting Comp      |
+| `isTransparent()` | skeleton is exactly one interpolation, no markup                      | `rootElement`; with `isRoot`, a container |
+| `isComponentTag()`| skeleton is exactly one component tag                                 | `partial\`<${Comp} />\`` ≡ mounting Comp; the one partial a list's pass reaches |
 | `isAnchored()`    | transparent **and** either a component's root partial or a component tag | no interpolation markers; stands on a component's element |
 
 Container is a property of a **component**. Transparency is a property of a partial's **shape**.
@@ -358,10 +361,11 @@ Warnings (lists without keyed components, duplicate keys, unsupported attribute 
 | **owner**       | Component whose template the partial comes from. Expressions and event listeners belong to it. |
 | **host**        | Component currently rendering the partial. Child components join its `children`. Same as owner except for slotted content. |
 | **container**   | A component whose root partial is transparent. `this.el` is the child's element. |
-| **transparent** | A partial that is a single interpolation with no markup. The engine sees through it. |
+| **transparent** | A partial that is a single interpolation with no markup. The engine sees through it to resolve an element, never to recycle. |
+| **boundary**    | Any partial but a component tag: the components in its interpolations belong to its own slots, out of reach of the list holding it. |
 | **anchored**    | A partial that stands on a component's element and writes no interpolation markers (container or lone component tag). |
 | **marker**      | HTML comment delimiting an interpolation (`rst-s-` / `rst-e-`), or a recycle placeholder (`rst-r-`). |
-| **pass**        | Reconcile context for one regeneration: previous keyed children, the order standing in the DOM, the keyed children and order being collected, the recycled children by the candidate each replaced, and the index of the content it rendered. |
+| **pass**        | Reconcile context for one slot's render, reaching only its own items and the component tags among them: previous keyed children, the order standing in the DOM, the keyed children and order being collected, the recycled children by the candidate each replaced, and the index of the content it rendered. |
 | **candidate**   | What claims a previous child in a render: a component an expression built, or the options of a component tag, which builds its component only when nothing is claimed. |
 | **index**       | `HydrationIndex`: snapshot of one render's nodes — elements in document order, comments by text — built before hydrating and shared by the subtree. |
 | **emission id** | `${uid}-${n}` assigned when an element or interpolation is first written out. Root element is `-1`. |

@@ -334,6 +334,8 @@ Rasti reuses component instances across renders to preserve state and improve pe
 - **Keyed**: matched by `key` attribute, within that interpolation — **required for arrays**, where unkeyed children are never recycled
 - **Unkeyed**: matched by type, in a slot that renders a single value (not an array)
 - A keyed component that moves to a **different interpolation** is recreated, not recycled — keys are not a global scope
+- A key identifies the **item itself**: write the component as the item. Inside another partial — `html\`<li><${Row} key="…" /></li>\`` or `html\`${Row.mount({ key })}\`` — it belongs to that partial and is recreated when the list reorders
+- Nested arrays are **one list**: `groups.map(g => g.map(item => html\`<${Row} key="${item.id}" />\`))` keys and moves its rows like a flat list
 
 **Rendering behavior:**
 - **Recreation** — no match found; constructor runs, `onHydrate` fires
@@ -690,7 +692,7 @@ Never annotate the parameter of an unquoted handler: its first argument is the e
 
 3. **Missing keys in arrays**: unkeyed components inside an array are never recycled — every render recreates them, losing their state. Key them by a stable identity.
 
-4. **Expecting a key to survive a move**: keys are matched within one interpolation. Rendering the same keyed component from a different interpolation recreates it; keep it in a single slot if its state must be preserved.
+4. **Expecting a key to survive a move**: keys are matched within one interpolation, among the items it holds directly. Rendering the same keyed component from a different interpolation, or inside a partial wrapped around the item, recreates it; keep it in a single slot, as the item itself, if its state must be preserved.
 
 5. **Swapping the root template**: `template()` must return the same template (and a single root element) on every render, or it throws `Root template changed`. Branch inside the interpolations instead. See [The Root Partial](#the-root-partial).
 

@@ -213,6 +213,8 @@ class List extends Component {
 
 Written as `Row.mount({ key : row.id, model : row })`, the same list would build a `Row` for every row on every update, only to keep the ones it already had. Prefer the tag; keep the expression for when the component has to be built by code, and keep `onCreate` free of side effects that outlive the instance either way.
 
+A key identifies the item itself, so the component has to be the item. Wrapped in another partial, ``this.html`<li><${Row} key="${row.id}" /></li>` ``, it belongs to that partial and is recreated when the list reorders. Nested arrays are one list: ``groups.map(group => group.map(row => this.html`<${Row} key="${row.id}" />`))`` keys and moves its rows like a flat one.
+
 ## Containers: returning a component
 
 If `template()` returns a single component, the component becomes a *container*: it renders that child and adopts the child's root element as its own `this.el`. This is convenient for wrapping or picking a component:

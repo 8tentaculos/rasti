@@ -334,9 +334,10 @@ When rendering child components, they can be either recreated or recycled:
 
   A `key` identifies a component among the siblings of its own interpolation, which is what lets the items
   of a list be reordered without recreating them: ``items.map(item => html`<${Row} key="${item.id}" />`)``
-  reuses the rows and moves them into place. A component wrapped in markup
-  (``html`<li><${Row} key="…" /></li>` ``) belongs to that partial instead, and is recreated with it
-  whenever the partial is regenerated. Development builds warn about it.
+  reuses the rows and moves them into place. Nested arrays are one list, so
+  ``groups.map(group => group.map(…))`` does the same with its rows. A component inside any other partial,
+  wrapped in markup (``html`<li><${Row} key="…" /></li>` ``) or not (``html`${Row.mount({ key : … })}` ``),
+  belongs to that partial instead, and is recreated when the list reorders. Development builds warn about it.
 
   When a component is recycled:
   - The `onBeforeRecycle` lifecycle method is called when recycling starts
