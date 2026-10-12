@@ -3084,7 +3084,7 @@ describe('Component', () => {
             expect(bAfter.map(li => li.textContent.trim())).to.deep.equal(['C2', 'A2', 'B2']);
         });
 
-        it('must recycle keyed components through nested arrays and transparent partials', () => {
+        it('must recycle keyed components through nested arrays of component tags', () => {
             const Row = Component.create`
                 <li data-id="${({ props }) => props.id}">${({ props }) => props.text}</li>
             `;
@@ -3149,10 +3149,10 @@ describe('Component', () => {
             expect(cardAfter).not.to.be.equal(cardBefore);
         });
 
-        // A transparent partial contributes no node of its own, so the list it holds is
-        // part of the list holding it: the children are collected by both, and whichever
-        // of the two regenerates reconciles against the same ones.
-        it('must recycle keyed components through a transparent partial holding a list', () => {
+        // Every partial but a component tag is a boundary, with or without markup of its
+        // own: the list a transparent partial holds is its own, so its rows are recycled
+        // within it and built again when they move to another one.
+        it('must keep keyed components local to the transparent partial holding their list', () => {
             const Row = Component.create`<b>${({ props }) => props.text}</b>`;
             const Main = Component.create`
                 <ul>${({ model, partial }) => model.groups.map(group => partial`${group.map(item =>
@@ -3167,23 +3167,34 @@ describe('Component', () => {
 
             const before = Array.from(Main.el.querySelectorAll('b'));
 
-            // Regroup and reorder: the rows keep their identity across both lists.
+            // Reorder within each group: the rows keep their identity.
             Main.model.groups = [
-                [{ id : 'c', text : 'C2' }],
-                [{ id : 'a', text : 'A2' }, { id : 'b', text : 'B2' }]
+                [{ id : 'b', text : 'B2' }, { id : 'a', text : 'A2' }],
+                [{ id : 'c', text : 'C2' }]
             ];
 
-            const after = Array.from(Main.el.querySelectorAll('b'));
-            expect(after[0]).to.be.equal(before[2]);
-            expect(after[1]).to.be.equal(before[0]);
-            expect(after[2]).to.be.equal(before[1]);
-            expect(after.map(el => el.textContent.trim())).to.deep.equal(['C2', 'A2', 'B2']);
+            const reordered = Array.from(Main.el.querySelectorAll('b'));
+            expect(reordered.map(el => el.textContent.trim())).to.deep.equal(['B2', 'A2', 'C2']);
+            expect(reordered[0]).to.be.equal(before[1]);
+            expect(reordered[1]).to.be.equal(before[0]);
+            expect(reordered[2]).to.be.equal(before[2]);
+
+            // Regroup: a row that moves to another group is built again.
+            Main.model.groups = [
+                [{ id : 'c', text : 'C3' }],
+                [{ id : 'a', text : 'A3' }, { id : 'b', text : 'B3' }]
+            ];
+
+            const regrouped = Array.from(Main.el.querySelectorAll('b'));
+            expect(regrouped.map(el => el.textContent.trim())).to.deep.equal(['C3', 'A3', 'B3']);
+            regrouped.forEach(el => expect(before).to.not.include(el));
+            expect(Main.children).to.have.lengthOf(3);
         });
 
         // A list of components placed by walking it may become a list nested under a
-        // transparent partial. The nested list cannot be walked, so its claimed children
-        // must stand on placeholders, and the slot must place them between its markers.
-        describe('must recycle keyed components when a list of components becomes nested under a transparent partial', () => {
+        // transparent partial, which is a boundary: the rows are built again inside it,
+        // and the slot places them between its markers.
+        describe('must recreate keyed components when a list of components becomes nested under a transparent partial', () => {
             const Row = Component.create`<b>${({ props }) => props.text}</b>`;
             const rows = (partial, items) => items.map(item => partial`<${Row} key="${item.id}" text="${item.text}" />`);
             const shapes = {
@@ -3207,8 +3218,8 @@ describe('Component', () => {
 
                     const after = Array.from(Main.el.querySelectorAll('b'));
                     expect(after.map(el => el.textContent.trim())).to.deep.equal(['B2', 'A2']);
-                    expect(after[0]).to.be.equal(before[1]);
-                    expect(after[1]).to.be.equal(before[0]);
+                    after.forEach(el => expect(before).to.not.include(el));
+                    expect(Main.children).to.have.lengthOf(2);
                     Main.children.forEach(child => expect(Main.el.contains(child.el)).to.be.true);
                 });
             });
@@ -3239,7 +3250,9 @@ describe('Component', () => {
             expect(Main.children[0].destroyed).to.not.be.true;
         });
 
-        it('must keep updating a keyed component recycled from a list into a transparent partial', () => {
+        // A transparent partial is a boundary: a keyed component that moves into one from
+        // a list is built again there, and from then on is recycled in place inside it.
+        it('must recreate a keyed component that moves from a list into a transparent partial', () => {
             const Row = Component.create`<b>${({ props }) => props.text}</b>`;
             const Main = Component.create`
                 <div>${({ model, partial }) => model.solo
@@ -3252,10 +3265,11 @@ describe('Component', () => {
             const before = Main.el.querySelector('b');
 
             Main.model.solo = true;
-            expect(Main.el.querySelector('b')).to.be.equal(before);
+            const solo = Main.el.querySelector('b');
+            expect(solo).to.not.be.equal(before);
 
             Main.model.text = 'solo2';
-            expect(Main.el.querySelector('b')).to.be.equal(before);
+            expect(Main.el.querySelector('b')).to.be.equal(solo);
             expect(Main.el.textContent.trim()).to.be.equal('solo2');
             expect(Main.children).to.have.lengthOf(1);
             expect(Main.children[0].destroyed).to.not.be.true;
@@ -3577,7 +3591,31 @@ describe('Component', () => {
             `.mount({ model : new Model({ items : ['a', 'b'] }) }, document.body);
 
             expect(warnings.length).to.be.equal(1);
-            expect(warnings[0]).to.contain('Key under markup in a list item');
+            expect(warnings[0]).to.contain('Key inside a partial in a list item');
+        });
+
+        it('must warn when the key of a list item sits inside a transparent partial', () => {
+            Component.create`
+                <ul>${({ model, partial }) => model.items.map(item =>
+        partial`${Row.mount({ key : item, text : item })}`)}</ul>
+            `.mount({ model : new Model({ items : ['a', 'b'] }) }, document.body);
+
+            expect(warnings.length).to.be.equal(1);
+            expect(warnings[0]).to.contain('Key inside a partial in a list item');
+        });
+
+        it('must not warn for a keyed list nested inside a list item', () => {
+            Component.create`
+                <div>${({ model, partial }) => model.sections.map(section =>
+        partial`<section>${section.map(item => partial`<${Row} key="${item}" text="${item}" />`)}</section>`)}</div>
+            `.mount({ model : new Model({ sections : [['a', 'b'], ['c']] }) }, document.body);
+
+            Component.create`
+                <div>${({ model, partial }) => model.sections.map(section =>
+        partial`${section.map(item => partial`<${Row} key="${item}" text="${item}" />`)}`)}</div>
+            `.mount({ model : new Model({ sections : [['a', 'b'], ['c']] }) }, document.body);
+
+            expect(warnings).to.be.empty;
         });
 
         it('must warn when two list items share a key', () => {

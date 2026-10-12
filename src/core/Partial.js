@@ -110,8 +110,7 @@ class Partial {
      * Tell whether the template is a single interpolation with no surrounding markup,
      * so the partial contributes no node of its own: whatever its interpolation
      * resolves to lands directly where the partial was written. The engine sees
-     * through it when collecting the children a value mounted, and when resolving the
-     * element a value stands on.
+     * through it when resolving the element a value stands on.
      * @return {boolean} True if the partial adds no markup of its own.
      */
     isTransparent() {
@@ -152,10 +151,10 @@ class Partial {
      * The render context travels here as the optional `pass`, invisible to a plain
      * coercion, and never crosses a component: a child component renders with its
      * own handlers (see `Component#toString`).
-     * @param {ReconcilePass} [pass] Reconcile pass threaded through nested partials during
-     *     an update, so child components rendered anywhere in the subtree are
-     *     matched against the owning slot's previous occupants. Absent on a plain
-     *     first render.
+     * @param {ReconcilePass} [pass] Reconcile pass of the slot regenerating around a
+     *     component tag, so the component it renders is matched against that slot's
+     *     previous occupants. Absent for every other partial, which renders its own
+     *     slots as on a first render.
      * @return {string} The rendered HTML.
      */
     toString(pass) {
@@ -186,13 +185,10 @@ class Partial {
      * it.
      * @param {HydrationIndex} index The hydration's node index, shared by the whole
      *     subtree.
-     * @param {ReconcilePass} [pass] The reconcile pass the hydration runs under, which
-     *     tells the children this render mounted from the ones it claimed. Absent on a
-     *     brand-new subtree, where every child is mounted anew.
      */
-    hydrate(index, pass) {
+    hydrate(index) {
         const { slots } = this;
-        for (let i = 0; i < slots.length; i++) slots[i].hydrate(index, pass);
+        for (let i = 0; i < slots.length; i++) slots[i].hydrate(index);
     }
 
     /**

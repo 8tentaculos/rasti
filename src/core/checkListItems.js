@@ -1,4 +1,3 @@
-import unwrap from './unwrap.js';
 import warnTemplate from './warnTemplate.js';
 
 /**
@@ -15,15 +14,16 @@ const warn = (slot, message) => {
 };
 
 /**
- * Tell whether a value holds a keyed component somewhere under a partial's markup,
- * without crossing into a component of its own. Development only.
+ * Tell whether a value holds a keyed component somewhere inside a partial, without
+ * crossing into a component or a list of its own. A list inside the partial is a list
+ * in its own right, whose keys identify its items there and which checks them itself.
+ * Development only.
  * @param {Partial} partial The partial holding the list.
  * @param {any} value The value to search.
- * @return {boolean} True if a keyed component is held under markup.
+ * @return {boolean} True if a keyed component is held inside a partial.
  * @private
  */
 const holdsKeyedChild = (partial, value) => {
-    if (Array.isArray(value)) return value.some(item => holdsKeyedChild(partial, item));
     if (partial.owner.isChild(value)) return value.key != null;
     if (!partial.isPartial(value) || !value.slots) return false;
     return value.slots.some(slot => holdsKeyedChild(partial, slot.content));
@@ -33,8 +33,9 @@ const holdsKeyedChild = (partial, value) => {
  * Warn about the keys of a list. A list is the one place where a component changes
  * position among its siblings, and a key is what identifies it there: one without a
  * key is built again on every update, two sharing a key cannot both be recycled, and
- * a key written under markup identifies nothing, because the markup around it is a
- * boundary and the component belongs to the item holding it.
+ * a key written inside a partial identifies nothing, because the partial around it is
+ * a boundary and the component belongs to the item holding it. A component tag is not
+ * around a component: it is the component.
  *
  * A list of markup carries no keys at all: its items have no identity and are updated
  * where they stand, which is a shape of its own and not a mistake. Plain values are
@@ -50,14 +51,15 @@ const checkListItems = (slot, items) => {
     const keys = new Set();
     let unkeyed = false;
     let duplicated = null;
-    let underMarkup = false;
+    let insidePartial = false;
     const visit = value => {
         if (Array.isArray(value)) return value.forEach(visit);
         // Anything that is not a partial or a child renders as content, not as
         // something with an identity of its own.
         if (!partial.isPartial(value) && !partial.owner.isChild(value)) return;
-        const child = unwrap(partial, value);
-        if (!partial.owner.isChild(child)) underMarkup = underMarkup || holdsKeyedChild(partial, child);
+        // Checked after rendering, so a component tag already holds its component.
+        const child = partial.isPartial(value) && value.isComponentTag() ? value.slots[0].content : value;
+        if (!partial.owner.isChild(child)) insidePartial = insidePartial || holdsKeyedChild(partial, child);
         else if (child.key == null) unkeyed = true;
         else if (keys.has(child.key)) duplicated = child.key;
         else keys.add(child.key);
@@ -76,9 +78,9 @@ const checkListItems = (slot, items) => {
         'Keys identify an item among its siblings, so two items sharing one cannot\n' +
         'both be recycled. Give each item a key of its own.'
     );
-    else if (underMarkup) warn(slot,
-        'Key under markup in a list item\n' +
-        'Markup around a component is a boundary: the component belongs to the item that\n' +
+    else if (insidePartial) warn(slot,
+        'Key inside a partial in a list item\n' +
+        'A partial around a component is a boundary: the component belongs to the item that\n' +
         'holds it, not to the list, so a key written there identifies nothing among the\n' +
         'list\'s siblings. Put the component in the list itself:\n' +
         '\n' +

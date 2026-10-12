@@ -14,19 +14,20 @@ import Constants from './Constants.js';
 import __DEV__ from '../utils/dev.js';
 
 /**
- * The context of one reconcile pass, created by the slot that regenerates and threaded
- * through every partial the render descends into (see `Partial#toString`). It carries
- * what the previous render left, what this one is collecting, and what the placement
- * that follows will need.
+ * The context of one reconcile pass, created by the slot that renders and reaching
+ * only the children its value holds directly, and the component tags among them (see
+ * `renderValue`): every other partial is a boundary, whose children belong to its own
+ * slots. It carries what the previous render left, what this one is collecting, and
+ * what the placement that follows will need.
  * @typedef {object} ReconcilePass
  * @property {Map<any, object>|null} previous The pool of claimable children, by key,
  *     left by the slot's previous render.
- * @property {Map<any, object>|null} keyed The innermost list collecting this render's
- *     keyed children; swapped as lists open and close (see `render`).
+ * @property {Map<any, object>|null} keyed The slot's list, collecting this render's
+ *     keyed children (see `render`); null when the value is not a list.
  * @property {Array<object>|null} placed The children the previous render left standing
  *     between the slot's markers, in document order, when this render places them by
  *     walking the list (see `regenerate`); null otherwise.
- * @property {Array<object>|null} order The children the innermost list resolves, in the
+ * @property {Array<object>|null} order The children the slot's list resolves, in the
  *     order this render puts them in.
  * @property {Map<object, object>} recycled The previous children this render claimed, by
  *     the candidate each replaced. A child this render mounts anew is the complement:
@@ -103,8 +104,8 @@ const LIST_OTHER = 'other';
  * Classify a list by the shape of its items, in one walk. It is a question about the
  * shape alone, answered before any item renders, which is what lets the slot decide
  * how to reconcile before it evaluates anything: an item stands for a component when
- * it is a mounted child or a component tag, and a transparent partial, which only
- * answers once evaluated, is left out of both shapes. An empty list holds no content
+ * it is a mounted child or a component tag. One component tag repeated is both, and
+ * is taken as components: its items have an identity. An empty list holds no content
  * of its own and is taken as components.
  * @param {Partial} partial The partial holding the list.
  * @param {Array<any>} items The list.
@@ -114,11 +115,7 @@ const LIST_OTHER = 'other';
 const classifyList = (partial, items) => {
     const ItemClass = items.length ? items[0].constructor : null;
     let components = true;
-    // A transparent item stands for whatever its interpolation holds, and the
-    // components under it belong to the list holding it rather than to the item (see
-    // `renderValue`), so patching it by position would cut them off from the pool they
-    // are claimed through.
-    let uniform = items.length > 0 && partial.isPartial(items[0]) && !items[0].isTransparent();
+    let uniform = items.length > 0 && partial.isPartial(items[0]);
     for (let i = 0; i < items.length; i++) {
         const item = items[i];
         const isPartial = partial.isPartial(item);
@@ -201,17 +198,17 @@ class InterpolationSlot extends Slot {
      * Render the interpolation: its value wrapped between comment markers, except when
      * the slot is anchored, in which case it is marker-less and stands on an element.
      * Records the value as the slot's occupant for the next render's reconciliation.
-     * @param {ReconcilePass} [pass] Reconcile pass (see `Partial#toString`).
      * @return {string} The rendered HTML.
      */
-    toString(pass) {
+    toString() {
         const { partial } = this;
         if (this.id == null && !this.isAnchored()) this.id = partial.owner.nextMarkerId();
         const value = this.evaluate();
         this.content = value;
-        // A first render carries no pass of its own; a list opens one, to collect the
-        // keyed children it mounts (see `render`).
-        const rendered = this.render(value, pass || (Array.isArray(value) ? this.makePass() : null));
+        // The pass of a slot regenerating stops at the partial holding this one (see
+        // `renderValue`), so this is a first render: a list opens a pass of its own, to
+        // collect the keyed children it mounts (see `render`).
+        const rendered = this.render(value, Array.isArray(value) ? this.makePass() : null);
         // Checked after rendering, once a nested partial has resolved its own content.
         if (__DEV__ && this.isAnchored()) checkAnchoredContent(this, value);
         if (this.isAnchored()) return rendered;
@@ -241,24 +238,12 @@ class InterpolationSlot extends Slot {
             return this.renderValue(value, pass);
         }
         this.strategy = classifyList(this.partial, value);
-        // The pass carries the list that is collecting right now, so a nested list
-        // takes over while it renders and gives the enclosing one back when it closes.
-        const outerKeyed = pass.keyed;
-        const outerOrder = pass.order;
+        // What the render collects is what the slot holds from here on.
         pass.keyed = this.keyed;
         // Positions are only worth collecting for a list of components: it is the one
         // shape whose children are placed by walking them (see `placeInOrder`).
-        pass.order = this.strategy === LIST_COMPONENTS ? [] : null;
-        const rendered = this.renderValue(value, pass);
-        // What the render collected is what the slot now holds.
-        this.order = pass.order;
-        // An enclosing list holds the same children, one level up, so it takes them
-        // once the nested one is closed: whichever of the two regenerates reconciles
-        // against the same children.
-        if (outerKeyed) this.keyed.forEach((child, key) => outerKeyed.set(key, child));
-        pass.keyed = outerKeyed;
-        pass.order = outerOrder;
-        return rendered;
+        this.order = pass.order = this.strategy === LIST_COMPONENTS ? [] : null;
+        return this.renderValue(value, pass);
     }
 
     /**
@@ -287,18 +272,10 @@ class InterpolationSlot extends Slot {
         if (this.partial.isPartial(value)) {
             // A nested partial renders under the same host as the partial holding it.
             value.host = host;
-            if (!pass || value.isTransparent()) return value.toString(pass);
-            // A partial that contributes markup of its own holds its children in its
-            // own interpolations, where they are local: the list being collected
-            // neither reaches them nor lends them its own, and only what lands directly
-            // in it keeps an identity there. The pass itself still descends: whatever
-            // the markup mounts is part of the fragment being placed.
-            const { previous, keyed } = pass;
-            pass.previous = pass.keyed = null;
-            const rendered = value.toString(pass);
-            pass.previous = previous;
-            pass.keyed = keyed;
-            return rendered;
+            // A component tag is the component it renders, so it claims and is collected
+            // like one. Every other partial is a boundary: its children belong to its own
+            // slots, where the slot's pool neither reaches them nor lends them its own.
+            return pass && value.isComponentTag() ? value.toString(pass) : value.toString();
         }
 
         if (owner.isChild(value)) {
@@ -353,7 +330,7 @@ class InterpolationSlot extends Slot {
      * Claim a recyclable previous occupant for a candidate child: the one the slot held
      * under the candidate's key, taken out of the pool so no other candidate claims it
      * again. Claiming is slot-local: the pool only holds this slot's own previous
-     * occupants, and is out of reach inside a partial that contributes markup, whose
+     * occupants, and is out of reach inside any partial but a component tag, whose
      * children are local to it (see `renderValue`).
      * @param {object} candidate The candidate: a child component, or the options a
      *     component tag would mount one with. Either carries the key it claims by.
@@ -386,17 +363,12 @@ class InterpolationSlot extends Slot {
      * Resolve the slot's comment markers and recurse into its occupant. An anchored
      * slot writes no markers, so there is nothing to locate.
      * @param {HydrationIndex} index The hydration's node index.
-     * @param {ReconcilePass} [pass] The reconcile pass (see `Partial#hydrate`).
      */
-    hydrate(index, pass) {
+    hydrate(index) {
         if (!this.isAnchored()) {
             this.ref = [index.comment(Constants.MARKER_START(this.id)), index.comment(Constants.MARKER_END(this.id))];
         }
-        this.hydrateValue(this.content, index, pass);
-        // A recycled candidate is discarded once the pass finishes, so a slot nested
-        // under the one regenerating keeps the retained instance it matched instead.
-        const retained = pass && pass.recycled.get(this.content);
-        if (retained) this.content = retained;
+        this.hydrateValue(this.content, index);
     }
 
     /**
@@ -411,13 +383,15 @@ class InterpolationSlot extends Slot {
      * having been written out by it.
      * @param {any} value The value to hydrate.
      * @param {HydrationIndex} index The hydration's node index.
-     * @param {ReconcilePass} [pass] The reconcile pass (see `Partial#hydrate`).
+     * @param {ReconcilePass} [pass] The reconcile pass the slot rendered the value
+     *     under, which tells the children it claimed. Absent when every child was
+     *     mounted anew.
      * @private
      */
     hydrateValue(value, index, pass) {
         const { owner } = this.partial;
         if (this.partial.isPartial(value)) {
-            value.hydrate(index, pass);
+            value.hydrate(index);
         } else if (Array.isArray(value)) {
             for (let i = 0; i < value.length; i++) this.hydrateValue(value[i], index, pass);
         } else if (owner.isChild(value) && !(pass && pass.recycled.has(value))) {
@@ -600,8 +574,7 @@ class InterpolationSlot extends Slot {
         // that order, so a render that resolves to a list of components again keeps
         // them where they are instead of rendering them back into position. Decided
         // here, from the list's shape, before anything renders: every child the render
-        // claims reads it to know whether to write a placeholder, and a list nested
-        // under a transparent partial is placed between the markers like any other.
+        // claims reads it to know whether to write a placeholder.
         const walks = this.order && Array.isArray(value) && classifyList(this.partial, value) === LIST_COMPONENTS;
         pass.placed = walks ? this.order : null;
         // Renders the new value, which replaces `this.keyed` and `this.order` with what
@@ -759,9 +732,9 @@ class InterpolationSlot extends Slot {
     /**
      * Build a reconcile pass around a pool of claimable children, the keyed ones the
      * slot collected on its previous render. The pool belongs to the slot doing the
-     * regenerating, and every keyed child under it claims from it, however deep;
-     * collecting is per list instead (see `render`). Null where there is nothing to
-     * claim: a first render, or a slot whose previous occupant was not a list.
+     * regenerating, and only the children its value holds directly claim from it (see
+     * `renderValue`). Null where there is nothing to claim: a first render, or a slot
+     * whose previous occupant was not a list.
      * @param {Map<any, object>} [previous] The keyed children of the previous render.
      * @return {ReconcilePass} The reconcile pass.
      * @private
