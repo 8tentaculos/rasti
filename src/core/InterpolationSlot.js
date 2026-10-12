@@ -17,8 +17,8 @@ import __DEV__ from '../utils/dev.js';
 /**
  * The context of one reconcile pass, created by the slot that renders and reaching
  * only the children its value holds directly, and the component tags among them (see
- * `renderValue`): every other partial is a boundary, whose children belong to its own
- * slots. It carries what the previous render left, what this one is collecting, and
+ * `renderValue`): every other partial owns a region of its own and is a boundary,
+ * whose children belong to its own slots. It carries what the previous render left, what this one is collecting, and
  * what the placement that follows will need.
  * @typedef {object} ReconcilePass
  * @property {Map<any, object>|null} previous The pool of claimable children, by key,
@@ -273,9 +273,10 @@ class InterpolationSlot extends Slot {
         if (this.partial.isPartial(value)) {
             // A nested partial renders under the same host as the partial holding it.
             value.host = host;
-            // A component tag is the component it renders, so it claims and is collected
-            // like one. Every other partial is a boundary: its children belong to its own
-            // slots, where the slot's pool neither reaches them nor lends them its own.
+            // A component tag is anchored: it owns no region and stands for the component
+            // it renders, so it claims and is collected like one. Every other partial owns
+            // the region between its markers and is a boundary: its children belong to its
+            // own slots, where the slot's pool neither reaches them nor lends them its own.
             return pass && value.isComponentTag() ? value.toString(pass) : value.toString();
         }
 

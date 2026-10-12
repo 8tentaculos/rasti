@@ -240,7 +240,9 @@ The unit of identity is the **partial**, by call site (`strings`). Each interpol
 
 Position inside a partial keeps an unkeyed component stable. A **key** identifies a child among the siblings of **that interpolation** — in practice, the items of a list. Keys are not a global namespace. A keyed child that moves to a different interpolation is created fresh.
 
-A partial cannot be keyed, and every partial but a component tag is a **boundary**, with or without markup of its own: the components in its interpolations belong to its own slots, and the pool and keys of the list holding it never reach them. A list item that should keep identity must **be** a component — a component tag, which is the component itself, or a child an expression built:
+A partial cannot be keyed. Identity belongs to components, and a list item has one when it **is** a component: a child an expression built (`mount`, `new`), or a component tag, which describes one.
+
+What separates a tag from every other partial is the region. A partial that writes markers owns a region of the DOM, reconciled by its own slots, so it is a **boundary**: the components in its interpolations belong to it, and the pool and keys of the list holding it never reach them. Markup makes no difference: a transparent partial (`${x}`) writes markers too, and what it resolves to can change from one render to the next. A lone component tag is anchored: it owns no region, stands on its component's element, and is known to be a component from its skeleton alone, before anything is evaluated. That is what lets a list be classified before it renders, and a previous child be claimed for a tag without building a new one (see candidates below).
 
 ```js
 // item is the component — recycled and reordered
@@ -362,7 +364,7 @@ Warnings (lists without keyed components, duplicate keys, unsupported attribute 
 | **host**        | Component currently rendering the partial. Child components join its `children`. Same as owner except for slotted content. |
 | **container**   | A component whose root partial is transparent. `this.el` is the child's element. |
 | **transparent** | A partial that is a single interpolation with no markup. The engine sees through it to resolve an element, never to recycle. |
-| **boundary**    | Any partial but a component tag: the components in its interpolations belong to its own slots, out of reach of the list holding it. |
+| **boundary**    | A partial that owns a region (writes markers), with or without markup: the components in its interpolations belong to its own slots, out of reach of the list holding it. Every nested partial but a lone component tag, which is anchored. |
 | **anchored**    | A partial that stands on a component's element and writes no interpolation markers (container or lone component tag). |
 | **marker**      | HTML comment delimiting an interpolation (`rst-s-` / `rst-e-`), or a recycle placeholder (`rst-r-`). |
 | **pass**        | Reconcile context for one slot's render, reaching only its own items and the component tags among them: previous keyed children, the order standing in the DOM, the keyed children and order being collected, the recycled children by the candidate each replaced, and the index of the content it rendered. |
