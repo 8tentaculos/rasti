@@ -24,7 +24,8 @@ import __DEV__ from '../utils/dev.js';
  * @property {Map<any, object>|null} keyed The innermost list collecting this render's
  *     keyed children; swapped as lists open and close (see `render`).
  * @property {Array<object>|null} placed The children the previous render left standing
- *     between the slot's markers, in document order.
+ *     between the slot's markers, in document order, when this render places them by
+ *     walking the list (see `regenerate`); null otherwise.
  * @property {Array<object>|null} order The children the innermost list resolves, in the
  *     order this render puts them in.
  * @property {Map<object, object>} recycled The previous children this render claimed, by
@@ -342,10 +343,9 @@ class InterpolationSlot extends Slot {
         this.partial.host.addChild(found);
         pass.recycled.set(candidate, found);
         this.recordKeyed(pass, found.key, found);
-        // A child the slot places itself is already standing where the walk will find
-        // it, so it writes no placeholder to be replaced. Both orders are needed: the
-        // one standing in the DOM and the one this render is collecting.
-        if (pass.placed && pass.order) return '';
+        // A child the walk places is already standing where the walk will find it, so
+        // it writes no placeholder to be replaced.
+        if (pass.placed) return '';
         return `<!--${Constants.MARKER_RECYCLED(found.uid)}-->`;
     }
 
@@ -598,8 +598,12 @@ class InterpolationSlot extends Slot {
         const pass = this.makePass(this.keyed);
         // The children of a list the slot placed itself stand between its markers, in
         // that order, so a render that resolves to a list of components again keeps
-        // them where they are instead of rendering them back into position.
-        pass.placed = this.order;
+        // them where they are instead of rendering them back into position. Decided
+        // here, from the list's shape, before anything renders: every child the render
+        // claims reads it to know whether to write a placeholder, and a list nested
+        // under a transparent partial is placed between the markers like any other.
+        const walks = this.order && Array.isArray(value) && classifyList(this.partial, value) === LIST_COMPONENTS;
+        pass.placed = walks ? this.order : null;
         // Renders the new value, which replaces `this.keyed` and `this.order` with what
         // it collects: from here on `pass.placed` is the old order and `this.order` the
         // new one.
@@ -613,7 +617,7 @@ class InterpolationSlot extends Slot {
         if (this.isAnchored()) this.placeAnchored(fragment, pass, value);
         // Both renders resolved to a list of components and this one kept some of the
         // previous children: the walk moves them instead of rewriting the region.
-        else if (pass.placed && this.order && pass.recycled.size) this.placeInOrder(fragment, pass, value);
+        else if (pass.placed && pass.recycled.size) this.placeInOrder(fragment, pass, value);
         else this.placeBetweenMarkers(fragment, pass, value);
         this.finishPass(pass);
         // A recycled candidate is discarded in `finishPass`, so the slot remembers the

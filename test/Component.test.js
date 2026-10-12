@@ -3180,6 +3180,40 @@ describe('Component', () => {
             expect(after.map(el => el.textContent.trim())).to.deep.equal(['C2', 'A2', 'B2']);
         });
 
+        // A list of components placed by walking it may become a list nested under a
+        // transparent partial. The nested list cannot be walked, so its claimed children
+        // must stand on placeholders, and the slot must place them between its markers.
+        describe('must recycle keyed components when a list of components becomes nested under a transparent partial', () => {
+            const Row = Component.create`<b>${({ props }) => props.text}</b>`;
+            const rows = (partial, items) => items.map(item => partial`<${Row} key="${item.id}" text="${item.text}" />`);
+            const shapes = {
+                'a transparent partial' : (partial, items) => partial`${rows(partial, items)}`,
+                'a list of transparent partials' : (partial, items) => [partial`${rows(partial, items)}`],
+                'a transparent partial of mounted components' : (partial, items) => partial`${items.map(item => Row.mount({ key : item.id, text : item.text }))}`
+            };
+
+            Object.keys(shapes).forEach(name => {
+                it(`into ${name}`, () => {
+                    const wrap = shapes[name];
+                    const Main = Component.create`
+                        <ul>${({ model, partial }) => model.nested ? wrap(partial, model.items) : rows(partial, model.items)}</ul>
+                    `.mount({
+        model : new Model({ nested : false, items : [{ id : 'a', text : 'A' }, { id : 'b', text : 'B' }] })
+    }, document.body);
+
+                    const before = Array.from(Main.el.querySelectorAll('b'));
+
+                    Main.model.set({ nested : true, items : [{ id : 'b', text : 'B2' }, { id : 'a', text : 'A2' }] });
+
+                    const after = Array.from(Main.el.querySelectorAll('b'));
+                    expect(after.map(el => el.textContent.trim())).to.deep.equal(['B2', 'A2']);
+                    expect(after[0]).to.be.equal(before[1]);
+                    expect(after[1]).to.be.equal(before[0]);
+                    Main.children.forEach(child => expect(Main.el.contains(child.el)).to.be.true);
+                });
+            });
+        });
+
         // A child claimed from the list's pool by a slot nested under the one that
         // regenerates must stay that slot's occupant, so the next update reconciles
         // against the live child and not against the discarded candidate.
