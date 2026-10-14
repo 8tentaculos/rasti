@@ -18,31 +18,31 @@ This has two consequences:
 - Parsing and DOM creation are delegated to the browser's own parser.
 - Server rendering, static builds and browser rendering all follow the same path.
 
-Underneath sits a small MVC core — **models**, **views** and **event emitters** — small enough to read when you need to know how something works. Templates are tagged literals, so there's no build step: drop in a `<script>` tag and start.
+Underneath sits a small MVC core — **models**, **views** and **event emitters** — small enough to read when you need to know how something works.
 
 [![CI](https://github.com/8tentaculos/rasti/actions/workflows/ci.yml/badge.svg)](https://github.com/8tentaculos/rasti/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/rasti.svg)](https://www.npmjs.com/package/rasti)
-[![npm package minimized gzipped size](https://img.shields.io/bundlejs/size/rasti)](https://unpkg.com/rasti/dist/rasti.min.js)
+[![npm package minimized gzipped size](https://img.shields.io/bundlejs/size/rasti)](https://unpkg.com/rasti/dist/rasti.esm.min.js)
 [![npm downloads](https://img.shields.io/npm/dm/rasti.svg)](https://www.npmjs.com/package/rasti)
 [![jsDelivr hits (npm)](https://img.shields.io/jsdelivr/npm/hm/rasti)](https://www.jsdelivr.com/package/npm/rasti)
 [![license](https://img.shields.io/npm/l/rasti.svg)](https://github.com/8tentaculos/rasti/blob/master/LICENSE)
 
 ## Key Features
 
-- **Components as tags**  
-  A component is used inside another template as a tag: `<${Link} href="${href}">${label}</${Link}>`, with props, children and a closing tag. No registry, no custom elements, no JSX.
+- **Template literals, components as tags**  
+  Templates are standard tagged template literals: no JSX, no compiler, no build step. A component is used inside another template as a tag, with props and children: `<${Link} href="${href}">${label}</${Link}>`. No registry, no custom elements.
 - **Handlers in the markup**  
-  `onClick=${function() { this.model.count++; }}` — handlers are written as attributes, run with `this` bound to the component, and are delegated from its root element, so an update never binds a listener to a node inside it, and a handler created anew on every render costs nothing.
+  Event handlers are written as attributes: `onClick=${() => this.increment()}`. They are delegated from the component's root element, so re-renders never bind listeners and an inline handler costs nothing.
 - **Updates in place**  
-  A change re-evaluates every interpolation and writes only what differs. Partials are retained by call site, child components by key or position, so no element is recreated to apply a change: focus, selection and input values persist.
+  When state changes, Rasti re-evaluates the template and writes only the values that differ. The DOM is patched, not rebuilt, so focus, selection and input values persist.
 - **State from anything that emits**  
-  `model`, `state` and `props` are subscribed automatically, and a change event fires only when a value really differs — nothing re-renders on a no-op set, including a child whose props resolved the same. `subscribe()` takes any object with `on`/`off`: a Backbone model, or a store of your own.
+  `model`, `state` and `props` are subscribed automatically, and a component re-renders only when a value actually changes, its children included. `subscribe()` accepts any object with `on`/`off`: a Backbone model, or a store of your own.
 - **Real DOM, no wrapper**  
   `render().el` is the element itself: no shadow DOM, no synthetic events, nothing between you and the node. Query it, style it, or hand it to another library.
 - **Server rendering and hydration**  
   Rendering is just `toString`: a component drops into any HTML string, anywhere JavaScript runs — ``const html = `<body>${new App({ model })}</body>` `` — and picks up the served markup in the browser without recreating it.
 - **Typed**  
-  TypeScript declarations ship with the package and resolve automatically.
+  TypeScript declarations ship with the package, covering components, models and template interpolations.
 
 ## Getting Started
 
@@ -56,28 +56,39 @@ $ npm install rasti
 import { Model, Component } from 'rasti';
 ```
 
-### Using ES modules via CDN
+### Using native ES modules
 
-```javascript
-import { Model, Component } from 'https://esm.run/rasti';
-```
-
-### Using a UMD build via CDN
-
-Include **Rasti** directly in your HTML using a CDN. Available UMD builds:
-
-- [rasti.js](https://cdn.jsdelivr.net/npm/rasti/dist/rasti.js)
-- [rasti.min.js](https://cdn.jsdelivr.net/npm/rasti/dist/rasti.min.js)
+No bundler needed: an import map points `rasti` to the ES module build, so imports read the same as with npm.
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/rasti"></script>
+<script type="importmap">
+    {
+        "imports": {
+            "rasti": "https://cdn.jsdelivr.net/npm/rasti/dist/rasti.esm.min.js"
+        }
+    }
+</script>
+
+<script type="module">
+    import { Model, Component } from 'rasti';
+</script>
 ```
 
-The UMD build exposes the `Rasti` global object:
+The import map can also point to a copy of the file served from your own site, or to `https://esm.run/rasti`. During development, use `rasti.esm.js` for development warnings and detailed error messages.
+
+### Using the UMD build
+
+For a classic `<script>` tag, the UMD build exposes the `Rasti` global object. It also loads as an AMD module, with RequireJS for example.
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/rasti/dist/rasti.umd.min.js"></script>
+```
 
 ```javascript
 const { Model, Component } = Rasti;
 ```
+
+The development build is `rasti.umd.js`.
 
 ### Create a `Component`
 
@@ -235,14 +246,11 @@ To scaffold a real-world project, use [`create-rasti`](#scaffolding-a-new-projec
 - [TypeScript](/docs/typescript.md) — typing components, models and template interpolations.
 - [API documentation](/docs/api.md) — every class, method and option.
 - [Architecture overview](/docs/architecture.md) — how the pieces fit together: components, the render engine, recycling and SSR.
+- [Reference for AI agents](/docs/AGENTS.md) — the API, patterns and best practices in one compact file, to give your coding agent as context.
 
 ## TypeScript
 
 **Rasti** ships with TypeScript declarations out of the box. The types are bundled in the package and resolved automatically. How to type components, models and template interpolations is in the [TypeScript guide](/docs/typescript.md).
-
-## Working with LLMs
-
-For those working with LLMs, there is an [AI Agents reference guide](/docs/AGENTS.md) that provides API patterns, lifecycle methods, and best practices, optimized for LLM context. You can share this guide with AI assistants to help them understand **Rasti**'s architecture and component APIs. The [architecture overview](/docs/architecture.md) is the companion document for how the engine works.
 
 ## Changelog
 
