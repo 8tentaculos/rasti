@@ -42,10 +42,46 @@ const config = [
             })
         ]
     },
+    // Single-file bundles, loaded directly by the browser (ESM through an import map,
+    // UMD through a script tag or an AMD loader). Each format ships a development
+    // build and a minified production build.
     {
         input : 'src/index.js',
         output : {
-            file : 'dist/rasti.js',
+            file : 'dist/rasti.esm.js',
+            format : 'esm',
+            sourcemap : true
+        },
+        plugins : [
+            replace({
+                'const __DEV__ = true;' : 'const __DEV__ = true;',
+                preventAssignment : true,
+                sourcemap : true
+            })
+        ]
+    },
+    {
+        input : 'src/index.js',
+        output : {
+            file : 'dist/rasti.esm.min.js',
+            format : 'esm',
+            sourcemap : true
+        },
+        plugins : [
+            replace({
+                'const __DEV__ = true;' : 'const __DEV__ = false;',
+                preventAssignment : true,
+                sourcemap : true
+            }),
+            terser({
+                sourceMap : true
+            })
+        ]
+    },
+    {
+        input : 'src/index.js',
+        output : {
+            file : 'dist/rasti.umd.js',
             format : 'umd',
             name : 'Rasti',
             sourcemap : true
@@ -61,7 +97,7 @@ const config = [
     {
         input : 'src/index.js',
         output : {
-            file : 'dist/rasti.min.js',
+            file : 'dist/rasti.umd.min.js',
             format : 'umd',
             name : 'Rasti',
             sourcemap : true

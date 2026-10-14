@@ -6,6 +6,8 @@
     "main": "lib/index.cjs",
     "module": "es/index.js",
     "types": "types/index.d.ts",
+    "jsdelivr": "dist/rasti.umd.min.js",
+    "unpkg": "dist/rasti.umd.min.js",
     "exports": {
         ".": {
             "types": "./types/index.d.ts",

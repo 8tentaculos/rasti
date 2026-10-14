@@ -326,15 +326,15 @@ Component.mount(options, el, true);
 
 `src/utils/dev.js` exports `__DEV__`, `true` in source. Builds replace that binding:
 
-| Build            | `__DEV__`                                      |
-|------------------|------------------------------------------------|
-| ESM / CJS        | `process.env.NODE_ENV !== 'production'`        |
-| UMD `rasti.js`   | `true`                                         |
-| UMD `rasti.min.js` | `false`, then terser                           |
+| Build                                          | `__DEV__`                               |
+|------------------------------------------------|-----------------------------------------|
+| ESM / CJS modules (`es`, `lib`)                | `process.env.NODE_ENV !== 'production'` |
+| Bundles `rasti.esm.js`, `rasti.umd.js`         | `true`                                  |
+| Bundles `rasti.esm.min.js`, `rasti.umd.min.js` | `false`, then terser                    |
 
 Terser drops what is left in dead position: `__DEV__ ? … : …`, `__DEV__ && …`, `if (__DEV__)`. Development strings must sit behind one of those forms, not behind a helper that would keep them alive. Component errors pass the long message as `__DEV__ && \`…\`` into a module-level throw helper so the min bundle keeps only the short production line.
 
-Warnings (lists without keyed components, duplicate keys, unsupported attribute forms) use `console.warn`, once per call site, and point at the interpolation in the template source when it is available. They are absent from `rasti.min.js`.
+Warnings (lists without keyed components, duplicate keys, unsupported attribute forms) use `console.warn`, once per call site, and point at the interpolation in the template source when it is available. They are absent from the minified bundles.
 
 ---
 

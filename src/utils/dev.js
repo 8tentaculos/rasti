@@ -1,9 +1,8 @@
 /**
  * Development mode flag.
  * This will be replaced during build:
- * - ESM/CJS: replaced with process.env.NODE_ENV !== 'production'
- * - UMD dev: replaced with true
- * - UMD prod: replaced with false
+ * - `es` and `lib` (ESM/CJS modules): replaced with process.env.NODE_ENV !== 'production'
+ * - `dist` bundles (ESM/UMD): replaced with true in the development build, false in the minified one
  * @type {boolean}
  * @module
  * @private
