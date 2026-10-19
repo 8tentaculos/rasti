@@ -36,9 +36,11 @@ All three render the same component, and an application can mix them: a parent d
 
 ### Which one to use
 
-**Write components as subclasses.** The template, the handlers it binds and the methods it calls sit together in one class body, interpolations are plain expressions read fresh on every render, instance fields are declared like in any class, and in TypeScript the whole template is checked with no annotations (see the [TypeScript guide](./typescript.md)).
+Pick the form that keeps the component easiest to read.
 
-**The tagged template is for simple components**: small and presentational, with little or no logic of their own, like a link or an icon. There it is the shortest to write. Once a component needs methods, state or several hooks, a subclass reads better than a tagged template followed by `.extend()`.
+**The tagged template suits simple presentational components**: few interpolations, each of which stays clean written as a function, like a link, an icon or a badge. There it is the shortest to write.
+
+**A subclass suits the rest.** When the component has methods, the template, the handlers it binds and the methods it calls sit together in one class body, which reads better than a tagged template followed by `.extend()`. When the template reads cleaner with plain values than with functions, a subclass interpolates them directly, read fresh on every render. And in TypeScript the whole template is checked with no annotations (see the [TypeScript guide](./typescript.md)).
 
 **The template function** sits between the two: its `template()` re-runs on every render like a subclass's, without declaring a class. It suits a container that picks the child it renders (see [Containers](#containers-returning-a-component)).
 
@@ -139,13 +141,37 @@ class Search extends Component {
 }
 ```
 
-On a component tag, `<${Button} onClick=${fn} />`, an `on*` attribute is not a DOM listener: it is a prop like any other, and the child decides what to do with it.
+An `on*` attribute binds a DOM event only on an element. On a component tag it is an option for the child, like any other attribute (see [Props and callbacks](#props-and-callbacks)).
+
+## Props and callbacks
+
+The attributes of a component tag are the child's options. A few belong to the component itself and are set on the instance: `key`, `model`, `state`, `template`, `el`, `tag`, `attributes`, `events`, and the lifecycle hooks `onCreate`, `onHydrate`, `onChange`, `onBeforeUpdate`, `onUpdate`, `onBeforeRecycle`, `onRecycle` and `onDestroy`. Every other option becomes a prop, in `this.props`. When the child is recycled, only its props are updated.
+
+A function passed as a prop is a callback, and the child decides what to do with it, usually calling it from one of its own event handlers, as `Search` does above with `handleQuery`. Name callback props `handle*`. The prefix sets them apart from DOM event handlers, and keeps them clear of the lifecycle hooks: an option named `onChange` is not a prop but the child's own hook, so `<${Input} onChange=${fn} />` makes `Input` call `fn` on its model changes instead of re-rendering, and leaves `this.props.onChange` undefined.
+
+## Lists
+
+An interpolation that returns an array renders a list, with nested arrays flattened into one. How it updates depends on whether its items have an identity of their own.
+
+**A list of markup**, partials from one call site, is updated by position: each item's DOM stays where it is and the new content is patched through it. It is the fastest way to update a list, and it takes no keys, since its items have no identity to declare. When the list reorders, the DOM at each position, focus and input value included, stays there and shows another item's content.
+
+**A list of components** keeps each item's instance. Each item is a component tag with a `key`, which identifies it among its siblings: the instance is recycled across renders and moves with its item when the list reorders, keeping its state and its DOM. Without a key, a component in a list is built again on every update, and development builds warn.
+
+```javascript
+// Markup: updated by position.
+${this.model.todos.map(todo => this.html`<li>${todo.title}</li>`)}
+
+// Components: keyed, recycled and moved with their item.
+${this.model.todos.map(todo => this.html`<${TodoItem} key="${todo.id}" model="${todo}" />`)}
+```
+
+Render the items as markup when they are only content, and as keyed components when they must keep their state, lifecycle or DOM across reorders. The key goes on the item itself (see [Component tags and built components](#component-tags-and-built-components)).
 
 ## Functions across renders
 
 In the subclass and function forms, every function written in `template()` is created anew on each render. In the tagged form, a function written directly in the template is created once, with the class, but one created inside an interpolation, such as a function returned by a quoted value or one written in a partial built in a `map`, is new on every render. That costs nothing for event handlers, and it can cost a render for props.
 
-**Event handlers** are not attached to the elements. Each render writes the component's handlers into a list it keeps, and a single listener per event type on its root element looks up the one to call. A new `onClick=${() => this.save()}` on every render binds nothing and touches no DOM: the next click runs the latest one. In a list updated by position, a list of items without keys, the handler goes with the content like the text and the attributes do: the element stays where it is, and its handler is the one of the item now rendered there.
+**Event handlers** are not attached to the elements. Each render writes the component's handlers into a list it keeps, and a single listener per event type on its root element looks up the one to call. A new `onClick=${() => this.save()}` on every render binds nothing and touches no DOM: the next click runs the latest one. In a [list of markup](#lists), which is updated by position, the handler goes with the content like the text and the attributes do: the element stays where it is, and its handler is the one of the item now rendered there.
 
 **Props** are compared with the previous render's by identity, and a child re-renders when one of them changed. A function, an object or an array created during the render is a new value each time, so the child re-renders whenever its parent does. Nothing breaks, it is only extra work; where it matters, in the rows of a large list or in an expensive child, pass something that keeps its identity, such as a class field:
 

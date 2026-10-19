@@ -208,7 +208,7 @@ Counter.mount({ model }, document.body);
 
 ### Writing components
 
-A component renders from its **`template()` method**, which returns a **partial** built with `this.html` (an alias of `this.partial`). Write it in a subclass, as `Main` and `Counter` do above: it is the recommended form. `Component.create` can also write it for you from a tagged template, the shortest form for simple components like `Timer` and `Link`, or from a template function. The three forms, how they differ and when to use each are in [Writing components](/docs/components.md).
+A component renders from its **`template()` method**, which returns a **partial** built with `this.html` (an alias of `this.partial`). Write it in a subclass, as `Main` and `Counter` do above, when the component has methods, reads better with plain values, or is written in TypeScript, where a subclass is typed with no annotations. `Component.create` can also write it for you from a tagged template, the shortest form for simple presentational components like `Timer` and `Link`, or from a template function. The three forms, how they differ and when to use each are in [Writing components](/docs/components.md).
 
 ## Scaffolding a New Project
 

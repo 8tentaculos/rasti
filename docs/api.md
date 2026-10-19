@@ -76,7 +76,7 @@ Components are a special kind of `View` that is designed to be easily composable
 making it simple to add child views and build complex user interfaces.
 Unlike views, which are render-agnostic, components have a specific set of rendering
 guidelines that allow for a more declarative development style.
-A component renders from its [template](#module_component__template) method, which returns a partial (built with [partial](#module_component__partial)) or a child component. Define it in a subclass, the recommended form, or let the [Component.create](#module_component_create) static method write it from a tagged template string, the shortest form for simple components, or from a template function.
+A component renders from its [template](#module_component__template) method, which returns a partial (built with [partial](#module_component__partial)) or a child component. Define it in a subclass, for components with methods, templates that read better with plain values, or TypeScript; or let the [Component.create](#module_component_create) static method write it from a tagged template string, the shortest form for simple presentational components, or from a template function.
 
 **Extends**: <code>View</code>  
 **See**: [Component.create](#module_component_create)  
@@ -560,8 +560,9 @@ Takes a tagged template string, or a template function, and returns a new `Compo
   receives `(event, component, matched)`, `matched` being the element that carries the
   attribute. Handlers are not bound to the elements: one listener per event type is
   delegated to the component's root element and looks the handler up on each event, so a
-  handler created anew on every render costs nothing. On a component tag, an `on*`
-  attribute is a prop for the child, not a DOM listener.
+  handler created anew on every render costs nothing. On a component tag, an attribute
+  is an option for the child, not a listener: name callback props `handle*`, since
+  lifecycle hook names such as `onChange` are options the component takes for itself.
   ```javascript
   const Counter = Component.create`
       <div>
