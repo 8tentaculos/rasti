@@ -378,4 +378,4 @@ Warnings (lists without keyed components, duplicate keys, unsupported attribute 
 ## Related
 
 - [api.md](./api.md) — public API, generated from JSDoc
-- [AGENTS.md](./AGENTS.md) — compact reference for authoring components
+- [Agent skill](../skills/rasti/SKILL.md) — compact reference for authoring components

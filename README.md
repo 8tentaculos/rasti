@@ -246,7 +246,7 @@ To scaffold a real-world project, use [`create-rasti`](#scaffolding-a-new-projec
 - [TypeScript](/docs/typescript.md) — typing components, models and template interpolations.
 - [API documentation](/docs/api.md) — every class, method and option.
 - [Architecture overview](/docs/architecture.md) — how the pieces fit together: components, the render engine, recycling and SSR.
-- [Reference for AI agents](/docs/AGENTS.md) — the API, patterns and best practices in one compact file, to give your coding agent as context.
+- [Agent skill](/skills/rasti/SKILL.md) — the API, patterns and best practices for coding agents. Install it with `npx skills add 8tentaculos/rasti`, or copy `node_modules/rasti/skills/rasti` into your agent's skills folder.
 
 ## TypeScript
 
