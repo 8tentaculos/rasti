@@ -104,12 +104,14 @@ const RE_ATTRIBUTE = new RegExp(
 
 /**
  * A tag's attributes region, quote-aware: a quoted value may hold `>` without
- * ending the tag. The inner alternation is non-capturing, so embedding it does not
- * shift the group numbering of the host regex.
+ * ending the tag. A bare character excludes quotes, so a quote always opens a
+ * quoted value and never pairs with another value's quote. The inner alternation
+ * is non-capturing, so embedding it does not shift the group numbering of the
+ * host regex.
  * @type {string}
  * @private
  */
-const ATTRIBUTES_PATTERN = '((?:"[^"]*"|\'[^\']*\'|[^>])*?)';
+const ATTRIBUTES_PATTERN = '((?:"[^"]*"|\'[^\']*\'|[^>"\'])*?)';
 
 /**
  * A component tag: self-closing (`<PH … />`) or non-void with a backreference

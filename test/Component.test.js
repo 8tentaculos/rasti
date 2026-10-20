@@ -195,6 +195,13 @@ describe('Component', () => {
             Component.create`<div id="test-node"><${Child} title="a > b" /></div>`.mount({}, document.body);
             expect(document.querySelector('#test-node span').textContent).to.be.equal('a > b');
         });
+
+        it('must expand a component tag with quoted attributes nested in another one', () => {
+            const Parent = Component.create`<div>${({ props }) => props.renderChildren()}</div>`;
+            const Child = Component.create`<span>${({ props }) => props.label}</span>`;
+            Component.create`<div id="test-node"><${Parent} a="1"><${Child} label="b" /></${Parent}></div>`.mount({}, document.body);
+            expect(document.querySelector('#test-node div span').textContent).to.be.equal('b');
+        });
     });
 
     describe('Mixed attribute values', () => {
