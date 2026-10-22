@@ -317,10 +317,6 @@ export default class Component extends View {
         }
         // Store options by default.
         this.options = options;
-        // Bind `partial` method to `this`.
-        this.partial = this.partial.bind(this);
-        // Expose `partial` as `html`, unless a subclass defines its own `html`.
-        if (!('html' in this)) this.html = this.partial;
         // Bind `onChange` method to `this`.
         this.onChange = this.onChange.bind(this);
         // Call lifecycle method.
@@ -392,7 +388,7 @@ export default class Component extends View {
     /**
      * Build what a render needs, once, on the first one: the props model, the listener
      * store, the queue of recycled children's props, the adapter the partials reach the
-     * component world through, and the root partial itself.
+     * component world through, the bound `partial` and `html`, and the root partial itself.
      *
      * None of it exists until then. A component that is built and discarded without
      * rendering — one an expression builds where the render recycles the previous child
@@ -410,6 +406,10 @@ export default class Component extends View {
         this.propsQueue = [];
         // Build the adapter shared by the root partial and every nested partial.
         this.adapter = new ComponentAdapter(this);
+        // Bind `partial` method to `this`, so templates can destructure it.
+        this.partial = this.partial.bind(this);
+        // Expose `partial` as `html`, unless a subclass defines its own `html`.
+        if (!('html' in this)) this.html = this.partial;
         // Build the root partial from the template and adopt it.
         this.rootPartial = this.buildRootPartial();
         if (__DEV__) checkRootStructure(this);
