@@ -12,20 +12,21 @@ export default function getAttributesDiff(attributes, previous = {}) {
     const remove = [];
     // Find attributes to add/update.
     for (const key in attributes) {
-        let value = attributes[key];
-        // Only add if the value is different from previous.
+        const value = attributes[key];
+        // Only add if the value is different from previous. `true` sets the attribute
+        // empty; `false`, `null` and `undefined` are removed below.
         if (value !== previous[key]) {
             if (value === true) {
                 add[key] = '';
-            } else if (value !== false) {
-                if (value === null || typeof value === 'undefined') value = '';
+            } else if (value !== false && value != null) {
                 add[key] = value;
             }
         }
     }
-    // Find attributes to remove.
+    // Find attributes to remove: gone, or changed to a value that leaves them out.
     for (const key in previous) {
-        if (!(key in attributes) || ((previous[key] !== attributes[key]) && attributes[key] === false)) {
+        const value = attributes[key];
+        if (!(key in attributes) || (previous[key] !== value && (value === false || value == null))) {
             remove.push(key);
         }
     }

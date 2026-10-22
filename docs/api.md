@@ -216,7 +216,7 @@ import { Component } from 'rasti';
 import { FormControl } from './form-control.js';
 
 const Input = Component.create`
-    <input id="${({ props, inject }) => props.id || inject(FormControl).id || false}" />
+    <input id="${({ props, inject }) => props.id || inject(FormControl).id}" />
 `;
 ```
 <a name="module_component__subscribe" id="module_component__subscribe" class="anchor"></a>

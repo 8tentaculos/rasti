@@ -142,7 +142,7 @@ onClick=${function() { this.model.removeCompleted(); }}
 handleChange=${(checked) => model.toggleAll(checked)}
 ```
 
-**Quoted attribute values compose** — a quoted value may mix literal text and any number of interpolations; the parts are joined into a single string. Each interpolated part is evaluated like any quoted value and coerced with the content-interpolation rule: `null`, `undefined`, `true` and `false` become `''`, anything else its string form. A value that is *exactly* one interpolation passes its raw resolved value, so booleans, objects and handler thunks keep working:
+**Quoted attribute values compose** — a quoted value may mix literal text and any number of interpolations; the parts are joined into a single string. Each interpolated part is evaluated like any quoted value and coerced with the content-interpolation rule: `null`, `undefined`, `true` and `false` become `''`, anything else its string form. A value that is *exactly* one interpolation passes its raw resolved value, so booleans, objects and handler thunks keep working. On an element, a raw `true` writes the attribute with no value, and `false`, `null` and `undefined` leave it out (`''` writes it empty):
 
 ```js
 // ✅ Mixed — literal text and interpolations join into one string
@@ -151,6 +151,8 @@ href="/items?page=${({ state }) => state.page}"
 
 // ✅ Lone interpolation — raw value (boolean drives attribute presence)
 disabled="${({ model }) => model.locked}"
+// ✅ Lone interpolation — null / undefined leave the attribute out
+aria-label="${({ props }) => props.label}"
 
 // ❌ Still unsupported (warns in development)
 data-${x}="1"    // attribute names must be literal
@@ -306,11 +308,11 @@ class Field extends Component {
     }
 }
 
-// Explicit props win; without a Field it is a plain input. `false` leaves the attribute out.
+// Explicit props win; without a Field it is a plain input (`undefined` leaves the attribute out).
 const Input = Component.create`
     <input
-        id="${({ props, inject }) => props.id || inject(FormControl).id || false}"
-        aria-describedby="${({ inject }) => inject(FormControl).describedBy || false}"
+        id="${({ props, inject }) => props.id || inject(FormControl).id}"
+        aria-describedby="${({ inject }) => inject(FormControl).describedBy}"
     >
 `;
 

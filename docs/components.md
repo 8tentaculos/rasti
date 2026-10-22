@@ -112,7 +112,16 @@ handleSelect=${this.handleSelect}
 checked="${this.model.completed}"
 ```
 
-A quoted value may also mix literal text with any number of interpolations, which are joined into one string; `null`, `undefined`, `true` and `false` join as nothing. A value that is exactly one interpolation keeps its raw value instead, so a boolean decides whether the attribute is present (`disabled="${this.props.locked}"`) and an object or a function reaches a child intact:
+A value that is exactly one interpolation keeps its raw value. On an element, `true` writes the attribute with no value, and `false`, `null` and `undefined` leave it out, so a boolean decides whether the attribute is present and an optional value needs no fallback. An empty string is a value, and writes the attribute empty. On a component tag the raw value reaches the child as it is, objects and functions included:
+
+```javascript
+// Present when `locked` is true, absent when it is false.
+disabled="${this.props.locked}"
+// Absent when no `label` was passed.
+aria-label="${this.props.label}"
+```
+
+A quoted value may also mix literal text with any number of interpolations, which are joined into one string; `null`, `undefined`, `true` and `false` join as nothing:
 
 ```javascript
 class="row ${this.state.active ? 'active' : ''}"
@@ -198,9 +207,9 @@ import { FormControl } from './form-control.js';
 const Input = Component.create`
     <input
         name="${({ props }) => props.name}"
-        id="${({ props, inject }) => props.id || inject(FormControl).id || false}"
-        aria-describedby="${({ inject }) => inject(FormControl).describedBy || false}"
-        aria-invalid="${({ inject }) => inject(FormControl).invalid ? 'true' : false}"
+        id="${({ props, inject }) => props.id || inject(FormControl).id}"
+        aria-describedby="${({ inject }) => inject(FormControl).describedBy}"
+        aria-invalid="${({ inject }) => inject(FormControl).invalid ? 'true' : null}"
     >
 `;
 ```

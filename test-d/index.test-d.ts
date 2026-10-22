@@ -541,9 +541,9 @@ expectAssignable<Model>(consumer.inject('theme'));
 consumer.inject(1);
 
 // Templates destructure it from the component
-const renderControlId: RenderExpression<Component> = ({ props, inject }) => props.id || inject(FormControl).id || false;
+const renderControlId: RenderExpression<Component> = ({ props, inject }) => props.id || inject(FormControl).id;
 void renderControlId;
-Component.create`<input id="${({ inject }: Component) => inject(FormControl).id || false}">`;
+Component.create`<input id="${({ inject }: Component) => inject(FormControl).id}">`;
 
 /*
  * Helper types: EventHandler, RenderExpression, ModelAttrs, ComponentProps, ComponentState, ComponentModel

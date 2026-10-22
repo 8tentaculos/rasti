@@ -30,7 +30,8 @@ const escapeAttributeValue = (value, isSource) => {
 };
 
 /**
- * Generate HTML string from attributes object. Values are plain text unless
+ * Generate HTML string from attributes object. `true` renders the name alone, and
+ * `false`, `null` and `undefined` leave the attribute out. Values are plain text unless
  * their key is in `sourceKeys` (pure template literals, serialized as written).
  * The object is plain, walked with `for-in`: inherited enumerable keys would be
  * serialized as attributes.
@@ -44,14 +45,13 @@ export default function getAttributesHTML(attributes, sourceKeys) {
     const html = [];
 
     for (const key in attributes) {
-        let value = attributes[key];
+        const value = attributes[key];
         // Skip invalid names, they can't be serialized as an attribute.
         if (!VALID_ATTRIBUTE_NAME.test(key)) continue;
 
         if (value === true) {
             html.push(key);
-        } else if (value !== false) {
-            if (value === null || typeof value === 'undefined') value = '';
+        } else if (value !== false && value != null) {
             html.push(`${key}="${escapeAttributeValue(value, !!sourceKeys && sourceKeys.has(key))}"`);
         }
     }

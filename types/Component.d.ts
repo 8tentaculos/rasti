@@ -371,7 +371,7 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
      *
      * @example
      * const Input = Component.create`
-     *     <input id="${({ props, inject }) => props.id || inject(FormControl).id || false}">
+     *     <input id="${({ props, inject }) => props.id || inject(FormControl).id}">
      * `;
      */
     inject<T = Record<string, any>>(key: InjectionKey<T> | string): Model<T> & Partial<T>;

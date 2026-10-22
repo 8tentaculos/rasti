@@ -289,6 +289,8 @@ Container is a property of a **component**. Transparency is a property of a part
 
 Quoted values may mix literals and interpolations; they join into one string. A value that is exactly one interpolation keeps its raw resolved value (booleans, handlers, objects).
 
+Presence is decided on the resolved attributes object, whatever wrote each key (a lone interpolation, a spread, `attributes`): `true` serializes as the bare name and sets the attribute empty on update; `false`, `null` and `undefined` leave it out, and on update remove it. Any other value, `''` included, is written as its string form. `getAttributesHTML` (emission) and `getAttributesDiff` (update) apply the same rule.
+
 Escape is by origin. A **pure template literal** is HTML source and serializes as written (character references kept). Everything else — dynamic, mixed, spread, `attributes`, the emission id — is plain text: `&` → `&amp;`, U+00A0 → `&nbsp;`, `"` → `&quot;`, matching `setAttribute` on update.
 
 Unsupported forms (interpolated attribute **name**, unquoted value mixed with literal text) warn once per call site in development.

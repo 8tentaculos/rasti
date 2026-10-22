@@ -116,7 +116,7 @@ class Field extends Component<{ controlId: string; error?: string }> {
 
 class Input extends Component<{ id?: string }> {
     template() {
-        return this.html`<input id="${this.props.id || this.inject(FormControl).id || false}">`;
+        return this.html`<input id="${this.props.id || this.inject(FormControl).id}">`;
     }
 }
 ```

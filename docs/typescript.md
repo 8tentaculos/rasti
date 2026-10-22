@@ -170,7 +170,7 @@ class Field extends Component<{ controlId: string; error?: string }> {
 class Input extends Component<{ id?: string }> {
     template() {
         const control = this.inject(FormControl); // Model<FormControlValues> & Partial<FormControlValues>
-        return this.html`<input id="${this.props.id || control.id || false}">`;
+        return this.html`<input id="${this.props.id || control.id}">`;
     }
 }
 ```

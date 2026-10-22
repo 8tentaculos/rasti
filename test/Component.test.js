@@ -780,6 +780,64 @@ describe('Component', () => {
             ).to.be.equal(`<input id="test-node" disabled ${Constants.ATTRIBUTE_ELEMENT}="r2-1" />`);
         });
 
+        it('must leave out null and undefined attributes', () => {
+            expect(
+                Component.create`<input id="test-node" title="${() => null}" placeholder="${() => undefined}" />`.mount().toString()
+            ).to.be.equal(`<input id="test-node" ${Constants.ATTRIBUTE_ELEMENT}="r1-1" />`);
+
+            // An empty string is a value, and keeps the attribute.
+            expect(
+                Component.create`<input id="test-node" title="${() => ''}" />`.mount().toString()
+            ).to.be.equal(`<input id="test-node" title="" ${Constants.ATTRIBUTE_ELEMENT}="r2-1" />`);
+        });
+
+        it('must leave out null and undefined attributes from a spread and from the component attributes', () => {
+            const c = Component.create`<div id="test-node" ${() => ({ title : null, lang : undefined, dir : 'ltr' })}></div>`.extend({
+                attributes() { return { role : null, 'aria-label' : undefined, 'data-x' : 'x' }; }
+            }).mount({}, document.body);
+
+            ['title', 'lang', 'role', 'aria-label'].forEach(name => expect(c.el.hasAttribute(name)).to.be.false);
+            expect(c.el.getAttribute('dir')).to.be.equal('ltr');
+            expect(c.el.getAttribute('data-x')).to.be.equal('x');
+        });
+
+        it('must remove an attribute that changes to null or undefined, and add it back', () => {
+            const model = new Model({ title : 'a', hidden : true });
+            const c = Component.create`
+                <div id="test-node" title="${({ model }) => model.title}" hidden="${({ model }) => model.hidden}"></div>
+            `.mount({ model }, document.body);
+
+            expect(c.el.getAttribute('title')).to.be.equal('a');
+            expect(c.el.hasAttribute('hidden')).to.be.true;
+
+            model.set({ title : null, hidden : undefined });
+
+            expect(c.el.hasAttribute('title')).to.be.false;
+            expect(c.el.hasAttribute('hidden')).to.be.false;
+
+            model.set({ title : undefined, hidden : null });
+
+            expect(c.el.hasAttribute('title')).to.be.false;
+            expect(c.el.hasAttribute('hidden')).to.be.false;
+
+            model.set({ title : 'b', hidden : true });
+
+            expect(c.el.getAttribute('title')).to.be.equal('b');
+            expect(c.el.hasAttribute('hidden')).to.be.true;
+        });
+
+        it('must clear the value property when the value attribute changes to null', () => {
+            const model = new Model({ value : 'a' });
+            const c = Component.create`<input id="test-node" value="${({ model }) => model.value}" />`
+                .mount({ model }, document.body);
+
+            c.el.value = 'typed';
+            model.value = null;
+
+            expect(c.el.hasAttribute('value')).to.be.false;
+            expect(c.el.value).to.be.equal('');
+        });
+
         it('must escape attribute values', () => {
             const value = '" onload="attack()';
 
@@ -1975,11 +2033,11 @@ describe('Component', () => {
         // A provider of the same context, to nest under a field: a template pairs a
         // component tag with its closing tag by class.
         const Fieldset = Field.extend({});
-        // An attribute is left out when its value is `false`.
+        // An attribute whose value is `null` or `undefined` is left out.
         const Input = Component.create`
             <input
-                id="${({ inject }) => inject(FormControl).id || false}"
-                aria-describedby="${({ inject }) => inject(FormControl).describedBy || false}"
+                id="${({ inject }) => inject(FormControl).id}"
+                aria-describedby="${({ inject }) => inject(FormControl).describedBy}"
             >
         `;
 
