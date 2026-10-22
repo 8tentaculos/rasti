@@ -3,6 +3,8 @@
 * [Component](#module_component) ⇐ <code>View</code>
     * _instance_
         * [.createProps(props)](#module_component__createprops) ⇒ <code>Model</code>
+        * [.provide()](#module_component__provide) ⇒ <code>object</code> \| <code>null</code>
+        * [.inject(key)](#module_component__inject) ⇒ <code>Model</code>
         * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>ComponentPartial</code>](#componentpartial)
         * [.template()](#module_component__template) ⇒ [<code>ComponentPartial</code>](#componentpartial) \| <code>Component</code>
@@ -119,6 +121,8 @@ setInterval(() => model.seconds++, 1000);
 * [Component](#module_component) ⇐ <code>View</code>
     * _instance_
         * [.createProps(props)](#module_component__createprops) ⇒ <code>Model</code>
+        * [.provide()](#module_component__provide) ⇒ <code>object</code> \| <code>null</code>
+        * [.inject(key)](#module_component__inject) ⇒ <code>Model</code>
         * [.subscribe(model, [type], [listener])](#module_component__subscribe) ⇒ <code>Component</code>
         * [.partial(strings, ...expressions)](#module_component__partial) ⇒ [<code>ComponentPartial</code>](#componentpartial)
         * [.template()](#module_component__template) ⇒ [<code>ComponentPartial</code>](#componentpartial) \| <code>Component</code>
@@ -162,11 +166,65 @@ const Button = Component.create`<button>${({ props }) => props.label}</button>`.
     }
 });
 ```
+<a name="module_component__provide" id="module_component__provide" class="anchor"></a>
+### component.provide() ⇒ <code>object</code> \| <code>null</code>
+Provide contexts to the components this one hosts, at any depth: its children,
+including the content slotted into it, and their own. Called on every render,
+before the template's children render.
+
+Return an object mapping each context key to the values of that context, or `null`
+to provide nothing. Each key gets one `Model`, created on the first render and
+`set` with the returned values on every later one, so return the same keys, with
+the same properties, on every render (`null` for a value that is absent). Use
+`Symbol` keys exported by a module of their own, so neither side imports the other.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+**Returns**: <code>object</code> \| <code>null</code> - The values of each context, by key.  
+**Example**  
+```js
+import { Component } from 'rasti';
+import { FormControl } from './form-control.js';
+
+class Field extends Component {
+    provide() {
+        const { controlId, error } = this.props;
+        return { [FormControl] : { id : controlId, invalid : !!error } };
+    }
+}
+```
+<a name="module_component__inject" id="module_component__inject" class="anchor"></a>
+### component.inject(key) ⇒ <code>Model</code>
+Read a context provided by a parent. The search starts at `this.parent` and walks
+up the views that adopted this one, so a component that provides a key reads its
+parent's, not its own. Bound to the component instance from the first render on.
+
+Returns the `Model` of the nearest parent that provides `key`, or a shared, empty
+and frozen `Model` when none does: its properties read `undefined`, so a consumer
+falls back to its own defaults. The component subscribes to each provider's model
+it reads, like it does to `props`, and re-renders when the provided values change.
+
+**Kind**: instance method of [<code>Component</code>](#module_component)  
+**Returns**: <code>Model</code> - The context model.  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| key | <code>symbol</code> \| <code>string</code> | The context key. |
+
+**Example**  
+```js
+import { Component } from 'rasti';
+import { FormControl } from './form-control.js';
+
+const Input = Component.create`
+    <input id="${({ props, inject }) => props.id || inject(FormControl).id || false}" />
+`;
+```
 <a name="module_component__subscribe" id="module_component__subscribe" class="anchor"></a>
 ### component.subscribe(model, [type], [listener]) ⇒ <code>Component</code>
 Subscribes to a `change` event on a model or emitter object and invokes the `onChange` lifecycle method.
 The subscription is automatically cleaned up when the component is destroyed.
-By default, the component subscribes to changes on `this.model`, `this.state`, and `this.props`.
+By default, the component subscribes to changes on `this.model`, `this.state`, `this.props`,
+and the contexts it reads with `inject`.
 
 **Kind**: instance method of [<code>Component</code>](#module_component)  
 **Returns**: <code>Component</code> - The current component instance for chaining.  
@@ -1222,6 +1280,8 @@ If `this.el` is not present, an element will be created using `this.tag` (defaul
 | events | <code>object</code> \| <code>function</code> | Object in the format `{'event selector' : 'listener'}`. It will be used to bind delegated event listeners to the root element. If it is a function, it will be called to get the events object, bound to the view instance. See [View.delegateEvents](module_view_delegateevents). |
 | model | <code>object</code> | A model or any object containing data and business logic. |
 | template | <code>function</code> | A function that returns a string with the view's inner HTML. See [View.render](module_view__render). |
+| children | <code>Array.&lt;View&gt;</code> | Child views, added with `addChild` and destroyed with the view. |
+| parent | <code>View</code> \| <code>null</code> | The view that adopted this one with `addChild`. `null` before that, for a view mounted at the root, and after `destroy`. For a component's slotted content it is the component that renders it, not the one whose template wrote it. |
 | uid | <code>string</code> | Unique identifier for the view instance. This can be used to generate unique IDs for elements within the view. It is automatically generated and should not be set manually. |
 
 **Example**  
@@ -1336,6 +1396,7 @@ Override with your code. Useful to stop listening to model's events.
 ### view.addChild(child) ⇒ <code>View</code>
 Add a view as a child.
 Children views are stored at `this.children`, and destroyed when the parent is destroyed.
+Sets the child's `parent` to this view.
 Returns the child for chaining.
 
 **Kind**: instance method of [<code>View</code>](#module_view)  

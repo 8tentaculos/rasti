@@ -149,6 +149,93 @@ The attributes of a component tag are the child's options. A few belong to the c
 
 A function passed as a prop is a callback, and the child decides what to do with it, usually calling it from one of its own event handlers, as `Search` does above with `handleQuery`. Name callback props `handle*`. The prefix sets them apart from DOM event handlers, and keeps them clear of the lifecycle hooks: an option named `onChange` is not a prop but the child's own hook, so `<${Input} onChange=${fn} />` makes `Input` call `fn` on its model changes instead of re-rendering, and leaves `this.props.onChange` undefined.
 
+## Context
+
+A component rendered with content between its tags, `<${Field}>…</${Field}>`, renders that content but does not write it: the content belongs to the template around it, whose expressions decide its props. When the content needs something only the host knows, the host **provides** it as a context, and the components inside **inject** it.
+
+A form field is the usual case. `Field` knows the ids of its description and its error, which come and go with its state, and the control inside it needs them in `aria-describedby`. Whoever writes the form builds the control:
+
+```javascript
+// form-control.js: the contract both sides import.
+export const FormControl = Symbol('formControl');
+```
+
+```javascript
+import { Component } from 'rasti';
+import { FormControl } from './form-control.js';
+
+class Field extends Component {
+    provide() {
+        const { controlId, description, error } = this.props;
+        const describedBy = [
+            description && `${controlId}-description`,
+            error && `${controlId}-error`
+        ].filter(Boolean).join(' ');
+        return {
+            [FormControl] : { id : controlId, describedBy : describedBy || null, invalid : !!error }
+        };
+    }
+
+    template() {
+        const { controlId, label, description, error } = this.props;
+        return this.html`
+            <div class="field">
+                <label for="${controlId}">${label}</label>
+                ${description && this.html`<p id="${controlId}-description">${description}</p>`}
+                ${this.props.renderChildren()}
+                ${error && this.html`<p id="${controlId}-error">${error}</p>`}
+            </div>
+        `;
+    }
+}
+```
+
+```javascript
+import { Component } from 'rasti';
+import { FormControl } from './form-control.js';
+
+// An explicit `id` wins. Without a field around it, it is a plain input.
+const Input = Component.create`
+    <input
+        name="${({ props }) => props.name}"
+        id="${({ props, inject }) => props.id || inject(FormControl).id || false}"
+        aria-describedby="${({ inject }) => inject(FormControl).describedBy || false}"
+        aria-invalid="${({ inject }) => inject(FormControl).invalid ? 'true' : false}"
+    >
+`;
+```
+
+```javascript
+class SignUp extends Component {
+    template() {
+        return this.html`
+            <form>
+                <${Field} controlId="email" label="Email" description="We never share it." error="${this.model.error}">
+                    <${Input} name="email" />
+                </${Field}>
+            </form>
+        `;
+    }
+}
+```
+
+**`provide()`** runs on every render of the providing component, before its children render, and returns the values of each context by key. Each key gets one `Model`, created on the first render and `set` with the new values on every later one. Return the same keys, with the same properties, every time, `null` for a value that is absent: a consumer keeps the model it found, and a model only reads the properties it was created with. Development builds warn when they change.
+
+**`inject(key)`** returns the model of the nearest component above that provides the key, so a field nested in another reads its own. It walks up the components that render this one, `this.parent`, and a component in between that does not provide the key is skipped. Without a provider it returns an empty model, the same one for every key and every component, whose properties read `undefined`. `inject` is bound to the component, so a template can take it from the argument as it takes `props`.
+
+**Reading a context subscribes to it**, as a component is subscribed to its props: when the provider renders and the values change, the consumer re-renders, even when its own props did not change. A value that changes without the provider rendering does not reach the consumers. A consumer that also receives new props in that render renders twice.
+
+A context is read by the component that uses it, in its own template. An expression written in the content between the tags belongs to the template around it, like the content does, so it searches from that component and does not see the host: in `<${Field}><${Input} id="${self => self.inject(FormControl).id}" /></${Field}>`, `self` is `SignUp`, not `Field`. In the constructor and in `onCreate` a component has not been rendered by anyone yet, so `inject` returns the empty model there, and development builds warn.
+
+A context is a dependency the template does not show, so keep it for what it is good at:
+
+- **The contract lives in a module of its own.** Both sides import the key from it, never from each other, so any control can read it and any container can provide it: `Input`, `Select` and `Textarea` read `FormControl`; `Field`, `Fieldset` or a test provide it. Use `Symbol` keys, so no other library's context can shadow yours.
+- **Props win.** The context gives defaults, and an explicit prop always overrides them.
+- **The consumer works alone.** Without a provider it gets the empty model, and it is an ordinary component.
+- **For families of components designed together** (a field and its controls, a radio group and its radios, tabs and their panels) **and for values that cross the whole tree** (theme, language, router). Not to skip passing props between components that have nothing to do with each other.
+
+A consumer reads a context and does not write to it. The model is not read-only, as props are not, but every consumer of the provider shares it, so a write changes what its siblings see until the provider's next render sets it again. To talk back to the provider, provide a function: `{ name, value, handleChange }` for the radios of a group.
+
 ## Lists
 
 An interpolation that returns an array renders a list, with nested arrays flattened into one. How it updates depends on whether its items have an identity of their own.

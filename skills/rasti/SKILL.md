@@ -279,6 +279,49 @@ const Main = Component.create`
 
 When using `Component.mount()`, pass `renderChildren` manually: `{ renderChildren : () => value }`.
 
+### Context
+
+A host can't pass props to the content slotted into it: that content is written, and its props decided, by the template around it. The host **provides** a context instead, and the components inside **inject** it.
+
+- `provide()` runs on every render of the host, before its children render, and returns `{ [key]: values }`. Each key gets one `Model`, created on the first render and `set` later: return the same keys and properties every render, `null` for an absent value.
+- `inject(key)` returns the model of the nearest component above (searched up `this.parent`, the component that renders this one) that provides the key, or a shared, empty, frozen model without a provider. It is bound, so templates destructure it.
+- Reading a context subscribes to it: the consumer re-renders when the provided values change, even with the same props.
+
+```js
+// form-control.js — the contract, imported by both sides
+export const FormControl = Symbol('formControl');
+
+class Field extends Component {
+    provide() {
+        const { controlId, error } = this.props;
+        return { [FormControl] : { id : controlId, describedBy : error ? `${controlId}-error` : null } };
+    }
+
+    template() {
+        const { controlId, error } = this.props;
+        return this.html`<div>
+            ${this.props.renderChildren()}
+            ${error && this.html`<p id="${controlId}-error">${error}</p>`}
+        </div>`;
+    }
+}
+
+// Explicit props win; without a Field it is a plain input. `false` leaves the attribute out.
+const Input = Component.create`
+    <input
+        id="${({ props, inject }) => props.id || inject(FormControl).id || false}"
+        aria-describedby="${({ inject }) => inject(FormControl).describedBy || false}"
+    >
+`;
+
+// Usage
+html`<${Field} controlId="email" error="${this.model.error}"><${Input} /></${Field}>`
+```
+
+Rules: the key is a `Symbol` in a module of its own, never imported from the provider; props win over context; the consumer works without a provider; use it for families of components designed together (field/controls, tabs, radio group) and tree-wide values (theme, language, router), not to skip props. Consumers read and don't write: the model is shared by every consumer; provide a function to talk back.
+
+**Related API:** [`component.provide`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_component__provide) · [`component.inject`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_component__inject)
+
 ### Partials
 
 `html`, an alias of [`partial`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_component__partial), creates sub-templates (partials) for conditional blocks and lists. A partial is patched in place on update — attributes diffed, child components recycled — so the DOM nodes inside it, and their focus, selection and input value, survive re-renders. In a [list of markup](#lists) they stay with the position, not with the item.
@@ -440,7 +483,7 @@ class MyComponent extends Component {
 
 ### Model Integration
 
-Components auto-subscribe to `this.model`, `this.state`, and `this.props`. Changes trigger `onChange()` which by default calls `render()`.
+Components auto-subscribe to `this.model`, `this.state`, `this.props`, and the contexts they read with `inject`. Changes trigger `onChange()` which by default calls `render()`.
 
 ```js
 const Counter = Component.create`
@@ -549,6 +592,8 @@ App.mount({ model }, document.body, true);
     // Input
     <input onInput=${(ev) => this.props.handleChange(ev.target.value)} />
     ```
+
+9. **Reading a context from slotted content**: an expression written between a component's tags belongs to the surrounding template, so `inject` there searches from that component and misses the host. In `<${Field}><${Input} id="${self => self.inject(FormControl).id}" /></${Field}>`, `self` is the page, not `Field`. Read the context in the consumer's own template. Likewise, `inject` in the constructor or `onCreate` runs before any parent rendered the component and gets the empty model.
 
 ## Additional Resources
 

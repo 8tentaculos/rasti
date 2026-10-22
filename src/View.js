@@ -30,6 +30,8 @@ import __DEV__ from './utils/dev.js';
  * @property {object|Function} events Object in the format `{'event selector' : 'listener'}`. It will be used to bind delegated event listeners to the root element. If it is a function, it will be called to get the events object, bound to the view instance. See {@link module_view_delegateevents View.delegateEvents}.
  * @property {object} model A model or any object containing data and business logic.
  * @property {Function} template A function that returns a string with the view's inner HTML. See {@link module_view__render View.render}. 
+ * @property {View[]} children Child views, added with `addChild` and destroyed with the view.
+ * @property {View|null} parent The view that adopted this one with `addChild`. `null` before that, for a view mounted at the root, and after `destroy`. For a component's slotted content it is the component that renders it, not the one whose template wrote it.
  * @property {string} uid Unique identifier for the view instance. This can be used to generate unique IDs for elements within the view. It is automatically generated and should not be set manually.
  * @example
  * import { View, Model } from 'rasti';
@@ -149,6 +151,7 @@ export default class View extends Emitter {
     /**
      * Add a view as a child.
      * Children views are stored at `this.children`, and destroyed when the parent is destroyed.
+     * Sets the child's `parent` to this view.
      * Returns the child for chaining.
      * @param {View} child
      * @return {View}

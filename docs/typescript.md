@@ -147,6 +147,36 @@ type S = ComponentState<Counter>;
 
 > Components made with `Component.create` are **values**, not types. To use one as a type outside its own template — as with `Counter` above — add `type X = InstanceType<typeof X>` next to the definition, or write `InstanceType<typeof X>` inline. Inside its own template, use `Component<P, S, M>` instead (see [Typing template interpolations](#typing-template-interpolations)). Neither a `Model` subclass nor a component authored as a subclass needs an alias, since `class` already declares both a value and a type.
 
+## Contexts
+
+Type a context key with `InjectionKey<T>`, where `T` is the shape of the values it carries. At runtime it is a plain `Symbol`, so it keys the object `provide()` returns:
+
+```ts
+import { Component, InjectionKey } from 'rasti';
+
+// form-control.ts
+interface FormControlValues { id: string | null; describedBy: string | null; invalid: boolean; }
+export const FormControl: InjectionKey<FormControlValues> = Symbol('formControl');
+
+class Field extends Component<{ controlId: string; error?: string }> {
+    provide() {
+        const { controlId, error } = this.props;
+        return {
+            [FormControl]: { id: controlId, describedBy: error ? `${controlId}-error` : null, invalid: !!error },
+        };
+    }
+}
+
+class Input extends Component<{ id?: string }> {
+    template() {
+        const control = this.inject(FormControl); // Model<FormControlValues> & Partial<FormControlValues>
+        return this.html`<input id="${this.props.id || control.id || false}">`;
+    }
+}
+```
+
+`inject` returns the provider's model typed by the key. Its values are `Partial`, because without a provider the model is empty. A plain `Symbol` or a string key reads as `Record<string, any>`.
+
 ## Typing template interpolations
 
 This section applies to the **tagged `Component.create` form**. In the subclass and `create(fn)` forms the template body is ordinary code inside a typed method, so its interpolations are checked without helpers — that is the simplest way to get full typing.
@@ -248,6 +278,7 @@ handleAddTodo="${({ model }: AppComponent): HeaderProps['handleAddTodo'] => (tit
 - **A component can't name its own type in its template** *(tagged form only)*. `InstanceType<typeof X>` is circular there (TS7022). Use `Component<P, S, M>` (see [Typing template interpolations](#typing-template-interpolations)), or the class `create` is called on when the template calls its methods (see [Templates that call the component's own methods](#templates-that-call-the-components-own-methods)).
 - **`Model<A>` instance keys require declaration merging**. TypeScript can't add `A`'s keys to a `class extends Model<A>` automatically — see the `interface Todo extends TodoAttrs {}` pattern above.
 - **An attribute can't be named after a member of `Model`**. With declaration merging, an attribute such as `on`, `get` or `set` conflicts with the member it shadows, and TypeScript reports it on the merged interface (TS2320). The shadowing breaks the model at runtime too, and development builds warn about it: rename the attribute, or prefix the generated properties with `static attributePrefix`.
+- **`provide()` is not checked against its keys**. A computed key keeps the value's type, not the `InjectionKey`'s, so the object `provide()` returns is typed as values by key and a value of the wrong shape compiles. `inject` is typed by the key.
 - **`this.$()` can return `null`**. It mirrors `querySelector`, so handle the empty case (`?.`) and pass a type argument to narrow the element: `this.$<HTMLInputElement>('input.edit')?.focus()`. `this.$$()` returns a `NodeListOf<HTMLElement>` (also narrowable).
 - **`this.model` / `this.state` are optional**. Both are `undefined` unless provided, so guard (`this.model?.foo`) or assert (`this.model!`) when you know one was passed. Both accept a Rasti `Model` or a model from another library (e.g. Backbone); Components subscribe to `change` events automatically when the object exposes `on`/`off`.
 - **`state` / `model` are raw generics, `props` is not**. `this.props` is *always* a `Model` built by rasti, so it's typed `Model<P> & P` (direct access to `P`'s keys). But `state` and `model` can be anything you provide — a Rasti `Model`, a Backbone model, a store, or a plain object — so they stay the raw generic. To read a typed `Model` state/model directly, define it as a named subclass with declaration merging and pass it as the `S`/`M` generic (see the `Scoreboard` example above) — no casts needed.

@@ -98,3 +98,25 @@ Never annotate the parameter of an unquoted handler: its first argument is the e
 | TS2339 on a model attribute | Attributes need declaration merging | `interface X extends Attrs {}` next to `class X extends Model<Attrs>` |
 
 ---
+
+## Contexts
+
+Type a context key with `InjectionKey<T>`; at runtime it is a plain `Symbol`. `inject` returns `Model<T> & Partial<T>` (empty without a provider); a plain symbol or string key reads as `Record<string, any>`. The object `provide()` returns is not checked against its keys.
+
+```ts
+import { Component, InjectionKey } from 'rasti';
+
+export const FormControl: InjectionKey<{ id: string | null; invalid: boolean }> = Symbol('formControl');
+
+class Field extends Component<{ controlId: string; error?: string }> {
+    provide() {
+        return { [FormControl]: { id: this.props.controlId, invalid: !!this.props.error } };
+    }
+}
+
+class Input extends Component<{ id?: string }> {
+    template() {
+        return this.html`<input id="${this.props.id || this.inject(FormControl).id || false}">`;
+    }
+}
+```

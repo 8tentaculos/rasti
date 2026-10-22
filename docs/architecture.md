@@ -82,6 +82,7 @@ Render-agnostic. It guarantees:
 - a root element `el` (from `tag` + `attributes`, or an element you pass in)
 - declarative event delegation on `el` (`events` as `{'click .sel': 'handler'}`)
 - a `children` list and `destroy()` that walks it, undelegates, `stopListening`, runs `destroyQueue`, then `onDestroy`
+- a `parent`, the view whose `addChild` adopted it, back to `null` on `destroy()`
 
 It does **not** decide how markup is produced. `render()` is a no-op stub. `Component` overrides element creation and render; a subclass that is not a component writes its own `render`.
 
@@ -132,12 +133,12 @@ constructor
         │
         ▼
 first render (not yet hydrated)
-  template() → root partial → toString (emit HTML)
+  template() → root partial → provide() → toString (emit HTML)
   parseHTML → hydrate (bind refs, subscribe, delegate, onHydrate)
         │
         ▼
 update render (hydrated)
-  onBeforeUpdate → template() again → patch in place → onUpdate
+  onBeforeUpdate → provide() → template() again → patch in place → onUpdate
         │
         ▼
 recycle (parent re-render reused this instance)
@@ -152,13 +153,24 @@ destroy
 
 A child written as a component tag reaches the constructor only when the parent's render mounts it. A child built in an expression (`Child.mount(options)`, `new Child(options)`) runs it on every parent render, and when the render recycles the previous child instead, the new one is destroyed without rendering (`onDestroy` included). See [Slot-based recycling](#slot-based-recycling).
 
-`subscribe(model)` is `listenTo` on `change` → `onChange`. Default `onChange` calls `render()`. Override it to skip irrelevant keys.
+`subscribe(model)` is `listenTo` on `change` → `onChange`. Default `onChange` calls `render()`. Override it to skip irrelevant keys. `hydrate` subscribes to `model`, `state`, `props` and the contexts the first render read, so nothing listens on the server.
 
 ### Slotted content
 
 `<${Child}>…</${Child}>` compiles an inner skeleton and passes `renderChildren` as a prop. The child calls `props.renderChildren()` to render that content.
 
 The inner partial is **owned** by the parent (expressions and events evaluate there) and **hosted** by whoever currently renders it (child components join that component's `children`). Owner and host are the same component except for this case.
+
+### Context
+
+A host passes values to the components it renders, slotted content included, through a context: `provide()` on the host, `inject(key)` on the consumer.
+
+- **`parent`.** `View#addChild` sets `child.parent`. The adoption happens right before the child's `toString` (`InterpolationSlot#renderMounted`), and `template()` first runs inside that `toString`, so the parent is there on the first render. A child never changes host: a recycled child is adopted again from the same slot, and keys are local to an interpolation. `parent` is the host, so the chain follows who renders a component, not whose template wrote it.
+- **Provider.** `Component#updateContexts` calls `provide()` at the start of every render of the component: in `toString` after `ensureEngine`, in `renderUpdate` after `onBeforeUpdate`. It keeps one `Model` per key in `contexts` (`Object.create(null)`, keys read with `Reflect.ownKeys` so symbols count), created the first time the key is provided and `set` with the new values later. A component that provides nothing has no `contexts`.
+- **Consumer.** `inject(key)` walks `parent` up from the consumer, not from itself, and returns the first `contexts[key]` by key presence: a context holding `null` values still stops the search, so values of two providers never mix. With no provider it returns `EMPTY_CONTEXT`, one module-level `Model`, frozen (development builds give it a `set` and `on` that throw a clear error first). `inject` is bound to the instance in `ensureEngine`, like `partial` and `html`, so templates destructure it.
+- **Reactivity.** `inject` records each provider model it returns, once, in `injected`. `hydrate` subscribes to them with `subscribe`; a model first read after hydration is subscribed right away. The provider's `set` runs before its own pass, so `Model#set` notifies the consumers whose values changed, and they re-render from `onChange` before the provider patches its tree: no re-entry into a tree being patched, and the consumers the pass renders afterwards read the current values. `destroy` unsubscribes them with the rest (`stopListening`).
+
+Known costs: a consumer whose props and context change in the same render renders twice, once from the context `set` and once from the `propsQueue`; one the provider's pass then destroys rendered for nothing. Everything is synchronous, so the intermediate state is never painted.
 
 ### Handlers and props across renders
 
@@ -334,7 +346,7 @@ Component.mount(options, el, true);
 
 Terser drops what is left in dead position: `__DEV__ ? … : …`, `__DEV__ && …`, `if (__DEV__)`. Development strings must sit behind one of those forms, not behind a helper that would keep them alive. Component errors pass the long message as `__DEV__ && \`…\`` into a module-level throw helper so the min bundle keeps only the short production line.
 
-Warnings (lists without keyed components, duplicate keys, unsupported attribute forms) use `console.warn`, once per call site, and point at the interpolation in the template source when it is available. They are absent from the minified bundles.
+Warnings (lists without keyed components, duplicate keys, unsupported attribute forms) use `console.warn`, once per call site, and point at the interpolation in the template source when it is available. Context warnings (`inject` before the component has a parent or an engine, `provide()` changing its keys or properties between renders) print once per component class. They are absent from the minified bundles.
 
 ---
 
@@ -362,6 +374,8 @@ Warnings (lists without keyed components, duplicate keys, unsupported attribute 
 | **call site**   | A tagged-template expression in source. Its `strings` array is stable across renders. |
 | **owner**       | Component whose template the partial comes from. Expressions and event listeners belong to it. |
 | **host**        | Component currently rendering the partial. Child components join its `children`. Same as owner except for slotted content. |
+| **parent**      | The view that adopted a component with `addChild`: its host. Contexts are searched up the `parent` chain. |
+| **context**     | A `Model` a component keeps per key from `provide()`, read by the components below it with `inject(key)`. |
 | **container**   | A component whose root partial is transparent. `this.el` is the child's element. |
 | **transparent** | A partial that is a single interpolation with no markup. The engine sees through it to resolve an element, never to recycle. |
 | **boundary**    | A partial that owns a region (writes markers), with or without markup: the components in its interpolations belong to its own slots, out of reach of the list holding it. Every nested partial but a lone component tag, which is anchored. |
