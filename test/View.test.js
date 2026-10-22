@@ -136,6 +136,23 @@ describe('View', () => {
             expect(c).to.equal(v.children[0]);
         });
 
+        it('must set the parent of an adopted child', () => {
+            const v = new View();
+            const c = new View();
+            expect(v.parent).to.be.null;
+            expect(c.parent).to.be.null;
+            v.addChild(c);
+            expect(c.parent).to.equal(v);
+        });
+
+        it('must release the parent on destroy', () => {
+            const v = new View();
+            const c = v.addChild(new View());
+            v.destroy();
+            expect(c.destroyed).to.be.true;
+            expect(c.parent).to.be.null;
+        });
+
         it('must call onDestroy on children', (done) => {
             const v = new View();
             v.addChild(new View({ onDestroy : done }));

@@ -70,6 +70,8 @@ export default class View extends Emitter {
         // Store child views,
         // so they can be destroyed.
         this.children = [];
+        // The view that adopted this one, set by its `addChild`.
+        this.parent = null;
         // Mutable array to store handlers to be called on destroy.
         this.destroyQueue = [];
         // Extend "this" with options. An option overrides a getter declared by a
@@ -129,6 +131,8 @@ export default class View extends Emitter {
         this.destroyQueue = [];
         // Call onDestroy lifecycle method
         this.onDestroy.apply(this, arguments);
+        // Release the parent.
+        this.parent = null;
         // Set destroyed flag.
         this.destroyed = true;
         // Return `this` for chaining.
@@ -151,6 +155,7 @@ export default class View extends Emitter {
      */
     addChild(child) {
         this.children.push(child);
+        child.parent = this;
         return child;
     }
 

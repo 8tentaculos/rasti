@@ -1852,6 +1852,115 @@ describe('Component', () => {
         });
     });
 
+    describe('Parent', () => {
+        it('must leave the parent of a root component null', () => {
+            const Main = Component.create`<div></div>`;
+
+            const c = Main.mount({}, document.body);
+
+            expect(c.parent).to.be.null;
+        });
+
+        it('must set the parent of a child mounted by a component tag', () => {
+            const Button = Component.create`<button></button>`;
+            const Main = Component.create`<div><${Button} /></div>`;
+
+            const c = Main.mount({}, document.body);
+
+            expect(c.children[0].parent).to.be.equal(c);
+        });
+
+        it('must set the parent of a child mounted by an expression', () => {
+            const Button = Component.create`<button></button>`;
+            const Main = Component.create`<div>${() => Button.mount()}</div>`;
+
+            const c = Main.mount({}, document.body);
+
+            expect(c.children[0].parent).to.be.equal(c);
+        });
+
+        it('must set the parent before the child first renders', () => {
+            let created, rendered;
+            const Button = Component.create`<button>${self => { rendered = self.parent; }}</button>`.extend({
+                onCreate() { created = this.parent; }
+            });
+            const Main = Component.create`<div><${Button} /></div>`;
+
+            const c = Main.mount({}, document.body);
+
+            // The constructor runs before the adoption, the template after it.
+            expect(created).to.be.null;
+            expect(rendered).to.be.equal(c);
+        });
+
+        it('must set the parent of slotted content to the host, not the owner', () => {
+            const Input = Component.create`<input>`;
+            const Field = Component.create`<div>${({ props }) => props.renderChildren()}</div>`;
+            const Page = Component.create`<main><${Field}><${Input} /></${Field}></main>`;
+
+            const page = Page.mount({}, document.body);
+            const field = page.children[0];
+            const input = field.children[0];
+
+            expect(field.parent).to.be.equal(page);
+            expect(input).to.be.instanceOf(Input);
+            expect(input.parent).to.be.equal(field);
+        });
+
+        it('must chain the parent through a host that forwards its content', () => {
+            const Input = Component.create`<input>`;
+            const Wrapper = Component.create`<section>${({ props }) => props.renderChildren()}</section>`;
+            const Field = Component.create`<div><${Wrapper}>${({ props }) => props.renderChildren()}</${Wrapper}></div>`;
+            const Page = Component.create`<main><${Field}><${Input} /></${Field}></main>`;
+
+            const page = Page.mount({}, document.body);
+            const field = page.children[0];
+            const wrapper = field.children[0];
+            const input = wrapper.children[0];
+
+            expect(input).to.be.instanceOf(Input);
+            expect(input.parent).to.be.equal(wrapper);
+            expect(wrapper.parent).to.be.equal(field);
+            expect(field.parent).to.be.equal(page);
+        });
+
+        it('must keep the parent of a recycled child', () => {
+            const Button = Component.create`<button>${({ props }) => props.label}</button>`;
+            const Main = Component.create`<div><${Button} label="${({ model }) => model.label}" /></div>`;
+
+            const c = Main.mount({ model : new Model({ label : 'a' }) }, document.body);
+            const button = c.children[0];
+
+            c.model.label = 'b';
+
+            expect(c.children[0]).to.be.equal(button);
+            expect(button.parent).to.be.equal(c);
+            expect(button.el.textContent).to.be.equal('b');
+        });
+
+        it('must set the parent of the child a container renders', () => {
+            const Button = Component.create`<button></button>`;
+            const Container = Component.create`${() => Button.mount()}`;
+
+            const c = Container.mount({}, document.body);
+
+            expect(c.children[0].parent).to.be.equal(c);
+        });
+
+        it('must release the parent of a child the render destroys', () => {
+            const Button = Component.create`<button></button>`;
+            const Main = Component.create`<div>${({ model }) => model.show ? Button.mount() : null}</div>`;
+
+            const c = Main.mount({ model : new Model({ show : true }) }, document.body);
+            const button = c.children[0];
+
+            c.model.show = false;
+
+            expect(button.destroyed).to.be.true;
+            expect(button.parent).to.be.null;
+        });
+    });
+
     describe('Building recycled children', () => {
         const counting = () => {
             const counts = { created : 0, destroyed : 0 };
