@@ -125,6 +125,15 @@ const RE_COMPONENT_TAG = new RegExp(
 );
 
 /**
+ * A tag named by a placeholder: opening, closing or self-closing, with the
+ * closing slash and the self-closing slash captured. Used to pair component
+ * tags before `RE_COMPONENT_TAG` runs.
+ * @type {RegExp}
+ * @private
+ */
+const RE_PH_TAG = new RegExp(`<(/)?${PH_CAPTURE}${ATTRIBUTES_PATTERN}(/?)>`, 'g');
+
+/**
  * An HTML element opening tag, its name a literal or a placeholder. The attributes
  * group is lazy so the tag ending, and the whitespace before it, are left for the
  * ending group instead of being swallowed as attribute characters. The ending
@@ -288,14 +297,13 @@ const parseAttributes = (attributesStr) => {
 };
 
 /**
- * Normalize component references: every placeholder resolving to the same
- * component class is rewritten to the first placeholder that named it, so a
- * repeated tag (`<${Comp} /><${Comp} />`) pairs its opening and closing
- * placeholders and `RE_COMPONENT_TAG`'s backreference can match them. Runs once
- * per template, before parsing: the recursion into a component tag's inner
- * content receives references already normalized. The skeleton is cached by
- * `strings`, so the rewrite follows the classes of the first render: a tag whose
- * class changes afterwards still reads the placeholder it was rewritten to.
+ * Normalize component references: every closing component tag is rewritten to
+ * the placeholder of the opening it closes, so `RE_COMPONENT_TAG`'s backreference
+ * pairs them. Openings are matched to closings with a stack, which pairs nested
+ * tags of the same class (`<${A}><${A}></${A}></${A}>`) by depth. A closing whose
+ * class differs from the innermost open tag is left as is and fails to pair.
+ * Runs once per template, before parsing: the recursion into a component tag's
+ * inner content receives references already normalized.
  * @param {string} main The main template.
  * @param {Array<any>} expressions Array of expressions (read for structural decisions only).
  * @param {Function} isComponentClass Predicate telling whether an expression is a component class.
@@ -303,18 +311,17 @@ const parseAttributes = (attributesStr) => {
  * @private
  */
 const normalizeComponentRefs = (main, expressions, isComponentClass) => {
-    const componentRefMap = new Map();
+    const open = [];
     return main.replace(
-        RE_PH_G,
-        (match, idx) => {
-            const expression = expressions[idx];
-            if (expression && isComponentClass(expression)) {
-                if (componentRefMap.has(expression)) {
-                    return componentRefMap.get(expression);
-                }
-                componentRefMap.set(expression, match);
+        RE_PH_TAG,
+        (match, closing, idx, attributesStr, selfClosing) => {
+            if (!isComponentClass(expressions[idx])) return match;
+            if (!closing) {
+                if (!selfClosing) open.push(idx);
+                return match;
             }
-            return match;
+            if (!open.length || expressions[open[open.length - 1]] !== expressions[idx]) return match;
+            return `</${PLACEHOLDER(open.pop())}>`;
         }
     );
 };

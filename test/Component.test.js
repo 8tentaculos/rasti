@@ -625,6 +625,54 @@ describe('Component', () => {
             expect(document.querySelectorAll('a')[1].textContent.trim()).to.be.equal('Guide');
         });
 
+        it('must mount nested component tags of the same class', () => {
+            const Box = Component.create`<div class="box">${({ props }) => props.renderChildren()}</div>`;
+            const Other = Component.create`<section>${({ props }) => props.renderChildren()}</section>`;
+
+            const Main = Component.create`
+                <main>
+                    <${Box}>
+                        <${Box}>${({ props }) => props.label}</${Box}>
+                        <${Other}>
+                            <${Box}>inner</${Box}>
+                        </${Other}>
+                    </${Box}>
+                </main>
+            `;
+
+            const c = Main.mount({ label : 'a' }, document.body);
+            const outer = c.children[0];
+            const inner = outer.children[0];
+
+            expect(c.children.length).to.be.equal(1);
+            expect(outer.children.length).to.be.equal(2);
+            expect(inner).to.be.instanceOf(Box);
+            expect(outer.children[1].children[0]).to.be.instanceOf(Box);
+            expect(document.querySelectorAll('.box').length).to.be.equal(3);
+            expect(document.querySelector('.box .box').textContent).to.be.equal('a');
+            expect(document.querySelector('section .box').textContent).to.be.equal('inner');
+
+            c.props.label = 'b';
+            c.render();
+
+            expect(outer.children[0]).to.be.equal(inner);
+            expect(document.querySelector('.box .box').textContent).to.be.equal('b');
+        });
+
+        it('must hydrate nested component tags of the same class', () => {
+            const Box = Component.create`<div class="box">${({ props }) => props.renderChildren()}</div>`;
+            const Main = Component.create`<main><${Box}><${Box}>${() => 'x'}</${Box}></${Box}></main>`;
+
+            Component.resetUid();
+            document.body.innerHTML = Main.mount({}).toString();
+            Component.resetUid();
+            const c = Main.mount({}, document.body, true);
+            const boxes = document.querySelectorAll('.box');
+
+            expect(c.children[0].el).to.be.equal(boxes[0]);
+            expect(c.children[0].children[0].el).to.be.equal(boxes[1]);
+        });
+
         it('must throw error when component tag is malformed', () => {
             const Button = Component.create`<button>click me</button>`;
 

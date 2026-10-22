@@ -419,19 +419,16 @@ describe('parseTemplate', () => {
             expect(expressions[interpolations[0].index]).to.equal(Comp);
         });
 
-        it('must normalize repeated references to the same component class', () => {
+        it('must keep each repeated tag of the same class on its own expression', () => {
             const Comp = makeComponent();
             const { strings, expressions } = tag`<div><${Comp} a=${'x'}/><${Comp} b=${'y'}/></div>`;
             const { parts } = parseTemplate(strings, expressions, isComponentClass);
 
-            // Both tags resolve to one descriptor each, and both descriptors point
-            // at the first expression that named the class.
             const interpolations = interpolationsOf(parts);
             expect(interpolations).to.have.lengthOf(2);
-            interpolations.forEach(desc => {
-                expect(desc).to.be.instanceOf(ComponentDescriptor);
-                expect(desc.index).to.equal(0);
-            });
+            interpolations.forEach(desc => expect(desc).to.be.instanceOf(ComponentDescriptor));
+            expect(interpolations[0].index).to.equal(0);
+            expect(interpolations[1].index).to.equal(2);
             expectAttr(interpolations[0].attributes[0], 'a', 1);
             expectAttr(interpolations[1].attributes[0], 'b', 3);
         });
@@ -445,6 +442,53 @@ describe('parseTemplate', () => {
             expect(interpolations).to.have.lengthOf(2);
             expect(interpolationsOf(interpolations[0].inner.parts)[0].index).to.equal(1);
             expect(interpolationsOf(interpolations[1].inner.parts)[0].index).to.equal(4);
+        });
+
+        it('must pair nested tags of the same class by depth', () => {
+            const Comp = makeComponent();
+            const { strings, expressions } = tag`<${Comp}><${Comp}>${'a'}</${Comp}></${Comp}>`;
+            const { parts } = parseTemplate(strings, expressions, isComponentClass);
+
+            const outer = interpolationsOf(parts);
+            expect(outer).to.have.lengthOf(1);
+            expect(outer[0]).to.be.instanceOf(ComponentDescriptor);
+            expect(outer[0].index).to.equal(0);
+
+            const inner = interpolationsOf(outer[0].inner.parts);
+            expect(inner).to.have.lengthOf(1);
+            expect(inner[0]).to.be.instanceOf(ComponentDescriptor);
+            expect(inner[0].index).to.equal(1);
+            expect(interpolationsOf(inner[0].inner.parts)[0].index).to.equal(2);
+        });
+
+        it('must pair tags of the same class nested through another class', () => {
+            const A = makeComponent();
+            const B = makeComponent();
+            const { strings, expressions } = tag`<${A}><${B}><${A}>${'a'}</${A}></${B}></${A}>`;
+            const { parts } = parseTemplate(strings, expressions, isComponentClass);
+
+            const outer = interpolationsOf(parts);
+            expect(outer).to.have.lengthOf(1);
+            expect(expressions[outer[0].index]).to.equal(A);
+
+            const middle = interpolationsOf(outer[0].inner.parts);
+            expect(middle).to.have.lengthOf(1);
+            expect(expressions[middle[0].index]).to.equal(B);
+
+            const inner = interpolationsOf(middle[0].inner.parts);
+            expect(inner).to.have.lengthOf(1);
+            expect(inner[0]).to.be.instanceOf(ComponentDescriptor);
+            expect(expressions[inner[0].index]).to.equal(A);
+            expect(interpolationsOf(inner[0].inner.parts)[0].index).to.equal(3);
+        });
+
+        it('must not pair a closing tag of a different class', () => {
+            const A = makeComponent();
+            const B = makeComponent();
+            const { strings, expressions } = tag`<div><${A}>${'a'}</${B}></div>`;
+            const { parts } = parseTemplate(strings, expressions, isComponentClass);
+
+            interpolationsOf(parts).forEach(desc => expect(desc).to.not.be.instanceOf(ComponentDescriptor));
         });
     });
 
