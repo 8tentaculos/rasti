@@ -98,6 +98,13 @@ declare class View<M = any> extends Emitter {
     /** Child views. Destroyed automatically when the parent is destroyed. */
     children: View[];
 
+    /**
+     * The view that adopted this one with `addChild`, or `null` before that, for a view
+     * mounted at the root, and after `destroy()`. For a component's slotted content it is
+     * the component that renders it (the host), not the one whose template wrote it.
+     */
+    parent: View | null;
+
     /** Whether `destroy()` has been called on this view. `undefined` until then. */
     destroyed?: boolean;
 
@@ -146,6 +153,7 @@ declare class View<M = any> extends Emitter {
 
     /**
      * Add a view as a child. Children are stored in `this.children` and destroyed when the parent is destroyed.
+     * Sets the child's `parent` to this view.
      * @return The child view for chaining.
      */
     addChild<C extends View>(child: C): C;

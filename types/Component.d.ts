@@ -37,6 +37,17 @@ export interface ComponentReservedOptions<
 
 export type ComponentOptions<P = Record<string, any>, S = any, M = any> = P & ComponentReservedOptions<S, M, P>;
 
+/**
+ * A context key that carries the type of the values it is provided with. It exists only
+ * for the type checker: at runtime it is a plain `Symbol`, so a `Symbol()` is assignable
+ * to it and it can key the object `provide()` returns. Export it from a module of its
+ * own, which both the providing and the consuming components import.
+ *
+ * @example
+ * export const FormControl: InjectionKey<{ id: string | null; invalid: boolean }> = Symbol('formControl');
+ */
+export type InjectionKey<T> = symbol & { readonly __rastiInjectionKey?: T };
+
 /** Marker type for strings that are safe to inject as HTML without sanitization. */
 export interface SafeHTML {
     readonly __rastiSafeHTML: true;
@@ -120,6 +131,8 @@ export interface ComponentLifecycle {
 interface ComponentOverrides {
     /** Called on the first render, to build the model the component keeps its props in. */
     createProps?(props: object): Model;
+    /** Called on every render, to provide contexts to the components this one hosts. */
+    provide?(): { [key: string | symbol]: object } | null;
 }
 
 /**
@@ -317,7 +330,7 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
     /**
      * Subscribes to a `change` event on a model or emitter and invokes `onChange`.
      * Cleaned up automatically on destroy. By default the component subscribes to
-     * `this.model`, `this.state` and `this.props`.
+     * `this.model`, `this.state`, `this.props` and the contexts it reads with `inject`.
      */
     subscribe(model: object, type?: string, listener?: (...args: any[]) => void): this;
 
@@ -333,6 +346,35 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
      * validates what a parent passes.
      */
     createProps(props: object): Model;
+
+    /**
+     * Provide contexts to the components this one hosts, at any depth, including the
+     * content slotted into it. Called on every render, before the children render.
+     * Return the values of each context by key, or `null` to provide nothing. Each key gets
+     * one `Model`, created on the first render and `set` on later ones, so return the same
+     * keys with the same properties on every render (`null` for an absent value).
+     * The returned object is not checked against the type of each `InjectionKey`.
+     *
+     * @example
+     * provide() {
+     *     return { [FormControl]: { id: this.props.controlId, invalid: !!this.props.error } };
+     * }
+     */
+    provide(): { [key: string | symbol]: object } | null;
+
+    /**
+     * Read a context provided by a parent: the `Model` of the nearest parent that provides
+     * `key`, searched from `this.parent` up. Without a provider it returns a shared, empty and
+     * frozen model, whose properties read `undefined`. The component subscribes to the
+     * provider's model and re-renders when its values change. Bound to the component
+     * instance from the first render on, so templates can destructure it.
+     *
+     * @example
+     * const Input = Component.create`
+     *     <input id="${({ props, inject }) => props.id || inject(FormControl).id || false}">
+     * `;
+     */
+    inject<T = Record<string, any>>(key: InjectionKey<T> | string): Model<T> & Partial<T>;
 
     /**
      * Render the component.

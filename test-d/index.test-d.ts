@@ -12,6 +12,7 @@ import {
     ComponentModel,
     ComponentPartial,
     Resolvable,
+    InjectionKey,
 } from '../types/index.js';
 
 /*
@@ -494,6 +495,55 @@ new Counter({
     onDestroy() { expectType<CounterState | undefined>(this.state); },
     tag() { return this.state ? 'section' : 'div'; },
 });
+
+/*
+ * Context: parent, provide, inject and InjectionKey
+ */
+type FormControlValues = { id: string | null; invalid: boolean };
+const FormControl: InjectionKey<FormControlValues> = Symbol('formControl');
+
+// `parent` is the adopting view, `null` at the root
+expectType<View | null>(new Component().parent);
+expectType<View | null>(v.parent);
+
+// `provide` returns the values of each context by key, or `null`
+class ProvidingField extends Component<{ controlId: string; error?: string }> {
+    provide() {
+        return { [FormControl]: { id: this.props.controlId, invalid: !!this.props.error } };
+    }
+}
+expectAssignable<{ [key: string | symbol]: object } | null>(new ProvidingField({ controlId: 'a' }).provide());
+class NotProviding extends Component {
+    // @ts-expect-error
+    provide() { return 'theme'; }
+}
+void NotProviding;
+
+// Through `extend` it is contextually typed, like `createProps`
+Component.create`<div></div>`.extend({ provide() { return { [FormControl]: { id: 'a', invalid: false } }; } });
+Component.create`<div></div>`.extend({ provide() { return null; } });
+
+// `inject` with an `InjectionKey` returns the provider's model, typed by the key, with
+// its values possibly absent: without a provider it is an empty model
+const consumer = new Component();
+const control = consumer.inject(FormControl);
+expectType<Model<FormControlValues> & Partial<FormControlValues>>(control);
+expectType<string | null | undefined>(control.id);
+expectType<FormControlValues>(control.attributes);
+// @ts-expect-error
+void control.idd;
+
+// A plain symbol or a string key is permissive
+expectType<any>(consumer.inject(Symbol('theme')).color);
+expectType<any>(consumer.inject('theme').color);
+expectAssignable<Model>(consumer.inject('theme'));
+// @ts-expect-error
+consumer.inject(1);
+
+// Templates destructure it from the component
+const renderControlId: RenderExpression<Component> = ({ props, inject }) => props.id || inject(FormControl).id || false;
+void renderControlId;
+Component.create`<input id="${({ inject }: Component) => inject(FormControl).id || false}">`;
 
 /*
  * Helper types: EventHandler, RenderExpression, ModelAttrs, ComponentProps, ComponentState, ComponentModel

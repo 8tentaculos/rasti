@@ -14,4 +14,5 @@ export {
     ComponentModel,
     ComponentLifecycle,
     ExtendedComponent,
+    InjectionKey,
 } from './Component.js';
