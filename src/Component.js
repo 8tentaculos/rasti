@@ -95,6 +95,23 @@ const throwComponentError = (devMessage, prodMessage) => {
 const isComponentClass = (expression) => !!(expression && expression.prototype instanceof Component);
 
 /**
+ * The model `inject` returns when no parent provides the context: one instance shared
+ * by every consumer, empty and frozen so no consumer can write state the others read.
+ * @type {Model}
+ * @private
+ */
+const EMPTY_CONTEXT = new Model();
+// A frozen object fails on `set` and `on` with a `TypeError` about read-only
+// properties; development builds throw a message that names the cause instead.
+if (__DEV__) {
+    EMPTY_CONTEXT.set = EMPTY_CONTEXT.on = () => throwComponentError(
+        'No provider for this context: the empty model returned by `inject` cannot be set or listened to.',
+        'No provider for this context'
+    );
+}
+Object.freeze(EMPTY_CONTEXT);
+
+/**
  * Throw when a component's root template does not resolve to a single element.
  * `this.el` is the first element the root partial renders, so anything written
  * beside it is rendered once and then left out of every update, move and destroy.
@@ -377,6 +394,74 @@ export default class Component extends View {
     }
 
     /**
+     * Provide contexts to the components this one hosts, at any depth: its children,
+     * including the content slotted into it, and their own. Called on every render,
+     * before the template's children render.
+     *
+     * Return an object mapping each context key to the values of that context, or `null`
+     * to provide nothing. Each key gets one `Model`, created on the first render and
+     * `set` with the returned values on every later one, so return the same keys, with
+     * the same properties, on every render (`null` for a value that is absent). Use
+     * `Symbol` keys exported by a module of their own, so neither side imports the other.
+     * @return {object|null} The values of each context, by key.
+     * @example
+     * import { Component } from 'rasti';
+     * import { FormControl } from './form-control.js';
+     *
+     * class Field extends Component {
+     *     provide() {
+     *         const { controlId, error } = this.props;
+     *         return { [FormControl] : { id : controlId, invalid : !!error } };
+     *     }
+     * }
+     */
+    provide() {
+        return null;
+    }
+
+    /**
+     * Read a context provided by a parent. The search starts at `this.parent` and walks
+     * up the views that adopted this one, so a component that provides a key reads its
+     * parent's, not its own. Bound to the component instance from the first render on.
+     *
+     * Returns the `Model` of the nearest parent that provides `key`, or a shared, empty
+     * and frozen `Model` when none does: its properties read `undefined`, so a consumer
+     * falls back to its own defaults.
+     * @param {symbol|string} key The context key.
+     * @return {Model} The context model.
+     * @example
+     * import { Component } from 'rasti';
+     * import { FormControl } from './form-control.js';
+     *
+     * const Input = Component.create`
+     *     <input id="${({ props, inject }) => props.id || inject(FormControl).id}" />
+     * `;
+     */
+    inject(key) {
+        for (let view = this.parent; view; view = view.parent) {
+            if (view.contexts && key in view.contexts) return view.contexts[key];
+        }
+        return EMPTY_CONTEXT;
+    }
+
+    /**
+     * Call `provide` and keep what it returns: a `Model` per context key, created the
+     * first time the key is provided and `set` with its new values on later renders.
+     * @private
+     */
+    updateContexts() {
+        const provided = this.provide();
+        if (!provided) return;
+        if (!this.contexts) this.contexts = Object.create(null);
+        const keys = Reflect.ownKeys(provided);
+        for (let i = 0; i < keys.length; i++) {
+            const context = this.contexts[keys[i]];
+            if (context) context.set(provided[keys[i]]);
+            else this.contexts[keys[i]] = new Model(provided[keys[i]]);
+        }
+    }
+
+    /**
      * Override super method, as a no-op. A view creates its root element while it is
      * being constructed; a component's comes from its template, which runs on the first
      * render so that it sees `state`, `props` and whatever the constructor set up. The
@@ -388,7 +473,8 @@ export default class Component extends View {
     /**
      * Build what a render needs, once, on the first one: the props model, the listener
      * store, the queue of recycled children's props, the adapter the partials reach the
-     * component world through, the bound `partial` and `html`, and the root partial itself.
+     * component world through, the bound `partial`, `html` and `inject`, and the root
+     * partial itself.
      *
      * None of it exists until then. A component that is built and discarded without
      * rendering — one an expression builds where the render recycles the previous child
@@ -410,6 +496,8 @@ export default class Component extends View {
         this.partial = this.partial.bind(this);
         // Expose `partial` as `html`, unless a subclass defines its own `html`.
         if (!('html' in this)) this.html = this.partial;
+        // Bind `inject` method to `this`, so templates can destructure it.
+        this.inject = this.inject.bind(this);
         // Build the root partial from the template and adopt it.
         this.rootPartial = this.buildRootPartial();
         if (__DEV__) checkRootStructure(this);
@@ -655,6 +743,8 @@ export default class Component extends View {
     toString() {
         // Everything a render needs is built here, on the first one.
         this.ensureEngine();
+        // Provide this render's contexts before the children that read them render.
+        this.updateContexts();
         // Normally there won't be any children, but if there are, destroy them.
         this.destroyChildren();
         // Normally there won't be any data event listeners, but if there are, clear them.
@@ -761,6 +851,8 @@ export default class Component extends View {
     renderUpdate() {
         // Call `onBeforeUpdate` lifecycle method.
         this.onBeforeUpdate.call(this);
+        // Provide this render's contexts before the children that read them render.
+        this.updateContexts();
         // Clear event listeners.
         this.eventsManager.reset();
         // Store previous children.

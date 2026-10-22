@@ -1961,6 +1961,183 @@ describe('Component', () => {
         });
     });
 
+    describe('Context', () => {
+        const FormControl = Symbol('formControl');
+        // Provides the control id, and the id of the error when there is one.
+        const Field = Component.create`<div>${({ props }) => props.renderChildren()}</div>`.extend({
+            provide() {
+                const { controlId, error } = this.props;
+                return {
+                    [FormControl] : { id : controlId, describedBy : error ? `${controlId}-error` : null }
+                };
+            }
+        });
+        // A provider of the same context, to nest under a field: a template pairs a
+        // component tag with its closing tag by class.
+        const Fieldset = Field.extend({});
+        // An attribute is left out when its value is `false`.
+        const Input = Component.create`
+            <input
+                id="${({ inject }) => inject(FormControl).id || false}"
+                aria-describedby="${({ inject }) => inject(FormControl).describedBy || false}"
+            >
+        `;
+
+        it('must read the context of the host on the first render', () => {
+            const Page = Component.create`<main><${Field} controlId="email"><${Input} /></${Field}></main>`;
+
+            Page.mount({}, document.body);
+
+            expect(document.querySelector('input').id).to.be.equal('email');
+            expect(document.querySelector('input').hasAttribute('aria-describedby')).to.be.false;
+        });
+
+        it('must render the context into the markup of toString', () => {
+            const Page = Component.create`<main><${Field} controlId="email" error="bad"><${Input} /></${Field}></main>`;
+
+            const html = Page.mount({}).toString();
+
+            expect(html).to.contain('id="email"');
+            expect(html).to.contain('aria-describedby="email-error"');
+        });
+
+        it('must hydrate markup rendered with a context', () => {
+            const Page = Component.create`<main><${Field} controlId="email" error="bad"><${Input} /></${Field}></main>`;
+
+            document.body.innerHTML = Page.mount({}).toString();
+            Component.resetUid();
+            const page = Page.mount({}, document.body, true);
+            const input = page.children[0].children[0];
+
+            expect(input.el).to.be.equal(document.querySelector('input'));
+            expect(input.el.id).to.be.equal('email');
+            expect(input.el.getAttribute('aria-describedby')).to.be.equal('email-error');
+        });
+
+        it('must keep one model per context, set before the children render', () => {
+            const Page = Component.create`
+                <main>
+                    <${Field} controlId="email" error="${({ model }) => model.error}">
+                        <${Input} error="${({ model }) => model.error}" />
+                    </${Field}>
+                </main>
+            `;
+
+            const page = Page.mount({ model : new Model({ error : null }) }, document.body);
+            const field = page.children[0];
+            const input = field.children[0];
+            const context = input.inject(FormControl);
+
+            expect(context).to.be.equal(field.contexts[FormControl]);
+
+            // The input re-renders for its own prop, after the field has set the context.
+            page.model.error = 'bad';
+
+            expect(field.children[0]).to.be.equal(input);
+            expect(input.inject(FormControl)).to.be.equal(context);
+            expect(context.describedBy).to.be.equal('email-error');
+            expect(input.el.getAttribute('aria-describedby')).to.be.equal('email-error');
+        });
+
+        it('must let a nested provider shadow the outer one', () => {
+            const Page = Component.create`
+                <main>
+                    <${Fieldset} controlId="address">
+                        <${Field} controlId="street"><${Input} /></${Field}>
+                    </${Fieldset}>
+                </main>
+            `;
+
+            Page.mount({}, document.body);
+
+            expect(document.querySelector('input').id).to.be.equal('street');
+        });
+
+        it('must read the context of a parent from a provider of the same key', () => {
+            const NestedField = Field.extend({
+                template() {
+                    return this.html`<div title="${this.inject(FormControl).id}">${this.props.renderChildren()}</div>`;
+                }
+            });
+            const Page = Component.create`
+                <main>
+                    <${Field} controlId="address">
+                        <${NestedField} controlId="street"><${Input} /></${NestedField}>
+                    </${Field}>
+                </main>
+            `;
+
+            Page.mount({}, document.body);
+
+            expect(document.querySelector('[title]').title).to.be.equal('address');
+            expect(document.querySelector('input').id).to.be.equal('street');
+        });
+
+        it('must see through a parent that does not provide the key', () => {
+            const Wrapper = Component.create`<section>${({ props }) => props.renderChildren()}</section>`;
+            const Page = Component.create`
+                <main>
+                    <${Field} controlId="email"><${Wrapper}><${Input} /></${Wrapper}></${Field}>
+                </main>
+            `;
+
+            const page = Page.mount({}, document.body);
+            const input = page.children[0].children[0].children[0];
+
+            expect(input).to.be.instanceOf(Input);
+            expect(input.el.id).to.be.equal('email');
+        });
+
+        it('must not look past a provider whose value is null', () => {
+            const Page = Component.create`
+                <main>
+                    <${Fieldset} controlId="address" error="bad">
+                        <${Field} controlId="street"><${Input} /></${Field}>
+                    </${Fieldset}>
+                </main>
+            `;
+
+            Page.mount({}, document.body);
+
+            // The inner field provides the whole context: its null value is not filled
+            // from the outer one.
+            expect(document.querySelector('input').id).to.be.equal('street');
+            expect(document.querySelector('input').hasAttribute('aria-describedby')).to.be.false;
+        });
+
+        it('must not see the host from an expression in slotted content', () => {
+            const Label = Component.create`<span>${({ props }) => props.text}</span>`;
+            const Page = Component.create`
+                <main>
+                    <${Field} controlId="email">
+                        <${Label} text="${self => self.inject(FormControl).id || 'none'}" />
+                    </${Field}>
+                </main>
+            `;
+
+            Page.mount({}, document.body);
+
+            // The expression belongs to the page, which has no provider above it.
+            expect(document.querySelector('span').textContent).to.be.equal('none');
+        });
+
+        it('must return one frozen empty model without a provider', () => {
+            const Other = Symbol('other');
+            const input = Input.mount({}, document.body);
+            const empty = input.inject(FormControl);
+
+            expect(empty).to.be.instanceOf(Model);
+            expect(empty).to.be.equal(input.inject(Other));
+            expect(empty).to.be.equal(Input.mount({}, document.body).inject(FormControl));
+            expect(Object.isFrozen(empty)).to.be.true;
+            expect(empty.id).to.be.undefined;
+            expect(empty.toJSON()).to.be.deep.equal({});
+            expect(input.el.hasAttribute('id')).to.be.false;
+            expect(() => empty.set({ id : 'email' })).to.throw(/No provider for this context/);
+            expect(() => empty.on('change', () => {})).to.throw(/No provider for this context/);
+        });
+    });
+
     describe('Building recycled children', () => {
         const counting = () => {
             const counts = { created : 0, destroyed : 0 };
