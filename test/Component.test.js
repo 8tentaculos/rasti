@@ -4098,6 +4098,83 @@ describe('Component', () => {
             console.warn = consoleWarn;
         });
 
+        describe('Context', () => {
+            const Theme = Symbol('theme');
+            // Provides the model's values, whatever shape they have on each render.
+            const Provider = Component.create`<div>${({ props }) => props.renderChildren()}</div>`.extend({
+                provide() {
+                    return this.props.values;
+                }
+            });
+            const Consumer = Component.create`<span>${({ inject }) => inject(Theme).color}</span>`;
+
+            it('must warn once per class when inject runs before the first render', () => {
+                const Early = Consumer.extend({
+                    onCreate() { this.color = this.inject(Theme).color; }
+                });
+                const Page = Component.create`
+                    <main><${Provider} values="${{ [Theme] : { color : 'red' } }}"><${Early} /><${Early} /></${Provider}></main>
+                `;
+
+                Page.mount({}, document.body);
+
+                expect(warnings.length).to.be.equal(1);
+                expect(warnings[0]).to.contain('`inject` called before');
+                expect(document.querySelector('span').textContent).to.be.equal('red');
+            });
+
+            it('must not warn when a root component reads a context in its template', () => {
+                Consumer.mount({}, document.body);
+
+                expect(warnings.length).to.be.equal(0);
+            });
+
+            it('must not warn when provide keeps its shape', () => {
+                const Page = Component.create`
+                    <main><${Provider} values="${({ model }) => ({ [Theme] : { color : model.color } })}"><${Consumer} /></${Provider}></main>
+                `;
+
+                const page = Page.mount({ model : new Model({ color : 'red' }) }, document.body);
+                page.model.color = 'blue';
+
+                expect(warnings.length).to.be.equal(0);
+                expect(document.querySelector('span').textContent).to.be.equal('blue');
+            });
+
+            it('must warn once per class when provide adds or drops a key', () => {
+                const Other = Symbol('other');
+                // A class of its own: the warning prints once per class.
+                const Changing = Provider.extend({});
+                const Page = Component.create`
+                    <main><${Changing} values="${({ model }) => model.values}"><${Consumer} /></${Changing}></main>
+                `;
+
+                const page = Page.mount({ model : new Model({ values : { [Theme] : { color : 'red' } } }) }, document.body);
+                page.model.values = { [Other] : { size : 1 } };
+                page.model.values = { [Theme] : { color : 'red' } };
+
+                expect(warnings.length).to.be.equal(1);
+                expect(warnings[0]).to.contain('changed between renders');
+                expect(warnings[0]).to.contain('Symbol(other): added');
+                expect(warnings[0]).to.contain('Symbol(theme): dropped');
+            });
+
+            it('must warn when provide adds or drops a property of a context', () => {
+                // A class of its own: the warning prints once per class.
+                const Changing = Provider.extend({});
+                const Page = Component.create`
+                    <main><${Changing} values="${({ model }) => model.values}"><${Consumer} /></${Changing}></main>
+                `;
+
+                const page = Page.mount({ model : new Model({ values : { [Theme] : { color : 'red' } } }) }, document.body);
+                page.model.values = { [Theme] : { size : 1 } };
+
+                expect(warnings.length).to.be.equal(1);
+                expect(warnings[0]).to.contain('Symbol(theme): added size');
+                expect(warnings[0]).to.contain('Symbol(theme): dropped color');
+            });
+        });
+
         it('must warn when a component in a list has no key', () => {
             Component.create`
                 <ul>${({ model, partial }) => model.items.map(item => partial`<${Row} text="${item}" />`)}</ul>

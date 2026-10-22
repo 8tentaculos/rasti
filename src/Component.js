@@ -14,6 +14,7 @@ import parseHTML from './utils/parseHTML.js';
 import isVoidElement from './utils/isVoidElement.js';
 import replaceNode from './utils/replaceNode.js';
 import createDevelopmentErrorMessage from './utils/createDevelopmentErrorMessage.js';
+import createDevelopmentWarningMessage from './utils/createDevelopmentWarningMessage.js';
 import createProductionErrorMessage from './utils/createProductionErrorMessage.js';
 import formatTemplateSource from './utils/formatTemplateSource.js';
 
@@ -110,6 +111,78 @@ if (__DEV__) {
     );
 }
 Object.freeze(EMPTY_CONTEXT);
+
+/**
+ * The component classes already warned about reading a context before their first
+ * render, and about a `provide()` whose shape changed: each warning prints once per
+ * class, not once per instance or render. Development only.
+ * @type {WeakSet<Function>}
+ * @private
+ */
+const warnedInjectBeforeRender = __DEV__ ? new WeakSet() : null;
+const warnedProvidedShape = __DEV__ ? new WeakSet() : null;
+
+/**
+ * Warn when a component reads a context before a parent adopted it: in the constructor
+ * or in `onCreate` there is no parent to search from, and `inject` returns the empty
+ * model. A root component reading in its template has none either, and is not warned.
+ * Development only.
+ * @param {Component} component The component calling `inject`.
+ * @private
+ */
+const warnInjectBeforeRender = (component) => {
+    const { constructor } = component;
+    if (warnedInjectBeforeRender.has(constructor)) return;
+    warnedInjectBeforeRender.add(constructor);
+    console.warn(createDevelopmentWarningMessage(
+        `\`inject\` called before ${constructor.name}#${component.uid} was rendered\n` +
+        'A component reads the contexts of its parents from its first render on. In the\n' +
+        'constructor and in `onCreate` it has no parent yet, so `inject` returns an empty model.\n' +
+        '\n' +
+        'Read the context in the template, or in `onHydrate`.'
+    ));
+};
+
+/**
+ * Warn when `provide()` returns a different shape than the contexts it created: a key
+ * added or dropped, or a property added or dropped inside one. A consumer keeps the
+ * model it found, so a key added later is not seen by those already rendered, and a
+ * model only has accessors for the properties it was created with. Development only.
+ * @param {Component} component The providing component.
+ * @param {object|null} provided What `provide()` returned on this render.
+ * @private
+ */
+const checkProvidedShape = (component, provided) => {
+    const { constructor, contexts } = component;
+    if (warnedProvidedShape.has(constructor)) return;
+    const keys = provided ? Reflect.ownKeys(provided) : [];
+    const changes = [];
+    keys.forEach(key => {
+        if (!(key in contexts)) {
+            changes.push(`- ${String(key)}: added`);
+            return;
+        }
+        const before = Object.keys(contexts[key].attributes);
+        const now = Object.keys(provided[key]);
+        const added = now.filter(property => before.indexOf(property) === -1);
+        const dropped = before.filter(property => now.indexOf(property) === -1);
+        if (added.length) changes.push(`- ${String(key)}: added ${added.join(', ')}`);
+        if (dropped.length) changes.push(`- ${String(key)}: dropped ${dropped.join(', ')}`);
+    });
+    Reflect.ownKeys(contexts).forEach(key => {
+        if (keys.indexOf(key) === -1) changes.push(`- ${String(key)}: dropped`);
+    });
+    if (!changes.length) return;
+    warnedProvidedShape.add(constructor);
+    console.warn(createDevelopmentWarningMessage(
+        `\`provide()\` of ${constructor.name}#${component.uid} changed between renders\n` +
+        changes.join('\n') + '\n' +
+        '\n' +
+        'A consumer keeps the context model it found first, and a model only reads the\n' +
+        'properties it was created with. Return the same keys, with the same properties,\n' +
+        'on every render, using `null` for a value that is absent.'
+    ));
+};
 
 /**
  * Throw when a component's root template does not resolve to a single element.
@@ -439,6 +512,7 @@ export default class Component extends View {
      * `;
      */
     inject(key) {
+        if (__DEV__ && !this.parent && !this.eventsManager) warnInjectBeforeRender(this);
         for (let view = this.parent; view; view = view.parent) {
             if (view.contexts && key in view.contexts) {
                 const context = view.contexts[key];
@@ -462,6 +536,7 @@ export default class Component extends View {
      */
     updateContexts() {
         const provided = this.provide();
+        if (__DEV__ && this.contexts) checkProvidedShape(this, provided);
         if (!provided) return;
         if (!this.contexts) this.contexts = Object.create(null);
         const keys = Reflect.ownKeys(provided);
