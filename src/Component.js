@@ -426,7 +426,8 @@ export default class Component extends View {
      *
      * Returns the `Model` of the nearest parent that provides `key`, or a shared, empty
      * and frozen `Model` when none does: its properties read `undefined`, so a consumer
-     * falls back to its own defaults.
+     * falls back to its own defaults. The component subscribes to each provider's model
+     * it reads, like it does to `props`, and re-renders when the provided values change.
      * @param {symbol|string} key The context key.
      * @return {Model} The context model.
      * @example
@@ -439,7 +440,17 @@ export default class Component extends View {
      */
     inject(key) {
         for (let view = this.parent; view; view = view.parent) {
-            if (view.contexts && key in view.contexts) return view.contexts[key];
+            if (view.contexts && key in view.contexts) {
+                const context = view.contexts[key];
+                // Keep each context read, once, to subscribe to it: at hydration when
+                // the first render reads it, right away when a later render does.
+                if (!this.injected) this.injected = [];
+                if (this.injected.indexOf(context) === -1) {
+                    this.injected.push(context);
+                    if (this.hydrated) this.subscribe(context);
+                }
+                return context;
+            }
         }
         return EMPTY_CONTEXT;
     }
@@ -534,7 +545,8 @@ export default class Component extends View {
     /**
      * Subscribes to a `change` event on a model or emitter object and invokes the `onChange` lifecycle method.
      * The subscription is automatically cleaned up when the component is destroyed.
-     * By default, the component subscribes to changes on `this.model`, `this.state`, and `this.props`.
+     * By default, the component subscribes to changes on `this.model`, `this.state`, `this.props`,
+     * and the contexts it reads with `inject`.
      *
      * @param {Object} model - The model or emitter object to listen to.
      * @param {string} [type='change'] - The event type to listen for.
@@ -560,6 +572,10 @@ export default class Component extends View {
         if (this.model) this.subscribe(this.model);
         if (this.state) this.subscribe(this.state);
         this.subscribe(this.props);
+        // Subscribe to the contexts the first render read.
+        if (this.injected) {
+            for (let i = 0; i < this.injected.length; i++) this.subscribe(this.injected[i]);
+        }
 
         // Hydrate the root partial: it recursively hydrates its structure, the nested
         // partials and the child components in its slots, so the whole subtree hydrates

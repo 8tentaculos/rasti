@@ -2136,6 +2136,182 @@ describe('Component', () => {
             expect(() => empty.set({ id : 'email' })).to.throw(/No provider for this context/);
             expect(() => empty.on('change', () => {})).to.throw(/No provider for this context/);
         });
+
+        describe('Reactivity', () => {
+            // Count the update renders of a component.
+            const counted = Base => Base.extend({
+                onCreate() { this.updates = 0; },
+                onUpdate() { this.updates++; }
+            });
+            const CountedInput = counted(Input);
+
+            it('must re-render a consumer when the context changes and its props do not', () => {
+                const Page = Component.create`
+                    <main>
+                        <${Field} controlId="email" error="${({ model }) => model.error}"><${CountedInput} /></${Field}>
+                    </main>
+                `;
+
+                const page = Page.mount({ model : new Model({ error : null }) }, document.body);
+                const input = page.children[0].children[0];
+
+                page.model.error = 'bad';
+
+                expect(input.updates).to.be.equal(1);
+                expect(input.el.getAttribute('aria-describedby')).to.be.equal('email-error');
+            });
+
+            it('must re-render a consumer behind a parent that does not render', () => {
+                const Control = counted(Component.create`<span><${CountedInput} /></span>`);
+                const Page = Component.create`
+                    <main>
+                        <${Field} controlId="email" error="${({ model }) => model.error}"><${Control} /></${Field}>
+                    </main>
+                `;
+
+                const page = Page.mount({ model : new Model({ error : null }) }, document.body);
+                const control = page.children[0].children[0];
+                const input = control.children[0];
+
+                page.model.error = 'bad';
+
+                expect(control.updates).to.be.equal(0);
+                expect(input.updates).to.be.equal(1);
+                expect(input.el.getAttribute('aria-describedby')).to.be.equal('email-error');
+            });
+
+            it('must not re-render a consumer when the provided values do not change', () => {
+                const CountedField = counted(Field);
+                const Page = Component.create`
+                    <main>
+                        <${CountedField} controlId="email" label="${({ model }) => model.label}">
+                            <${CountedInput} />
+                        </${CountedField}>
+                    </main>
+                `;
+
+                const page = Page.mount({ model : new Model({ label : 'a' }) }, document.body);
+                const field = page.children[0];
+                const input = field.children[0];
+
+                page.model.label = 'b';
+
+                expect(field.updates).to.be.equal(1);
+                expect(input.updates).to.be.equal(0);
+            });
+
+            it('must let a consumer filter context changes in its own onChange', () => {
+                const IdInput = CountedInput.extend({
+                    onChange(model, changed) {
+                        if ('id' in changed) this.render();
+                    }
+                });
+                const Page = Component.create`
+                    <main>
+                        <${Field} controlId="email" error="${({ model }) => model.error}"><${IdInput} /></${Field}>
+                    </main>
+                `;
+
+                const page = Page.mount({ model : new Model({ error : null }) }, document.body);
+                const input = page.children[0].children[0];
+
+                page.model.error = 'bad';
+
+                expect(input.updates).to.be.equal(0);
+                expect(input.el.hasAttribute('aria-describedby')).to.be.false;
+            });
+
+            it('must subscribe to a context read after hydration', () => {
+                const LateInput = Component.create`
+                    <input id="${({ props, inject }) => props.show ? inject(FormControl).id : false}">
+                `;
+                const Page = Component.create`
+                    <main>
+                        <${Field} controlId="${({ model }) => model.id}">
+                            <${LateInput} show="${({ model }) => model.show}" />
+                        </${Field}>
+                    </main>
+                `;
+
+                const page = Page.mount({ model : new Model({ id : 'a', show : false }) }, document.body);
+                const input = page.children[0].children[0];
+
+                expect(input.injected).to.be.undefined;
+
+                page.model.show = true;
+
+                expect(input.el.id).to.be.equal('a');
+
+                // Only the context changes for the input now.
+                page.model.id = 'b';
+
+                expect(input.el.id).to.be.equal('b');
+            });
+
+            it('must subscribe once to a context read many times', () => {
+                const Page = Component.create`
+                    <main>
+                        <${Field} controlId="email" error="${({ model }) => model.error}"><${CountedInput} /></${Field}>
+                    </main>
+                `;
+
+                const page = Page.mount({ model : new Model({ error : null }) }, document.body);
+                const field = page.children[0];
+                const input = field.children[0];
+
+                page.model.error = 'bad';
+                page.model.error = null;
+
+                expect(input.updates).to.be.equal(2);
+                expect(input.injected).to.have.lengthOf(1);
+                expect(field.contexts[FormControl].listeners.change).to.have.lengthOf(1);
+            });
+
+            it('must not subscribe to contexts in toString', () => {
+                const Page = Component.create`<main><${Field} controlId="email"><${Input} /></${Field}></main>`;
+
+                const page = Page.mount({});
+                page.toString();
+                const field = page.children[0];
+
+                expect(field.children[0].injected).to.have.lengthOf(1);
+                expect(field.contexts[FormControl].listeners).to.be.undefined;
+            });
+
+            it('must stop listening to the context when the consumer is destroyed', () => {
+                const Page = Component.create`
+                    <main>
+                        <${Field} controlId="email" error="${({ model }) => model.error}">
+                            ${({ model }) => model.show ? CountedInput.mount() : null}
+                        </${Field}>
+                    </main>
+                `;
+
+                const page = Page.mount({ model : new Model({ error : null, show : true }) }, document.body);
+                const field = page.children[0];
+                const input = field.children[0];
+                const context = field.contexts[FormControl];
+
+                expect(context.listeners.change).to.have.lengthOf(1);
+
+                page.model.show = false;
+
+                expect(input.destroyed).to.be.true;
+                expect(context.listeners).to.be.undefined;
+
+                page.model.error = 'bad';
+
+                expect(input.updates).to.be.equal(0);
+            });
+
+            it('must not subscribe to the empty model', () => {
+                const input = CountedInput.mount({}, document.body);
+
+                expect(input.injected).to.be.undefined;
+                expect(() => input.render()).to.not.throw();
+                expect(input.updates).to.be.equal(1);
+            });
+        });
     });
 
     describe('Building recycled children', () => {
