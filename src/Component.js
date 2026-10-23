@@ -850,8 +850,8 @@ export default class Component extends View {
      * **First render (before the component is hydrated):**
      * This is the initial render call, where `template()` runs for the first time. The component will be rendered
      * as a string inside a `DocumentFragment` and hydrated, making `this.el` available. `this.el` is the root DOM
-     * element of the component that can be applied to the DOM. If an element was provided as an option, the component
-     * hydrates onto that existing DOM instead (server-side rendered markup).
+     * element of the component that can be applied to the DOM. If the component has its own `el`, it hydrates onto
+     * that existing DOM instead (server-side rendered markup).
      * The `onHydrate` lifecycle method will be called.
      *
      * **Note:** Typically, you don't need to call `render()` directly for the first render. The static method `Component.mount()`
@@ -905,37 +905,40 @@ export default class Component extends View {
      * @return {Component} The component instance.
      */
     render() {
-        // Prevent a last re render if view is already destroyed.
-        if (this.destroyed) return this;
-        return this.hydrated ? this.renderUpdate() : this.renderFirst();
+        return this.destroyed ? this : this.hydrated ? this.renderUpdate() : this.renderInitial();
     }
 
     /**
-     * First render: build the root from the template and hydrate it. When an
-     * element is provided, hydrate onto it (server-rendered DOM); otherwise
-     * render to a fragment. `template()` runs here, after construction, so it
-     * sees `state`/`props`.
+     * First render: render the markup and hydrate the DOM that holds it. A component that
+     * has its own `el` hydrates onto it. Otherwise `containerEl` either already holds the
+     * markup or receives a fresh render; with no container, the fresh render stays in a
+     * detached fragment.
+     * @param {node} [containerEl] The element the component is rendered into.
+     * @param {boolean} [shouldHydrateExistingDOM=false] Whether `containerEl` already holds the markup.
      * @return {Component} The component instance.
      * @private
      */
-    renderFirst() {
-        if (this.el) {
-            // If `this.el` is a function, call it to get the element.
-            this.el = getResult(this.el, this);
-            // Render the component as a string to generate children components.
-            this.toString();
-            // Hydrate onto the provided element: it is the root the markup was rendered
-            // around, so it is the whole subtree to index, itself included.
-            this.hydrate(new HydrationIndex(this.el));
-        } else {
-            // Render to a fragment and hydrate.
-            this.hydrate(new HydrationIndex(parseHTML(this)));
-        }
-        return this;
+    renderInitial(containerEl, shouldHydrateExistingDOM) {
+        // Render the markup: it builds the children the hydration attaches.
+        const html = this.toString();
+        // The node to index: the component's own element, its root inside the container
+        // the server rendered into, or a fragment parsed from the markup.
+        let root, fragment;
+        // If `this.el` is a function, call it to get the element.
+        if (this.el) root = this.el = getResult(this.el, this);
+        else if (shouldHydrateExistingDOM) root = hydrationRoot(this, containerEl);
+        else root = fragment = parseHTML(html);
+        // Index the elements and markers the render wrote.
+        const index = new HydrationIndex(root);
+        // A fresh render is indexed before it is appended, so the walk covers its content
+        // alone, and hydrated after, so `onHydrate` finds it in the container.
+        if (fragment && containerEl) containerEl.append(fragment);
+        return this.hydrate(index);
     }
 
     /**
-     * Update render: re-run `template()` and patch the existing DOM in place.
+     * Update render of a hydrated component: re-run `template()` and patch the
+     * existing DOM in place.
      * @return {Component} The component instance.
      * @private
      */
@@ -1019,7 +1022,10 @@ export default class Component extends View {
     }
 
     /**
-     * Lifecycle method. Called when the component is rendered for the first time and hydrated in a DocumentFragment.
+     * Lifecycle method. Called when the component is rendered for the first time and hydrated.
+     * Its DOM is already in place: in the container it was mounted into, in the existing DOM it hydrated, or in
+     * its parent's DOM when an update added it. A component rendered with `render()` alone hydrates in a detached
+     * `DocumentFragment`.
      * This method only executes on the client and only during the first render.
      * Use this method for client-only operations like making API requests or setting up browser-specific functionality.
      */
@@ -1115,16 +1121,20 @@ export default class Component extends View {
      * - **Normal mount** (default): Renders the component as HTML and appends it to the provided element. Use this for client-side rendering.
      * - **Hydration mode**: Assumes the DOM already contains the component's HTML (from server-side rendering).
      *
-     * If `el` is not provided, the component is instantiated but not mounted (the same as using `new Component(options)`). You can mount it later by calling `render()` and appending the element (`this.el`) to the DOM.
+     * If `containerEl` is not provided, the component is instantiated but not mounted (the same as using `new Component(options)`). You can mount it later by calling `render()` and appending the element (`this.el`) to the DOM.
      *
      * @static
      * @param {object} [options={}] The component options. These will be passed to the constructor and can include
      *                              `model`, `state`, `props`, lifecycle methods, and any other component-specific options.
-     * @param {node} [el] The DOM element where the component will be mounted. If provided, the component will be
-     *                    rendered and appended to this element. If not provided, the component is created but not mounted.
-     * @param {boolean} [hydrate=false] If `true`, enables hydration mode for server-side rendering. The component will
-     *                                  assume the DOM already contains its HTML structure and will only hydrate it.
-     *                                  If `false` (default), the component will be rendered from scratch and appended to `el`.
+     * @param {node} [containerEl] The DOM element where the component will be mounted. If provided, the component
+     *                             will be rendered and appended to this element. If not provided, the component is
+     *                             created but not mounted. A component that has its own `el` (an option, a class
+     *                             field, or a function that returns it) hydrates onto that element instead, as
+     *                             `render()` does, and the container is not used.
+     * @param {boolean} [shouldHydrateExistingDOM=false] If `true`, enables hydration mode for server-side rendering. The
+     *                                                   component will assume the DOM already contains its HTML structure
+     *                                                   and will only hydrate it. If `false` (default), the component will
+     *                                                   be rendered from scratch and appended to `containerEl`.
      * @return {Component} The component instance.
      * @example
      * import { Component, Model } from 'rasti';
@@ -1152,30 +1162,11 @@ export default class Component extends View {
      *     label : 'Click me'
      * }, document.body, true);
      */
-    static mount(options, el, hydrate) {
+    static mount(options, containerEl, shouldHydrateExistingDOM) {
         // Instantiate component.
         const component = new this(options);
-        // If `el` is passed, mount component.
-        if (el) {
-            let index;
-            if (hydrate) {
-                // Hydrate existing DOM, only generate subcomponents calling `toString`.
-                component.toString();
-                // The server wrote the content into `el`, which may hold anything else
-                // besides: the component's own root element is what gets indexed.
-                index = new HydrationIndex(hydrationRoot(component, el));
-            } else {
-                // Render the component and append it to the provided element. The
-                // fragment is indexed before it is appended, so the walk covers the
-                // component's own content and nothing that was already there: the index
-                // holds nodes, which appending only moves.
-                const fragment = parseHTML(component);
-                index = new HydrationIndex(fragment);
-                el.append(fragment);
-            }
-            // Hydrate in both cases.
-            component.hydrate(index);
-        }
+        // If `containerEl` is passed, mount component.
+        if (containerEl) component.renderInitial(containerEl, shouldHydrateExistingDOM);
         // Return component instance.
         return component;
     }

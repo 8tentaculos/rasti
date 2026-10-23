@@ -21,7 +21,7 @@
     * _static_
         * [.markAsSafeHTML(value)](#module_component_markassafehtml) ⇒ <code>object</code>
         * [.extend(object)](#module_component_extend)
-        * [.mount([options], [el], [hydrate])](#module_component_mount) ⇒ <code>Component</code>
+        * [.mount([options], [containerEl], [shouldHydrateExistingDOM])](#module_component_mount) ⇒ <code>Component</code>
         * [.create(strings, ...expressions)](#module_component_create) ⇒ <code>Component</code>
 * [Emitter](#module_emitter)
     * [.on(type, listener)](#module_emitter__on) ⇒ <code>function</code>
@@ -139,7 +139,7 @@ setInterval(() => model.seconds++, 1000);
     * _static_
         * [.markAsSafeHTML(value)](#module_component_markassafehtml) ⇒ <code>object</code>
         * [.extend(object)](#module_component_extend)
-        * [.mount([options], [el], [hydrate])](#module_component_mount) ⇒ <code>Component</code>
+        * [.mount([options], [containerEl], [shouldHydrateExistingDOM])](#module_component_mount) ⇒ <code>Component</code>
         * [.create(strings, ...expressions)](#module_component_create) ⇒ <code>Component</code>
 
 <a name="module_component__createprops" id="module_component__createprops" class="anchor"></a>
@@ -361,8 +361,8 @@ Render the `Component`.
 **First render (before the component is hydrated):**
 This is the initial render call, where `template()` runs for the first time. The component will be rendered
 as a string inside a `DocumentFragment` and hydrated, making `this.el` available. `this.el` is the root DOM
-element of the component that can be applied to the DOM. If an element was provided as an option, the component
-hydrates onto that existing DOM instead (server-side rendered markup).
+element of the component that can be applied to the DOM. If the component has its own `el`, it hydrates onto
+that existing DOM instead (server-side rendered markup).
 The `onHydrate` lifecycle method will be called.
 
 **Note:** Typically, you don't need to call `render()` directly for the first render. The static method `Component.mount()`
@@ -452,7 +452,10 @@ render when needed.
 
 <a name="module_component__onhydrate" id="module_component__onhydrate" class="anchor"></a>
 ### component.onHydrate()
-Lifecycle method. Called when the component is rendered for the first time and hydrated in a DocumentFragment.
+Lifecycle method. Called when the component is rendered for the first time and hydrated.
+Its DOM is already in place: in the container it was mounted into, in the existing DOM it hydrated, or in
+its parent's DOM when an update added it. A component rendered with `render()` alone hydrates in a detached
+`DocumentFragment`.
 This method only executes on the client and only during the first render.
 Use this method for client-only operations like making API requests or setting up browser-specific functionality.
 
@@ -537,7 +540,7 @@ Helper method used to extend a `Component`, creating a subclass.
 | object | <code>object</code> \| <code>function</code> | Object containing methods to be added to the new `Component` subclass. Also can be a function that receives the parent prototype and returns an object. |
 
 <a name="module_component_mount" id="module_component_mount" class="anchor"></a>
-### Component.mount([options], [el], [hydrate]) ⇒ <code>Component</code>
+### Component.mount([options], [containerEl], [shouldHydrateExistingDOM]) ⇒ <code>Component</code>
 Mount the component into the DOM.
 Creates a new component instance with the provided options and optionally mounts it into the DOM.
 
@@ -545,7 +548,7 @@ Creates a new component instance with the provided options and optionally mounts
 - **Normal mount** (default): Renders the component as HTML and appends it to the provided element. Use this for client-side rendering.
 - **Hydration mode**: Assumes the DOM already contains the component's HTML (from server-side rendering).
 
-If `el` is not provided, the component is instantiated but not mounted (the same as using `new Component(options)`). You can mount it later by calling `render()` and appending the element (`this.el`) to the DOM.
+If `containerEl` is not provided, the component is instantiated but not mounted (the same as using `new Component(options)`). You can mount it later by calling `render()` and appending the element (`this.el`) to the DOM.
 
 **Kind**: static method of [<code>Component</code>](#module_component)  
 **Returns**: <code>Component</code> - The component instance.  
@@ -553,8 +556,8 @@ If `el` is not provided, the component is instantiated but not mounted (the same
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
 | [options] | <code>object</code> | <code>{}</code> | The component options. These will be passed to the constructor and can include                              `model`, `state`, `props`, lifecycle methods, and any other component-specific options. |
-| [el] | <code>node</code> |  | The DOM element where the component will be mounted. If provided, the component will be                    rendered and appended to this element. If not provided, the component is created but not mounted. |
-| [hydrate] | <code>boolean</code> | <code>false</code> | If `true`, enables hydration mode for server-side rendering. The component will                                  assume the DOM already contains its HTML structure and will only hydrate it.                                  If `false` (default), the component will be rendered from scratch and appended to `el`. |
+| [containerEl] | <code>node</code> |  | The DOM element where the component will be mounted. If provided, the component                             will be rendered and appended to this element. If not provided, the component is                             created but not mounted. A component that has its own `el` (an option, a class                             field, or a function that returns it) hydrates onto that element instead, as                             `render()` does, and the container is not used. |
+| [shouldHydrateExistingDOM] | <code>boolean</code> | <code>false</code> | If `true`, enables hydration mode for server-side rendering. The                                                   component will assume the DOM already contains its HTML structure                                                   and will only hydrate it. If `false` (default), the component will                                                   be rendered from scratch and appended to `containerEl`. |
 
 **Example**  
 ```js

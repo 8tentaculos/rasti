@@ -200,21 +200,22 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
     /**
      * Mount the component into the DOM.
      *
-     * - **Normal mount** (default): renders as HTML and appends it to `el`.
+     * - **Normal mount** (default): renders as HTML and appends it to `containerEl`.
      * - **Hydration mode**: assumes the DOM already contains the component's HTML (SSR).
      *
-     * If `el` is omitted, the component is instantiated but not mounted.
+     * If `containerEl` is omitted, the component is instantiated but not mounted.
+     * A component that has its own `el` hydrates onto that element instead.
      *
      * @param options Passed to the constructor.
-     * @param el Target DOM element.
-     * @param hydrate If `true`, hydrate an existing SSR tree instead of rendering from scratch.
+     * @param containerEl Target DOM element.
+     * @param shouldHydrateExistingDOM If `true`, hydrate an existing SSR tree instead of rendering from scratch.
      * @return The component instance.
      */
     static mount<T extends new (...args: any[]) => Component<any, any, any>>(
         this: T,
         options?: ConstructorParameters<T>[0],
-        el?: Element,
-        hydrate?: boolean,
+        containerEl?: Element,
+        shouldHydrateExistingDOM?: boolean,
     ): InstanceType<T>;
 
     /**
@@ -380,7 +381,7 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
      * Render the component.
      *
      * - **First render** (before hydration): renders as a string inside a `DocumentFragment`
-     *   and hydrates it, or hydrates onto the element given as an option. `onHydrate` is called.
+     *   and hydrates it, or hydrates onto its own `el`. `onHydrate` is called.
      * - **Update render** (once hydrated): runs `template()` again and patches the DOM in place,
      *   diffing attributes and reconciling interpolations. `onBeforeUpdate` and `onUpdate` are called.
      */

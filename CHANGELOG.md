@@ -55,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Attributes holding `on` and a capital mid-name**: an attribute such as `data-iconName` or `data-sectionTitle` was taken for an event handler, because the check matched `on` followed by a capital anywhere in the name, and it disappeared from the element. Only a name starting with `on` and a capital binds a handler.
 - **A handler named by a method on a static element**: `<button onClick="save">`, on an element carrying nothing else dynamic, was written out as the native `onclick` attribute and never called the method. It is now delegated like any other handler.
 - **The default CDN file runs in the browser again**: `https://cdn.jsdelivr.net/npm/rasti` served the CommonJS entry and `https://unpkg.com/rasti` the ES module entry, neither of which loads in a browser. The `jsdelivr` and `unpkg` fields now point both to `dist/rasti.umd.min.js`.
+- **`mount` with a component that has its own `el`**: `Component.mount(options, containerEl)` ignored an `el` the component already had — an option, a class field or a function returning it — and rendered a new copy into the container, leaving that element without events or updates. It now hydrates onto the component's own `el`, as `render()` does, and the container is not used.
 
 ## [4.2.1] - 2026-10-09
 

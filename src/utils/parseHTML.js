@@ -11,6 +11,6 @@
  */
 export default function parseHTML(html) {
     const fragment = document.createElement('template');
-    fragment.innerHTML = `${html}`;
+    fragment.innerHTML = html;
     return fragment.content;
 }
