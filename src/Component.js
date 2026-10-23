@@ -975,9 +975,11 @@ export default class Component extends View {
         // A container may now point to a different child element.
         if (this.rootPartial.isTransparent()) this.el = this.rootPartial.rootElement();
         // Destroy unused children: those not re-added to `children` during the reconcile.
-        const liveChildren = new Set(this.children);
-        for (let i = 0; i < previousChildren.length; i++) {
-            if (!liveChildren.has(previousChildren[i])) previousChildren[i].destroy();
+        if (previousChildren.length) {
+            const liveChildren = new Set(this.children);
+            for (let i = 0; i < previousChildren.length; i++) {
+                if (!liveChildren.has(previousChildren[i])) previousChildren[i].destroy();
+            }
         }
         // Update recycled children props.
         const { propsQueue } = this;

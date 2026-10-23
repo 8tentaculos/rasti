@@ -1,6 +1,8 @@
 import ExpressionDescriptor from './ExpressionDescriptor.js';
 import valueToString from './valueToString.js';
 
+import removeItem from '../utils/removeItem.js';
+
 /**
  * Resolve a parsed part to its raw value: an `ExpressionDescriptor` is looked up in
  * `expressions`, anything else is a literal parsed from the template.
@@ -42,7 +44,7 @@ class Attribute {
      * @param {object} attributes The attributes object to add to.
      * @param {Array<any>} expressions The current render expressions.
      * @param {ComponentAdapter} owner The partial's owner (for `evaluate`).
-     * @param {Set<string>} [sourceKeys] Set collecting the keys whose values are HTML source.
+     * @param {Array<string>} [sourceKeys] Array collecting the keys whose values are HTML source.
      */
     applyTo(attributes, expressions, owner, sourceKeys) {
         const key = owner.evaluate(resolvePart(this.key, expressions), 'element attribute');
@@ -52,10 +54,10 @@ class Attribute {
             if (typeof key === 'object') {
                 Object.assign(attributes, key);
                 // Spread values are runtime data (plain text).
-                if (sourceKeys) Object.keys(key).forEach(spreadKey => sourceKeys.delete(spreadKey));
+                if (sourceKeys) Object.keys(key).forEach(spreadKey => removeItem(sourceKeys, spreadKey));
             } else if (typeof key === 'string') {
                 attributes[key] = true;
-                if (sourceKeys) sourceKeys.delete(key);
+                if (sourceKeys) removeItem(sourceKeys, key);
             }
             return;
         }
@@ -71,7 +73,7 @@ class Attribute {
                     valueToString(owner.evaluate(resolvePart(part, expressions), 'element attribute')) :
                     part
             ).join('');
-            if (sourceKeys) sourceKeys.delete(key);
+            if (sourceKeys) removeItem(sourceKeys, key);
             return;
         }
 
@@ -80,8 +82,8 @@ class Attribute {
             resolvePart(this.value, expressions);
 
         if (sourceKeys) {
-            if (typeof this.value === 'string') sourceKeys.add(key);
-            else sourceKeys.delete(key);
+            if (typeof this.value !== 'string') removeItem(sourceKeys, key);
+            else if (sourceKeys.indexOf(key) === -1) sourceKeys.push(key);
         }
     }
 }

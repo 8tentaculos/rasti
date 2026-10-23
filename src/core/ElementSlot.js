@@ -4,6 +4,7 @@ import warnUnsupportedAttribute from './warnUnsupportedAttribute.js';
 import getAttributesHTML from '../utils/getAttributesHTML.js';
 import getAttributesDiff from '../utils/getAttributesDiff.js';
 import createDevelopmentErrorMessage from '../utils/createDevelopmentErrorMessage.js';
+import removeItem from '../utils/removeItem.js';
 
 import Constants from './Constants.js';
 
@@ -12,7 +13,7 @@ import __DEV__ from '../utils/dev.js';
 // Attributes the browser stops reflecting into the DOM once the user interacts with
 // the element, so patching the attribute alone is not enough: the property has to be
 // written too.
-const SYNC_PROPS = ['value', 'checked', 'selected'];
+const SYNC_PROPS = new Set(['value', 'checked', 'selected']);
 
 /**
  * Write an attribute's value through to its DOM property when the attribute is one
@@ -24,7 +25,7 @@ const SYNC_PROPS = ['value', 'checked', 'selected'];
  * @private
  */
 const syncProperty = (ref, attr, value) => {
-    if (SYNC_PROPS.indexOf(attr) !== -1 && attr in ref) {
+    if (SYNC_PROPS.has(attr) && attr in ref) {
         ref[attr] = attr === 'value' ? value : value !== false && value !== 'false';
     }
 };
@@ -132,7 +133,7 @@ class ElementSlot extends Slot {
     toString() {
         if (this.id == null) this.id = this.partial.owner.nextElementId();
         if (__DEV__) warnUnsupportedAttribute(this.partial.constructor, this.descriptor);
-        const sourceKeys = new Set();
+        const sourceKeys = [];
         const attributes = this.buildAttributes(sourceKeys);
         this.previousAttributes = attributes;
         // The emission id is written straight out: it never changes, so it is neither
@@ -192,7 +193,7 @@ class ElementSlot extends Slot {
      * after the descriptors — events and the owner's `attributes` — is plain text, and
      * a key of the owner's `attributes` colliding with a literal-marked one drops the
      * mark.
-     * @param {Set<string>} [sourceKeys] Set collecting the HTML-source keys.
+     * @param {Array<string>} [sourceKeys] Array collecting the HTML-source keys.
      * @return {object} The attributes.
      * @private
      */
@@ -206,7 +207,7 @@ class ElementSlot extends Slot {
             const rootAttributes = partial.owner.rootAttributes();
             if (rootAttributes) {
                 Object.assign(out, rootAttributes);
-                if (sourceKeys) Object.keys(rootAttributes).forEach(key => sourceKeys.delete(key));
+                if (sourceKeys) Object.keys(rootAttributes).forEach(key => removeItem(sourceKeys, key));
             }
         }
         return out;

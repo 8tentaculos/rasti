@@ -1,13 +1,13 @@
 /**
  * The HTML elements that cannot have content, and are therefore written without a
  * closing tag.
- * @type {Array<string>}
+ * @type {Set<string>}
  * @private
  */
-const voidElements = [
+const voidElements = new Set([
     'area', 'base', 'br', 'col', 'embed', 'hr', 'img',
     'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'
-];
+]);
 
 /**
  * Tell whether a tag is a void element. Used to build an element from a tag name,
@@ -17,6 +17,6 @@ const voidElements = [
  * @module
  * @private
  */
-const isVoidElement = (tag) => voidElements.indexOf(`${tag}`.toLowerCase()) !== -1;
+const isVoidElement = (tag) => voidElements.has(`${tag}`.toLowerCase());
 
 export default isVoidElement;

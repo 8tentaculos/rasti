@@ -36,7 +36,7 @@ const escapeAttributeValue = (value, isSource) => {
  * The object is plain, walked with `for-in`: inherited enumerable keys would be
  * serialized as attributes.
  * @param {Object} attributes Object containing attribute names and values.
- * @param {Set<string>} [sourceKeys] Keys whose values are HTML source.
+ * @param {Array<string>} [sourceKeys] Keys whose values are HTML source.
  * @return {string} HTML string of attributes.
  * @module
  * @private
@@ -52,7 +52,7 @@ export default function getAttributesHTML(attributes, sourceKeys) {
         if (value === true) {
             html.push(key);
         } else if (value !== false && value != null) {
-            html.push(`${key}="${escapeAttributeValue(value, !!sourceKeys && sourceKeys.has(key))}"`);
+            html.push(`${key}="${escapeAttributeValue(value, !!sourceKeys && sourceKeys.indexOf(key) !== -1)}"`);
         }
     }
 
