@@ -67,7 +67,9 @@ const shapeFor = (model, keys) => {
  */
 const warnShadowedMember = (model, property) => {
     if (!(property in model)) return;
-    const name = model.constructor.name;
+    const name = model.constructor.name || 'Model';
+    // The suggestion subclasses `Model`, so a model of `Model` itself needs a name for it.
+    const subclass = name === 'Model' ? 'MyModel' : name;
     console.warn(createDevelopmentWarningMessage(
         `Attribute "${property}" shadows a member of ${name}\n` +
         'The generated property is reached before the member it is named after, so\n' +
@@ -75,7 +77,7 @@ const warnShadowedMember = (model, property) => {
         '\n' +
         'Rename the attribute, or prefix the generated properties:\n' +
         '\n' +
-        `  class ${name} extends Model {\n` +
+        `  class ${subclass} extends Model {\n` +
         '      static attributePrefix = \'attr_\';\n' +
         '  }'
     ));

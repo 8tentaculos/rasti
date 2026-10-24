@@ -350,6 +350,27 @@ describe('Model', () => {
             expect(second.title).to.equal('b');
         });
 
+        it('must warn about a shadowed member with a subclass to prefix', () => {
+            const warn = console.warn;
+            const warnings = [];
+            console.warn = message => warnings.push(message);
+            class Todo extends Model {}
+
+            try {
+                new Todo({ toJSON : 1 });
+                new Model({ toJSON : 1 });
+            } finally {
+                console.warn = warn;
+            }
+
+            expect(warnings).to.have.lengthOf(2);
+            expect(warnings[0]).to.match(/shadows a member of Todo/);
+            expect(warnings[0]).to.match(/class Todo extends Model/);
+            // A model of `Model` itself cannot be told to subclass its own name.
+            expect(warnings[1]).to.match(/shadows a member of Model/);
+            expect(warnings[1]).to.match(/class MyModel extends Model/);
+        });
+
         it('must let an override generate the properties on each model', () => {
             class ReadOnly extends Model {
                 defineAttribute(key) {
