@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING:** **Props are a plain object until the first render**: in the constructor and `onCreate`, `this.props` holds the options the parent passed as an object, and becomes a `Model` when the component first renders, so templates and everything after see the model. Reading props works the same throughout; calling `Model` methods on them (`on`, `set`, `get`, `previous`) needs a rendered component. In the constructor, read them from the options.
 - **Hydrating onto a detached element**: a component given an `el` hydrates from that element itself, so the element no longer needs a parent node; it used to throw *Hydration failed*.
 - **BREAKING:** **The UMD bundles were renamed**: `dist/rasti.js` and `dist/rasti.min.js` are now `dist/rasti.umd.js` and `dist/rasti.umd.min.js`. Script tags and AMD loader paths (RequireJS `paths`) that reference them must be updated.
+- **Leaner npm package**: the development bundles in `dist/` no longer ship source maps, and the source maps of `es/` and `lib/` point to `src/` instead of embedding its code.
 
 ### Removed
 
