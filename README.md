@@ -18,7 +18,7 @@ This has two consequences:
 - Parsing and DOM creation are delegated to the browser's own parser.
 - Server rendering, static builds and browser rendering all follow the same path.
 
-Underneath sits a small MVC core — **models**, **views** and **event emitters** — small enough to read when you need to know how something works.
+Underneath sits a small MVC core: a component is a **view**, **models** hold its state, and **event emitters** tie the two together.
 
 [![CI](https://github.com/8tentaculos/rasti/actions/workflows/ci.yml/badge.svg)](https://github.com/8tentaculos/rasti/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/rasti.svg)](https://www.npmjs.com/package/rasti)
