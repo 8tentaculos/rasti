@@ -316,23 +316,28 @@ Emission ids are convention, not an entry: `${uid}-${n}` counting from 1 in emis
 
 ## 7. SSR and hydration
 
-`component.toString()` (and string coercion) is the SSR path: emit the tree as HTML, no DOM. Ids are deterministic (`View.uid` plus per-component counters), so a client that starts from the same uid sequence produces the same markup.
+`component.toString()` (and string coercion) is the SSR path: emit the tree as HTML, no DOM. Since rendering is the `toString` contract (see §6), a component drops into whatever string builds the page.
 
-Since rendering is the `toString` contract (see §6), a component drops into whatever string builds the page:
+Ids are deterministic. Each view takes its `uid` from the module-level counter `View.uid` (`r1`, `r2`, …), and emission ids count per component from there (§6). The client reproduces the server's markup only if both start the counter at the same value, so the server resets it before each page with `View.resetUid()` (inherited as `Component.resetUid()`); otherwise the second request starts where the first left off. The client's counter is `0` on page load, so it needs no reset as long as nothing builds a view before the hydration.
 
 ```js
+Component.resetUid();
 const html = `<!doctype html><html><body>${new App({ model })}</body></html>`;
 ```
 
 Hydration onto served DOM:
 
 ```js
-Component.mount(options, el, true);
+App.mount(options, containerEl, true);
 ```
 
-`toString()` still runs (to build child components and assign ids), then `hydrate` binds to the existing nodes instead of parsing a new fragment. Server and client must run the same version: the wire format is part of the contract.
+- **`options`**: the constructor options. They must yield the same render the server produced (same model data, same props), or the ids and nodes will not line up.
+- **`containerEl`**: the element that holds the served markup. The root is looked up inside it by its emission id (`data-rst-el="${uid}-1"`), falling back to the container itself. A component that has its own `el` (option, class field or function) hydrates onto that element and ignores the container.
+- **`shouldHydrateExistingDOM`**: `true` binds to the nodes already there instead of parsing a new fragment.
 
-`Component.mount(options, el)` without hydrate renders into a fragment and appends. `mount(options)` constructs only; call `render()` and attach `this.el` later.
+`toString()` still runs (to build child components and assign ids), then a `HydrationIndex` is built over the existing root and `hydrate` binds to it. Server and client must run the same version: the wire format is part of the contract.
+
+Without the third argument, `mount(options, containerEl)` renders into a fragment, indexes it, appends it to `containerEl` and then hydrates. `mount(options)` constructs only; call `render()` and attach `this.el` later.
 
 ---
 
