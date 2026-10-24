@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A handler named by a method on a static element**: `<button onClick="save">`, on an element carrying nothing else dynamic, was written out as the native `onclick` attribute and never called the method. It is now delegated like any other handler.
 - **The default CDN file runs in the browser again**: `https://cdn.jsdelivr.net/npm/rasti` served the CommonJS entry and `https://unpkg.com/rasti` the ES module entry, neither of which loads in a browser. The `jsdelivr` and `unpkg` fields now point both to `dist/rasti.umd.min.js`.
 - **`mount` with a component that has its own `el`**: `Component.mount(options, containerEl)` ignored an `el` the component already had — an option, a class field or a function returning it — and rendered a new copy into the container, leaving that element without events or updates. It now hydrates onto the component's own `el`, as `render()` does, and the container is not used.
+- **Expressions that are `undefined` on the first render**: a template is parsed once per call site, and an expression whose value was `undefined` at that moment was left out of the parse as if it were not there. The attribute or content stayed fixed for every later render and instance of the template, so after a first ``partial`<${Child} x="${undefined}" />`` the child always received `x` as `''`. Every expression is now kept, whatever its value.
 
 ## [4.2.1] - 2026-10-09
 

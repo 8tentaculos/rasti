@@ -185,8 +185,9 @@ const addPlaceholders = (strings, expressions) =>
     strings.reduce((out, string, i) => {
         // Add string part.
         out.push(string);
-        // Add expression placeholders.
-        if (typeof expressions[i] !== 'undefined') {
+        // Add expression placeholders. Every string but the last is followed by an
+        // expression, whatever its value: the skeleton is cached and must not depend on it.
+        if (i < expressions.length) {
             out.push(PLACEHOLDER(i));
         }
         return out;

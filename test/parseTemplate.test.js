@@ -203,6 +203,14 @@ describe('parseTemplate', () => {
             expectAttr(elements[0].attributes[0], 0, undefined, false);
         });
 
+        it('must keep a placeholder for an expression that is undefined at parse time', () => {
+            const { strings, expressions } = tag`<a title="${undefined}">${undefined}</a>`;
+            const { parts } = parseTemplate(strings, expressions);
+
+            expectAttr(elementsOf(parts)[0].attributes[0], 'title', 0, true);
+            expect(interpolationsOf(parts)).to.have.lengthOf(1);
+        });
+
         it('must parse a single-quoted placeholder value and an empty quoted value', () => {
             const { strings, expressions } = tag`<a title='${'t'}' alt="">x</a>`;
             const attributes = elementsOf(parseTemplate(strings, expressions).parts)[0].attributes;

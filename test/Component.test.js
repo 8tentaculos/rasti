@@ -1853,6 +1853,24 @@ describe('Component', () => {
             expect(section.querySelector('span').textContent).to.be.equal('b');
         });
 
+        it('updates plain values that were undefined on the first render', () => {
+            const Label = Component.create`<span class="label">${({ props }) => props.text}</span>`;
+            const model = new Model({ text : undefined });
+            const Wrap = Component.create(function() {
+                return this.partial`<div id="d" title="${model.text}"><${Label} text="${model.text}" />${model.text}</div>`;
+            });
+
+            Wrap.mount({ model }, document.body);
+            const div = document.getElementById('d');
+            expect(div.hasAttribute('title')).to.be.false;
+            expect(div.textContent).to.be.equal('');
+
+            model.text = 'a';
+            expect(div.getAttribute('title')).to.be.equal('a');
+            expect(div.querySelector('.label').textContent).to.be.equal('a');
+            expect(div.textContent).to.be.equal('aa');
+        });
+
         it('passes the component instance to the template function', () => {
             const Wrap = Component.create(self =>
                 self.partial`<div id="d">${() => self.model.n}</div>`
