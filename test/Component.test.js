@@ -4407,6 +4407,20 @@ describe('Component', () => {
             expect(warnings.length).to.be.equal(1);
         });
 
+        it('must point at a value-style list without rendering it', () => {
+            const c = Component.create(function() {
+                return this.html`<ul>${this.model.items.map(item => this.html`<${Row} text="${item}" />`)}</ul>`;
+            }).mount({ model : new Model({ items : ['a', 'b'] }) }, document.body);
+
+            c.model.items = ['c', 'd'];
+
+            expect(warnings.length).to.be.equal(1);
+            expect(warnings[0]).to.contain('Component in a list without a key');
+            expect(warnings[0]).to.contain('<ul>${...}</ul>');
+            expect(warnings[0]).to.not.contain('data-rst-el');
+            expect(Array.from(document.querySelectorAll('.row'), el => el.textContent)).to.be.deep.equal(['c', 'd']);
+        });
+
         it('must warn when an attribute name holds an interpolation', () => {
             Component.create`<div data-${() => 'x'}="1"></div>`.mount({}, document.body);
 

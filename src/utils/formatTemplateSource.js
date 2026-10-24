@@ -2,18 +2,19 @@ import repeat from './repeat.js';
 import padStart from './padStart.js';
 
 /**
- * Converts an expression to its string representation for display.
+ * Converts an expression to its string representation for display. Only a function
+ * carries its source; any other value is the result of an expression whose source is
+ * lost, and stringifying it would render it if it is a partial or a component, so it
+ * prints as `${...}`.
  * @param {any} expr The expression to convert.
  * @return {string} String representation of the expression.
  * @private
  */
 function expressionToString(expr) {
-    if (typeof expr.toString === 'function') {
-        const source = expr.toString();
-        // Keep single line or show first line for multi-line.
-        return '${' + (source.includes('\n') ? source.split('\n')[0] + '...' : source) + '}';
-    }
-    return '${' + String(expr) + '}';
+    if (typeof expr !== 'function') return '${...}';
+    const source = expr.toString();
+    // Keep single line or show first line for multi-line.
+    return '${' + (source.includes('\n') ? source.split('\n')[0] + '...' : source) + '}';
 }
 
 /**
