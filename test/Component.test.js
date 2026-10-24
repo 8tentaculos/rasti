@@ -3616,6 +3616,26 @@ describe('Component', () => {
                 '</div>';
             Component.resetUid();
             expect(() => Main.mount({}, document.body, true)).to.throw(/Hydration mismatch/);
+
+            // An element of another tag in the same position: ids count position, so it
+            // carries the id the slot expects, and only the tag tells them apart.
+            document.body.innerHTML =
+                `<div ${Constants.ATTRIBUTE_ELEMENT}="r1-1">` +
+                `<em class="a" ${Constants.ATTRIBUTE_ELEMENT}="r1-2"></em>` +
+                '</div>';
+            Component.resetUid();
+            expect(() => Main.mount({}, document.body, true)).to.throw(/in the place of <span> "r1-2" it found <em> "r1-2"/);
+        });
+
+        it('must hydrate an element whose tag is an expression without checking it', () => {
+            // A dynamic tag is only known at render time, so the slot compares the id alone.
+            const Main = Component.create`<${'section'} class="${() => 'a'}"></${'section'}>`;
+
+            document.body.innerHTML = `<section class="a" ${Constants.ATTRIBUTE_ELEMENT}="r1-1"></section>`;
+            Component.resetUid();
+            const main = Main.mount({}, document.body, true);
+
+            expect(main.el).to.be.equal(document.querySelector('section'));
         });
 
         // Hydrating into a container indexes the component's own root element, not the

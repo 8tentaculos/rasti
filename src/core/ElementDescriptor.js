@@ -11,13 +11,16 @@ import ElementSlot from './ElementSlot.js';
  *     and value as either a literal or an expression index.
  * @param {boolean} isFirst Whether this is the template's first element, which is the
  *     component's root element when the template is its root.
+ * @param {string|null} tag The tag name as written in the template, lowercased, or
+ *     `null` when the tag is an expression and is only known at render time.
  * @property {Function} Slot The class of the live state this descriptor renders through.
  * @private
  */
 class ElementDescriptor {
-    constructor(attributes, isFirst) {
+    constructor(attributes, isFirst, tag) {
         this.attributes = attributes;
         this.isFirst = isFirst;
+        this.tag = tag;
     }
 }
 

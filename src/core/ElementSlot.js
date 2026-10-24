@@ -81,22 +81,34 @@ const expandEvents = (attributes, owner) => {
 };
 
 /**
+ * An element for a hydration error: its tag, when known, and its emission id.
+ * @param {string|null} tag The tag name, or `null` when it is not known.
+ * @param {string|null} id The emission id.
+ * @return {string} The description.
+ * @private
+ */
+const describeElement = (tag, id) => `${tag ? `<${tag}> ` : ''}"${id}"`;
+
+/**
  * Reject a node that is not the one the slot wrote. Elements are handed out in
  * document order (see `HydrationIndex`), so a DOM that does not hold what the render
  * produced shifts every slot after it and the mistake surfaces far from its cause.
  * The emission id is still written on every element, and comparing it here keeps the
- * failure where it happens. Development only.
+ * failure where it happens. Ids count position, so a node of another tag standing in
+ * the same position carries the same id: the tag is compared too, when the template
+ * names it. Development only.
  * @param {ElementSlot} slot The slot being hydrated.
  * @private
  */
 const checkHydratedRef = (slot) => {
     const { ref, id } = slot;
-    if (ref && ref.getAttribute(Constants.ATTRIBUTE_ELEMENT) === id) return;
-    const found = ref ? `"${ref.getAttribute(Constants.ATTRIBUTE_ELEMENT)}"` : 'nothing';
+    const { tag } = slot.descriptor;
+    if (ref && ref.getAttribute(Constants.ATTRIBUTE_ELEMENT) === id && (!tag || ref.localName.toLowerCase() === tag)) return;
+    const found = ref ? describeElement(ref.localName, ref.getAttribute(Constants.ATTRIBUTE_ELEMENT)) : 'nothing';
     throw new Error(createDevelopmentErrorMessage(
         'Hydration mismatch\n' +
         'Hydration takes the elements a render wrote in document order, and the DOM\n' +
-        `does not hold them: in the place of "${id}" it found ${found}.\n\n` +
+        `does not hold them: in the place of ${describeElement(tag, id)} it found ${found}.\n\n` +
         'Hydrating server-rendered markup requires the server and the client to render\n' +
         'the same template from the same version of Rasti, so the markup they produce\n' +
         'matches node for node.'

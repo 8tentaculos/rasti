@@ -408,9 +408,11 @@ const parseElements = (template, elements) => {
         if (!isFirst && !RE_PH.test(attributesStr) && !RE_EVENT_ATTRIBUTE.test(attributesStr)) {
             return match;
         }
-        // Add element descriptor to elements array.
+        // Add element descriptor to elements array. A tag that is an expression is
+        // resolved at render time, so the descriptor keeps none.
         const index = elements.length;
-        elements.push(new ElementDescriptor(parseAttributes(attributesStr), isFirst));
+        const literalTag = RE_PH.test(tag) ? null : tag.toLowerCase();
+        elements.push(new ElementDescriptor(parseAttributes(attributesStr), isFirst, literalTag));
         // Replace attributes with structural placeholder.
         // Preserve original tag ending (> or />)
         return `<${tag} ${SLOT_ELEMENT(index)}${ending}`;
