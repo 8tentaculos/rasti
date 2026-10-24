@@ -11,7 +11,7 @@ class Todo extends Model {
      * Toggle the completion status of the todo.
      */
     toggle() {
-        this.completed = !this.completed; 
+        this.completed = !this.completed;
     }
 
     /**

@@ -1,8 +1,13 @@
-/*
- * From https://github.com/tastejs/todomvc
- */
-
 @charset "utf-8";
+
+/*
+ * TodoMVC app styles, from todomvc-app-css 2.4.3 by Sindre Sorhus.
+ * https://github.com/tastejs/todomvc-app-css
+ * Licensed under CC BY 4.0: https://creativecommons.org/licenses/by/4.0/
+ *
+ * Changed for this example: `word-break: break-all` on todo labels, and
+ * `cursor: pointer` on the filter links, which have no `href`.
+ */
 
 html,
 body {

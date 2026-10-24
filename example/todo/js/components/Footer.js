@@ -1,4 +1,5 @@
 import { Component } from 'rasti';
+
 import Filter from './Filter.js';
 
 /**
@@ -6,30 +7,31 @@ import Filter from './Filter.js';
  * Shows todo count, filter links, and clear completed button.
  * @class Footer
  */
-const Footer = Component.create`
-    <footer class="footer">
-        <span class="todo-count">
-            <strong>${({ model }) => model.remaining.length}</strong> 
-            ${({ model }) => model.remaining.length === 1 ? 'item' : 'items'} left
-        </span>
-        <${Filter}
-            currentFilter="${({ model }) => model.filter}"
-            handleFilter="${({ model }) => (filter) => {
-                model.filter = filter;
-            }}"
-        />
-        ${({ model, html }) => model.completed.length ?
-            html`
-                <button
-                    class="clear-completed"
-                    onClick=${function() {
-                        this.model.removeCompleted();
-                    }}
-                >
-                    Clear completed
-                </button>
-            ` : null}
-    </footer>
-`;
+class Footer extends Component {
+    // Created once per instance, so a render of the footer does not re-render `Filter`.
+    handleFilter = (filter) => {
+        this.model.filter = filter;
+    };
+
+    template() {
+        const { model } = this;
+        const count = model.remaining.length;
+        return this.html`
+            <footer class="footer">
+                <span class="todo-count">
+                    <strong>${count}</strong> ${count === 1 ? 'item' : 'items'} left
+                </span>
+
+                <${Filter} currentFilter="${model.filter}" handleFilter=${this.handleFilter} />
+
+                ${model.completed.length > 0 && this.html`
+                    <button class="clear-completed" onClick=${() => model.removeCompleted()}>
+                        Clear completed
+                    </button>
+                `}
+            </footer>
+        `;
+    }
+}
 
 export default Footer;

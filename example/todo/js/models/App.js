@@ -10,14 +10,6 @@ import TodoModel from './Todo.js';
  */
 class App extends Model {
     /**
-     * Create a new App model instance.
-     * @param {Object} attrs Initial attributes for the app.
-     */
-    constructor(attrs) {
-        super(attrs);
-    }
-
-    /**
      * Get todos filtered by the current filter setting.
      * @return {Array<Todo>} Filtered todos.
      */
@@ -94,7 +86,7 @@ class App extends Model {
      * @param {boolean} completed Whether to mark all todos as completed.
      */
     toggleAll(completed) {
-        this.todos.forEach(todo => { 
+        this.todos.forEach(todo => {
             todo.completed = completed;
         });
     }

@@ -1,18 +1,4 @@
-import { Model } from 'rasti';
-import { Component } from 'rasti';
-
-/**
- * Get CSS class names for todo item based on completion and editing state.
- * @param {Object} params The parameters object.
- * @param {Object} params.model The todo model.
- * @param {Object} params.state The component state.
- * @return {string} CSS class names.
- * @private
- */
-const getClassName = ({ model, state }) => [
-    model.completed ? 'completed' : '',
-    state.editing ? 'editing' : ''
-].join(' ');
+import { Component, Model } from 'rasti';
 
 /**
  * Single todo item component.
@@ -20,74 +6,75 @@ const getClassName = ({ model, state }) => [
  * Supports editing mode with inline editing.
  * @class Todo
  */
-const Todo = Component.create`
-    <li class="${getClassName}">
-        <div class="view">
-            <input
-                name="toggle"
-                class="toggle"
-                type="checkbox"
-                checked="${({ model }) => model.completed}"
-                onClick=${function() {
-                    this.model.toggle();
-                }}
-            >
-            <label
-                onDblClick=${function() {
-                    this.state.editing = true;
-                }}
-            >
-                ${({ model }) => model.title}
-            </label>
-            <button
-                class="destroy"
-                onClick=${function() {
-                    this.props.handleRemove();
-                }}
-            ></button>
-        </div>
-
-        <input
-            class="edit"
-            value="${({ model }) => model.title}"
-            name="edit"
-            onKeyUp=${function(ev) {
-                // Save or cancel editing.
-                if (ev.key === 'Enter' || ev.key === 'Escape') {
-                    // Save edited todo.
-                    if (ev.key === 'Enter') {
-                        const value = ev.target.value;
-                        // Set todo title.
-                        if (value) {
-                            this.model.title = value;
-                        }
-                    }
-                    // Close editing.
-                    this.state.editing = false;
-                }
-            }}
-            onFocusOut=${function () {
-                this.state.editing = false;
-            }}
-        />
-    </li>
-`.extend({
+class Todo extends Component {
     /**
      * Called when the component is created, at the end of the constructor.
      * Add internal component state.
      */
     onCreate() {
-        // Internal component state.
-        this.state = new Model({ editing : false });
-    },
-    /**
-     * Called after component update.
-     * Focuses the edit input when in editing mode.
-     */
-    onUpdate() {
-        // Focus if editing.
-        if (this.state.editing) this.$('input.edit').focus();
+        // `draft` holds what the edit input shows while editing.
+        this.state = new Model({ editing : false, draft : '' });
     }
-});
+
+    /**
+     * Enter editing mode with the current title as the draft, then focus the input
+     * and select its text. The render is synchronous, so the input is already shown.
+     */
+    edit() {
+        this.state.set({ editing : true, draft : this.model.title });
+        const input = this.$('input.edit');
+        input.focus();
+        input.select();
+    }
+
+    /**
+     * Save the draft as the title, unless it is empty, and leave editing mode.
+     */
+    save() {
+        const title = this.state.draft.trim();
+        if (title) this.model.title = title;
+        this.state.editing = false;
+    }
+
+    /**
+     * Leave editing mode, discarding the draft.
+     */
+    cancel() {
+        this.state.editing = false;
+    }
+
+    template() {
+        const { model, state } = this;
+        return this.html`
+            <li class="${[model.completed && 'completed', state.editing && 'editing'].filter(Boolean).join(' ')}">
+                <div class="view">
+                    <input
+                        class="toggle"
+                        name="toggle"
+                        type="checkbox"
+                        checked="${model.completed}"
+                        onChange=${() => model.toggle()}
+                    >
+                    <label onDblClick=${() => this.edit()}>${model.title}</label>
+                    <button class="destroy" onClick=${() => this.props.handleRemove(model)}></button>
+                </div>
+
+                <input
+                    class="edit"
+                    name="edit"
+                    value="${state.draft}"
+                    onInput=${({ target }) => {
+                        state.draft = target.value;
+                    }}
+                    onKeyUp=${({ key }) => {
+                        if (key === 'Enter') this.save();
+                        else if (key === 'Escape') this.cancel();
+                    }}
+                    onFocusOut=${() => this.cancel()}
+                />
+            </li>
+        `;
+    }
+}
 
 export default Todo;

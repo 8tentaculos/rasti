@@ -7,13 +7,13 @@ import { Component } from 'rasti';
  */
 const ToggleAll = Component.create`
     <span>
-        <input 
-            class="toggle-all" 
-            id="toggle-all" 
+        <input
+            class="toggle-all"
+            id="toggle-all"
             type="checkbox"
             checked="${({ props }) => props.checked}"
-            onChange=${function(ev) { this.props.handleChange(ev.target.checked); }}
-         />
+            onChange=${({ target }, { props }) => props.handleChange(target.checked)}
+        />
         <label for="toggle-all">
             Mark all as complete
         </label>
