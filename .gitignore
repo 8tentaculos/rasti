@@ -1,8 +1,7 @@
 node_modules
-coverage
+/lib/
+/es/
+/dist/
 *.log
-lib
-dist
-es
-.DS_Store
 *.tgz
+.DS_Store
