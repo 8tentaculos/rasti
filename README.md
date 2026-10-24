@@ -111,7 +111,7 @@ Timer.mount({ model }, document.body);
 setInterval(() => model.seconds++, 1000);
 ```
 
-[Try it on CodePen](https://codepen.io/8tentaculos/pen/gOQxaOE?editors=0010)
+[Try it on CodePen](https://codepen.io/editor/8tentaculos/pen/01a16f1f-f332-7489-aae3-1cc2a6671020?tab=script.js)
 
 ### Adding sub components
 
@@ -168,7 +168,7 @@ window.addEventListener('popstate', () => model.location = document.location.has
 Main.mount({ routes, model }, document.body);
 ```
 
-[Try it on CodePen](https://codepen.io/8tentaculos/pen/dyBMNbq?editors=0010)
+[Try it on CodePen](https://codepen.io/editor/8tentaculos/pen/01a16f20-4f32-7120-be31-f46697ad6d6c?tab=script.js)
 
 ### Adding event listeners
 
@@ -204,7 +204,7 @@ Counter.mount({ model }, document.body);
 // When buttons are clicked, only the text node gets updated, not the entire component.
 ```
 
-[Try it on CodePen](https://codepen.io/8tentaculos/pen/XJXVQOR?editors=0010)
+[Try it on CodePen](https://codepen.io/editor/8tentaculos/pen/01a16f20-8f88-7131-b1d4-d3a57b1c008a?tab=script.js)
 
 ### Writing components
 
