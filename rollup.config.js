@@ -1,8 +1,14 @@
 import terser from '@rollup/plugin-terser';
 import replace from '@rollup/plugin-replace';
 import { glob } from 'glob';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
+
+// License notice for the `dist` bundles, which are distributed on their own (CDN, script tag).
+const banner = `/*! rasti v${version} | (c) 2018-present Alberto Masuelli | MIT | https://rasti.js.org */`;
 
 const config = [
     {
@@ -50,7 +56,8 @@ const config = [
         output : {
             file : 'dist/rasti.esm.js',
             format : 'esm',
-            sourcemap : true
+            sourcemap : true,
+            banner
         },
         plugins : [
             replace({
@@ -65,7 +72,8 @@ const config = [
         output : {
             file : 'dist/rasti.esm.min.js',
             format : 'esm',
-            sourcemap : true
+            sourcemap : true,
+            banner
         },
         plugins : [
             replace({
@@ -84,7 +92,8 @@ const config = [
             file : 'dist/rasti.umd.js',
             format : 'umd',
             name : 'Rasti',
-            sourcemap : true
+            sourcemap : true,
+            banner
         },
         plugins : [
             replace({
@@ -100,7 +109,8 @@ const config = [
             file : 'dist/rasti.umd.min.js',
             format : 'umd',
             name : 'Rasti',
-            sourcemap : true
+            sourcemap : true,
+            banner
         },
         plugins : [
             replace({
