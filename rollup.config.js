@@ -11,6 +11,8 @@ const { version } = JSON.parse(readFileSync(new URL('./package.json', import.met
 const banner = `/*! rasti v${version} | (c) 2018-present Alberto Masuelli | MIT | https://rasti.js.org */`;
 
 const config = [
+    // One ES module per source file under dist/esm, the package entry for bundlers and Node.
+    // Source maps point to src/, which ships in the package.
     {
         input : Object.fromEntries(
             glob.sync('src/**/*.js').map(file => [
@@ -25,23 +27,13 @@ const config = [
                 fileURLToPath(new URL(file, import.meta.url))
             ])
         ),
-        output : [
-            {
-                dir : 'lib',
-                format : 'cjs',
-                exports : 'auto',
-                entryFileNames : '[name].cjs',
-                sourcemap : true,
-                sourcemapExcludeSources : true
-            },
-            {
-                dir : 'es',
-                format : 'esm',
-                entryFileNames : '[name].js',
-                sourcemap : true,
-                sourcemapExcludeSources : true
-            }
-        ],
+        output : {
+            dir : 'dist/esm',
+            format : 'esm',
+            entryFileNames : '[name].js',
+            sourcemap : true,
+            sourcemapExcludeSources : true
+        },
         plugins : [
             replace({
                 'const __DEV__ = true;' : 'const __DEV__ = process.env.NODE_ENV !== \'production\';',

@@ -347,7 +347,7 @@ Without the third argument, `mount(options, containerEl)` renders into a fragmen
 
 | Build                                          | `__DEV__`                               |
 |------------------------------------------------|-----------------------------------------|
-| ESM / CJS modules (`es`, `lib`)                | `process.env.NODE_ENV !== 'production'` |
+| Per-module ESM tree (`dist/esm`)               | `process.env.NODE_ENV !== 'production'` |
 | Bundles `rasti.esm.js`, `rasti.umd.js`         | `true`                                  |
 | Bundles `rasti.esm.min.js`, `rasti.umd.min.js` | `false`, then terser                    |
 

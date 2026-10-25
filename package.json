@@ -3,37 +3,62 @@
     "version": "4.2.1",
     "description": "HTML-first, composable user interfaces",
     "type": "module",
-    "main": "lib/index.cjs",
-    "module": "es/index.js",
+    "main": "./dist/esm/index.js",
+    "module": "./dist/esm/index.js",
     "types": "types/index.d.ts",
     "jsdelivr": "dist/rasti.umd.min.js",
     "unpkg": "dist/rasti.umd.min.js",
     "exports": {
         ".": {
             "types": "./types/index.d.ts",
-            "import": "./es/index.js",
-            "require": "./lib/index.cjs",
-            "default": "./es/index.js"
+            "default": "./dist/esm/index.js"
         },
-        "./*": {
-            "types": "./types/*.d.ts",
-            "import": "./es/*.js",
-            "require": "./lib/*.cjs"
+        "./Emitter": {
+            "types": "./types/Emitter.d.ts",
+            "default": "./dist/esm/Emitter.js"
         },
-        "./*.js": {
-            "types": "./types/*.d.ts",
-            "import": "./es/*.js",
-            "require": "./lib/*.cjs"
-        }
+        "./Emitter.js": {
+            "types": "./types/Emitter.d.ts",
+            "default": "./dist/esm/Emitter.js"
+        },
+        "./Model": {
+            "types": "./types/Model.d.ts",
+            "default": "./dist/esm/Model.js"
+        },
+        "./Model.js": {
+            "types": "./types/Model.d.ts",
+            "default": "./dist/esm/Model.js"
+        },
+        "./View": {
+            "types": "./types/View.d.ts",
+            "default": "./dist/esm/View.js"
+        },
+        "./View.js": {
+            "types": "./types/View.d.ts",
+            "default": "./dist/esm/View.js"
+        },
+        "./Component": {
+            "types": "./types/Component.d.ts",
+            "default": "./dist/esm/Component.js"
+        },
+        "./Component.js": {
+            "types": "./types/Component.d.ts",
+            "default": "./dist/esm/Component.js"
+        },
+        "./package.json": "./package.json"
     },
+    "sideEffects": false,
     "files": [
         "dist",
-        "es",
-        "lib",
         "skills",
         "src",
         "types"
     ],
+    "tsd": {
+        "compilerOptions": {
+            "module": "nodenext"
+        }
+    },
     "directories": {
         "example": "example",
         "test": "test",
@@ -46,7 +71,7 @@
         "posttest": "npm run lint && npm run test:types",
         "lint": "eslint src test",
         "build": "rollup -c",
-        "clean": "node -e \"const fs=require('fs');['lib','dist','es'].forEach(d=>fs.rmSync(d,{recursive:true,force:true}))\"",
+        "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
         "version": "node scripts/bump-cdn-links.js && node scripts/release-changelog.js",
         "docs:api": "jsdoc2md --module-index-format grouped --helper jsdoc2md/helper.cjs --partial jsdoc2md/header.hbs --partial jsdoc2md/sig-link.hbs --partial jsdoc2md/sig-link-html.hbs --partial jsdoc2md/sig-link-parent.hbs --partial jsdoc2md/link.hbs --files 'src/**/*.js' > docs/api.md"
     },
