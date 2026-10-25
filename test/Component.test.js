@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import Model from '../src/Model.js';
 import View from '../src/View.js';
 import Component from '../src/Component.js';
-import Constants from '../src/core/Constants.js';
+import * as Constants from '../src/core/Constants.js';
 
 // Count the elements an update moves inside a container, to tell a list that is
 // patched in place from one that is rendered back into position.

@@ -1,4 +1,4 @@
-import Constants from './Constants.js';
+import { ATTRIBUTE_ELEMENT } from './Constants.js';
 
 /**
  * Index the comments a render wrote, by their text. A `TreeWalker` filtered to
@@ -28,9 +28,9 @@ const indexComments = (root, comments) => {
  * @private
  */
 const indexElements = (root) => {
-    const elements = root.querySelectorAll(`[${Constants.ATTRIBUTE_ELEMENT}]`);
+    const elements = root.querySelectorAll(`[${ATTRIBUTE_ELEMENT}]`);
     if (root.nodeType !== Node.ELEMENT_NODE) return elements;
-    return root.getAttribute(Constants.ATTRIBUTE_ELEMENT) === null ? elements : [root, ...elements];
+    return root.getAttribute(ATTRIBUTE_ELEMENT) === null ? elements : [root, ...elements];
 };
 
 /**

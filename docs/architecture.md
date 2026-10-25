@@ -301,7 +301,7 @@ The component's `attributes` merge only onto the **root** element: the root part
 
 ### Wire format (`Constants`)
 
-Everything written into the DOM comes from `Constants`:
+Everything written into the DOM comes from the exports of `core/Constants.js`:
 
 | Entry                 | Default                         | Role                                      |
 |-----------------------|---------------------------------|-------------------------------------------|

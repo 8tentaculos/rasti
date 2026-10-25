@@ -10,7 +10,7 @@ import moveNode from '../utils/moveNode.js';
 import flatten from '../utils/flatten.js';
 import increasingSubsequence from '../utils/increasingSubsequence.js';
 
-import Constants from './Constants.js';
+import { MARKER_START, MARKER_END, MARKER_RECYCLED } from './Constants.js';
 
 import __DEV__ from '../utils/dev.js';
 
@@ -224,7 +224,7 @@ class InterpolationSlot extends Slot {
         if (__DEV__ && this.isAnchored()) checkAnchoredContent(this, value);
         // An anchored slot stands on its element; any other wraps its content in markers.
         if (this.isAnchored()) return rendered;
-        return `<!--${Constants.MARKER_START(this.id)}-->${rendered}<!--${Constants.MARKER_END(this.id)}-->`;
+        return `<!--${MARKER_START(this.id)}-->${rendered}<!--${MARKER_END(this.id)}-->`;
     }
 
     /**
@@ -337,7 +337,7 @@ class InterpolationSlot extends Slot {
         // A child the walk places is already standing where the walk will find it, so
         // it writes no placeholder to be replaced.
         if (pass.placed) return '';
-        return `<!--${Constants.MARKER_RECYCLED(found.uid)}-->`;
+        return `<!--${MARKER_RECYCLED(found.uid)}-->`;
     }
 
     /**
@@ -382,7 +382,7 @@ class InterpolationSlot extends Slot {
      */
     hydrate(index) {
         if (!this.isAnchored()) {
-            this.ref = [index.comment(Constants.MARKER_START(this.id)), index.comment(Constants.MARKER_END(this.id))];
+            this.ref = [index.comment(MARKER_START(this.id)), index.comment(MARKER_END(this.id))];
         }
         this.hydrateValue(this.content, index);
     }
@@ -717,7 +717,7 @@ class InterpolationSlot extends Slot {
         const { host } = this.partial;
         const { index } = pass;
         // Move the recycled children onto the placeholders that stand for them.
-        pass.recycled.forEach(found => host.moveChild(found, index.comment(Constants.MARKER_RECYCLED(found.uid))));
+        pass.recycled.forEach(found => host.moveChild(found, index.comment(MARKER_RECYCLED(found.uid))));
         // Attach the new content: the nested partials' refs and the children this
         // render mounted, which the walk hydrates where it reaches them.
         this.hydrateValue(value, index, pass);

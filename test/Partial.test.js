@@ -4,7 +4,7 @@ import ElementSlot from '../src/core/ElementSlot.js';
 import InterpolationSlot from '../src/core/InterpolationSlot.js';
 import LiteralSlot from '../src/core/LiteralSlot.js';
 import HydrationIndex from '../src/core/HydrationIndex.js';
-import Constants from '../src/core/Constants.js';
+import * as Constants from '../src/core/Constants.js';
 
 // Capture a real tagged-template `strings` array plus its expressions.
 const tag = (strings, ...expressions) => ({ strings, expressions });

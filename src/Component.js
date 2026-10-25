@@ -18,7 +18,7 @@ import createDevelopmentWarningMessage from './utils/createDevelopmentWarningMes
 import createProductionErrorMessage from './utils/createProductionErrorMessage.js';
 import formatTemplateSource from './utils/formatTemplateSource.js';
 
-import Constants from './core/Constants.js';
+import { ATTRIBUTE_ELEMENT, ATTRIBUTE_EVENT } from './core/Constants.js';
 
 import __DEV__ from './utils/dev.js';
 
@@ -287,7 +287,7 @@ class ComponentAdapter {
     registerListener(listener, type) {
         const { component } = this;
         return {
-            attribute : Constants.ATTRIBUTE_EVENT(type, component.uid),
+            attribute : ATTRIBUTE_EVENT(type, component.uid),
             index : component.eventsManager.addListener(listener, type)
         };
     }
@@ -347,7 +347,7 @@ class ComponentAdapter {
  * @private
  */
 const hydrationRoot = (component, container) => {
-    const selector = `[${Constants.ATTRIBUTE_ELEMENT}="${component.rootPartial.rootElementId()}"]`;
+    const selector = `[${ATTRIBUTE_ELEMENT}="${component.rootPartial.rootElementId()}"]`;
     return container.querySelector(selector) || container;
 };
 
@@ -422,7 +422,7 @@ export default class Component extends View {
         const events = {};
         // Create events object.
         this.eventsManager.types.forEach(type => {
-            const dataAttribute = Constants.ATTRIBUTE_EVENT(type, this.uid);
+            const dataAttribute = ATTRIBUTE_EVENT(type, this.uid);
             // Create a listener function that gets the listener index from the data attribute and calls the listener.
             const listener = function(event, component, matched) {
                 // Get the listener index from the data attribute.

@@ -6,7 +6,7 @@ import getAttributesDiff from '../utils/getAttributesDiff.js';
 import createDevelopmentErrorMessage from '../utils/createDevelopmentErrorMessage.js';
 import removeItem from '../utils/removeItem.js';
 
-import Constants from './Constants.js';
+import { ATTRIBUTE_ELEMENT } from './Constants.js';
 
 import __DEV__ from '../utils/dev.js';
 
@@ -103,8 +103,8 @@ const describeElement = (tag, id) => `${tag ? `<${tag}> ` : ''}"${id}"`;
 const checkHydratedRef = (slot) => {
     const { ref, id } = slot;
     const { tag } = slot.descriptor;
-    if (ref && ref.getAttribute(Constants.ATTRIBUTE_ELEMENT) === id && (!tag || ref.localName.toLowerCase() === tag)) return;
-    const found = ref ? describeElement(ref.localName, ref.getAttribute(Constants.ATTRIBUTE_ELEMENT)) : 'nothing';
+    if (ref && ref.getAttribute(ATTRIBUTE_ELEMENT) === id && (!tag || ref.localName.toLowerCase() === tag)) return;
+    const found = ref ? describeElement(ref.localName, ref.getAttribute(ATTRIBUTE_ELEMENT)) : 'nothing';
     throw new Error(createDevelopmentErrorMessage(
         'Hydration mismatch\n' +
         'Hydration takes the elements a render wrote in document order, and the DOM\n' +
@@ -151,7 +151,7 @@ class ElementSlot extends Slot {
         // The emission id is written straight out: it never changes, so it is neither
         // escaped nor diffed, and it stays out of what the update compares.
         const html = getAttributesHTML(attributes, sourceKeys);
-        const id = `${Constants.ATTRIBUTE_ELEMENT}="${this.id}"`;
+        const id = `${ATTRIBUTE_ELEMENT}="${this.id}"`;
         return html ? `${html} ${id}` : id;
     }
 
