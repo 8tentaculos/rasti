@@ -99,6 +99,7 @@
         "tagged template",
         "template literals",
         "no build",
+        "buildless",
         "dom",
         "ssr",
         "hydration",
