@@ -155,8 +155,16 @@ disabled="${({ model }) => model.locked}"
 aria-label="${({ props }) => props.label}"
 
 // ❌ Still unsupported (warns in development)
-data-${x}="1"    // attribute names must be literal
+data-${x}="1"    // an interpolation can't be part of an attribute name
 attr=x${fn}      // unquoted values take a single interpolation
+```
+
+**Whole-attribute interpolation (spread)** — an interpolation in place of a whole attribute, with no name and no value, spreads an object into the attributes; each value follows the lone-interpolation rules. A string is written as an attribute with no value; any other value (`null`, `undefined`, `false`) adds nothing. A function is called first, as in a quoted value. Attributes apply in source order, so a later one overrides an earlier one with the same name. On a component tag the object spreads into the child's options:
+
+```js
+<input ${{ type : 'text', name : this.props.name }} />
+<button ${() => ({ disabled : this.state.busy, title : this.state.hint })}>Save</button>
+<${Avatar} ${{ name : user.name, src : user.photo }} size="small" />
 ```
 
 ### Event Handling

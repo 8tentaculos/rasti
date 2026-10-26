@@ -93,6 +93,8 @@ Reach for a function when the value should be read lazily from a nested object (
 
 ## Attribute values
 
+An interpolation can take three places in an attribute: the whole value (`title="${x}"`, `onClick=${fn}`), part of a quoted value mixed with text (`class="row ${x}"`), or the whole attribute, name and value (`<input ${attrs} />`).
+
 An attribute value can be quoted or unquoted, and the difference matters only when the value is a function:
 
 - **Quoted**, `title="${fn}"`: the function is **called** on every render, bound to the component and receiving it as its argument, and its result is the value.
@@ -128,7 +130,15 @@ class="row ${this.state.active ? 'active' : ''}"
 href="/items?page=${this.state.page}"
 ```
 
-Attribute names can't be interpolated, and an unquoted value takes a single interpolation with no text around it. Development builds warn about both.
+An interpolation that stands in place of a whole attribute spreads an object into the attributes, where each value follows the same rules as a single interpolation. A string is written as an attribute with no value, and any other value adds nothing. A function is called first, as in a quoted value. Attributes apply in the order they are written, so a later one overrides an earlier one with the same name. On a component tag, the object spreads into the child's options:
+
+```javascript
+<input ${{ type : 'text', name : this.props.name }} />
+<button ${() => ({ disabled : this.state.busy, title : this.state.hint })}>Save</button>
+<${Avatar} ${{ name : user.name, src : user.photo }} size="small" />
+```
+
+An interpolation can't be part of an attribute name (`data-${x}="1"`), and an unquoted value takes a single interpolation with no text around it. Development builds warn about both.
 
 ## Event handlers
 
