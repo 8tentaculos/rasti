@@ -33,7 +33,7 @@ class AppModel extends Model {
 }
 ```
 
-**Related:** [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_model)
+**Related:** [`Model`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v5.0.0-alpha.0/docs/api.md#module_model)
 
 ## Attributes & Change Events
 
@@ -112,4 +112,4 @@ removeTodo(todo) {
 }
 ```
 
-**Related:** [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_emitter__listento) · [`Emitter.stopListening`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/api.md#module_emitter__stoplistening)
+**Related:** [`Emitter.listenTo`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v5.0.0-alpha.0/docs/api.md#module_emitter__listento) · [`Emitter.stopListening`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v5.0.0-alpha.0/docs/api.md#module_emitter__stoplistening)

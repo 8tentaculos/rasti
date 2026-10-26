@@ -1,6 +1,6 @@
 {
     "name": "rasti",
-    "version": "4.2.1",
+    "version": "5.0.0-alpha.0",
     "description": "HTML-first, composable user interfaces",
     "type": "module",
     "main": "./dist/esm/index.js",

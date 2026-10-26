@@ -1,6 +1,6 @@
 # Rasti and TypeScript
 
-Full guide (generics, helper types, declaration merging, known limitations): [typescript.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v4.2.1/docs/typescript.md).
+Full guide (generics, helper types, declaration merging, known limitations): [typescript.md](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v5.0.0-alpha.0/docs/typescript.md).
 
 Type declarations ship with the package.
 
