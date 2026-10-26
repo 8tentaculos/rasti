@@ -11,38 +11,47 @@
     "exports": {
         ".": {
             "types": "./types/index.d.ts",
+            "import": "./dist/esm/index.js",
             "default": "./dist/esm/index.js"
         },
         "./Emitter": {
             "types": "./types/Emitter.d.ts",
+            "import": "./dist/esm/Emitter.js",
             "default": "./dist/esm/Emitter.js"
         },
         "./Emitter.js": {
             "types": "./types/Emitter.d.ts",
+            "import": "./dist/esm/Emitter.js",
             "default": "./dist/esm/Emitter.js"
         },
         "./Model": {
             "types": "./types/Model.d.ts",
+            "import": "./dist/esm/Model.js",
             "default": "./dist/esm/Model.js"
         },
         "./Model.js": {
             "types": "./types/Model.d.ts",
+            "import": "./dist/esm/Model.js",
             "default": "./dist/esm/Model.js"
         },
         "./View": {
             "types": "./types/View.d.ts",
+            "import": "./dist/esm/View.js",
             "default": "./dist/esm/View.js"
         },
         "./View.js": {
             "types": "./types/View.d.ts",
+            "import": "./dist/esm/View.js",
             "default": "./dist/esm/View.js"
         },
         "./Component": {
             "types": "./types/Component.d.ts",
+            "import": "./dist/esm/Component.js",
             "default": "./dist/esm/Component.js"
         },
         "./Component.js": {
             "types": "./types/Component.d.ts",
+            "import": "./dist/esm/Component.js",
             "default": "./dist/esm/Component.js"
         },
         "./package.json": "./package.json"
