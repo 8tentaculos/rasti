@@ -51,7 +51,7 @@ class Attribute {
 
         if (typeof this.value === 'undefined') {
             // Value-less attribute: object spread or boolean.
-            if (typeof key === 'object') {
+            if (key && typeof key === 'object') {
                 Object.assign(attributes, key);
                 // Spread values are runtime data (plain text).
                 if (sourceKeys) Object.keys(key).forEach(spreadKey => removeItem(sourceKeys, spreadKey));

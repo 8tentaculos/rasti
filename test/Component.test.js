@@ -849,6 +849,14 @@ describe('Component', () => {
             expect(c.el.getAttribute('data-x')).to.be.equal('x');
         });
 
+        it('must add nothing for a value-less attribute that is not an object or a string', () => {
+            const c = Component.create`<div id="test-node" ${() => null} ${() => undefined} ${() => false} ${() => ({ dir : 'ltr' })}></div>`
+                .mount({}, document.body);
+
+            expect(c.el.getAttribute('dir')).to.be.equal('ltr');
+            expect(c.el.attributes).to.have.lengthOf(3);
+        });
+
         it('must remove an attribute that changes to null or undefined, and add it back', () => {
             const model = new Model({ title : 'a', hidden : true });
             const c = Component.create`
