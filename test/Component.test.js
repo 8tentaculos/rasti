@@ -4233,6 +4233,47 @@ describe('Component', () => {
             expect(document.querySelectorAll('li').length).to.be.equal(2);
             expect(document.querySelectorAll('hr').length).to.be.equal(1);
         });
+
+        it('must render nothing for nullish items at the head of a list', () => {
+            const Item = Component.create`<li>x</li>`;
+            [[[null, Item.mount()], 'x'], [[undefined, 'a'], 'a'], [[null], '']].forEach(([items, expected]) => {
+                const list = Component.create`<ul>${() => items}</ul>`.mount({}, document.body);
+                expect(list.el.textContent).to.be.equal(expected);
+                list.destroy();
+            });
+        });
+
+        it('must render nothing for an item that turns nullish at the head of a list', () => {
+            const list = Component.create`
+                <ul>${({ model, partial }) => model.items.map(item => item ? partial`<li class="row">${item}</li>` : null)}</ul>
+            `.mount({ model : new Model({ items : ['a', 'b'] }) }, document.body);
+
+            list.model.items = [null, 'b'];
+            expect(Array.from(document.querySelectorAll('li')).map(el => el.textContent)).to.deep.equal(['b']);
+
+            list.model.items = ['a', 'b'];
+            expect(Array.from(document.querySelectorAll('li')).map(el => el.textContent)).to.deep.equal(['a', 'b']);
+        });
+
+        it('must patch the items of a uniform list where they stand when some are skipped', () => {
+            const list = Component.create`
+                <ul>${({ model, partial }) => model.items.map(item => item && partial`<li class="row">${item}</li>`)}</ul>
+            `.mount({ model : new Model({ items : ['a', null, 'c'] }) }, document.body);
+            const before = Array.from(document.querySelectorAll('li'));
+
+            // `null` and `false` render nothing, so they take no position in the list.
+            list.model.items = ['x', false, 'z'];
+
+            const after = Array.from(document.querySelectorAll('li'));
+            expect(after).to.deep.equal(before);
+            expect(after.map(el => el.textContent)).to.deep.equal(['x', 'z']);
+
+            list.model.items = ['x', 'y', 'z'];
+
+            const grown = Array.from(document.querySelectorAll('li'));
+            expect(grown.slice(0, 2)).to.deep.equal(before);
+            expect(grown.map(el => el.textContent)).to.deep.equal(['x', 'y', 'z']);
+        });
     });
 
     describe('Development warnings', () => {

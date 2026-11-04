@@ -371,7 +371,7 @@ Unlike [the root partial](#the-root-partial), a partial rendered in an interpola
 
 ### Lists
 
-An interpolation that returns an array renders a list; nested arrays are flattened into one (`groups.map(g => g.map(…))` is a single list). How it updates depends on whether its items have an identity:
+An interpolation that returns an array renders a list; nested arrays are flattened into one (`groups.map(g => g.map(…))` is a single list), and items that render nothing (`null`, `undefined`, booleans) are left out, so a `map` that returns `null` to skip an item updates like any other list. How it updates depends on whether its items have an identity:
 
 - **Items as markup** — `html` partials from one call site have no identity of their own, so the list is updated **by position**: each item's DOM stays where it is and the new content is patched through it. This is the fastest way to update a list. When the list reorders, the DOM at each position — focus and input values included — stays there and shows another item's content.
 - **Items as components** — each item is a component tag with a `key`, which identifies it among its siblings. The instance is recycled across renders and moves with its item when the list reorders, keeping its state and DOM. Without a key, a component in a list is rebuilt on every render (development builds warn).

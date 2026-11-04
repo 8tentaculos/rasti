@@ -5,9 +5,9 @@ import HydrationIndex from './HydrationIndex.js';
 import valueToString from './valueToString.js';
 import checkListItems from './checkListItems.js';
 import checkAnchoredContent from './checkAnchoredContent.js';
+import flattenList from './flattenList.js';
 import parseHTML from '../utils/parseHTML.js';
 import moveNode from '../utils/moveNode.js';
-import flatten from '../utils/flatten.js';
 import increasingSubsequence from '../utils/increasingSubsequence.js';
 
 import { MARKER_START, MARKER_END, MARKER_RECYCLED } from './Constants.js';
@@ -114,9 +114,10 @@ const LIST_OTHER = 'other';
  * @private
  */
 const classifyList = (partial, items) => {
-    const ItemClass = items.length ? items[0].constructor : null;
     let components = true;
     let uniform = items.length > 0 && partial.isPartial(items[0]);
+    // Only a uniform list compares constructors, and it starts with a partial.
+    const ItemClass = uniform ? items[0].constructor : null;
 
     for (let i = 0; i < items.length; i++) {
         const item = items[i];
@@ -170,14 +171,15 @@ class InterpolationSlot extends Slot {
     /**
      * Resolve the slot's value by evaluating its expression in the owner's context. A
      * list comes out flat: a nested array is not a boundary but part of the same list,
-     * so its items are siblings of the rest.
+     * so its items are siblings of the rest, and an item that renders nothing is not
+     * one of them.
      * @return {any} The resolved value.
      * @private
      */
     evaluate() {
         const { partial, descriptor } = this;
         const value = partial.owner.evaluate(partial.expressions[descriptor.index], 'interpolation');
-        return Array.isArray(value) ? flatten(value) : value;
+        return Array.isArray(value) ? flattenList(value) : value;
     }
 
     /**

@@ -265,7 +265,7 @@ items.map(i => html`<li><${Row} key="${i.id}" /></li>`)
 items.map(i => html`${Row.mount({ key : i.id })}`)
 ```
 
-The items of a list are its value with nested arrays flattened (`flatten`, in `InterpolationSlot#evaluate`). A nested array is not a boundary: `groups.map(g => g.map(…))` is one list, whose components are siblings, keyed and placed like those of a flat list.
+The items of a list are its value with nested arrays flattened and the items that render nothing left out (`flattenList`, in `InterpolationSlot#evaluate`). A nested array is not a boundary: `groups.map(g => g.map(…))` is one list, whose components are siblings, keyed and placed like those of a flat list. A `null`, `undefined` or boolean item takes no position, so ``rows.map(r => r.visible ? html`…` : null)`` keeps the shape of the list it skips items from.
 
 What claims a previous child is a **candidate**. A component an expression built is one: it claims by its `key` or type, hands its props to the child it claims, and is destroyed. A component tag is one before any component exists: `ComponentSlot#evaluate` synthesizes only the options, which carry the `key`, and the slot builds the component (`tag.mount(options)`) only when nothing is claimed. A claimed tag builds nothing; its options become the retained child's props (`ComponentAdapter#reuseChild`, which splits them as the constructor does).
 

@@ -257,7 +257,7 @@ A consumer reads a context and does not write to it. The model is not read-only,
 
 ## Lists
 
-An interpolation that returns an array renders a list, with nested arrays flattened into one. How it updates depends on whether its items have an identity of their own.
+An interpolation that returns an array renders a list, with nested arrays flattened into one. Items that render nothing (`null`, `undefined`, `true`, `false`) are not part of it, so a `map` that returns `null` to skip an item updates like any other list. How it updates depends on whether its items have an identity of their own.
 
 **A list of markup**, partials from one call site, is updated by position: each item's DOM stays where it is and the new content is patched through it. It is the fastest way to update a list, and it takes no keys, since its items have no identity to declare. When the list reorders, the DOM at each position, focus and input value included, stays there and shows another item's content.
 
