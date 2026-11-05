@@ -367,7 +367,7 @@ class Page extends Component {
 }
 ```
 
-Unlike [the root partial](#the-root-partial), a partial rendered in an interpolation may produce any number of nodes, and may be swapped for a different template between renders (its slot is regenerated when the template changes).
+Unlike [the root partial](#the-root-partial), a partial rendered in an interpolation may produce any number of nodes, and may be swapped for a different template between renders (its slot is regenerated when the template changes). A partial that is nothing but a component tag is the exception: it stands for its component, so swapping it for another tag of the same class and key, from any call site, recycles the instance.
 
 ### Lists
 
@@ -516,7 +516,7 @@ Subscribe to other models in `onHydrate` (see [Lifecycle Hooks](#lifecycle-hooks
 [`render()`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v5.0.0-alpha.2/docs/api.md#module_component__render) handles both initial hydration and updates:
 
 - **First render** — runs `template()`, renders as string inside `DocumentFragment`, hydrates DOM, calls `onHydrate()`. If an `el` option was provided, hydrates onto that existing DOM instead (server-rendered markup)
-- **Update render** — runs `template()` again while retaining the component's root partial and root element. Reconciliation is recursive: elements and retained partials patch in place, matching children recycle, and an interpolation region regenerates only when its occupant changes identity or shape. Calls `onBeforeUpdate()` then `onUpdate()`
+- **Update render** — runs `template()` again while retaining the component's root partial and root element. Reconciliation is recursive: elements and retained partials patch in place, matching children recycle, and an interpolation region regenerates only when its occupant changes identity or shape. A partial's identity is its call site, so two literals with the same text are different templates; a lone component tag's is its component (class and key). Calls `onBeforeUpdate()` then `onUpdate()`
 
 Use [`Component.markAsSafeHTML`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v5.0.0-alpha.2/docs/api.md#module_component_markassafehtml) only for pre-sanitized trusted HTML:
 

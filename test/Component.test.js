@@ -3470,6 +3470,237 @@ describe('Component', () => {
             expect(items[1].textContent).to.be.equal('2');
             expect(Main.children.length).to.be.equal(2);
         });
+
+        describe('A lone component tag is the component it mounts', () => {
+            const counting = () => {
+                const counts = { created : 0, recycled : 0, destroyed : 0 };
+                const Child = Component.create`<div class="child">${({ props }) => props.text}</div>`.extend({
+                    onCreate() { counts.created++; },
+                    onRecycle() { counts.recycled++; },
+                    onDestroy() { counts.destroyed++; }
+                });
+                return { Child, counts };
+            };
+            // Each branch is a call site of its own, so the partials it returns are of
+            // different classes even where their text is the same.
+            const routes = {
+                tagA : (html, Child, text) => html`<${Child} text="${text}" />`,
+                tagB : (html, Child, text) => html`<${Child} text="${text}" />`,
+                keyedA : (html, Child, text) => html`<${Child} key="k" text="${text}" />`,
+                keyedB : (html, Child, text) => html`<${Child} key="k" text="${text}" />`,
+                otherKey : (html, Child, text) => html`<${Child} key="other" text="${text}" />`,
+                mounted : (html, Child, text) => Child.mount({ text }),
+                transparent : (html, Child, text) => html`${html`<${Child} text="${text}" />`}`
+            };
+            const mountMain = (Child, route, text) => {
+                const Main = Component.create`
+                    <section>before${({ model, html }) => routes[model.route](html, Child, model.text)}after</section>
+                `;
+                return Main.mount({ model : new Model({ route, text }) }, document.body);
+            };
+
+            it('must recycle a component tag from another call site in place', () => {
+                const { Child, counts } = counting();
+                const main = mountMain(Child, 'tagA', 'a');
+
+                const before = main.el.querySelector('.child');
+                main.model.set({ route : 'tagB', text : 'b' });
+
+                expect(main.el.querySelector('.child')).to.be.equal(before);
+                expect(before.textContent).to.be.equal('b');
+                expect(main.el.textContent).to.be.equal('beforebafter');
+                expect(counts).to.deep.equal({ created : 1, recycled : 1, destroyed : 0 });
+                expect(main.children.length).to.be.equal(1);
+            });
+
+            it('must keep updating a component tag adopted from another call site', () => {
+                const { Child, counts } = counting();
+                const main = mountMain(Child, 'tagA', 'a');
+
+                const before = main.el.querySelector('.child');
+                main.model.set({ route : 'tagB', text : 'b' });
+                // Same call site as the adopting partial: patched in place.
+                main.model.text = 'c';
+                // Back to the first call site: adopted again.
+                main.model.set({ route : 'tagA', text : 'd' });
+
+                expect(main.el.querySelector('.child')).to.be.equal(before);
+                expect(before.textContent).to.be.equal('d');
+                expect(counts).to.deep.equal({ created : 1, recycled : 3, destroyed : 0 });
+                expect(main.children.length).to.be.equal(1);
+            });
+
+            it('must recycle a keyed component tag from another call site with the same key', () => {
+                const { Child, counts } = counting();
+                const main = mountMain(Child, 'keyedA', 'a');
+
+                const before = main.el.querySelector('.child');
+                main.model.set({ route : 'keyedB', text : 'b' });
+
+                expect(main.el.querySelector('.child')).to.be.equal(before);
+                expect(before.textContent).to.be.equal('b');
+                expect(counts).to.deep.equal({ created : 1, recycled : 1, destroyed : 0 });
+            });
+
+            it('must replace a component tag from another call site whose key changed', () => {
+                const { Child, counts } = counting();
+                const main = mountMain(Child, 'keyedA', 'a');
+
+                const before = main.el.querySelector('.child');
+                main.model.set({ route : 'otherKey', text : 'b' });
+
+                expect(main.el.querySelector('.child')).to.not.be.equal(before);
+                expect(before.parentNode).to.be.equal(null);
+                expect(main.el.textContent).to.be.equal('beforebafter');
+                expect(counts).to.deep.equal({ created : 2, recycled : 0, destroyed : 1 });
+                expect(main.children.length).to.be.equal(1);
+            });
+
+            it('must replace a component tag from another call site that mounts another class', () => {
+                const { Child, counts } = counting();
+                const { Child : Other } = counting();
+                const Main = Component.create`
+                    <section>${({ model, html }) => model.other ? html`<${Other} text="b" />` : html`<${Child} text="a" />`}</section>
+                `;
+                const main = Main.mount({ model : new Model({ other : false }) }, document.body);
+
+                const before = main.el.querySelector('.child');
+                main.model.other = true;
+
+                expect(main.el.querySelector('.child')).to.not.be.equal(before);
+                expect(main.el.textContent).to.be.equal('b');
+                expect(counts.destroyed).to.be.equal(1);
+                expect(main.children.length).to.be.equal(1);
+            });
+
+            it('must replace a component tag from another call site that mounts another class under the same key', () => {
+                const { Child, counts } = counting();
+                const { Child : Other } = counting();
+                const routes = {
+                    child : html => html`<${Child} key="k" text="a" />`,
+                    other : html => html`<${Other} key="k" text="b" />`,
+                    mounted : () => Other.mount({ key : 'k', text : 'c' })
+                };
+                const Main = Component.create`
+                    <section>${({ model, html }) => routes[model.route](html)}</section>
+                `;
+                const main = Main.mount({ model : new Model({ route : 'child' }) }, document.body);
+
+                const child = main.children[0];
+                main.model.route = 'other';
+
+                expect(main.children.length).to.be.equal(1);
+                expect(main.children[0]).to.be.instanceOf(Other);
+                expect(main.el.textContent).to.be.equal('b');
+                expect(child.destroyed).to.be.equal(true);
+                expect(counts.destroyed).to.be.equal(1);
+                // Back to the first class, now from a mounted child.
+                main.model.route = 'child';
+                const other = main.children[0];
+                expect(other).to.be.instanceOf(Child);
+                main.model.route = 'mounted';
+
+                expect(main.children.length).to.be.equal(1);
+                expect(main.children[0]).to.be.instanceOf(Other);
+                expect(main.el.textContent).to.be.equal('c');
+                expect(other.destroyed).to.be.equal(true);
+            });
+
+            it('must recycle a mounted child into a component tag of the same class', () => {
+                const { Child, counts } = counting();
+                const main = mountMain(Child, 'mounted', 'a');
+
+                const before = main.el.querySelector('.child');
+                main.model.set({ route : 'tagA', text : 'b' });
+
+                expect(main.el.querySelector('.child')).to.be.equal(before);
+                expect(before.textContent).to.be.equal('b');
+                expect(counts).to.deep.equal({ created : 1, recycled : 1, destroyed : 0 });
+            });
+
+            it('must recycle a component tag into a mounted child of the same class', () => {
+                const { Child, counts } = counting();
+                const main = mountMain(Child, 'tagA', 'a');
+
+                const before = main.el.querySelector('.child');
+                main.model.set({ route : 'mounted', text : 'b' });
+
+                expect(main.el.querySelector('.child')).to.be.equal(before);
+                expect(before.textContent).to.be.equal('b');
+                // The mounted candidate is built and discarded for its props.
+                expect(counts).to.deep.equal({ created : 2, recycled : 1, destroyed : 1 });
+                expect(main.children.length).to.be.equal(1);
+            });
+
+            it('must regenerate across a transparent partial around a component tag', () => {
+                const { Child, counts } = counting();
+                const main = mountMain(Child, 'tagA', 'a');
+
+                const before = main.el.querySelector('.child');
+                main.model.set({ route : 'transparent', text : 'b' });
+
+                expect(main.el.querySelector('.child')).to.not.be.equal(before);
+                expect(main.el.textContent).to.be.equal('beforebafter');
+                expect(counts).to.deep.equal({ created : 2, recycled : 0, destroyed : 1 });
+            });
+
+            it('must recycle the component of a tag from another call site but not the markup it slots', () => {
+                const { Child : Inner, counts } = counting();
+                const Wrapper = Component.create`<div class="wrapper">${({ props }) => props.renderChildren()}</div>`;
+                const first = (html, model) => html`<${Wrapper}><p><${Inner} text="${model.text}" /></p></${Wrapper}>`;
+                const second = (html, model) => html`<${Wrapper}><p><${Inner} text="${model.text}" /></p></${Wrapper}>`;
+                const Main = Component.create`
+                    <section>${({ model, html }) => (model.second ? second : first)(html, model)}</section>
+                `;
+                const main = Main.mount({ model : new Model({ second : false, text : 'a' }) }, document.body);
+
+                const wrapper = main.el.querySelector('.wrapper');
+                const inner = main.el.querySelector('.child');
+                main.model.set({ second : true, text : 'b' });
+                // The slotted markup comes from the other call site too, so the wrapper
+                // regenerates it.
+                expect(main.el.querySelector('.wrapper')).to.be.equal(wrapper);
+                expect(main.el.querySelector('.child')).to.not.be.equal(inner);
+                expect(main.el.querySelector('.child').textContent).to.be.equal('b');
+                expect(counts).to.deep.equal({ created : 2, recycled : 0, destroyed : 1 });
+            });
+
+            it('must recycle a lone component tag slotted by a tag from another call site', () => {
+                const { Child : Inner, counts } = counting();
+                const Wrapper = Component.create`<div class="wrapper">${({ props }) => props.renderChildren()}</div>`;
+                const first = (html, model) => html`<${Wrapper}><${Inner} text="${model.text}" /></${Wrapper}>`;
+                const second = (html, model) => html`<${Wrapper}><${Inner} text="${model.text}" /></${Wrapper}>`;
+                const Main = Component.create`
+                    <section>${({ model, html }) => (model.second ? second : first)(html, model)}</section>
+                `;
+                const main = Main.mount({ model : new Model({ second : false, text : 'a' }) }, document.body);
+
+                const wrapper = main.el.querySelector('.wrapper');
+                const inner = main.el.querySelector('.child');
+                main.model.set({ second : true, text : 'b' });
+                // The slotted content is a lone component tag as well, so it is adopted too.
+                expect(main.el.querySelector('.wrapper')).to.be.equal(wrapper);
+                expect(main.el.querySelector('.child')).to.be.equal(inner);
+                expect(inner.textContent).to.be.equal('b');
+                expect(counts).to.deep.equal({ created : 1, recycled : 1, destroyed : 0 });
+            });
+
+            it('must keep the element of a container whose root switches between component tags', () => {
+                const { Child, counts } = counting();
+                const Container = Component.create`${({ model, html }) => model.second ?
+                    html`<${Child} text="${model.text}" />` :
+                    html`<${Child} text="${model.text}" />`}`;
+                const container = Container.mount({ model : new Model({ second : false, text : 'a' }) }, document.body);
+
+                const { el } = container;
+                container.model.set({ second : true, text : 'b' });
+
+                expect(container.el).to.be.equal(el);
+                expect(document.body.querySelector('.child')).to.be.equal(el);
+                expect(el.textContent).to.be.equal('b');
+                expect(counts).to.deep.equal({ created : 1, recycled : 1, destroyed : 0 });
+            });
+        });
     });
 
     // Characterization of the observable DOM patching and hydration behavior. These lock

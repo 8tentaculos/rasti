@@ -78,6 +78,17 @@ class ComponentSlot extends InterpolationSlot {
     }
 
     /**
+     * Take over a live child in place of a first render and reconcile against it, as
+     * if the tag had mounted it: recycled when the tag matches it, replaced on its
+     * element otherwise.
+     * @param {object} child The child the enclosing slot held.
+     */
+    adopt(child) {
+        this.content = child;
+        this.update();
+    }
+
+    /**
      * Hydrate the child the last render mounted. A claimed child is already live, and
      * the pass moves it onto its placeholder.
      * @param {HydrationIndex} index The hydration's node index.

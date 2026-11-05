@@ -446,9 +446,20 @@ class InterpolationSlot extends Slot {
             prev.update(value.expressions);
             return;
         }
+        // A lone component tag is the component it mounts, so on either side it reconciles
+        // as that child, whichever call site wrote it.
+        const child = this.occupantChild(prev);
         // Retained single child: same key/type → recycle in place, without moving the DOM.
-        if (partial.owner.isChild(value) && partial.owner.isChild(prev) && this.canRecycle(prev, value.constructor, value.key)) {
-            this.recycleInPlace(prev, value);
+        if (child && partial.owner.isChild(value) && this.canRecycle(child, value.constructor, value.key)) {
+            this.recycleInPlace(child, value);
+            return;
+        }
+        // A tag from another call site takes over the previous child and reconciles
+        // against it as its own.
+        if (child && partial.isPartial(value) && value.isComponentTag()) {
+            value.host = partial.host;
+            value.adopt(child);
+            this.content = value;
             return;
         }
         // Retained list of one template repeated: its items have no identity of their
@@ -478,6 +489,19 @@ class InterpolationSlot extends Slot {
         node.nodeValue = toText(value);
         this.content = value;
         return true;
+    }
+
+    /**
+     * The child an occupant stands for: the occupant itself when it is a child, or the
+     * one a lone component tag mounted.
+     * @param {any} value The occupant.
+     * @return {object|null} The child, or `null` for any other occupant.
+     * @private
+     */
+    occupantChild(value) {
+        const { partial } = this;
+        if (partial.owner.isChild(value)) return value;
+        return partial.isPartial(value) && value.isComponentTag() ? value.slots[0].content : null;
     }
 
     /**

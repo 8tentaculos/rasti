@@ -241,14 +241,14 @@ A descriptor is not part of this: it is parse-time data, so `LiteralSlot` reads 
 For one slot, in order:
 
 1. **Same partial** (same constructor / call site) → `prev.update(newExpressions)` in place.
-2. **Same child** (same type, and same key when keyed) → recycle in place: no DOM move, props queued.
+2. **Same child** (same type, and same key when keyed) → recycle in place: no DOM move, props queued. A lone component tag counts as the child it mounts on either side: a tag from another call site takes over the previous child and reconciles against it as its own (recycled when it matches, replaced on its element otherwise), and a mounted child recycles the one a tag mounted.
 3. **Anything else** → **regenerate**: render a fresh fragment, locate the recycled list children's placeholder comments in it, place it (between markers, or next to an anchored element's node), move those children onto their placeholders, hydrate new children, then finish props.
 
 `regenerate` is one cycle; only placement forks (markers vs anchored).
 
 ### Slot-based recycling
 
-The unit of identity is the **partial**, by call site (`strings`). Each interpolation reconciles **its own region**. An occupant that keeps identity is patched; anything else is regenerated. If an intermediate regenerates, everything below regenerates with it.
+The unit of identity is the **partial**, by call site (`strings`), except for a lone component tag, whose identity is the component it mounts (class and key). Each interpolation reconciles **its own region**. An occupant that keeps identity is patched; anything else is regenerated. If an intermediate regenerates, everything below regenerates with it.
 
 Position inside a partial keeps an unkeyed component stable. A **key** identifies a child among the siblings of **that interpolation** — in practice, the items of a list. Keys are not a global namespace. A keyed child that moves to a different interpolation is created fresh.
 

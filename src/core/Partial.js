@@ -168,6 +168,18 @@ class Partial {
     }
 
     /**
+     * Take over a live child instead of rendering, when the partial is a lone
+     * component tag (see `ComponentSlot#adopt`). An adopted partial is never
+     * rendered, so its slots are created here.
+     * @param {object} child The child the enclosing slot held.
+     */
+    adopt(child) {
+        const slot = new ComponentDescriptor.Slot(this, this.constructor.parts[0]);
+        this.slots = [slot];
+        slot.adopt(child);
+    }
+
+    /**
      * The first slot of a given kind, or `undefined` when the template has none.
      * @param {Function} Slot The slot class selecting the slot.
      * @return {object|undefined} The slot.

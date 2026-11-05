@@ -321,6 +321,8 @@ class Field extends Component {
 
 Each branch is a template of its own, so each keeps its tag fixed, and switching from one to the other regenerates the content as a changed tag would.
 
+A branch that is nothing but a component tag stands for its component, so two branches naming the same class recycle the instance, as a child built with `mount()` in each would be. Give them different keys for a switch to build a new one. Markup around the tag, or slotted between its tags, belongs to each branch's template and is regenerated with it.
+
 A template is parsed once, on its first render, and a component tag is paired with its closing tag by the class both name. Tags that name the same class on that render are taken as the same reference from then on: if one of them later names another class, it keeps rendering the first one's.
 
 ## Component tags and built components
