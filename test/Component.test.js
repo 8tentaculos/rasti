@@ -3428,6 +3428,48 @@ describe('Component', () => {
             expect(Main.children.length).to.be.equal(1);
             expect(destroyCalls).to.be.equal(1);
         });
+
+        it('must replace a keyed child with a child of another class under the same key', () => {
+            const A = Component.create`<a>A</a>`;
+            const B = Component.create`<b>B</b>`;
+
+            const Main = Component.create`
+                <div>${({ model }) => model.b ? B.mount({ key : 'k' }) : A.mount({ key : 'k' })}</div>
+            `.mount({ model : new Model({ b : false }) }, document.body);
+
+            const a = Main.children[0];
+            Main.model.b = true;
+
+            expect(Main.el.querySelector('a')).to.not.exist;
+            expect(Main.el.querySelector('b')).to.exist;
+            expect(Main.children.length).to.be.equal(1);
+            expect(Main.children[0]).to.be.instanceOf(B);
+            expect(a.destroyed).to.be.equal(true);
+        });
+
+        it('must not claim a keyed child of another class from a list', () => {
+            const A = Component.create`<li class="a">${({ props }) => props.id}</li>`;
+            const B = Component.create`<li class="b">${({ props }) => props.id}</li>`;
+
+            const renderItem = (html, item) => item.b ?
+                html`<${B} key="${item.id}" id="${item.id}" />` :
+                html`<${A} key="${item.id}" id="${item.id}" />`;
+
+            const Main = Component.create`
+                <ul>${({ model, html }) => model.items.map(item => renderItem(html, item))}</ul>
+            `.mount({ model : new Model({ items : [{ id : '1' }, { id : '2' }] }) }, document.body);
+
+            const [first, second] = Main.el.querySelectorAll('li');
+            Main.model.items = [{ id : '1' }, { id : '2', b : true }];
+
+            const items = Main.el.querySelectorAll('li');
+            expect(items.length).to.be.equal(2);
+            expect(items[0]).to.be.equal(first);
+            expect(items[1]).to.not.be.equal(second);
+            expect(items[1].className).to.be.equal('b');
+            expect(items[1].textContent).to.be.equal('2');
+            expect(Main.children.length).to.be.equal(2);
+        });
     });
 
     // Characterization of the observable DOM patching and hydration behavior. These lock

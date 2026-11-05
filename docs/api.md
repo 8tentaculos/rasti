@@ -91,7 +91,7 @@ A component renders from its [template](#module_component__template) method, whi
 
 | Name | Type | Description |
 | --- | --- | --- |
-| [key] | <code>string</code> | A unique key to identify the component. Components with keys are recycled when the same key is found in the previous render of the same interpolation. Unkeyed components are recycled by type and position for a single value, but are never recycled inside an array. |
+| [key] | <code>string</code> | A unique key to identify the component. Components with keys are recycled when a previous child of the same class with the same key is found in the previous render of the same interpolation. Unkeyed components are recycled by type and position for a single value, but are never recycled inside an array. |
 | [model] | <code>Model</code> | A `Model` or any emitter object containing data and business logic. The component will listen to `change` events and call `onChange` lifecycle method. |
 | [state] | <code>Model</code> | A `Model` or any emitter object containing data and business logic, to be used as internal state. The component will listen to `change` events and call `onChange` lifecycle method. |
 | props | <code>Model</code> | Automatically created from any options not merged to the component instance. Contains props passed from parent component, to be read. A plain object in the constructor, then a `Model` from the first render on, built by [createProps](#module_component__createprops): the component will listen to `change` events on props and call `onChange` lifecycle method. When the component is recycled during a parent re-render, its props are set again and any change triggers a re-render. Props are compared by identity, so a function, object or array created during the parent's render counts as a change every time. |
@@ -388,7 +388,7 @@ When rendering child components, they can be either recreated or recycled:
 
 - **Recycling:** The same component instance is reused. Recycling happens in two ways:
   - Unkeyed components are recycled if they have the same type and position in the template or partial
-  - Components with a `key` are recycled if a previous child with the same key occupied the same interpolation
+  - Components with a `key` are recycled if a previous child of the same class with the same key occupied the same interpolation
 
   A `key` identifies a component among the siblings of its own interpolation, which is what lets the items
   of a list be reordered without recreating them: ``items.map(item => html`<${Row} key="${item.id}" />`)``
@@ -466,7 +466,7 @@ Lifecycle method. Called before the component is recycled and reused between ren
 This method is called at the beginning of the `recycle` method, before any recycling operations occur.
 
 A component is recycled when:
-- It has a `key` and a previous child with the same key exists
+- It has a `key` and a previous child of the same class with the same key exists
 - It doesn't have a `key` but has the same type and position in the template or partial
 
 Use this method to perform operations that need to happen before the component is recycled,
@@ -478,7 +478,7 @@ such as storing previous state or preparing for the recycling.
 Lifecycle method. Called when the component is recycled and reused between renders.
 
 A component is recycled when:
-- It has a `key` and a previous child with the same key exists
+- It has a `key` and a previous child of the same class with the same key exists
 - It doesn't have a `key` but has the same type and position in the template or partial
 
 During recycling, the component instance is reused and its props are updated with new values.

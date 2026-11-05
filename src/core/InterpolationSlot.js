@@ -295,7 +295,7 @@ class InterpolationSlot extends Slot {
         if (owner.isChild(value)) {
             // The previous child this candidate claims, when the slot held one under
             // its key; null when there is nothing to recycle.
-            const found = pass ? this.claimRecyclable(value, pass) : null;
+            const found = pass ? this.claimRecyclable(value, value.constructor, pass) : null;
             return found ? this.renderClaimed(found, value, pass) : this.renderMounted(value, pass);
         }
 
@@ -344,21 +344,22 @@ class InterpolationSlot extends Slot {
 
     /**
      * Claim a recyclable previous occupant for a candidate child: the one the slot held
-     * under the candidate's key, taken out of the pool so no other candidate claims it
-     * again. Claiming is slot-local: the pool only holds this slot's own previous
+     * under the candidate's key, when it is of the candidate's class, taken out of the
+     * pool so no other candidate claims it again. Claiming is slot-local: the pool only holds this slot's own previous
      * occupants, and is out of reach inside any partial but a component tag, whose
      * children are local to it (see `renderValue`).
      * @param {object} candidate The candidate: a child component, or the options a
      *     component tag would mount one with. Either carries the key it claims by.
+     * @param {Function} type The candidate's component class.
      * @param {ReconcilePass} pass Reconcile pass holding the pool.
      * @return {object|null} The claimed previous child, or `null`.
      * @private
      */
-    claimRecyclable(candidate, pass) {
+    claimRecyclable(candidate, type, pass) {
         if (candidate.key == null || !pass.previous) return null;
 
         const prev = pass.previous.get(candidate.key);
-        if (!prev) return null;
+        if (!prev || prev.constructor !== type) return null;
         // A key is claimed once.
         pass.previous.delete(candidate.key);
         return prev;
@@ -481,7 +482,8 @@ class InterpolationSlot extends Slot {
 
     /**
      * Tell whether a previous child can be recycled for a candidate of a given type
-     * and key: keyed children match by key, unkeyed children by constructor (type).
+     * and key: it must be of the candidate's class and, when either is keyed, carry
+     * the same key. A key identifies a child within its class.
      * @param {object} prev The previous child.
      * @param {Function} type The candidate's component class.
      * @param {any} key The candidate's key.
@@ -489,8 +491,8 @@ class InterpolationSlot extends Slot {
      * @private
      */
     canRecycle(prev, type, key) {
-        if (key != null || prev.key != null) return prev.key === key;
-        return prev.constructor === type;
+        if (prev.constructor !== type) return false;
+        return key != null || prev.key != null ? prev.key === key : true;
     }
 
     /**

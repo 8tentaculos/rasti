@@ -241,7 +241,7 @@ A descriptor is not part of this: it is parse-time data, so `LiteralSlot` reads 
 For one slot, in order:
 
 1. **Same partial** (same constructor / call site) → `prev.update(newExpressions)` in place.
-2. **Same child** (key, or unkeyed type) → recycle in place: no DOM move, props queued.
+2. **Same child** (same type, and same key when keyed) → recycle in place: no DOM move, props queued.
 3. **Anything else** → **regenerate**: render a fresh fragment, locate the recycled list children's placeholder comments in it, place it (between markers, or next to an anchored element's node), move those children onto their placeholders, hydrate new children, then finish props.
 
 `regenerate` is one cycle; only placement forks (markers vs anchored).

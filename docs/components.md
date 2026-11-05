@@ -325,7 +325,7 @@ A template is parsed once, on its first render, and a component tag is paired wi
 
 ## Component tags and built components
 
-A child component is written as a tag, ``this.html`<${Row} key="${row.id}" model="${row}" />` ``. An interpolation may also hold a component that an expression builds, `Row.mount(options)` or `new Row(options)`, and both are recycled by the same rules: by key in a list, by type and position anywhere else. They differ in when the instance is built.
+A child component is written as a tag, ``this.html`<${Row} key="${row.id}" model="${row}" />` ``. An interpolation may also hold a component that an expression builds, `Row.mount(options)` or `new Row(options)`, and both are recycled by the same rules: by key in a list, by type and position anywhere else. A key identifies a child within its class: a child of another class under the same key is built anew. They differ in when the instance is built.
 
 A **tag** hands the render a class and the options to build it with. The render builds the component only when it has none to recycle; when it recycles the previous child, the tag's attributes go to it as its new props and nothing else is created.
 

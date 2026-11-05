@@ -67,7 +67,7 @@ class ComponentSlot extends InterpolationSlot {
      */
     toString(pass) {
         const options = this.evaluate();
-        const found = pass ? this.claimRecyclable(options, pass) : null;
+        const found = pass ? this.claimRecyclable(options, this.tag(), pass) : null;
         this.claimed = !!found;
         if (found) {
             this.content = found;
