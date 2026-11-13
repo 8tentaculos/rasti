@@ -128,7 +128,7 @@ export interface ComponentLifecycle {
  * Methods a component calls to build what it needs, made available for contextual typing
  * inside `Component.extend({ ... })` so overrides don't need parameter annotations.
  */
-interface ComponentOverrides {
+export interface ComponentOverrides {
     /** Called on the first render, to build the model the component keeps its props in. */
     createProps?(props: object): Model;
     /** Called on every render, to provide contexts to the components this one hosts. */

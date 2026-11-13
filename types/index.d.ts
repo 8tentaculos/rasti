@@ -13,6 +13,7 @@ export {
     ComponentState,
     ComponentModel,
     ComponentLifecycle,
+    ComponentOverrides,
     ExtendedComponent,
     InjectionKey,
 } from './Component.js';

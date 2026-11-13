@@ -60,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Expressions that are `undefined` on the first render**: a template is parsed once per call site, and an expression whose value was `undefined` at that moment was left out of the parse as if it were not there. The attribute or content stayed fixed for every later render and instance of the template, so after a first ``partial`<${Child} x="${undefined}" />`` the child always received `x` as `''`. Every expression is now kept, whatever its value.
 - **A key recycling a child of another class**: a keyed child was matched by its key alone, so a candidate of another class under the same key, ``x ? B.mount({ key : 'k' }) : A.mount({ key : 'k' })`` or a list item whose component changed, recycled the previous instance: it kept rendering the old component with the new one's props. A key now identifies a child within its class, and a child of another class is built anew.
 - **A value-less attribute that resolves to `null`**: a spread (`<div ${attrs}>`) whose expression is `null` is skipped, like `undefined` and `false`. `typeof null` is `'object'`, so it used to reach `Object.keys` and throw.
+- **Declarations of a component made with `create(fn)`**: a project emitting declarations for a component whose type is `typeof Component<P>` — `create` with a typed `this` — failed with TS4023 (TS9006 from JavaScript), because the expanded type names `ComponentOverrides`, which was not exported. It is now exported from `rasti` with the other component types.
 
 ## [4.2.1] - 2026-10-09
 
