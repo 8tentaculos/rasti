@@ -250,7 +250,7 @@ For one slot, in order:
 
 The unit of identity is the **partial**, by call site (`strings`), except for a lone component tag, whose identity is the component it mounts (class and key). Each interpolation reconciles **its own region**. An occupant that keeps identity is patched; anything else is regenerated. If an intermediate regenerates, everything below regenerates with it.
 
-Position inside a partial keeps an unkeyed component stable. A **key** identifies a child among the siblings of **that interpolation** — in practice, the items of a list. Keys are not a global namespace. A keyed child that moves to a different interpolation is created fresh.
+Position inside a partial keeps an unkeyed component stable. A **key** identifies a child among the siblings of **that interpolation** — in practice, the items of a list, and the single keyed child the interpolation held before a list took its place. Keys are not a global namespace. A keyed child that moves to a different interpolation is created fresh.
 
 A partial cannot be keyed. Identity belongs to components, and a list item has one when it **is** a component: a child an expression built (`mount`, `new`), or a component tag, which describes one.
 

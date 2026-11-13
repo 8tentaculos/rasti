@@ -3490,6 +3490,11 @@ describe('Component', () => {
                 keyedB : (html, Child, text) => html`<${Child} key="k" text="${text}" />`,
                 otherKey : (html, Child, text) => html`<${Child} key="other" text="${text}" />`,
                 mounted : (html, Child, text) => Child.mount({ text }),
+                keyedMounted : (html, Child, text) => Child.mount({ key : 'k', text }),
+                keyedList : (html, Child, text) => [
+                    html`<${Child} key="k" text="${text}" />`,
+                    html`<${Child} key="z" text="z" />`
+                ],
                 transparent : (html, Child, text) => html`${html`<${Child} text="${text}" />`}`
             };
             const mountMain = (Child, route, text) => {
@@ -3630,6 +3635,48 @@ describe('Component', () => {
                 // The mounted candidate is built and discarded for its props.
                 expect(counts).to.deep.equal({ created : 2, recycled : 1, destroyed : 1 });
                 expect(main.children.length).to.be.equal(1);
+            });
+
+            it('must recycle a mounted child into a component tag from another call site', () => {
+                const { Child, counts } = counting();
+                const main = mountMain(Child, 'tagA', 'a');
+
+                const before = main.el.querySelector('.child');
+                main.model.set({ route : 'mounted', text : 'b' });
+                main.model.set({ route : 'tagB', text : 'c' });
+
+                expect(main.el.querySelector('.child')).to.be.equal(before);
+                expect(before.textContent).to.be.equal('c');
+                expect(counts).to.deep.equal({ created : 2, recycled : 2, destroyed : 1 });
+                expect(main.children.length).to.be.equal(1);
+            });
+
+            it('must recycle a single keyed component tag into a list that holds its key', () => {
+                const { Child, counts } = counting();
+                const main = mountMain(Child, 'keyedA', 'a');
+
+                const before = main.el.querySelector('.child');
+                main.model.set({ route : 'keyedList', text : 'b' });
+
+                const items = main.el.querySelectorAll('.child');
+                expect(items[0]).to.be.equal(before);
+                expect(before.textContent).to.be.equal('b');
+                expect(items[1].textContent).to.be.equal('z');
+                expect(counts).to.deep.equal({ created : 2, recycled : 1, destroyed : 0 });
+                expect(main.children.length).to.be.equal(2);
+            });
+
+            it('must recycle a single keyed mounted child into a list that holds its key', () => {
+                const { Child, counts } = counting();
+                const main = mountMain(Child, 'keyedMounted', 'a');
+
+                const before = main.el.querySelector('.child');
+                main.model.set({ route : 'keyedList', text : 'b' });
+
+                expect(main.el.querySelector('.child')).to.be.equal(before);
+                expect(before.textContent).to.be.equal('b');
+                expect(counts).to.deep.equal({ created : 2, recycled : 1, destroyed : 0 });
+                expect(main.children.length).to.be.equal(2);
             });
 
             it('must regenerate across a transparent partial around a component tag', () => {

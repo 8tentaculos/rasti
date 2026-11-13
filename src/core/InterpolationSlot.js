@@ -452,6 +452,7 @@ class InterpolationSlot extends Slot {
         // Retained single child: same key/type → recycle in place, without moving the DOM.
         if (child && partial.owner.isChild(value) && this.canRecycle(child, value.constructor, value.key)) {
             this.recycleInPlace(child, value);
+            this.content = child;
             return;
         }
         // A tag from another call site takes over the previous child and reconciles
@@ -502,6 +503,18 @@ class InterpolationSlot extends Slot {
         const { partial } = this;
         if (partial.owner.isChild(value)) return value;
         return partial.isPartial(value) && value.isComponentTag() ? value.slots[0].content : null;
+    }
+
+    /**
+     * The pool a single keyed occupant leaves: it is a child of this interpolation like
+     * the items of a list, so a list that takes its place can claim it by key.
+     * @return {Map<any, object>|null} The child under its key, or `null` when the
+     *     occupant stands for no keyed child.
+     * @private
+     */
+    keyedOccupant() {
+        const child = this.occupantChild(this.content);
+        return child && child.key != null ? new Map([[child.key, child]]) : null;
     }
 
     /**
@@ -623,8 +636,9 @@ class InterpolationSlot extends Slot {
      * @private
      */
     regenerate(value) {
-        // The keyed children of the previous render are the pool this one claims from.
-        const pass = this.makePass(this.keyed);
+        // The keyed children of the previous render are the pool this one claims from:
+        // the ones its list collected, or the single child it held.
+        const pass = this.makePass(this.keyed || this.keyedOccupant());
         // The children of a list the slot placed itself stand between its markers, in
         // that order, so a render that resolves to a list of components again keeps
         // them where they are instead of rendering them back into position. Decided
@@ -788,10 +802,10 @@ class InterpolationSlot extends Slot {
 
     /**
      * Build a reconcile pass around a pool of claimable children, the keyed ones the
-     * slot collected on its previous render. The pool belongs to the slot doing the
+     * slot held on its previous render. The pool belongs to the slot doing the
      * regenerating, and only the children its value holds directly claim from it (see
      * `renderValue`). Null where there is nothing to claim: a first render, or a slot
-     * whose previous occupant was not a list.
+     * whose previous occupant held no keyed child.
      * @param {Map<any, object>} [previous] The keyed children of the previous render.
      * @return {ReconcilePass} The reconcile pass.
      * @private
