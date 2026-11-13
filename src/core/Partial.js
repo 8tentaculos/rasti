@@ -163,7 +163,7 @@ class Partial {
         // then on it is the partial's live view of the skeleton — one slot per part,
         // in document order — so rendering, hydration and updates all walk it and
         // never the skeleton.
-        if (!this.slots) this.slots = this.constructor.parts.map(part => new part.constructor.Slot(this, part));
+        if (!this.slots) this.createSlots();
         return this.slots.map(slot => slot.toString(pass)).join('');
     }
 
@@ -174,9 +174,17 @@ class Partial {
      * @param {object} child The child the enclosing slot held.
      */
     adopt(child) {
-        const slot = new ComponentDescriptor.Slot(this, this.constructor.parts[0]);
-        this.slots = [slot];
-        slot.adopt(child);
+        this.createSlots();
+        this.slots[0].adopt(child);
+    }
+
+    /**
+     * Create the partial's slots: one per part, in document order, each of the class
+     * its part names.
+     * @private
+     */
+    createSlots() {
+        this.slots = this.constructor.parts.map(part => new part.constructor.Slot(this, part));
     }
 
     /**
