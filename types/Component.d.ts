@@ -11,14 +11,20 @@ export interface ComponentReservedOptions<
      * A unique key to identify the component.
      * Components with keys are recycled when the same key is found in the previous render
      * of the same interpolation. Unkeyed components are recycled based on type and position,
-     * and are never recycled inside an array.
+     * and are never recycled inside an array. Compared by identity, so `1` and `'1'` are
+     * different keys.
      */
-    key?: string;
+    key?: string | number;
     /**
      * A `Model` or any emitter object containing data and business logic, to be used as internal
      * state. The component will listen to `change` events and call `onChange` lifecycle method.
      */
     state?: S;
+    /**
+     * The component's `template()`, called on every render with the component as `this` and
+     * as its argument. Returns a partial, or a component instance to render as a container.
+     */
+    template?: (this: Component<P, S, M>, component: Component<P, S, M>) => ComponentPartial | Component<any, any, any>;
     /** Lifecycle hook called at the end of the constructor. */
     onCreate?: (this: Component<P, S, M>, ...args: any[]) => void;
     /** Lifecycle hook called when `model`, `state` or `props` emits `change`. */
@@ -127,8 +133,14 @@ export interface ComponentLifecycle {
 /**
  * Methods a component calls to build what it needs, made available for contextual typing
  * inside `Component.extend({ ... })` so overrides don't need parameter annotations.
+ * `C` is the component they are called on.
  */
-export interface ComponentOverrides {
+export interface ComponentOverrides<C = Component<any, any, any>> {
+    /**
+     * Called on every render, with the component as its argument, to build the component's
+     * root: a partial, or a component to contain.
+     */
+    template?(component: C): ComponentPartial | Component<any, any, any>;
     /** Called on the first render, to build the model the component keeps its props in. */
     createProps?(props: object): Model;
     /** Called on every render, to provide contexts to the components this one hosts. */
@@ -194,7 +206,7 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
     ): ExtendedComponent<T, O>;
     static extend<T extends new (...args: any[]) => Component<any, any, any>, O extends object>(
         this: T,
-        object: O & ComponentLifecycle & ComponentOverrides & ThisType<InstanceType<T> & O>,
+        object: O & ComponentLifecycle & ComponentOverrides<InstanceType<T>> & ThisType<InstanceType<T> & O>,
     ): ExtendedComponent<T, O>;
 
     /**
@@ -261,9 +273,10 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
      * A unique key to identify the component, merged from options.
      * Components with keys are recycled when the same key is found in the previous render
      * of the same interpolation. Unkeyed components are recycled by type and position for
-     * a single value, but are never recycled inside an array.
+     * a single value, but are never recycled inside an array. Compared by identity, so `1`
+     * and `'1'` are different keys.
      */
-    key?: string;
+    key?: string | number;
 
     /**
      * Props passed from the parent component, stored as a `Model` for reactive updates.
@@ -295,8 +308,10 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
      * The root partial must have a single root element — it becomes `this.el` — and must be
      * built from the same template on every render, since the root is patched in place.
      * Neither restriction applies to the partials rendered inside an interpolation.
+     *
+     * Rasti calls it with the component as its argument too, so it can destructure it.
      */
-    template(): ComponentPartial | Component<any, any, any>;
+    template(component?: this): ComponentPartial | Component<any, any, any>;
 
     /**
      * @param options Component options. Keys `model`, `state`, `key`, `onCreate`, `onChange`,

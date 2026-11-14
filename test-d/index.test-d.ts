@@ -264,7 +264,7 @@ new Counter({ initial: 5, label: 'hello', tag: 'span', onDestroy: () => {} });
 expectError(new Counter({ initial: 'not-a-number', label: 'x' }));
 
 // `key` is merged from options onto the instance
-expectType<string | undefined>(new Counter({ initial: 1, label: 'x', key: 'k' }).key);
+expectType<string | number | undefined>(new Counter({ initial: 1, label: 'x', key: 'k' }).key);
 
 // The exported name is also the instance type, as it is for a view or a model
 const counterInstance: Component<CounterProps, CounterState> = new Counter({ initial: 1, label: 'x' });
@@ -325,6 +325,36 @@ expectError(new CounterExt({ initial: 'not-a-number', label: 'x' }));
 
 // So is `createProps`, which builds the props model rather than being a lifecycle hook
 Counter.extend({ createProps(props) { expectType<object>(props); return new Model(props); } });
+
+// And `template`, whose result is checked as it is through `create`
+Counter.extend({ template() { return this.html`<div>${this.props.label}</div>`; } });
+Counter.extend({ template() { return new Counter({ initial: 1, label: 'x' }); } });
+expectError(Counter.extend({ template() { return 42; } }));
+
+// `template` receives the component as its argument, also through `extend`: typed as the
+// parent's instance, while the members the object adds are on `this`
+Counter.extend({
+    title() { return this.props.label; },
+    template({ html, props }) {
+        expectType<string>(props.label);
+        expectType<string>(this.title());
+        return html`<div></div>`;
+    },
+});
+class DestructuringTemplate extends Component<{ title: string }> {
+    template({ html, props }: this) { return html`<h1>${props.title}</h1>`; }
+}
+void DestructuringTemplate;
+
+// The `template` option is typed like the method: the component as `this` and as argument
+new Component({ template: ({ html }) => html`<div></div>` });
+new Component({ template() { return this.html`<div></div>`; } });
+expectError(new Component({ template: () => '<div></div>' }));
+
+// A key is a string or a number
+Counter.mount({ key: 1, initial: 1, label: 'x' });
+Counter.mount({ key: 'a', initial: 1, label: 'x' });
+expectError(Counter.mount({ key: {}, initial: 1, label: 'x' }));
 
 // mount() on an extended class returns the extended instance
 const mountedExt = CounterExt.mount({ initial: 1, label: 'x' });
