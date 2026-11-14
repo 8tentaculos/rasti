@@ -52,6 +52,21 @@ class Toggle extends Component<ToggleProps, ToggleState> {
 }
 ```
 
+## Template functions
+
+`Component.create<P, S, M>(fn)` types the component the template function receives, as its argument and as `this`, so the template is checked like a subclass's, with no annotations. The result is a value only: alias it with `type X = InstanceType<typeof X>` to use the name as a type.
+
+```ts
+interface CardProps { title: string; renderChildren?: () => any }
+
+const Card = Component.create<CardProps>(({ props, html }) => html`
+    <div class="card">
+        <h2>${props.title}</h2>
+        ${props.renderChildren?.()}
+    </div>
+`);
+```
+
 With the tagged form, interpolation callbacks are `any` and need opt-in typing (an annotated arrow parameter, `({ props }: C) => …`, for content and quoted attributes; `satisfies EventHandler<C, E>` for unquoted handlers), and the class is a value only — alias it with `type X = InstanceType<typeof X>` to use the name as a type.
 
 ## Typing tagged templates

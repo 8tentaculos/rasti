@@ -32,7 +32,7 @@ Underneath sits a small MVC core: a component is a **view**, **models** hold its
 - **Template literals, components as tags**  
   Templates are standard tagged template literals: no JSX, no compiler, no build step. A component is used inside another template as a tag, with props and children: `<${Link} href="${href}">${label}</${Link}>`. No registry, no custom elements.
 - **Handlers in the markup**  
-  Event handlers are written as attributes: `onClick=${() => this.increment()}`. They are delegated from the component's root element, so re-renders never bind listeners and an inline handler costs nothing.
+  Event handlers are written as attributes: `onClick=${() => this.increment()}`. They are delegated from the component's root element, so re-renders never bind listeners and an inline handler binds nothing.
 - **Updates in place**  
   When state changes, Rasti re-evaluates the template and writes only the values that differ. The DOM is patched, not rebuilt, so focus, selection and input values persist.
 - **State from anything that emits**  
@@ -94,11 +94,11 @@ The development build is `rasti.umd.js`.
 
 ```javascript
 // Define a Timer component that displays the number of seconds from the model.
-const Timer = Component.create`
+const Timer = Component.create(({ model, html }) => html`
     <div>
-        Seconds: <span>${({ model }) => model.seconds}</span>
+        Seconds: <span>${model.seconds}</span>
     </div>
-`;
+`);
 
 // Create a model to store the seconds.
 const model = new Model({ seconds : 0 });
@@ -124,21 +124,19 @@ const routes = [
 ];
 
 // Create a Link component for navigation items.
-const Link = Component.create`
-    <a href="${({ props }) => props.href}">
-        ${({ props }) => props.renderChildren()}
+const Link = Component.create(({ props, html }) => html`
+    <a href="${props.href}">
+        ${props.renderChildren()}
     </a>
-`;
+`);
 
 // Create a Navigation component that renders Link components for each route.
 // `html` builds a partial: a sub-template for lists and conditional blocks.
-const Navigation = Component.create`
+const Navigation = Component.create(({ props, html }) => html`
     <nav>
-        ${({ props, html }) => props.routes.map(
-            ({ label, href }) => html`<${Link} key="${href}" href="${href}">${label}</${Link}>`
-        )}
+        ${props.routes.map(({ label, href }) => html`<${Link} key="${href}" href="${href}">${label}</${Link}>`)}
     </nav>
-`;
+`);
 
 // Create a Main component that includes the Navigation and displays the current route's label as the title.
 class Main extends Component {
@@ -210,7 +208,7 @@ Filter.mount({ items : ['Model', 'View', 'Component', 'Emitter'] }, document.bod
 
 ### Writing components
 
-A component renders from its **`template()` method**, which returns a **partial** built with `this.html` (an alias of `this.partial`). Write it in a subclass, as `Main` and `Filter` do above, when the component has methods, reads better with plain values, or is written in TypeScript, where a subclass is typed with no annotations. `Component.create` can also write it for you from a tagged template, the shortest form for simple presentational components like `Timer` and `Link`, or from a template function. The three forms, how they differ and when to use each are in [Writing components](/docs/components.md).
+A component renders from its **`template()` method**, which returns a **partial** built with `html` (an alias of `partial`). For short presentational components like `Timer`, `Link` and `Navigation`, pass `Component.create` a template function: it becomes `template()` and receives the component as its argument. When the component has methods or state, as `Main` and `Filter` do, write a subclass that defines `template()` next to them. `create` also takes a tagged template, the main form up to Rasti 4: its interpolations are defined once, with the declaration, so dynamic values have to be functions, which pays off in a few specific cases. The three forms, how they differ and when to use each are in [Writing components](/docs/components.md).
 
 ## Scaffolding a New Project
 

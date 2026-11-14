@@ -1,6 +1,6 @@
 ---
 name: rasti
-description: Builds user interfaces with Rasti, the HTML-first JavaScript UI library — components written as subclasses or tagged templates, template interpolations, event handlers, lifecycle hooks, keyed recycling, models and server-side rendering. Use when writing, reviewing or debugging code that imports `rasti`, or when the user asks about Rasti components or models.
+description: Builds user interfaces with Rasti, the HTML-first JavaScript UI library — components written as template functions, subclasses or tagged templates, template interpolations, event handlers, lifecycle hooks, keyed recycling, models and server-side rendering. Use when writing, reviewing or debugging code that imports `rasti`, or when the user asks about Rasti components or models.
 license: MIT
 metadata:
   version: "5.0.0-alpha.4"
@@ -19,12 +19,18 @@ Read these when the task needs them:
 
 ### Component Creation
 
-A component renders from its `template()` method, which returns a partial (or a child component — see [Container Components](#container-components)). It can be written in three forms, all producing a `Component` subclass, mixable in one app: a subclass that defines `template()`, or `Component.create` with a tagged template or a template function, from which it writes `template()`. Pick the one that reads cleanest: the tagged template for simple presentational components whose interpolations stay clean as functions; a subclass when the component has methods, when plain values read better than functions, or when writing TypeScript.
+A component renders from its `template()` method, which returns a partial (or a child component — see [Container Components](#container-components)). It can be written in three forms, all producing a `Component` subclass, mixable in one app: `Component.create` with a template function or a tagged template, from which it writes `template()`, or a subclass that defines `template()`. Pick by role: the template function for short presentational components; a subclass when the component has methods, state or hooks; the tagged template when its functions should be created once with the class instead of on every render, as in the rows of a large list.
 
 ```js
 import { Component, Model } from 'rasti';
 
-// 1. Subclass — `template()` sits next to the methods it calls, and plain values interpolate directly.
+// 1. Template function — `create(fn)` uses `fn` as `template()`, called with the component as argument.
+// The shortest form, for presentational components; plain values interpolate directly.
+const Badge = Component.create(({ props, html }) => html`
+    <span class="badge">${props.label}</span>
+`);
+
+// 2. Subclass — `template()` sits next to the methods it calls.
 class Counter extends Component {
     template() {
         return this.html`
@@ -40,26 +46,24 @@ class Counter extends Component {
     }
 }
 
-// 2. Tagged template — the shortest form, for simple presentational components.
-// Captured once, so dynamic values must be functions.
-const Badge = Component.create`
-    <span class="badge">${({ props }) => props.label}</span>
+// 3. Tagged template — captured once, so dynamic values must be functions.
+// Functions written in it are created once with the class: cheap across thousands of rows.
+const Row = Component.create`
+    <tr>
+        <td>${({ model }) => model.label}</td>
+        <td><a onClick=${function() { this.props.handleRemove(this.model); }}>Remove</a></td>
+    </tr>
 `;
 
 // Add lifecycle hooks (or methods) to a created component with `extend`.
-const Toggle = Component.create`
-    <button onClick=${function() { this.state.active = !this.state.active; }}>
-        ${({ state }) => state.active ? 'On' : 'Off'}
+const Toggle = Component.create(({ state, html }) => html`
+    <button onClick=${() => state.active = !state.active}>
+        ${state.active ? 'On' : 'Off'}
     </button>
-`.extend({
+`).extend({
     onCreate() {
         this.state = new Model({ active : false });
     }
-});
-
-// 3. Template function — `create(fn)` uses `fn` as the component's `template()`.
-const Label = Component.create(function() {
-    return this.html`<label>${this.props.text}</label>`;
 });
 
 // Mount to DOM
@@ -69,7 +73,7 @@ Counter.mount({ model : new Model({ count : 0 }) }, document.getElementById('roo
 `template()` runs on **every render** — see [Interpolations](#interpolations) for what that means for the values inside it.
 
 **Key Methods:**
-- [`Component.create`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v5.0.0-alpha.4/docs/api.md#module_component_create) — creates component class from a tagged template or a template function
+- [`Component.create`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v5.0.0-alpha.4/docs/api.md#module_component_create) — creates component class from a template function or a tagged template
 - [`component.template`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v5.0.0-alpha.4/docs/api.md#module_component__template) — returns the component's root partial; override it directly, via `extend`, or as a mount option
 - [`Component.extend`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v5.0.0-alpha.4/docs/api.md#module_component_extend) — adds methods and lifecycle hooks
 - [`Component.mount`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v5.0.0-alpha.4/docs/api.md#module_component_mount) — creates and mounts a component instance
@@ -106,16 +110,14 @@ template() {
 
 All interpolations in templates (content or attribute values) follow the same rule: non-function values are passed directly; functions are called during each render, bound to `this`, with the component instance as argument.
 
-**Function vs value interpolations:** in the tagged `Component.create` form the expressions are captured once, when the class is created, so anything dynamic **must be a function** — that is what gets re-evaluated on each render. In the `create(fn)` and subclass forms the body of `template()` re-runs on every render, so plain values are read fresh each time and work as well.
+**Function vs value interpolations:** in the `create(fn)` and subclass forms the body of `template()` re-runs on every render, so plain values are read fresh each time. In the tagged `Component.create` form the expressions are captured once, when the class is created, so anything dynamic **must be a function** — that is what gets re-evaluated on each render.
 
 ```js
+// Function / subclass form — `template()` re-runs, so plain values stay in sync
+Component.create(({ model, html }) => html`<span>${model.title}</span>`);
+
 // Tagged form — captured once, so dynamic values must be functions
 Component.create`<span>${({ model }) => model.title}</span>`;
-
-// Function / subclass form — `template()` re-runs, so plain values stay in sync
-template() {
-    return this.html`<span>${this.model.title}</span>`;
-}
 ```
 
 Reach for a function when the value must be read lazily from a nested object; use a plain value when you already have it in scope.
@@ -235,12 +237,12 @@ class Header extends Component {
 }
 
 // Parent — passes values as component options
-const App = Component.create`
+const App = Component.create(({ model, html }) => html`
     <main>
-        <${Header} handleAddTodo="${({ model }) => (title) => model.addTodo({ title })}" />
-        <${Footer} model="${({ model }) => model}" currentFilter="${({ model }) => model.filter}" />
+        <${Header} handleAddTodo=${(title) => model.addTodo({ title })} />
+        <${Footer} model="${model}" currentFilter="${model.filter}" />
     </main>
-`;
+`);
 ```
 
 **Key properties:**
@@ -270,21 +272,21 @@ When a component is rendered with content between tags, Rasti creates `renderChi
 - `<${Child} />` (self-closing) → no `renderChildren`
 
 ```js
-const Button = Component.create`
-    <button>${({ props }) => props.renderChildren()}</button>
-`;
+const Button = Component.create(({ props, html }) => html`
+    <button>${props.renderChildren()}</button>
+`);
 
 // Support both with-content and self-closing (label fallback)
-const FlexButton = Component.create`
-    <button>${({ props }) => props.renderChildren ? props.renderChildren() : props.label}</button>
-`;
+const FlexButton = Component.create(({ props, html }) => html`
+    <button>${props.renderChildren ? props.renderChildren() : props.label}</button>
+`);
 
 // Usage — Rasti creates renderChildren automatically
-const Main = Component.create`
+const Main = Component.create(({ html }) => html`
     <div>
         <${Button}>click me</${Button}>
     </div>
-`;
+`);
 ```
 
 When using `Component.mount()`, pass `renderChildren` manually: `{ renderChildren : () => value }`.
@@ -317,12 +319,10 @@ class Field extends Component {
 }
 
 // Explicit props win; without a Field it is a plain input (`undefined` leaves the attribute out).
-const Input = Component.create`
-    <input
-        id="${({ props, inject }) => props.id || inject(FormControl).id}"
-        aria-describedby="${({ inject }) => inject(FormControl).describedBy}"
-    >
-`;
+const Input = Component.create(({ props, inject, html }) => {
+    const control = inject(FormControl);
+    return html`<input id="${props.id || control.id}" aria-describedby="${control.describedBy}">`;
+});
 
 // Usage
 html`<${Field} controlId="email" error="${this.model.error}"><${Input} /></${Field}>`
@@ -337,20 +337,20 @@ Rules: the key is a `Symbol` in a module of its own, never imported from the pro
 `html`, an alias of [`partial`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v5.0.0-alpha.4/docs/api.md#module_component__partial), creates sub-templates (partials) for conditional blocks and lists. A partial is patched in place on update — attributes diffed, child components recycled — so the DOM nodes inside it, and their focus, selection and input value, survive re-renders. In a [list of markup](#lists) they stay with the position, not with the item.
 
 ```js
-const App = Component.create`
+const App = Component.create(({ model, html }) => html`
     <main>
-        ${({ model, html }) => !!model.todos.length && html`
+        ${!!model.todos.length && html`
             <ul class="todo-list">
                 ${model.filtered.map(todo => html`
                     <${Todo} key="${todo.id}" model="${todo}" />
                 `)}
             </ul>
         `}
-        ${({ model, html }) => model.completed.length ? html`
-            <button onClick=${function() { this.model.removeCompleted(); }}>Clear completed</button>
+        ${model.completed.length ? html`
+            <button onClick=${() => model.removeCompleted()}>Clear completed</button>
         ` : null}
     </main>
-`;
+`);
 ```
 
 For large templates, extract helper methods that return partials (use `this.html` inside them):
@@ -414,14 +414,14 @@ ${({ props, html }) => html`<${TodoForm} key="${props.editingId}" model="${props
 A component whose template is a single component tag — or whose `template()` returns a child component instance — is a **container**. `this.el` references the child's element directly (no wrapper).
 
 ```js
-const PrimaryButton = Component.create`
+const PrimaryButton = Component.create(({ html }) => html`
     <${Button} className="primary" variant="solid" />
-`;
-
-// Function form
-const SecondaryButton = Component.create(({ html }) => html`
-    <${Button} className="secondary" variant="outlined" />
 `);
+
+// Tagged form
+const SecondaryButton = Component.create`
+    <${Button} className="secondary" variant="outlined" />
+`;
 
 // Subclass form
 class TertiaryButton extends Component {
@@ -496,12 +496,12 @@ class MyComponent extends Component {
 Components auto-subscribe to `this.model`, `this.state`, `this.props`, and the contexts they read with `inject`. Changes trigger `onChange()` which by default calls `render()`.
 
 ```js
-const Counter = Component.create`
+const Counter = Component.create(({ model, html }) => html`
     <div>
-        <span>${({ model }) => model.count}</span>
-        <button onClick=${function() { this.model.count++; }}>+</button>
+        <span>${model.count}</span>
+        <button onClick=${() => model.count++}>+</button>
     </div>
-`;
+`);
 
 Counter.mount({ model : new Model({ count : 0 }) }, document.body);
 ```
@@ -545,8 +545,9 @@ App.mount({ model }, document.body, true);
 ## ⚠️ Best Practices
 
 ### Component Structure
-- Use the tagged ``Component.create`…` `` form for simple presentational components with few interpolations, where the function form stays clean (`${({ props }) => props.label}`).
-- Use a subclass (`class X extends Component { template() {…} }`) when the component has methods, when plain values read cleaner than functions, or when writing TypeScript.
+- Use a template function, ``Component.create(({ props, html }) => html`…`)``, for short presentational components.
+- Use a subclass (`class X extends Component { template() {…} }`) when the component has methods, state or lifecycle hooks.
+- Use the tagged ``Component.create`…` `` form when its functions should be created once with the class, as in the rows of a large list (see [Performance](#performance)).
 - Keep the root template stable and single-rooted; branch inside the interpolations.
 - Use `html` for conditional blocks and lists. Return `null` from an interpolation to render nothing: `''` and `false` work too, but `null` makes the intent visible.
 - Inline partials or helper methods (`renderHeader()`): pick whichever makes the component easier to read.
@@ -556,7 +557,7 @@ App.mount({ model }, document.body, true);
 ### Handlers & Props
 - Name callback props `handle*` (`handleChange`, `handleSelect`): it sets them apart from DOM event handlers and keeps them clear of lifecycle hook names such as `onChange`.
 - Unquoted for local handlers: `onClick=${function() { this.model.toggle(); }}`
-- Quoted when passing a thunk from parent: `handleAdd="${({ model }) => (v) => model.add(v)}"`. The thunk returns a new function on every render, so the child re-renders with its parent; fine for a single child, not for list rows
+- Quoted when passing a thunk from parent, in the tagged form: `handleAdd="${({ model }) => (v) => model.add(v)}"`. The thunk returns a new function on every render, so the child re-renders with its parent; fine for a single child, not for list rows
 - Unquoted for simple pass-through callbacks: `handleChange=${(v) => model.set(v)}`
 
 ### Lifecycle
@@ -568,6 +569,7 @@ App.mount({ model }, document.body, true);
 ### Performance
 - A list of markup is the cheapest to update; make its items components only when they need an identity. Conditionally call `render()` in `onChange()` to avoid unnecessary work.
 - Pass list rows props that keep their identity (class fields, models), so a parent render doesn't re-render every row.
+- Write the rows of a large list in the tagged form: its handlers are created once with the class, not once per row on every render.
 
 ## Common Pitfalls
 

@@ -78,7 +78,7 @@ Components are a special kind of `View` that is designed to be easily composable
 making it simple to add child views and build complex user interfaces.
 Unlike views, which are render-agnostic, components have a specific set of rendering
 guidelines that allow for a more declarative development style.
-A component renders from its [template](#module_component__template) method, which returns a partial (built with [partial](#module_component__partial)) or a child component. Define it in a subclass, for components with methods, templates that read better with plain values, or TypeScript; or let the [Component.create](#module_component_create) static method write it from a tagged template string, the shortest form for simple presentational components, or from a template function.
+A component renders from its [template](#module_component__template) method, which returns a partial (built with [partial](#module_component__partial)) or a child component. Let the [Component.create](#module_component_create) static method write it from a template function, the shortest form for presentational components; define it in a subclass, for components with methods or state; or pass `create` a tagged template string, whose interpolations are defined with the declaration, so dynamic values must be functions.
 
 **Extends**: <code>View</code>  
 **See**: [Component.create](#module_component_create)  
@@ -588,50 +588,54 @@ const hydratedButton = Button.mount({
 ```
 <a name="module_component_create" id="module_component_create" class="anchor"></a>
 ### Component.create(strings, ...expressions) ⇒ <code>Component</code>
-Takes a tagged template string, or a template function, and returns a new `Component` class. Both are sugar for defining the component's [template](#module_component__template) method. A component with methods, state or several hooks reads better as a subclass that defines `template()` itself; `create` suits simple components.
-- **Tagged template**: the template becomes the component's root partial, and its outer
-  element becomes `this.el`. The expressions are captured once, so anything dynamic must
-  be a function: it is called on every render, bound to the component and receiving it as
-  its argument. A function that returns `null`, `undefined`, `false` or an empty string
-  renders nothing.
-  ```javascript
-  const Button = Component.create`
-      <button class="${({ props }) => props.className}">
-          ${({ props }) => props.renderChildren()}
-      </button>
-  `;
-  ```
+Takes a template function, or a tagged template string, and returns a new `Component` class. Both are sugar for defining the component's [template](#module_component__template) method. A component with methods, state or several hooks reads better as a subclass that defines `template()` itself; `create` suits presentational components.
 - **Template function**: the function is used as `template()` itself, so it re-runs on
-  every render and may interpolate plain values. It returns a partial, or a component to
-  contain.
+  every render and interpolates plain values. It is called with the component as its
+  argument, so an arrow function destructures what it uses, and a `function` reads `this`.
+  It returns a partial, or a component to contain.
   ```javascript
-  const Greeting = Component.create(function() {
-      return this.html`<h1>Hello ${this.props.name}</h1>`;
-  });
+  const Button = Component.create(({ props, html }) => html`
+      <button class="${props.className}">
+          ${props.renderChildren()}
+      </button>
+  `);
+  ```
+- **Tagged template**: the template becomes the component's root partial, and its outer
+  element becomes `this.el`. Its interpolations are defined once, with the declaration, so
+  anything dynamic must be a function: it is called on every render, bound to the
+  component and receiving it as its argument. That pays off in a few specific cases. A
+  function that returns `null`, `undefined`, `false` or an empty string renders nothing.
+  ```javascript
+  const Row = Component.create`
+      <tr class="${({ props }) => props.selected ? 'selected' : ''}">
+          <td>${({ model }) => model.label}</td>
+          <td><a onClick=${function() { this.props.handleRemove(this.model); }}>Remove</a></td>
+      </tr>
+  `;
   ```
 - **Attributes**: a quoted value that is a function is called and its result used; an
   unquoted one is passed as it is. A boolean decides whether the attribute is present.
   ```javascript
-  const Input = Component.create`
-      <input type="text" disabled="${({ props }) => props.disabled}" />
-  `;
+  const Input = Component.create(({ props, html }) => html`
+      <input type="text" disabled="${props.disabled}" />
+  `);
   ```
 - **Event handlers**: camel-cased `on*` attributes bind a function, or a string naming a
   method of the component. The handler runs with `this` bound to the component and
   receives `(event, component, matched)`, `matched` being the element that carries the
   attribute. Handlers are not bound to the elements: one listener per event type is
   delegated to the component's root element and looks the handler up on each event, so a
-  handler created anew on every render costs nothing. On a component tag, an attribute
+  handler created anew on every render touches no DOM. On a component tag, an attribute
   is an option for the child, not a listener: name callback props `handle*`, since
   lifecycle hook names such as `onChange` are options the component takes for itself.
   ```javascript
-  const Counter = Component.create`
+  const Counter = Component.create(({ model, html }) => html`
       <div>
-          <span>${({ model }) => model.count}</span>
-          <button onClick=${function() { this.model.count++; }}>+</button>
-          <button onClick=${function() { this.reset(); }}>Reset</button>
+          <span>${model.count}</span>
+          <button onClick=${() => model.count++}>+</button>
+          <button onClick="reset">Reset</button>
       </div>
-  `.extend({
+  `).extend({
       reset() {
           this.model.count = 0;
       }
@@ -643,13 +647,13 @@ Takes a tagged template string, or a template function, and returns a new `Compo
   between the tags becomes `props.renderChildren`. In a list, give each one a `key`, so it
   is reused and moved instead of built again on every update.
   ```javascript
-  const Navigation = Component.create`
+  const Navigation = Component.create(({ props, html }) => html`
       <nav>
-          ${({ props, html }) => props.items.map(item => html`
+          ${props.items.map(item => html`
               <${Button} key="${item.id}" className="nav">${item.label}</${Button}>
           `)}
       </nav>
-  `;
+  `);
   ```
 - **Containers**: a template that is a single component makes the component a
   <b>container</b>: `this.el` is the child's element, with no wrapper around it.
@@ -680,7 +684,7 @@ Takes a tagged template string, or a template function, and returns a new `Compo
 
 | Param | Type | Description |
 | --- | --- | --- |
-| strings | <code>string</code> \| <code>function</code> | A tagged template string for the component, or a template function that returns a partial or a child component. |
+| strings | <code>function</code> \| <code>string</code> | A template function that returns a partial or a child component, or a tagged template string for the component. |
 | ...expressions | <code>\*</code> | The expressions to be interpolated within the template. |
 
 <a name="module_emitter" id="module_emitter" class="anchor"></a>

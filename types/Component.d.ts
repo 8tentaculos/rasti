@@ -170,17 +170,18 @@ type CreatedComponent<T extends new (...args: any[]) => Component<any, any, any>
  * which are render-agnostic, components have a specific set of rendering guidelines that
  * allow for a more declarative development style.
  *
- * A component renders from its `template()` method. Define it by subclassing, or let the
- * {@link Component.create} static method write it for you from a tagged template string or
- * a template function. In TypeScript the subclass form types best: `props` and `state` come
- * from the generics, the interpolations are ordinary expressions checked by the compiler,
- * and the class name is both a value and a type.
+ * A component renders from its `template()` method. Let the {@link Component.create} static
+ * method write it from a template function, the shortest form for presentational components;
+ * define it in a subclass, for components with methods or state; or pass `create` a tagged
+ * template string, whose interpolations are defined with the declaration, so dynamic values
+ * must be functions. In TypeScript the template function and the subclass are checked with
+ * no annotations, and a subclass name is both a value and a type.
  *
  * @example
  * import { Component, Model } from 'rasti';
- * const Timer = Component.create`
- *     <div>Seconds: <span>${({ model }) => model.seconds}</span></div>
- * `;
+ * const Timer = Component.create(({ model, html }) => html`
+ *     <div>Seconds: <span>${model.seconds}</span></div>
+ * `);
  * const model = new Model({ seconds: 0 });
  * Timer.mount({ model }, document.body);
  * setInterval(() => model.seconds++, 1000);
@@ -242,12 +243,13 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
     ): InstanceType<T>;
 
     /**
-     * Takes a tagged template string (or a function that returns a partial or a component)
-     * and returns a new `Component` class. The function form is sugar for defining
-     * `template()` directly; in the tagged form the expressions are captured once, so
-     * anything dynamic must be a function.
+     * Takes a template function, or a tagged template string, and returns a new `Component`
+     * class. The function is used as `template()` itself: it re-runs on every render, is called
+     * with the component as `this` and as its argument, and returns a partial or a component.
+     * In the tagged form the expressions are captured once, so anything dynamic must be a
+     * function.
      *
-     * - The tagged template becomes the component's root partial; its outer element
+     * - The template becomes the component's root partial; its outer element
      *   becomes `this.el` and is retained across updates.
      * - Interpolations become dynamic regions that are patched, recycled, or regenerated
      *   according to their current occupant.
@@ -261,11 +263,17 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
      *   the class (`class X extends Component<P, S, M>`) and call `X.create`.
      *
      * @example
-     * const Button = Component.create`
-     *     <button class="${({ props }) => props.className}"
-     *             onClick=${function(event, self) { self.emit('click'); }}>
-     *         ${({ props }) => props.label}
+     * const Button = Component.create<{ label: string; handleClick: () => void }>(({ props, html }) => html`
+     *     <button onClick=${() => props.handleClick()}>
+     *         ${props.label}
      *     </button>
+     * `);
+     *
+     * @example
+     * const Row = Component.create`
+     *     <tr class="${({ props }) => props.selected ? 'selected' : ''}">
+     *         <td>${({ model }) => model.label}</td>
+     *     </tr>
      * `;
      */
     static create<T extends new (...args: any[]) => Component<any, any, any>>(

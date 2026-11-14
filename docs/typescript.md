@@ -28,19 +28,21 @@ const counter: Counter = new Counter({ initial: 0, label: 'Clicks' }); // ✅ `C
 Counter.mount({ initial: 0, label: 'Clicks' }, document.body).increment(); // ✅ options and methods typed
 ```
 
-With `Component.create`, pass generics explicitly to type the resulting class:
+With `Component.create`, pass the generics explicitly to type the resulting class. A template function receives the typed component as its argument, and as `this`, so its template is checked like a subclass's, with no annotations:
 
 ```ts
-const Header = Component.create<{ handleAddTodo: (title: string) => void }>`
-    <header>...</header>
-`;
+const Header = Component.create<{ title: string }>(({ props, html }) => html`
+    <header><h1>${props.title}</h1></header>
+`);
 
-new Header({ handleAddTodo: (t) => console.log(t) }); // ✅
+new Header({ title: 'Todos' }); // ✅
 
 // With a typed model:
-const App = Component.create<{}, any, AppModel>`<main>...</main>`;
+const App = Component.create<{}, any, AppModel>(({ model, html }) => html`<main>...</main>`);
 App.mount({ model: new AppModel() }, document.body);
 ```
+
+Unlike a subclass, a component made with `create` is a value only: to use its name as a type, alias it (see [Helper types](#helper-types)).
 
 Without generics, `Component.create` stays permissive (parity with JS):
 
@@ -53,22 +55,21 @@ When a component is used with inner content (`<${Card}>...</${Card}>`), rasti in
 
 ```ts
 interface CardProps { title: string; renderChildren?: () => any; }
-type CardComponent = Component<CardProps>;
 
-const Card = Component.create<CardProps>`
+const Card = Component.create<CardProps>(({ props, html }) => html`
     <div class="card">
-        <h2>${({ props }: CardComponent) => props.title}</h2>
-        ${({ props }: CardComponent) => props.renderChildren?.()}
+        <h2>${props.title}</h2>
+        ${props.renderChildren?.()}
     </div>
-`;
+`);
 ```
 
-The interpolations are typed by annotating their parameter with the component type (see [Typing template interpolations](#typing-template-interpolations)).
+In the tagged form, the interpolations are typed by annotating their parameter with the component type instead (see [Typing template interpolations](#typing-template-interpolations)).
 
 `Component.extend` adds the object members to the instance type. Inside its methods, `this` is the extended component, and lifecycle overrides get their parameters typed automatically:
 
 ```ts
-const Counter = Component.create<{ initial: number }>`<div>...</div>`.extend({
+const Counter = Component.create<{ initial: number }>(({ html }) => html`<div>...</div>`).extend({
     onCreate() {
         this.state = new Model({ count: this.props.initial }); // `this` is typed
     },

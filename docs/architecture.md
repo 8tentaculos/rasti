@@ -114,7 +114,7 @@ Component.create(function() {
 Component.create`<div>${({ model }) => model.title}</div>`;
 ```
 
-The subclass and function forms re-run `template()` every render, so plain values work. `create` with a tagged template writes a `template()` that rebuilds the partial from expressions captured once, so anything dynamic must be a function. Which form to use, and why the subclass is the default, is in [Writing components](./components.md).
+The subclass and function forms re-run `template()` every render, so plain values work. `create` with a tagged template writes a `template()` that rebuilds the partial from expressions captured once, so anything dynamic must be a function. Which form suits each component is in [Writing components](./components.md).
 
 `template()` may also return a child component instance, or a partial that is a single component tag. Either makes this component a **container**: no wrapper element; `this.el` is the child's.
 

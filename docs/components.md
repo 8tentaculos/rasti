@@ -7,17 +7,17 @@ A component renders from its **`template()` method**, which returns a **partial*
 The same `Timer`, written in each form:
 
 ```javascript
-// 1. A subclass, with `template()` next to the component's other methods.
+// 1. A template function, which `create` uses as `template()`.
+const Timer = Component.create(({ model, html }) => html`
+    <div>Seconds: <span>${model.seconds}</span></div>
+`);
+
+// 2. A subclass, with `template()` next to the component's other methods.
 class Timer extends Component {
     template() {
         return this.html`<div>Seconds: <span>${this.model.seconds}</span></div>`;
     }
 }
-
-// 2. A template function, which `create` uses as `template()`.
-const Timer = Component.create(function() {
-    return this.html`<div>Seconds: <span>${this.model.seconds}</span></div>`;
-});
 
 // 3. A tagged template, from which `create` writes `template()`.
 const Timer = Component.create`
@@ -25,31 +25,34 @@ const Timer = Component.create`
 `;
 ```
 
+`template()` is called with the component as its argument, so an arrow function destructures what it uses; a `function` reads `this` instead.
+
 All three render the same component, and an application can mix them: a parent does not know how the components it renders were written. What changes is where the code lives and when the interpolations are read:
 
-| | Subclass | Template function | Tagged template |
+| | Template function | Subclass | Tagged template |
 |---|---|---|---|
-| `template()` | a method of the class | the function passed to `create` | built by `create` from the template |
+| `template()` | the function passed to `create` | a method of the class | built by `create` from the template |
 | Interpolations | read on every render: plain values or functions | read on every render: plain values or functions | captured once: anything dynamic must be a function |
-| Methods and hooks | in the class body | added with `.extend()` | added with `.extend()` |
-| TypeScript | checked like any other method | checked like any other function | each function typed by hand |
+| Functions in the template | created on every render | created on every render | created once, with the class |
+| Methods and hooks | added with `.extend()` | in the class body | added with `.extend()` |
+| TypeScript | checked like any other function | checked like any other method | each function typed by hand |
 
 ### Which one to use
 
 Pick the form that keeps the component easiest to read.
 
-**The tagged template suits simple presentational components**: few interpolations, each of which stays clean written as a function, like a link, an icon or a badge. There it is the shortest to write.
+**The template function suits short presentational components**, like a link, a button or a badge. An arrow that destructures what it uses, ``({ props, html }) => html`…` ``, is as short as any form, interpolates plain values read fresh on every render, and is checked in TypeScript like any other function. It also suits a container that picks the child it renders (see [Containers](#containers-returning-a-component)).
 
-**A subclass suits the rest.** When the component has methods, the template, the handlers it binds and the methods it calls sit together in one class body, which reads better than a tagged template followed by `.extend()`. When the template reads cleaner with plain values than with functions, a subclass interpolates them directly, read fresh on every render. And in TypeScript the whole template is checked with no annotations (see the [TypeScript guide](./typescript.md)).
+**A subclass suits components with behaviour.** When the component has methods, state or lifecycle hooks, the template, the handlers it binds and the methods it calls sit together in one class body, which reads better than `create` followed by `.extend()`. And in TypeScript the whole class is checked with no annotations (see the [TypeScript guide](./typescript.md)).
 
-**The template function** sits between the two: its `template()` re-runs on every render like a subclass's, without declaring a class. It suits a container that picks the child it renders (see [Containers](#containers-returning-a-component)).
+**The tagged template creates its functions once.** A function written directly in it is created with the class and is the same on every render, so a component rendered thousands of times, like the rows of a large list, does not allocate its handlers again for each row on each update, and a callback it passes to a child keeps its identity (see [Functions across renders](#functions-across-renders)). The price is that every dynamic value has to be written as a function.
 
 ## Combining the forms
 
 Every form produces a subclass of `Component`, so they compose:
 
 - **`.extend()`** adds methods and lifecycle hooks to a component made with `create`.
-- **`create` called on a subclass** builds the new component on top of it, so a tagged template can call the class's methods:
+- **`create` called on a subclass** builds the new component on top of it, so its template can call the class's methods:
 
   ```javascript
   class ListBase extends Component {
@@ -72,21 +75,17 @@ Every form produces a subclass of `Component`, so they compose:
 
 ## Function vs. value interpolations
 
+In the **template function and subclass forms**, the body of `template()` re-runs on every render, so you interpolate **plain values** — they are read fresh each time:
+
+```javascript
+// Read on every render, so it stays in sync with the props.
+const Greeting = Component.create(({ props, html }) => html`<h1>Hello ${props.name}</h1>`);
+```
+
 In the **tagged template** form, the interpolations are captured once, so anything dynamic must be a **function** — it is re-evaluated on each render, bound to the component and receiving it as its argument:
 
 ```javascript
 Component.create`<span>${({ model }) => model.seconds}</span>`;
-```
-
-In the **function and subclass forms**, the body of `template()` re-runs on every render, so you can interpolate **plain values** as well — they are read fresh each time:
-
-```javascript
-class Greeting extends Component {
-    template() {
-        // Read on every render, so it stays in sync with the props.
-        return this.html`<h1>Hello ${this.props.name}</h1>`;
-    }
-}
 ```
 
 Reach for a function when the value should be read lazily from a nested object (`({ model }) => model.count`); use a plain value when you already have it in scope.
@@ -214,14 +213,17 @@ import { Component } from 'rasti';
 import { FormControl } from './form-control.js';
 
 // An explicit `id` wins. Without a field around it, it is a plain input.
-const Input = Component.create`
-    <input
-        name="${({ props }) => props.name}"
-        id="${({ props, inject }) => props.id || inject(FormControl).id}"
-        aria-describedby="${({ inject }) => inject(FormControl).describedBy}"
-        aria-invalid="${({ inject }) => inject(FormControl).invalid ? 'true' : null}"
-    >
-`;
+const Input = Component.create(({ props, inject, html }) => {
+    const control = inject(FormControl);
+    return html`
+        <input
+            name="${props.name}"
+            id="${props.id || control.id}"
+            aria-describedby="${control.describedBy}"
+            aria-invalid="${control.invalid ? 'true' : null}"
+        >
+    `;
+});
 ```
 
 ```javascript
@@ -275,11 +277,22 @@ Render the items as markup when they are only content, and as keyed components w
 
 ## Functions across renders
 
-In the subclass and function forms, every function written in `template()` is created anew on each render. In the tagged form, a function written directly in the template is created once, with the class, but one created inside an interpolation, such as a function returned by a quoted value or one written in a partial built in a `map`, is new on every render. That costs nothing for event handlers, and it can cost a render for props.
+In the template function and subclass forms, every function written in `template()` is created anew on each render. In the tagged form, a function written directly in the template is created once, with the class, but one created inside an interpolation, such as a function returned by a quoted value or one written in a partial built in a `map`, is new on every render. A new event handler touches no DOM, and a new prop can cost the child a render.
 
 **Event handlers** are not attached to the elements. Each render writes the component's handlers into a list it keeps, and a single listener per event type on its root element looks up the one to call. A new `onClick=${() => this.save()}` on every render binds nothing and touches no DOM: the next click runs the latest one. In a [list of markup](#lists), which is updated by position, the handler goes with the content like the text and the attributes do: the element stays where it is, and its handler is the one of the item now rendered there.
 
-**Props** are compared with the previous render's by identity, and a child re-renders when one of them changed. A function, an object or an array created during the render is a new value each time, so the child re-renders whenever its parent does. Nothing breaks, it is only extra work; where it matters, in the rows of a large list or in an expensive child, pass something that keeps its identity, such as a class field:
+Each new handler is still an allocation: nothing in one component, but it adds up across the thousands of rows of a large list. Written directly in a tagged template, the handlers are created once and shared by every row and every render:
+
+```javascript
+const Row = Component.create`
+    <tr class="${({ props }) => props.selected ? 'danger' : ''}">
+        <td>${({ model }) => model.label}</td>
+        <td><a onClick=${function() { this.props.handleRemove(this.model); }}>Remove</a></td>
+    </tr>
+`;
+```
+
+**Props** are compared with the previous render's by identity, and a child re-renders when one of them changed. A function, an object or an array created during the render is a new value each time, so the child re-renders whenever its parent does. Nothing breaks, it is only extra work; where it matters, in the rows of a large list or in an expensive child, pass something that keeps its identity, such as a class field or a function written directly in a tagged template:
 
 ```javascript
 class TodoList extends Component {
@@ -356,7 +369,7 @@ If `template()` returns a single component, the component becomes a *container*:
 ```javascript
 // Given a `Button` component:
 
-const ButtonOk = Component.create`<${Button} className="ok">Ok</${Button}>`;
+const ButtonOk = Component.create(({ html }) => html`<${Button} className="ok">Ok</${Button}>`);
 
 class ButtonCancel extends Component {
     template() {
