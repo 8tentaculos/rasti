@@ -170,45 +170,47 @@ Main.mount({ routes, model }, document.body);
 
 [Try it on CodePen](https://codepen.io/editor/8tentaculos/pen/01a16f20-4f32-7120-be31-f46697ad6d6c?tab=script.js)
 
-### Adding event listeners
+### Handling events and state
 
 ```javascript
-// Create a model to store the counter value.
-const model = new Model({ count : 0 });
+// Create a Filter component that keeps its query in internal state.
+class Filter extends Component {
+    onCreate() {
+        // Initialize the component's state.
+        this.state = new Model({ query : '' });
+    }
 
-// Create a Counter component with increment and decrement buttons.
-class Counter extends Component {
     template() {
         return this.html`
             <div>
-                <div>Counter: ${this.model.count}</div>
-                <button onClick=${() => this.increment()}>Increment</button>
-                <button onClick=${() => this.decrement()}>Decrement</button>
+                <input placeholder="Filter…" onInput=${(ev) => this.search(ev.target.value)} />
+                <ul>${this.matches().map((item) => this.html`<li>${item}</li>`)}</ul>
             </div>
         `;
     }
 
-    increment() {
-        this.model.count++;
+    search(query) {
+        this.state.query = query;
     }
 
-    decrement() {
-        this.model.count--;
+    matches() {
+        const query = this.state.query.toLowerCase();
+        return this.props.items.filter((item) => item.toLowerCase().includes(query));
     }
 }
 
-// Mount the Counter component to the body and pass the model as an option.
-Counter.mount({ model }, document.body);
+// Mount the Filter component to the body and pass the items as a prop.
+Filter.mount({ items : ['Model', 'View', 'Component', 'Emitter'] }, document.body);
 
 // Event listeners are delegated from the component's root element.
-// When buttons are clicked, only the text node gets updated, not the entire component.
+// The DOM is patched, not rebuilt: the input keeps its focus and value while the list updates.
 ```
 
 [Try it on CodePen](https://codepen.io/editor/8tentaculos/pen/01a16f20-8f88-7131-b1d4-d3a57b1c008a?tab=script.js)
 
 ### Writing components
 
-A component renders from its **`template()` method**, which returns a **partial** built with `this.html` (an alias of `this.partial`). Write it in a subclass, as `Main` and `Counter` do above, when the component has methods, reads better with plain values, or is written in TypeScript, where a subclass is typed with no annotations. `Component.create` can also write it for you from a tagged template, the shortest form for simple presentational components like `Timer` and `Link`, or from a template function. The three forms, how they differ and when to use each are in [Writing components](/docs/components.md).
+A component renders from its **`template()` method**, which returns a **partial** built with `this.html` (an alias of `this.partial`). Write it in a subclass, as `Main` and `Filter` do above, when the component has methods, reads better with plain values, or is written in TypeScript, where a subclass is typed with no annotations. `Component.create` can also write it for you from a tagged template, the shortest form for simple presentational components like `Timer` and `Link`, or from a template function. The three forms, how they differ and when to use each are in [Writing components](/docs/components.md).
 
 ## Scaffolding a New Project
 
