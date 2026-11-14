@@ -395,6 +395,41 @@ Component.create<{ seconds: number }>(function() {
     return this.partial`<div></div>`;
 });
 
+// `create` function form without type arguments: the component has the default ones,
+// as permissive as the tagged form
+const FnPlain = Component.create(({ props, state, model, html }) => {
+    expectType<any>(props.anything);
+    expectType<any>(state);
+    expectType<any>(model);
+    return html`<div>${model.seconds}</div>`;
+});
+new FnPlain({ anything: 'goes' });
+Component.create(function() {
+    expectType<any>(this.model);
+    return this.html`<div></div>`;
+});
+
+// Likewise on a class extended from `Component` without type arguments, which keeps the
+// members `extend` added
+const FnPlainExt = Component.create(({ html }) => html`<div></div>`).extend({
+    helper(): number { return 1; },
+});
+FnPlainExt.create(({ helper, props, model, html }) => {
+    expectType<number>(helper());
+    expectType<any>(props.anything);
+    expectType<any>(model);
+    return html`<div></div>`;
+});
+
+// On a subclass that adds no members, the function form keeps the subclass's type arguments
+class NarrowBase extends Component<{ id: string }> {}
+NarrowBase.create(({ props, html }) => {
+    expectType<string>(props.id);
+    // @ts-expect-error not a prop of `NarrowBase`
+    props.other;
+    return html`<div></div>`;
+});
+
 // Subclass form: `template()` is defined as a method, alongside typed fields and helpers
 class Panel extends Component<CounterProps, CounterState> {
     timer: number | null = null;

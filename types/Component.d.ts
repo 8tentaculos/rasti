@@ -154,6 +154,17 @@ export interface ComponentOverrides<C = Component<any, any, any>> {
 export type ExtendedComponent<T extends new (...args: any[]) => any, O> =
     Omit<T, never> & (new (...args: ConstructorParameters<T>) => InstanceType<T> & O);
 
+/** `true` for `unknown` only: `any` has keys, `unknown` has none. */
+type IsUnknown<T> = unknown extends T ? ([keyof T] extends [never] ? true : false) : false;
+
+/**
+ * Component a template function passed to `create` receives, called on the class `T`. On
+ * `Component` itself, or a class extended from it without type arguments, whose generic
+ * constructor leaves `InstanceType` with `unknown` type arguments, it takes the default ones.
+ */
+type CreatedComponent<T extends new (...args: any[]) => Component<any, any, any>> =
+    IsUnknown<ComponentProps<InstanceType<T>>> extends true ? Component & InstanceType<T> : InstanceType<T>;
+
 /**
  * Components are a special kind of `View` designed to be easily composable. Unlike views,
  * which are render-agnostic, components have a specific set of rendering guidelines that
@@ -259,7 +270,7 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
      */
     static create<T extends new (...args: any[]) => Component<any, any, any>>(
         this: T,
-        strings: TemplateStringsArray | ((this: InstanceType<T>, component: InstanceType<T>) => ComponentPartial | Component<any, any, any>),
+        strings: TemplateStringsArray | ((this: CreatedComponent<T>, component: CreatedComponent<T>) => ComponentPartial | Component<any, any, any>),
         ...expressions: any[]
     ): T;
     /** Types props, state and model. Only `Component.create` takes these arguments; see above. */
