@@ -156,6 +156,30 @@ const RE_NODE = new RegExp(
 );
 
 /**
+ * Indentation opening a text gap after an opening tag: a whitespace run that holds a
+ * line break and reaches a placeholder or the end of the gap, so it is a text node
+ * of its own (the element's first child).
+ * @type {RegExp}
+ * @private
+ */
+const RE_LEADING_INDENT = new RegExp(`^\\s*\\n\\s*(?=${PH_ANY}|$)`);
+/**
+ * Indentation closing a text gap before a closing tag: a whitespace run that holds a
+ * line break and starts at a placeholder or the start of the gap (the element's last
+ * child). The placeholder is captured to be kept.
+ * @type {RegExp}
+ * @private
+ */
+const RE_TRAILING_INDENT = new RegExp(`(^|${PH_ANY})\\s*\\n\\s*$`);
+/**
+ * Elements whose content is kept verbatim: whitespace is significant in `pre` and
+ * `textarea`, and `script` / `style` hold code rather than markup.
+ * @type {RegExp}
+ * @private
+ */
+const RE_VERBATIM_ELEMENT = /^(?:pre|textarea|script|style)$/i;
+
+/**
  * Any structural slot token or surviving placeholder, index captured.
  * @type {string}
  * @private
@@ -517,6 +541,44 @@ const hasSingleRoot = (template) => {
 };
 
 /**
+ * Remove the indentation that only lays out the source: a whitespace-only text node
+ * holding a line break as an element's first or last child. Whitespace between
+ * siblings, whitespace without a line break and the content of verbatim elements are
+ * kept, so the rendered output is unchanged unless an inline element's content or a
+ * `white-space: pre*` style relied on that indentation.
+ * @param {string} template Template string with placeholders.
+ * @return {string} The template without the indentation text nodes.
+ * @private
+ */
+const stripIndentation = (template) => {
+    const regExp = RE_NODE;
+    regExp.lastIndex = 0;
+    let result = '', lastIndex = 0, afterOpening = false, match;
+
+    while ((match = regExp.exec(template)) !== null) {
+        const [node, closing, tag, , ending] = match;
+        let gap = template.slice(lastIndex, match.index);
+        if (afterOpening) gap = gap.replace(RE_LEADING_INDENT, '');
+        if (closing) gap = gap.replace(RE_TRAILING_INDENT, '$1');
+        result += gap + node;
+        lastIndex = regExp.lastIndex;
+        // A comment leaves `tag` undefined: it is a node, not an opening tag.
+        afterOpening = !!tag && !closing && ending.indexOf('/') === -1 && !isVoidElement(tag);
+
+        if (afterOpening && RE_VERBATIM_ELEMENT.test(tag)) {
+            // Copied untouched up to its closing tag, which the next match picks up.
+            const end = template.toLowerCase().indexOf(`</${tag.toLowerCase()}`, lastIndex);
+            if (end === -1) break;
+            result += template.slice(lastIndex, end);
+            lastIndex = regExp.lastIndex = end;
+            afterOpening = false;
+        }
+    }
+
+    return result + template.slice(lastIndex);
+};
+
+/**
  * Parse a template string (already carrying placeholders, with component
  * references already normalized) into skeleton data. Shared by the top-level
  * template and by nested component inner content.
@@ -575,7 +637,7 @@ const parseTemplate = (strings, expressions, isComponentClass = () => false) => 
     // Store original template source for debugging (only in dev mode).
     const source = __DEV__ ? { strings, expressions : [...expressions] } : null;
     const main = normalizeComponentRefs(
-        addPlaceholders(strings, expressions).trim(),
+        stripIndentation(addPlaceholders(strings, expressions).trim()),
         expressions,
         isComponentClass
     );

@@ -500,6 +500,56 @@ describe('parseTemplate', () => {
         });
     });
 
+    describe('indentation', () => {
+        // The static markup of a skeleton's parts, with each dynamic part (the root
+        // element's descriptor included) as `·`.
+        const markupOfParts = parts => parts
+            .map(part => part instanceof LiteralDescriptor ? part.value : '·')
+            .join('');
+        const markupOf = ({ strings, expressions }) =>
+            markupOfParts(parseTemplate(strings, expressions, isComponentClass).parts);
+
+        it('must remove indentation as first or last child', () => {
+            expect(markupOf(tag`<div>\n    <span>a</span>\n    <span>b</span>\n</div>`))
+                .to.equal('<div ·><span>a</span>\n    <span>b</span></div>');
+            expect(markupOf(tag`<ul>\n    ${'a'}\n</ul>`)).to.equal('<ul ·>·</ul>');
+            expect(markupOf(tag`<div>\n    <!-- a -->\n</div>`)).to.equal('<div ·><!-- a --></div>');
+            expect(markupOf(tag`<div>\n</div>`)).to.equal('<div ·></div>');
+        });
+
+        it('must keep whitespace between siblings, without a line break or around text', () => {
+            expect(markupOf(tag`<p><b>a</b>\n<b>b</b></p>`)).to.equal('<p ·><b>a</b>\n<b>b</b></p>');
+            expect(markupOf(tag`<p> ${'a'} </p>`)).to.equal('<p ·> · </p>');
+            expect(markupOf(tag`<p>\n    Hello\n</p>`)).to.equal('<p ·>\n    Hello\n</p>');
+            expect(markupOf(tag`<p>\n    ${'a'} b\n</p>`)).to.equal('<p ·>· b\n</p>');
+        });
+
+        it('must keep the content of verbatim elements', () => {
+            expect(markupOf(tag`<pre>\n    a\n</pre>`)).to.equal('<pre ·>\n    a\n</pre>');
+            expect(markupOf(tag`<textarea>\n    ${'a'}\n</textarea>`)).to.equal('<textarea ·>\n    ·\n</textarea>');
+            expect(markupOf(tag`<div>\n    <pre>\n    <b>a</b>\n    </pre>\n</div>`))
+                .to.equal('<div ·><pre>\n    <b>a</b>\n    </pre></div>');
+        });
+
+        it('must not read markup inside attribute values', () => {
+            const { strings, expressions } = tag`<div title="a>\n    <b">\n    <i></i>\n</div>`;
+            const { parts } = parseTemplate(strings, expressions);
+
+            expect(markupOfParts(parts)).to.equal('<div ·><i></i></div>');
+            expectAttr(elementsOf(parts)[0].attributes[0], 'title', 'a>\n    <b');
+        });
+
+        it('must remove indentation inside component tags', () => {
+            const A = makeComponent();
+            const { strings, expressions } = tag`<div>\n    <${A}>\n        <b>a</b>\n    </${A}>\n</div>`;
+            const { parts } = parseTemplate(strings, expressions, isComponentClass);
+            const [component] = interpolationsOf(parts);
+
+            expect(markupOfParts(parts)).to.equal('<div ·>·</div>');
+            expect(markupOfParts(component.inner.parts)).to.equal('<b ·>a</b>');
+        });
+    });
+
     it('must return fresh skeleton data on each call (no caching here)', () => {
         const { strings, expressions } = tag`<div>${'a'}</div>`;
         expect(parseTemplate(strings, expressions)).to.not.equal(parseTemplate(strings, expressions));
