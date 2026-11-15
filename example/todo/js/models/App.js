@@ -78,7 +78,7 @@ class App extends Model {
      * Remove all completed todos.
      */
     removeCompleted() {
-        this.todos.filter(todo => todo.completed).forEach((todo) => this.removeTodo(todo));
+        this.completed.forEach(todo => this.removeTodo(todo));
     }
 
     /**

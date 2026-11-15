@@ -23,7 +23,7 @@ class App extends Component {
             <main class="todoapp">
                 <${Header} handleAddTodo=${this.handleAddTodo} />
 
-                ${model.todos.length > 0 && this.html`
+                ${model.todos.length > 0 ? this.html`
                     <section class="main">
                         <${ToggleAll}
                             checked="${model.remaining.length === 0}"
@@ -38,7 +38,7 @@ class App extends Component {
                     </section>
 
                     <${Footer} model="${model}" />
-                `}
+                ` : null}
             </main>
         `;
     }

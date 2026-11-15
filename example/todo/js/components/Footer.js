@@ -24,11 +24,11 @@ class Footer extends Component {
 
                 <${Filter} currentFilter="${model.filter}" handleFilter=${this.handleFilter} />
 
-                ${model.completed.length > 0 && this.html`
+                ${model.completed.length > 0 ? this.html`
                     <button class="clear-completed" onClick=${() => model.removeCompleted()}>
                         Clear completed
                     </button>
-                `}
+                ` : null}
             </footer>
         `;
     }

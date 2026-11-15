@@ -16,24 +16,19 @@ const filters = [
  * Renders a link for each filter, marking the current one as selected.
  * @class Filter
  */
-class Filter extends Component {
-    template() {
-        const { currentFilter, handleFilter } = this.props;
-        return this.html`
-            <ul class="filters">
-                ${filters.map(({ name, label }) => this.html`
-                    <li>
-                        <a
-                            class="${[name, name === currentFilter && 'selected'].filter(Boolean).join(' ')}"
-                            onClick=${() => handleFilter(name)}
-                        >
-                            ${label}
-                        </a>
-                    </li>
-                `)}
-            </ul>
-        `;
-    }
-}
+const Filter = Component.create(({ props, html }) => html`
+    <ul class="filters">
+        ${filters.map(({ name, label }) => html`
+            <li>
+                <a
+                    class="${[name, name === props.currentFilter && 'selected'].filter(Boolean).join(' ')}"
+                    onClick=${() => props.handleFilter(name)}
+                >
+                    ${label}
+                </a>
+            </li>
+        `)}
+    </ul>
+`);
 
 export default Filter;
