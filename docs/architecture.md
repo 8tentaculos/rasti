@@ -184,7 +184,7 @@ A recycled child's props go through `props.set`, which compares with `!==`. A fu
 
 ### Skeleton and partial
 
-A tagged template is compiled **once per call site**. The `strings` array is the identity: `Partial.create` caches a subclass keyed on it. Two `partial\`…\`` with the same `strings` share one class; two with different `strings` are different templates.
+A tagged template is compiled **once per call site**. The `strings` array is the identity: `Partial.create` caches a subclass keyed on it. Two ``partial`…` `` with the same `strings` share one class; two with different `strings` are different templates.
 
 Compilation (`parseTemplate`) turns the template into a **skeleton**: an ordered list of **parts**. A part is a literal (`LiteralDescriptor`), a bare expression (`ExpressionDescriptor`, in practice a dynamic tag name), or a descriptor (element, interpolation, component tag). Descriptors hold parse-time structure (attribute lists, inner skeletons); they do not hold live DOM.
 
@@ -280,7 +280,7 @@ These are different predicates. Do not collapse them.
 | Predicate         | Means                                                                 | Used for                                      |
 |-------------------|-----------------------------------------------------------------------|-----------------------------------------------|
 | `isTransparent()` | skeleton is exactly one interpolation, no markup                      | `rootElement`; with `isRoot`, a container |
-| `isComponentTag()`| skeleton is exactly one component tag                                 | `partial\`<${Comp} />\`` ≡ mounting Comp; the one partial a list's pass reaches |
+| `isComponentTag()`| skeleton is exactly one component tag                                 | ``partial`<${Comp} />` `` ≡ mounting Comp; the one partial a list's pass reaches |
 | `isAnchored()`    | transparent **and** either a component's root partial or a component tag | no interpolation markers; stands on a component's element |
 
 Container is a property of a **component**. Transparency is a property of a partial's **shape**.
@@ -351,7 +351,7 @@ Without the third argument, `mount(options, containerEl)` renders into a fragmen
 | Bundles `rasti.esm.js`, `rasti.umd.js`         | `true`                                  |
 | Bundles `rasti.esm.min.js`, `rasti.umd.min.js` | `false`, then terser                    |
 
-Terser drops what is left in dead position: `__DEV__ ? … : …`, `__DEV__ && …`, `if (__DEV__)`. Development strings must sit behind one of those forms, not behind a helper that would keep them alive. Component errors pass the long message as `__DEV__ && \`…\`` into a module-level throw helper so the min bundle keeps only the short production line.
+Terser drops what is left in dead position: `__DEV__ ? … : …`, `__DEV__ && …`, `if (__DEV__)`. Development strings must sit behind one of those forms, not behind a helper that would keep them alive. Component errors pass the long message as ``__DEV__ && `…` `` into a module-level throw helper so the min bundle keeps only the short production line.
 
 Warnings (lists without keyed components, duplicate keys, unsupported attribute forms) use `console.warn`, once per call site, and point at the interpolation in the template source when it is available. Context warnings (`inject` before the component has a parent or an engine, `provide()` changing its keys or properties between renders) print once per component class. They are absent from the minified bundles.
 
