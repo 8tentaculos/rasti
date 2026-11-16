@@ -174,6 +174,22 @@ describe('Model', () => {
 
             expect(events).to.deep.equal([{ count : 2 }, { label : 'count is 2' }]);
         });
+
+        it('must keep emitting change events after a listener throws', () => {
+            const m = new Model({ count : 1 });
+            const events = [];
+
+            m.on('change', (model, changed) => {
+                events.push(changed);
+                if (model.count === 2) throw new Error('listener failed');
+            });
+
+            expect(() => { m.count = 2; }).to.throw('listener failed');
+            m.count = 3;
+
+            expect(events).to.deep.equal([{ count : 2 }, { count : 3 }]);
+            expect(m.previous).to.deep.equal({ count : 2 });
+        });
     });
 
     describe('Utility methods', () => {

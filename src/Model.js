@@ -331,45 +331,51 @@ export default class Model extends Emitter {
         // Calling a `set` inside a `change:attribute` or `change` event listener
         const changing = this._changing;
         this._changing = true;
-        // Store changed attributes.
-        const changed = {};
-        // Store previous attributes.
-        if (!changing) {
-            this.previous = Object.assign({}, this.attributes);
-        }
-        let hasChanged = false;
-        // Set attributes.
-        Object.keys(attrs).forEach(key => {
-            // Use equality to determine if value changed.
-            if (attrs[key] !== this.attributes[key]) {
-                changed[key] = attrs[key];
-                this.attributes[key] = attrs[key];
-                hasChanged = true;
+        try {
+            // Store changed attributes.
+            const changed = {};
+            // Store previous attributes.
+            if (!changing) {
+                this.previous = Object.assign({}, this.attributes);
             }
-        });
-        // Pending `change` event arguments. A `set` nested in a `change:attribute`
-        // listener joins the event still pending, which keeps the arguments of the
-        // `set` that started it.
-        if (hasChanged) {
-            if (this._pending) Object.assign(this._pending[2], changed);
-            else this._pending = ['change', this, changed, ...args];
+            let hasChanged = false;
+            // Set attributes.
+            Object.keys(attrs).forEach(key => {
+                // Use equality to determine if value changed.
+                if (attrs[key] !== this.attributes[key]) {
+                    changed[key] = attrs[key];
+                    this.attributes[key] = attrs[key];
+                    hasChanged = true;
+                }
+            });
+            // Pending `change` event arguments. A `set` nested in a `change:attribute`
+            // listener joins the event still pending, which keeps the arguments of the
+            // `set` that started it.
+            if (hasChanged) {
+                if (this._pending) Object.assign(this._pending[2], changed);
+                else this._pending = ['change', this, changed, ...args];
+            }
+            // Emit `change:attribute` events.
+            for (const key in changed) {
+                this.emit(`change:${key}`, this, attrs[key], ...args);
+            }
+            // Don't emit `change` event until the end of the nested
+            // `set` calls inside `change:attribute` event listeners.
+            if (changing) return this;
+            // Emit `change` events, that might be nested.
+            while (this._pending) {
+                const pendingChange = this._pending;
+                this._pending = null;
+                this.emit.apply(this, pendingChange);
+            }
+        } finally {
+            // Reset flags once the outermost `set` is done, even when a listener throws,
+            // so the next `set` is not taken for a nested one and still emits `change`.
+            if (!changing) {
+                this._pending = null;
+                this._changing = false;
+            }
         }
-        // Emit `change:attribute` events.
-        for (const key in changed) {
-            this.emit(`change:${key}`, this, attrs[key], ...args);
-        }
-        // Don't emit `change` event until the end of the nested 
-        // `set` calls inside `change:attribute` event listeners.
-        if (changing) return this;
-        // Emit `change` events, that might be nested.
-        while (this._pending) {
-            const pendingChange = this._pending;
-            this._pending = null;
-            this.emit.apply(this, pendingChange);
-        }
-        // Reset flags.
-        this._pending = null;
-        this._changing = false;
 
         return this;
     }
