@@ -927,7 +927,7 @@ export default class Component extends View {
         // If `this.el` is a function, call it to get the element.
         if (this.el) root = this.el = getResult(this.el, this);
         else if (shouldHydrateExistingDOM) root = hydrationRoot(this, containerEl);
-        else root = fragment = parseHTML(html);
+        else root = fragment = parseHTML(html, containerEl);
         // Index the elements and markers the render wrote.
         const index = new HydrationIndex(root);
         // A fresh render is indexed before it is appended, so the walk covers its content

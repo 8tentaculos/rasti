@@ -982,6 +982,36 @@ describe('Component', () => {
             expect(c.el.getAttribute('heading')).to.be.equal('danger');
             expect(c.el.querySelector('sl-button').getAttribute('variant')).to.be.equal('danger');
         });
+
+        it('must render content an update adds inside an SVG element in the SVG namespace', () => {
+            const SVG = 'http://www.w3.org/2000/svg';
+            const Dot = Component.create`<circle r="${({ props }) => props.r}" />`;
+            const model = new Model({ points : [1], open : false });
+            const c = Component.create(({ model, html }) => html`
+                <svg>
+                    <g>${model.points.map(r => html`<rect width="${r}" />`)}</g>
+                    <g>${model.points.map(r => html`<${Dot} key="${r}" r="${r}" />`)}</g>
+                    ${model.open && html`<path d="M0 0" />`}
+                    <foreignObject>${model.open && html`<p>text</p>`}</foreignObject>
+                </svg>
+            `).mount({ model }, document.body);
+
+            model.set({ points : [1, 2], open : true });
+            c.el.querySelectorAll('rect, circle, path').forEach(node => expect(node.namespaceURI).to.be.equal(SVG));
+            expect(c.el.querySelectorAll('rect, circle')).to.have.lengthOf(4);
+            // `foreignObject` holds HTML.
+            expect(c.el.querySelector('foreignObject p').namespaceURI).to.be.equal('http://www.w3.org/1999/xhtml');
+        });
+
+        it('must render a component mounted into an SVG element in the SVG namespace', () => {
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            document.body.appendChild(svg);
+
+            const c = Component.create`<circle r="${({ props }) => props.r}" />`.mount({ r : 1 }, svg);
+
+            expect(c.el.namespaceURI).to.be.equal('http://www.w3.org/2000/svg');
+            expect(c.el.parentNode).to.be.equal(svg);
+        });
     });
 
     describe('Text content escaping', () => {

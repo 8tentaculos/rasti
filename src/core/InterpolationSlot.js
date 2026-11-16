@@ -206,6 +206,16 @@ class InterpolationSlot extends Slot {
     }
 
     /**
+     * The node the slot's content stands in: the anchor element's parent when the slot
+     * is anchored, the markers' otherwise. The markup the slot renders is parsed for it.
+     * @return {Node|null} The parent node.
+     * @private
+     */
+    contentParent() {
+        return this.isAnchored() ? this.anchorElement().parentNode : this.ref[1].parentNode;
+    }
+
+    /**
      * Render the interpolation: its value wrapped between comment markers, except when
      * the slot is anchored, in which case it is marker-less and stands on an element.
      * Records the value as the slot's occupant for the next render's reconciliation.
@@ -603,7 +613,7 @@ class InterpolationSlot extends Slot {
     appendItems(items) {
         const pass = this.makePass();
         // Render the new items and index them before they are inserted.
-        const fragment = parseHTML(items.map(item => this.renderValue(item, pass)).join(''));
+        const fragment = parseHTML(items.map(item => this.renderValue(item, pass)).join(''), this.contentParent());
         pass.index = new HydrationIndex(fragment);
         // Insert them before the end marker, then attach what they hold.
         const end = this.ref[1];
@@ -649,7 +659,7 @@ class InterpolationSlot extends Slot {
         // Renders the new value, which replaces `this.keyed` and `this.order` with what
         // it collects: from here on `pass.placed` is the old order and `this.order` the
         // new one.
-        const fragment = parseHTML(this.render(value, pass));
+        const fragment = parseHTML(this.render(value, pass), this.contentParent());
         // Indexed before the fragment is inserted, so the walk covers the new content
         // alone: it answers both for the placeholders of the recycled children and for
         // the refs of everything mounted anew.
