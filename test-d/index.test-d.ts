@@ -91,6 +91,11 @@ u.listenTo(u2, 'change', (m, changed) => expectType<Partial<UserAttrs>>(changed)
 u.listenTo(u2, 'change:name', (m, value) => expectType<string>(value));
 u.stopListening(u2, 'change');
 
+// A model is assignable to a model of wider attributes, so code written for any model
+// takes a typed one
+expectAssignable<Model>(u);
+expectAssignable<Model<Record<string, any>>>(u);
+
 // `defaults` takes an object or a function, on the prototype or in `preinitialize`
 class WithObjectDefaults extends Model<UserAttrs> {
     preinitialize() {
@@ -269,6 +274,12 @@ expectType<string | number | undefined>(new Counter({ initial: 1, label: 'x', ke
 // The exported name is also the instance type, as it is for a view or a model
 const counterInstance: Component<CounterProps, CounterState> = new Counter({ initial: 1, label: 'x' });
 expectType<number>(counterInstance.props.initial);
+
+// A typed component is a `Component`, so code written for any component takes it. Its class
+// is a `typeof Component<any>`: `typeof Component` would also accept any options
+expectAssignable<Component>(counterInstance);
+expectAssignable<typeof Component<any>>(Counter);
+expectError<typeof Component>(Counter);
 
 /*
  * Component.create<P, S, M>

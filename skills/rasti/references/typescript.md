@@ -111,6 +111,7 @@ Never annotate the parameter of an unquoted handler: its first argument is the e
 | TS2339 on the component's own method | `Component<P, S, M>` has no `.extend` members | Methods in a class, `create` called on it |
 | TS18048 on `state` / `model` | Both are optional | `this.state!` or `this.state?.` |
 | TS2339 on a model attribute | Attributes need declaration merging | `interface X extends Attrs {}` next to `class X extends Model<Attrs>` |
+| TS2322 assigning a component class to `typeof Component` | Its constructor requires props, `typeof Component` takes any options | `typeof Component<any>` |
 
 ---
 

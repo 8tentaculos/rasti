@@ -148,6 +148,15 @@ type S = ComponentState<Counter>;
 
 > Components made with `Component.create` are **values**, not types. To use one as a type outside its own template — as with `Counter` above — add `type X = InstanceType<typeof X>` next to the definition, or write `InstanceType<typeof X>` inline. Inside its own template, use `Component<P, S, M>` instead (see [Typing template interpolations](#typing-template-interpolations)). Neither a `Model` subclass nor a component authored as a subclass needs an alias, since `class` already declares both a value and a type.
 
+A typed component is a `Component`, and a typed model a `Model`, so code written for any of them takes it. For any component class, write `typeof Component<any>`: `typeof Component` is a class whose constructor takes any options, which a component with required props is not.
+
+```ts
+function openDialog(dialog: Component) { document.body.append(dialog.el); }
+openDialog(new Counter({ initial: 0 })); // ✅
+
+const routes: Record<string, typeof Component<any>> = { counter: Counter, header: Header }; // ✅
+```
+
 ## Contexts
 
 Type a context key with `InjectionKey<T>`, where `T` is the shape of the values it carries. At runtime it is a plain `Symbol`, so it keys the object `provide()` returns:

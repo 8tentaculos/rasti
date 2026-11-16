@@ -3,13 +3,18 @@ import Emitter from './Emitter.js';
 /** Extracts the attribute type `A` from a Model subclass. */
 export type ModelAttrs<M> = M extends Model<infer A> ? A : never;
 
+/**
+ * The events of a model with attributes `A`. Their listeners are declared as methods and
+ * taken out by name, so they compare bivariantly, as methods do: a `Model<A>` stays
+ * assignable to a model of a wider `A`, such as `Model<Record<string, any>>`.
+ */
 export type ModelEvents<A> =
     & {
-        change: (model: Model<A>, changed: Partial<A>, ...args: any[]) => void;
+        change: { listener(model: Model<A>, changed: Partial<A>, ...args: any[]): void }['listener'];
         [event: string]: (...args: any[]) => void;
     }
     & {
-        [K in keyof A & string as `change:${K}`]: (model: Model<A>, value: A[K], ...args: any[]) => void;
+        [K in keyof A & string as `change:${K}`]: { listener(model: Model<A>, value: A[K], ...args: any[]): void }['listener'];
     };
 
 /**

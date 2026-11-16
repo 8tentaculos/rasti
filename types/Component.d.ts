@@ -313,8 +313,11 @@ declare class Component<P = Record<string, any>, S = any, M = any> extends View<
      */
     state?: S;
 
-    /** The original options object passed to the constructor. */
-    options: ComponentOptions<P, S, M>;
+    /**
+     * The original options object passed to the constructor. Its hooks are not typed against
+     * this component's props, so a typed component stays assignable to `Component`.
+     */
+    options: P & ComponentReservedOptions<S, M, any>;
 
     /**
      * Returns the component's root for this render: a partial built with `this.html`,
