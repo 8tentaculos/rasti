@@ -2594,6 +2594,20 @@ describe('Component', () => {
     });
 
     describe('Lifecycle methods', () => {
+        it('must pass onChange the attributes a nested set derives along with the one that changed', () => {
+            const model = new Model({ count : 1, double : 2 });
+            model.on('change:count', () => { model.double = model.count * 2; });
+
+            const c = Component.create`<p>${({ model }) => model.count}</p>`.extend({
+                onChange(model, changed) {
+                    if ('count' in changed) this.render();
+                }
+            }).mount({ model }, document.body);
+
+            model.count = 5;
+            expect(c.el.textContent).to.be.equal('5');
+        });
+
         it('must let an option override a getter declared by a subclass', () => {
             class Main extends Component.create`<div></div>` {
                 get state() {

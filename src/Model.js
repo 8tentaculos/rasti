@@ -293,6 +293,11 @@ export default class Model extends Emitter {
      * Supports two call signatures: `set(key, value, ...args)` or `set(object, ...args)`.
      * Additional arguments are passed to change event listeners, enabling custom behavior.
      * 
+     * A `set` called from a `change:attribute` listener joins the `change` event of the
+     * `set` that triggered it: that event is emitted once, after every `change:attribute`,
+     * with all the attributes changed in between and the arguments of the first `set`.
+     * A `set` called from a `change` listener emits a `change` event of its own.
+     * 
      * @param {string|object} key Attribute key (string) or object containing key-value pairs
      * @param {*} [value] Attribute value (when key is string)
      * @param {...*} [args] Additional arguments passed to event listeners
@@ -342,8 +347,13 @@ export default class Model extends Emitter {
                 hasChanged = true;
             }
         });
-        // Pending `change` event arguments.
-        if (hasChanged) this._pending = ['change', this, changed, ...args];
+        // Pending `change` event arguments. A `set` nested in a `change:attribute`
+        // listener joins the event still pending, which keeps the arguments of the
+        // `set` that started it.
+        if (hasChanged) {
+            if (this._pending) Object.assign(this._pending[2], changed);
+            else this._pending = ['change', this, changed, ...args];
+        }
         // Emit `change:attribute` events.
         for (const key in changed) {
             this.emit(`change:${key}`, this, attrs[key], ...args);

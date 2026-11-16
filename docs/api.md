@@ -1135,6 +1135,11 @@ Set one or more attributes into `this.attributes` and emit change events.
 Supports two call signatures: `set(key, value, ...args)` or `set(object, ...args)`.
 Additional arguments are passed to change event listeners, enabling custom behavior.
 
+A `set` called from a `change:attribute` listener joins the `change` event of the
+`set` that triggered it: that event is emitted once, after every `change:attribute`,
+with all the attributes changed in between and the arguments of the first `set`.
+A `set` called from a `change` listener emits a `change` event of its own.
+
 **Kind**: instance method of [<code>Model</code>](#module_model)  
 **Returns**: <code>Model</code> - This model instance for chaining  
 **Emits**: <code>change Emitted when any attribute changes. Listeners receive &#x60;(model, changedAttributes, ...event:args)&#x60;</code>, <code>change:attribute Emitted for each changed attribute. Listeners receive &#x60;(model, newValue, ...event:args)&#x60;</code>  

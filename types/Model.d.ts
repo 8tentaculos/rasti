@@ -90,6 +90,9 @@ declare class Model<A = any> extends Emitter<ModelEvents<A>> {
      *
      * Emits `change` (listeners receive `(model, changedAttributes, ...args)`) and
      * `change:<attribute>` (listeners receive `(model, newValue, ...args)`).
+     * A `set` called from a `change:<attribute>` listener joins the `change` event of
+     * the `set` that triggered it, with all the attributes changed in between and the
+     * arguments of the first `set`. One called from a `change` listener emits its own.
      *
      * @return This model instance for chaining.
      * @example

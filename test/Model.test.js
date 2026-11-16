@@ -143,6 +143,37 @@ describe('Model', () => {
 
             m.set('test', 1);
         });
+
+        it('must report the changes of a nested set in the change event that triggered it', () => {
+            const m = new Model({ count : 1, double : 2 });
+            const outer = {}, inner = {};
+            const events = [];
+
+            m.on('change:count', (model, value) => model.set('double', value * 2, inner));
+            m.on('change', (model, changed, arg) => events.push({ changed, arg }));
+
+            m.set('count', 5, outer);
+
+            // One event, with both attributes and the arguments of the first `set`.
+            expect(events).to.have.lengthOf(1);
+            expect(events[0].changed).to.deep.equal({ count : 5, double : 10 });
+            expect(events[0].arg).to.be.equal(outer);
+            expect(m.previous).to.deep.equal({ count : 1, double : 2 });
+        });
+
+        it('must report the changes of a set from a change listener in a change event of its own', () => {
+            const m = new Model({ count : 1, label : '' });
+            const events = [];
+
+            m.on('change', (model, changed) => {
+                events.push(changed);
+                if ('count' in changed) model.label = `count is ${model.count}`;
+            });
+
+            m.count = 2;
+
+            expect(events).to.deep.equal([{ count : 2 }, { label : 'count is 2' }]);
+        });
     });
 
     describe('Utility methods', () => {
