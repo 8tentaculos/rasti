@@ -255,21 +255,24 @@ class InterpolationSlot extends Slot {
     render(value, pass) {
         // Only a list collects: the map it fills becomes the slot's pool for the next
         // render. Anything else holds no child worth finding again by key.
-        this.keyed = Array.isArray(value) ? new Map() : null;
-        if (!this.keyed) {
-            this.order = null;
-            this.strategy = null;
-            return this.renderValue(value, pass);
+        if (!Array.isArray(value)) {
+            const rendered = this.renderValue(value, pass);
+            this.keyed = this.order = this.strategy = null;
+            return rendered;
         }
         // A list is classified by its shape before any item renders.
-        this.strategy = classifyList(this.partial, value);
-        // What the render collects is what the slot holds from here on.
-        pass.keyed = this.keyed;
+        const strategy = classifyList(this.partial, value);
+        pass.keyed = new Map();
         // Positions are only worth collecting for a list of components: it is the one
         // shape whose children are placed by walking them (see `placeInOrder`).
-        this.order = pass.order = this.strategy === LIST_COMPONENTS ? [] : null;
+        pass.order = strategy === LIST_COMPONENTS ? [] : null;
 
         const rendered = value.map(item => this.renderValue(item, pass)).join('');
+        // What the render collected is what the slot holds from here on. A render that
+        // throws leaves the slot holding the previous one.
+        this.keyed = pass.keyed;
+        this.order = pass.order;
+        this.strategy = strategy;
         // Checked after rendering, when the items have resolved their own occupants.
         if (__DEV__) checkListItems(this, value);
         return rendered;
@@ -354,8 +357,8 @@ class InterpolationSlot extends Slot {
 
     /**
      * Claim a recyclable previous occupant for a candidate child: the one the slot held
-     * under the candidate's key, when it is of the candidate's class, taken out of the
-     * pool so no other candidate claims it again. Claiming is slot-local: the pool only holds this slot's own previous
+     * under the candidate's key, when it is of the candidate's class and no other
+     * candidate claimed it already. Claiming is slot-local: the pool only holds this slot's own previous
      * occupants, and is out of reach inside any partial but a component tag, whose
      * children are local to it (see `renderValue`).
      * @param {object} candidate The candidate: a child component, or the options a
@@ -370,8 +373,9 @@ class InterpolationSlot extends Slot {
 
         const prev = pass.previous.get(candidate.key);
         if (!prev || prev.constructor !== type) return null;
-        // A key is claimed once.
-        pass.previous.delete(candidate.key);
+        // A key is claimed once: a claimed child is recorded under it right away. The
+        // pool itself is left as it is, so a render that throws leaves it whole.
+        if (pass.keyed && pass.keyed.get(candidate.key) === prev) return null;
         return prev;
     }
 

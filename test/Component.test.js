@@ -2756,6 +2756,51 @@ describe('Component', () => {
         });
     });
 
+    describe('Templates that throw', () => {
+        it('must render again once the model a throwing template read is fixed', () => {
+            const model = new Model({ user : { name : 'one' } });
+            const c = Component.create`<div>${({ model }) => model.user.name}</div>`.mount({ model }, document.body);
+
+            expect(() => { model.user = null; }).to.throw();
+            model.user = { name : 'two' };
+
+            expect(c.el.textContent).to.be.equal('two');
+        });
+
+        it('must keep the previous event listeners when an update throws', () => {
+            const model = new Model({ user : { name : 'one' } });
+            let clicks = 0;
+            const c = Component.create`
+                <div><p>${({ model }) => model.user.name}</p><button onClick=${() => clicks++}>b</button></div>
+            `.mount({ model }, document.body);
+
+            expect(() => { model.user = null; }).to.throw();
+            c.el.querySelector('button').click();
+
+            expect(clicks).to.be.equal(1);
+        });
+
+        it('must reconcile a keyed list again after an item throws in the middle of an update', () => {
+            const model = new Model({ items : [{ id : 1, name : 'a' }, { id : 2, name : 'b' }] });
+            const destroyed = [];
+            const Item = Component.create`<li>${({ props }) => props.item.name.toUpperCase()}</li>`.extend({
+                onDestroy() { destroyed.push(this.props.item.id); }
+            });
+            const c = Component.create(({ model, html }) => html`
+                <ul>${model.items.map(item => html`<${Item} key=${item.id} item=${item} />`)}</ul>
+            `).mount({ model }, document.body);
+            const [first, second] = c.children;
+
+            expect(() => { model.items = [{ id : 1, name : 'a' }, { id : 3 }, { id : 2, name : 'b' }]; }).to.throw();
+            model.items = [{ id : 2, name : 'y' }, { id : 1, name : 'x' }];
+
+            expect(c.el.textContent).to.be.equal('YX');
+            expect(c.children).to.have.members([first, second]);
+            // The item mounted by the render that threw never rendered, and is destroyed by the next one.
+            expect(destroyed).to.deep.equal([3]);
+        });
+    });
+
     describe('Partials and component recycling', () => {
         it('must render partial', () => {
             const Button = Component.create`<button>click me</button>`;

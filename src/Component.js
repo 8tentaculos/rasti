@@ -974,13 +974,14 @@ export default class Component extends View {
         this.onBeforeUpdate.call(this);
         // A render asked of it while it patches waits until it is done (see `render`).
         this._rendering = true;
+        // Store previous children and event listeners.
+        const previousChildren = this.children;
+        const previousListeners = this.eventsManager.listeners;
         try {
             // Provide this render's contexts before the children that read them render.
             this.updateContexts();
             // Clear event listeners.
             this.eventsManager.reset();
-            // Store previous children.
-            const previousChildren = this.children;
             // Clear current children.
             this.children = [];
             // Clear the queue of recycled children props.
@@ -1018,6 +1019,16 @@ export default class Component extends View {
             if (this.eventsManager.hasPendingTypes()) {
                 this.delegateEvents();
             }
+        } catch (error) {
+            // A template that throws leaves the DOM as far as the patch got. The DOM that
+            // was not reached still points at the previous listeners, and every child of
+            // either render stays owned, so the next render reconciles and destroys them.
+            this.eventsManager.listeners = previousListeners;
+            const children = new Set(this.children);
+            for (let i = 0; i < previousChildren.length; i++) {
+                if (!children.has(previousChildren[i])) this.children.push(previousChildren[i]);
+            }
+            throw error;
         } finally {
             this._rendering = false;
         }
