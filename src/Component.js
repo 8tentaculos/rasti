@@ -284,11 +284,13 @@ class ComponentAdapter {
         return getExpressionResult(expression, this.component, meta);
     }
 
-    registerListener(listener, type) {
+    registerListener(listener, type, owner) {
         const { component } = this;
+        // The host delegates the listener, so it runs in the order of the DOM, and records
+        // the owner it runs as: the host itself, except for slotted content.
         return {
             attribute : ATTRIBUTE_EVENT(type, component.uid),
-            index : component.eventsManager.addListener(listener, type)
+            index : component.eventsManager.addListener(listener, type, owner.component)
         };
     }
 
@@ -429,11 +431,14 @@ export default class Component extends View {
                 const index = matched.getAttribute(dataAttribute);
                 // Root element listener may not have a data attribute.
                 if (index) {
-                    let currentListener = this.eventsManager.listeners[parseInt(index, 10)];
-                    if (typeof currentListener === 'string') currentListener = this[currentListener];
+                    const i = parseInt(index, 10);
+                    // The component the listener runs as: this one, or the one that slotted the element.
+                    const owner = this.eventsManager.owners[i];
+                    let currentListener = this.eventsManager.listeners[i];
+                    if (typeof currentListener === 'string') currentListener = owner[currentListener];
                     validateListener(currentListener);
                     // Call the listener.
-                    currentListener.call(this, event, component, matched);
+                    currentListener.call(owner, event, owner, matched);
                 }
             };
             // Add an event listener to the events object for each event type, using the data attribute
@@ -976,7 +981,7 @@ export default class Component extends View {
         this._rendering = true;
         // Store previous children and event listeners.
         const previousChildren = this.children;
-        const previousListeners = this.eventsManager.listeners;
+        const { listeners : previousListeners, owners : previousOwners } = this.eventsManager;
         try {
             // Provide this render's contexts before the children that read them render.
             this.updateContexts();
@@ -1024,6 +1029,7 @@ export default class Component extends View {
             // was not reached still points at the previous listeners, and every child of
             // either render stays owned, so the next render reconciles and destroys them.
             this.eventsManager.listeners = previousListeners;
+            this.eventsManager.owners = previousOwners;
             const children = new Set(this.children);
             for (let i = 0; i < previousChildren.length; i++) {
                 if (!children.has(previousChildren[i])) this.children.push(previousChildren[i]);

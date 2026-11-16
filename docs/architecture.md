@@ -161,7 +161,7 @@ A child written as a component tag reaches the constructor only when the parent'
 
 `<${Child}>…</${Child}>` compiles an inner skeleton and passes `renderChildren` as a prop. The child calls `props.renderChildren()` to render that content.
 
-The inner partial is **owned** by the parent (expressions and events evaluate there) and **hosted** by whoever currently renders it (child components join that component's `children`). Owner and host are the same component except for this case.
+The inner partial is **owned** by the parent (expressions evaluate there, and event handlers run as it) and **hosted** by whoever currently renders it (child components join that component's `children`, and its root delegates the handlers, so they run in the order of the DOM). Owner and host are the same component except for this case.
 
 ### Context
 
@@ -381,8 +381,8 @@ Warnings (lists without keyed components, duplicate keys, unsupported attribute 
 | **partial**     | Live instance: skeleton class + this render's expressions + owner. Identity is the `strings` array (the subclass). |
 | **slot**        | Live state for one part. One per part, same order. Owns emit / hydrate / update of its region. |
 | **call site**   | A tagged-template expression in source. Its `strings` array is stable across renders. |
-| **owner**       | Component whose template the partial comes from. Expressions and event listeners belong to it. |
-| **host**        | Component currently rendering the partial. Child components join its `children`. Same as owner except for slotted content. |
+| **owner**       | Component whose template the partial comes from. Expressions belong to it, and event listeners run as it. |
+| **host**        | Component currently rendering the partial. Child components join its `children`, and its root delegates the partial's event listeners. Same as owner except for slotted content. |
 | **parent**      | The view that adopted a component with `addChild`: its host. Contexts are searched up the `parent` chain. |
 | **context**     | A `Model` a component keeps per key from `provide()`, read by the components below it with `inject(key)`. |
 | **container**   | A component whose root partial is transparent. `this.el` is the child's element. |

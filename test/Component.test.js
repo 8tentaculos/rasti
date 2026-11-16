@@ -1576,6 +1576,89 @@ describe('Component', () => {
 
             expect(calls).to.deep.equal(['box input', 'slotted input']);
         });
+
+        it('must call the handlers of slotted content before the ones of the host around it', () => {
+            const calls = [];
+            const Box = Component.create`
+                <section onClick=${() => calls.push('box')}>${({ props }) => props.renderChildren()}</section>
+            `;
+            const c = Component.create`
+                <main onClick=${() => calls.push('page')}>
+                    <${Box}><button onClick=${() => calls.push('button')}>ok</button></${Box}>
+                </main>
+            `.mount({}, document.body);
+
+            c.$('button').click();
+            expect(calls).to.deep.equal(['button', 'box', 'page']);
+
+            calls.length = 0;
+            const Stop = Component.create`
+                <main onClick=${() => calls.push('page')}>
+                    <${Box}><button onClick=${event => { calls.push('button'); event.stopPropagation(); }}>ok</button></${Box}>
+                </main>
+            `;
+            document.body.innerHTML = '';
+            Stop.mount({}, document.body).$('button').click();
+            expect(calls).to.deep.equal(['button']);
+        });
+
+        it('must call the handlers of content slotted through two hosts in the order of the DOM', () => {
+            const calls = [];
+            const Inner = Component.create`<p onClick=${() => calls.push('inner')}>${({ props }) => props.renderChildren()}</p>`;
+            const Outer = Component.create`
+                <section onClick=${() => calls.push('outer')}><${Inner}>${({ props }) => props.renderChildren()}</${Inner}></section>
+            `;
+            const c = Component.create`
+                <main onClick=${() => calls.push('page')}><${Outer}><button onClick=${() => calls.push('button')}>ok</button></${Outer}></main>
+            `.mount({}, document.body);
+
+            c.$('button').click();
+
+            expect(calls).to.deep.equal(['button', 'inner', 'outer', 'page']);
+        });
+
+        it('must call a slotted handler named by a method as the component that wrote it', () => {
+            let call;
+            const Box = Component.create`<section>${({ props }) => props.renderChildren()}</section>`;
+            class Page extends Component {
+                template() {
+                    return this.html`<main><${Box}><button onClick="save">ok</button></${Box}></main>`;
+                }
+
+                save(event, component, matched) {
+                    call = { self : this, component, matched };
+                }
+            }
+            const page = Page.mount({}, document.body);
+
+            page.$('button').click();
+
+            expect(call.self).to.be.equal(page);
+            expect(call.component).to.be.equal(page);
+            expect(call.matched).to.be.equal(page.$('button'));
+        });
+
+        it('must not grow the listeners of the component that slots content when its host renders alone', () => {
+            const state = new Model({ count : 0 });
+            let clicks = 0;
+            const Box = Component.create`
+                <section><b>${({ state }) => state.count}</b>${({ props }) => props.renderChildren()}</section>
+            `.extend({ onCreate() { this.state = state; } });
+            const page = Component.create`
+                <main><${Box}><button onClick=${() => clicks++}>ok</button></${Box}></main>
+            `.mount({}, document.body);
+            const [box] = page.children;
+            const pageListeners = page.eventsManager.listeners.length;
+            const boxListeners = box.eventsManager.listeners.length;
+
+            state.count = 1;
+            state.count = 2;
+            page.$('button').click();
+
+            expect(page.eventsManager.listeners).to.have.lengthOf(pageListeners);
+            expect(box.eventsManager.listeners).to.have.lengthOf(boxListeners);
+            expect(clicks).to.be.equal(1);
+        });
     });
 
     describe('Extension and chainable methods', () => {

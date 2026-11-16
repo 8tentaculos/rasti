@@ -51,14 +51,16 @@ const getEventType = (name) => {
 };
 
 /**
- * Expand events. Delegates listener registration and the event data-attribute to
- * the owner through `registerListener`.
+ * Expand events. Registers each listener with the host, whose root element delegates
+ * the events of everything it renders, slotted content included; the listener still
+ * runs as the owner (see `registerListener`).
  * @param {object} attributes Attributes object.
  * @param {ComponentAdapter} owner The partial's owner.
+ * @param {ComponentAdapter} host The partial's host.
  * @return {object} Attributes object.
  * @private
  */
-const expandEvents = (attributes, owner) => {
+const expandEvents = (attributes, owner, host) => {
     const out = {};
     // `attributes` is a plain object built by the descriptors: no inherited keys.
     for (const key in attributes) {
@@ -68,7 +70,7 @@ const expandEvents = (attributes, owner) => {
         if (type) {
             const listener = attributes[key];
             if (listener) {
-                const { attribute, index } = owner.registerListener(listener, type);
+                const { attribute, index } = host.registerListener(listener, type, owner);
                 // Add event listener index under its data-attribute.
                 out[attribute] = index;
             }
@@ -214,7 +216,7 @@ class ElementSlot extends Slot {
         const attributes = {};
         const descriptors = this.descriptor.attributes;
         for (let i = 0; i < descriptors.length; i++) descriptors[i].applyTo(attributes, partial.expressions, partial.owner, sourceKeys);
-        const out = expandEvents(attributes, partial.owner);
+        const out = expandEvents(attributes, partial.owner, partial.host);
         if (partial.isRoot && partial.owner.rootAttributes && this.descriptor.isFirst) {
             const rootAttributes = partial.owner.rootAttributes();
             if (rootAttributes) {

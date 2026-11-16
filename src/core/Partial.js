@@ -20,9 +20,10 @@ const OPENING_TAG = /^<[a-zA-Z][^>]*$/;
  * drives real components in the app and fakes in tests.
  *
  * A partial sees it in two roles. Its <b>owner</b> is the component whose template it
- * comes from: expressions are evaluated in that component's context, and its ids and
- * event listeners belong to it. Its <b>host</b> is the component currently rendering,
- * whose `children` the rendered child components join. They are the same component
+ * comes from: expressions are evaluated in that component's context, its ids belong
+ * to it and its event listeners run as it. Its <b>host</b> is the component currently
+ * rendering, whose `children` the rendered child components join and whose root
+ * element delegates the event listeners. They are the same component
  * except for slotted content, which a parent writes but a host renders.
  *
  * The child-lifecycle handlers are the same for every component, so reaching them
@@ -34,7 +35,7 @@ const OPENING_TAG = /^<[a-zA-Z][^>]*$/;
  * engine reads fields off: its `el`, its `uid` and its `key`.
  * @typedef {object} ComponentAdapter
  * @property {Function} evaluate Evaluate an expression in the owner's context, `(expression, meta) => value`.
- * @property {Function} registerListener Register an event listener, `(listener, type) => ({ attribute, index })`.
+ * @property {Function} registerListener Register an event listener with the host, to run as the owner, `(listener, type, owner) => ({ attribute, index })`.
  * @property {Function} nextElementId Mint the owner's next element id.
  * @property {Function} nextMarkerId Mint the owner's next interpolation marker id.
  * @property {Function} isChild Tell whether a value is a child component.
