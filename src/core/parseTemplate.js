@@ -114,6 +114,15 @@ const RE_ATTRIBUTE = new RegExp(
 const ATTRIBUTES_PATTERN = '((?:"[^"]*"|\'[^\']*\'|[^>"\'])*?)';
 
 /**
+ * A literal tag name: letters and digits, in dash-separated segments for a custom
+ * element (`sl-button`). It stops before a placeholder written right after the
+ * name, which starts with `_`.
+ * @type {string}
+ * @private
+ */
+const TAG_NAME_PATTERN = '[a-z][a-z0-9]*(?:-[a-z0-9]*)*';
+
+/**
  * A component tag: self-closing (`<PH … />`) or non-void with a backreference
  * (`<PH …>…</PH>`, `\4` pairing the closing tag) to ensure correct pairing.
  * @type {RegExp}
@@ -141,7 +150,7 @@ const RE_PH_TAG = new RegExp(`<(/)?${PH_CAPTURE}${ATTRIBUTES_PATTERN}(/?)>`, 'g'
  * @type {RegExp}
  * @private
  */
-const RE_ELEMENT = new RegExp(`<(${PH_ANY}|[a-z]+[1-6]?)(?:\\s*)${ATTRIBUTES_PATTERN}(\\s*/?>)`, 'gi');
+const RE_ELEMENT = new RegExp(`<(${PH_ANY}|${TAG_NAME_PATTERN})(?:\\s*)${ATTRIBUTES_PATTERN}(\\s*/?>)`, 'gi');
 
 /**
  * A node boundary, for walking the template's structure: a comment, or an opening
@@ -151,7 +160,7 @@ const RE_ELEMENT = new RegExp(`<(${PH_ANY}|[a-z]+[1-6]?)(?:\\s*)${ATTRIBUTES_PAT
  * @private
  */
 const RE_NODE = new RegExp(
-    `<!--[\\s\\S]*?-->|<(/)?(${PH_ANY}|[a-z]+[1-6]?)(?:\\s*)${ATTRIBUTES_PATTERN}(\\s*/?>)`,
+    `<!--[\\s\\S]*?-->|<(/)?(${PH_ANY}|${TAG_NAME_PATTERN})(?:\\s*)${ATTRIBUTES_PATTERN}(\\s*/?>)`,
     'gi'
 );
 

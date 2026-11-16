@@ -111,6 +111,16 @@ describe('parseTemplate', () => {
             expect(elements[1].attributes).to.have.lengthOf(1);
             expectAttr(elements[1].attributes[0], 'onClick', 'save', true);
         });
+
+        it('must read a custom element name with dashes as the tag name', () => {
+            const { strings, expressions } = tag`<sl-card heading="${'h'}"><sl-button variant="${'v'}">x</sl-button></sl-card>`;
+            const { parts, singleRoot } = parseTemplate(strings, expressions);
+
+            const elements = elementsOf(parts);
+            expect(elements.map(element => element.tag)).to.deep.equal(['sl-card', 'sl-button']);
+            expectAttr(elements[1].attributes[0], 'variant', 1, true);
+            expect(singleRoot).to.be.true;
+        });
     });
 
     describe('template structure', () => {

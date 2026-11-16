@@ -966,6 +966,22 @@ describe('Component', () => {
 
             expect(c.el.textContent).to.be.equal(':0');
         });
+
+        it('must render and update custom elements with dynamic attributes', () => {
+            const model = new Model({ variant : 'primary' });
+            const c = Component.create`
+                <sl-card heading="${({ model }) => model.variant}">
+                    <sl-button variant="${({ model }) => model.variant}">x</sl-button>
+                </sl-card>
+            `.mount({ model }, document.body);
+
+            expect(c.el.localName).to.be.equal('sl-card');
+            expect(c.el.querySelector('sl-button').getAttribute('variant')).to.be.equal('primary');
+
+            model.variant = 'danger';
+            expect(c.el.getAttribute('heading')).to.be.equal('danger');
+            expect(c.el.querySelector('sl-button').getAttribute('variant')).to.be.equal('danger');
+        });
     });
 
     describe('Text content escaping', () => {
