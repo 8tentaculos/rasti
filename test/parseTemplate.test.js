@@ -260,6 +260,19 @@ describe('parseTemplate', () => {
             expectAttr(attributes[4], 'dynamic', 0, true);
         });
 
+        it('must read a name with a colon or other punctuation as one attribute', () => {
+            const { strings, expressions } = tag`<use xlink:href="#icon" xml:lang="en" @click="go" :class="a" x-on:click="b" class="${'c'}"></use>`;
+            const attributes = elementsOf(parseTemplate(strings, expressions).parts)[0].attributes;
+
+            expect(attributes).to.have.lengthOf(6);
+            expectAttr(attributes[0], 'xlink:href', '#icon', true);
+            expectAttr(attributes[1], 'xml:lang', 'en', true);
+            expectAttr(attributes[2], '@click', 'go', true);
+            expectAttr(attributes[3], ':class', 'a', true);
+            expectAttr(attributes[4], 'x-on:click', 'b', true);
+            expectAttr(attributes[5], 'class', 0, true);
+        });
+
         it('must parse root element literals holding `>` when it has no dynamic attributes', () => {
             const { strings, expressions } = tag`<div title="x > y">t</div>`;
             const attributes = elementsOf(parseTemplate(strings, expressions).parts)[0].attributes;

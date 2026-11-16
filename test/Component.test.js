@@ -1013,6 +1013,23 @@ describe('Component', () => {
             expect(c.el.parentNode).to.be.equal(svg);
         });
 
+        it('must keep an attribute name with a colon whole on an element with dynamic parts', () => {
+            const XLINK = 'http://www.w3.org/1999/xlink';
+            const model = new Model({ icon : '#a' });
+            const c = Component.create`
+                <svg><use xlink:href="${({ model }) => model.icon}" class="icon"></use><use xlink:href="#b" class="${() => 'static'}"></use></svg>
+            `.mount({ model }, document.body);
+            const [dynamic, literal] = c.el.querySelectorAll('use');
+
+            expect(dynamic.getAttributeNS(XLINK, 'href')).to.be.equal('#a');
+            expect(literal.getAttributeNS(XLINK, 'href')).to.be.equal('#b');
+            expect(literal.hasAttribute('xlink')).to.be.false;
+
+            model.icon = '#c';
+
+            expect(dynamic.getAttributeNS(XLINK, 'href')).to.be.equal('#c');
+        });
+
         it('must leave a commented-out part of the template inert', () => {
             let evaluated = 0, created = 0;
             const Child = Component.create`<i>child</i>`.extend({ onCreate() { created++; } });

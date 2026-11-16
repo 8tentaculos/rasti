@@ -88,12 +88,14 @@ const RE_PH_TEXT = new RegExp(`(</?)?${PH_CAPTURE}`, 'g');
  * value is "everything up to the closing quote" and may hold the other quote, `>`
  * or whitespace. Unquoted values need not exclude `/`: `replaceElements` hands the
  * tag ending (and the whitespace before it) to its own group, so the attributes
- * string never ends in a slash.
+ * string never ends in a slash. A literal name is everything HTML reads as one: any
+ * character but whitespace, quotes, `<`, `>`, `/` and `=`, so `xlink:href` or
+ * `@click` stays whole.
  * @type {RegExp}
  * @private
  */
 const RE_ATTRIBUTE = new RegExp(
-    `(?:${PH_CAPTURE}|([\\w-]+))` +
+    `(?:${PH_CAPTURE}|([^\\s"'<>/=]+))` +
     '(?:=(?:' +
         `"(?:${PH_CAPTURE}|([^"]*))"` +
         `|'(?:${PH_CAPTURE}|([^']*))'` +
