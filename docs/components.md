@@ -161,6 +161,20 @@ class Search extends Component {
 
 Handlers run from the element where the event happened outward, as the event bubbles, and `event.stopPropagation()` stops the ones further out. An event that does not bubble, such as `focus`, `blur`, `mouseenter`, `load` or `scroll`, runs the handler of the element it happened on and no other. It is caught before it reaches that element, so a `stopPropagation()` in its handler keeps it from listeners attached to the element directly.
 
+The name is camel-cased and binds the event in lowercase, which is how every native event is named: `onDblClick` listens for `dblclick`. For an event named otherwise, such as the events of a web component or a library, write `on:` and the type exactly as it is dispatched: `on:sl-change`, `on:ionChange`, `on:htmx:afterSwap`. It takes a function or a method name, like the camel-cased form. Any other attribute, the lowercase `onclick="…"` included, is left to the browser as written:
+
+```javascript
+class SizePicker extends Component {
+    template() {
+        return this.html`<sl-select on:sl-change="handleChange">…</sl-select>`;
+    }
+
+    handleChange(event) {
+        this.model.size = event.target.value;
+    }
+}
+```
+
 An `on*` attribute binds a DOM event only on an element. On a component tag it is an option for the child, like any other attribute (see [Props and callbacks](#props-and-callbacks)).
 
 ## Props and callbacks

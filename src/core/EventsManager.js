@@ -7,7 +7,9 @@ class EventsManager {
         this.listeners = [];
         // The component each listener runs as, at the same index.
         this.owners = [];
-        this.types = new Set();
+        // Each event type, with its position: the data-attribute names the type by it,
+        // since a type may hold characters an attribute name or a selector can't.
+        this.types = new Map();
         this.previousSize = 0;
     }
 
@@ -19,7 +21,7 @@ class EventsManager {
      * @return {number} The index of the listener.
      */
     addListener(listener, type, owner) {
-        this.types.add(type);
+        if (!this.types.has(type)) this.types.set(type, this.types.size);
         this.owners.push(owner);
         return this.listeners.push(listener) - 1;
     }

@@ -66,12 +66,12 @@ const RE_PH = new RegExp(PH_CAPTURE);
  */
 const RE_PH_G = new RegExp(PH_CAPTURE, 'g');
 /**
- * A camel-cased `on*` attribute in an attributes string. It binds a delegated
- * handler even when its value is literal (`onClick="save"`).
+ * A camel-cased `on*` or an `on:` attribute in an attributes string. It binds a
+ * delegated handler even when its value is literal (`onClick="save"`).
  * @type {RegExp}
  * @private
  */
-const RE_EVENT_ATTRIBUTE = /(?:^|\s)on[A-Z][a-zA-Z]*\s*=/;
+const RE_EVENT_ATTRIBUTE = /(?:^|\s)on(?:[A-Z][a-zA-Z]*|:[^\s"'<>/=]+)\s*=/;
 /**
  * A placeholder in text content, with an optional `<` / `</` immediately before
  * it captured. The prefix marks a dynamic tag name (`<${tag}`, `</${tag}>`) — the

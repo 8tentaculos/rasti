@@ -466,5 +466,22 @@ describe('View', () => {
 
             expect(calls).to.be.equal(0);
         });
+
+        it('must delegate event types that are not a single word', () => {
+            const calls = [];
+            const v = new View({
+                events : {
+                    'sl-change .select' : () => calls.push('sl-change'),
+                    'htmx:afterSwap' : () => calls.push('htmx:afterSwap')
+                }
+            });
+            v.el.innerHTML = '<span class="select"></span>';
+            document.body.appendChild(v.el);
+
+            v.$('.select').dispatchEvent(new CustomEvent('sl-change', { bubbles : true }));
+            v.el.dispatchEvent(new CustomEvent('htmx:afterSwap'));
+
+            expect(calls).to.deep.equal(['sl-change', 'htmx:afterSwap']);
+        });
     });
 });

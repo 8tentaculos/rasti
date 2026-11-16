@@ -1594,6 +1594,66 @@ describe('Component', () => {
             expect(calls).to.deep.equal(['box input', 'slotted input']);
         });
 
+        it('must bind the event named exactly as written after `on:`', () => {
+            const calls = [];
+            const c = Component.create`
+                <div>
+                    <x-a on:sl-change=${event => calls.push(event.type)}></x-a>
+                    <x-b on:ionChange=${event => calls.push(event.type)}></x-b>
+                    <x-c on:htmx:afterSwap=${event => calls.push(event.type)}></x-c>
+                </div>
+            `.mount({}, document.body);
+            const fire = (selector, type) => c.$(selector).dispatchEvent(new CustomEvent(type, { bubbles : true }));
+
+            fire('x-a', 'sl-change');
+            fire('x-b', 'ionchange');
+            fire('x-b', 'ionChange');
+            fire('x-c', 'htmx:afterSwap');
+
+            expect(calls).to.deep.equal(['sl-change', 'ionChange', 'htmx:afterSwap']);
+        });
+
+        it('must call a method named by an `on:` attribute on a static element', () => {
+            let call;
+            class Select extends Component {
+                template() {
+                    return this.html`<div><x-select on:sl-change="handleChange"></x-select></div>`;
+                }
+
+                handleChange(event, component) {
+                    call = { self : this, component, type : event.type };
+                }
+            }
+            const c = Select.mount({}, document.body);
+
+            c.$('x-select').dispatchEvent(new CustomEvent('sl-change', { bubbles : true }));
+
+            expect(call).to.deep.equal({ self : c, component : c, type : 'sl-change' });
+        });
+
+        it('must leave an `on*` name that is neither camel-cased nor `on:` as a plain attribute', () => {
+            const c = Component.create`<div><button onclick="go()" class="${() => 'b'}">ok</button></div>`.mount({}, document.body);
+
+            expect(c.$('button').getAttribute('onclick')).to.be.equal('go()');
+        });
+
+        it('must bind a custom event on markup rendered on the server', () => {
+            const calls = [];
+            const Box = Component.create`<section>${({ props }) => props.renderChildren()}</section>`;
+            const Page = Component.create`
+                <main><x-a on:sl-change=${() => calls.push('a')}></x-a><${Box}><x-b on:my:event=${() => calls.push('b')}></x-b></${Box}></main>
+            `;
+            Component.resetUid();
+            document.body.innerHTML = new Page().toString();
+            Component.resetUid();
+
+            const c = Page.mount({}, document.body, true);
+            c.$('x-a').dispatchEvent(new CustomEvent('sl-change', { bubbles : true }));
+            c.$('x-b').dispatchEvent(new CustomEvent('my:event', { bubbles : true }));
+
+            expect(calls).to.deep.equal(['a', 'b']);
+        });
+
         it('must call the handlers of slotted content before the ones of the host around it', () => {
             const calls = [];
             const Box = Component.create`

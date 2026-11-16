@@ -296,7 +296,7 @@ export default class View extends Emitter {
         const eventTypes = {};
 
         Object.keys(events).forEach(key => {
-            const match = key.match(/^(\w+)(?:\s+(.+))*$/);
+            const match = key.match(/^(\S+)(?:\s+(.+))*$/);
 
             if (!match) {
                 const message = `Invalid event format: ${key}`;

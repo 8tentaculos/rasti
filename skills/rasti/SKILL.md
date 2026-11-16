@@ -175,6 +175,8 @@ Component builds event delegation on top of View's delegation system. `on*` attr
 
 **Handlers across renders:** handlers are not bound to the elements. Each render writes the component's handlers into a list and each element refers to its handler's position there, so a handler created anew on every render (an arrow in `template()`, a quoted thunk) binds nothing and touches no DOM: the latest one runs. No memoizing is needed. In a [list of markup](#lists), updated by position, the handler goes with the content, like the text and the attributes.
 
+Event names: a camel-cased `on*` name binds the lowercase event (`onDblClick` → `dblclick`), for native events. `on:` binds the type exactly as written, for custom events: `on:sl-change`, `on:ionChange`, `on:htmx:afterSwap`. Both take a function or a method name. Any other attribute (`onclick="…"`) is left to the browser.
+
 `on*` binds DOM events on elements only. On a component tag, every attribute is an option for the child — see [Component Tags & Props](#component-tags--props).
 
 **Handler signature:** `(event, component, matched)`

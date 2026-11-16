@@ -308,7 +308,7 @@ Everything written into the DOM comes from the exports of `core/Constants.js`:
 | Entry                 | Default                         | Role                                      |
 |-----------------------|---------------------------------|-------------------------------------------|
 | `ATTRIBUTE_ELEMENT`   | `data-rst-el`                   | emission id on every tracked element      |
-| `ATTRIBUTE_EVENT`     | `data-rst-on-${type}-${uid}`    | delegated listener index                  |
+| `ATTRIBUTE_EVENT`     | `data-rst-on-${n}-${uid}`       | delegated listener index; `n` is the type's position in the `EventsManager` |
 | `MARKER_START` / `_END` | `rst-s-${id}` / `rst-e-${id}` | interpolation region                      |
 | `MARKER_RECYCLED`     | `rst-r-${uid}`                  | placeholder for a claimed list child      |
 

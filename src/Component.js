@@ -289,8 +289,8 @@ class ComponentAdapter {
         // The host delegates the listener, so it runs in the order of the DOM, and records
         // the owner it runs as: the host itself, except for slotted content.
         return {
-            attribute : ATTRIBUTE_EVENT(type, component.uid),
-            index : component.eventsManager.addListener(listener, type, owner.component)
+            index : component.eventsManager.addListener(listener, type, owner.component),
+            attribute : ATTRIBUTE_EVENT(component.eventsManager.types.get(type), component.uid)
         };
     }
 
@@ -423,8 +423,8 @@ export default class Component extends View {
     events() {
         const events = {};
         // Create events object.
-        this.eventsManager.types.forEach(type => {
-            const dataAttribute = ATTRIBUTE_EVENT(type, this.uid);
+        this.eventsManager.types.forEach((position, type) => {
+            const dataAttribute = ATTRIBUTE_EVENT(position, this.uid);
             // Create a listener function that gets the listener index from the data attribute and calls the listener.
             const listener = function(event, component, matched) {
                 // Get the listener index from the data attribute.

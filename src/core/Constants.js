@@ -21,7 +21,8 @@
 export const ATTRIBUTE_ELEMENT = 'data-rst-el';
 
 /**
- * Event data-attribute, given event type and component uid.
+ * Event data-attribute, given the position of the event type in the component's
+ * `EventsManager` and the component uid.
  * @type {Function}
  * @private
  */
