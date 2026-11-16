@@ -1,5 +1,3 @@
-import repeat from './repeat.js';
-
 /**
  * Pads a string to a given length with a given character.
  * @param {string} string The string to pad.
@@ -10,5 +8,5 @@ import repeat from './repeat.js';
  * @private
  */
 export default function padEnd(string, length, char = ' ') {
-    return string + repeat(char, length - string.length);
+    return string + char.repeat(Math.max(0, length - string.length));
 }

@@ -5,7 +5,7 @@ let isChrome, moveBeforeSupported, preserveFocus, resetFocus;
 // - Firefox: moveBefore preserves focus but loses scroll position.
 // - Chrome: moveBefore preserves scroll position but loses focus.
 if (typeof document !== 'undefined') {
-    isChrome = !!navigator.userAgent.match(/Chrome/);
+    isChrome = /Chrome/.test(navigator.userAgent);
     moveBeforeSupported = !!Element.prototype.moveBefore;
     preserveFocus = !moveBeforeSupported || isChrome;
     // When using moveBefore, Chrome resets the focus but preserves the active element.

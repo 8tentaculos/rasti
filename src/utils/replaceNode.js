@@ -9,7 +9,6 @@ import moveNode from './moveNode.js';
  * @private
  */
 export default function replaceNode(oldNode, newNode) {
-    const parent = oldNode.parentNode;
     moveNode(newNode, oldNode);
-    parent.removeChild(oldNode);
+    oldNode.remove();
 }

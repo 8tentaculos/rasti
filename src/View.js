@@ -223,7 +223,7 @@ export default class View extends Emitter {
      * @return {View} Return `this` for chaining.
      */
     removeElement() {
-        this.el.parentNode.removeChild(this.el);
+        this.el.remove();
         // Return `this` for chaining.
         return this;
     }

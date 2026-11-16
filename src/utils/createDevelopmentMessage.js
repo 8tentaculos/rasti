@@ -1,4 +1,3 @@
-import repeat from './repeat.js';
 import padEnd from './padEnd.js';
 
 /**
@@ -35,9 +34,9 @@ export default function createDevelopmentMessage(title, message) {
         `  ${border}`,
         `  | ${padEnd(title, contentWidth)} |`,
         `  | ${padEnd('', contentWidth)} |`,
-    ].concat(lines.map(line => `  | ${padEnd(line, contentWidth)} |`))
-        .concat([`  ${border}`])
-        .concat(cat.map(line => `  ${repeat(' ', catPadding)} ${line}`))
-        .concat([''])
-        .join('\n');
+        ...lines.map(line => `  | ${padEnd(line, contentWidth)} |`),
+        `  ${border}`,
+        ...cat.map(line => `  ${' '.repeat(catPadding)} ${line}`),
+        ''
+    ].join('\n');
 }

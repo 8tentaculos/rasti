@@ -164,13 +164,13 @@ const checkProvidedShape = (component, provided) => {
         }
         const before = Object.keys(contexts[key].attributes);
         const now = Object.keys(provided[key]);
-        const added = now.filter(property => before.indexOf(property) === -1);
-        const dropped = before.filter(property => now.indexOf(property) === -1);
+        const added = now.filter(property => !before.includes(property));
+        const dropped = before.filter(property => !now.includes(property));
         if (added.length) changes.push(`- ${String(key)}: added ${added.join(', ')}`);
         if (dropped.length) changes.push(`- ${String(key)}: dropped ${dropped.join(', ')}`);
     });
     Reflect.ownKeys(contexts).forEach(key => {
-        if (keys.indexOf(key) === -1) changes.push(`- ${String(key)}: dropped`);
+        if (!keys.includes(key)) changes.push(`- ${String(key)}: dropped`);
     });
     if (!changes.length) return;
     warnedProvidedShape.add(constructor);
@@ -524,7 +524,7 @@ export default class Component extends View {
                 // Keep each context read, once, to subscribe to it: at hydration when
                 // the first render reads it, right away when a later render does.
                 if (!this.injected) this.injected = [];
-                if (this.injected.indexOf(context) === -1) {
+                if (!this.injected.includes(context)) {
                     this.injected.push(context);
                     if (this.hydrated) this.subscribe(context);
                 }

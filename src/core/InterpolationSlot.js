@@ -729,7 +729,7 @@ class InterpolationSlot extends Slot {
         // Destroying a child does not touch the DOM, and the component destroys the
         // ones this render left out of its children.
         for (let i = 0; i < placed.length; i++) {
-            if (!kept[i]) placed[i].el.parentNode.removeChild(placed[i].el);
+            if (!kept[i]) placed[i].el.remove();
         }
         // The children whose previous positions already ascend are the ones that can
         // stay put, and the longest such run is the fewest moves the order can be
@@ -780,7 +780,7 @@ class InterpolationSlot extends Slot {
         // Remove the old content.
         if (divider) {
             if (start.nextSibling === divider) {
-                divider.parentNode.removeChild(divider);
+                divider.remove();
             } else {
                 const range = document.createRange();
                 range.setStartAfter(start);

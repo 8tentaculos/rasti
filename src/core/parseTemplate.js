@@ -545,7 +545,7 @@ const hasSingleRoot = (template) => {
             continue;
         }
         if (!depth) roots++;
-        if (ending.indexOf('/') === -1 && !isVoidElement(tag)) depth++;
+        if (!ending.includes('/') && !isVoidElement(tag)) depth++;
     }
 
     // Left inside the root, the rest of the template cannot be read: report what was
@@ -590,7 +590,7 @@ const stripIndentation = (template) => {
         result += gap + node;
         lastIndex = regExp.lastIndex;
         // A comment leaves `tag` undefined: it is a node, not an opening tag.
-        afterOpening = !!tag && !closing && ending.indexOf('/') === -1 && !isVoidElement(tag);
+        afterOpening = !!tag && !closing && !ending.includes('/') && !isVoidElement(tag);
 
         if (afterOpening && RE_VERBATIM_ELEMENT.test(tag)) {
             // Copied untouched up to its closing tag, which the next match picks up.

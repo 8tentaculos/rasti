@@ -1,4 +1,3 @@
-import repeat from './repeat.js';
 import padStart from './padStart.js';
 
 /**
@@ -93,7 +92,7 @@ export default function formatTemplateSource(source, errorExpression, label = 'E
         if (isErrorLine) {
             const markerPos = linePrefix.length + errorStartCol;
             const markerLen = expressionStr.length;
-            const pointerLine = repeat(' ', markerPos) + repeat('^', markerLen) + ` <-- ${label}`;
+            const pointerLine = ' '.repeat(markerPos) + '^'.repeat(markerLen) + ` <-- ${label}`;
             formattedLines.push(pointerLine);
         }
     }
@@ -101,7 +100,7 @@ export default function formatTemplateSource(source, errorExpression, label = 'E
     // If error expression is multi-line, show full details.
     if (typeof errorExpression === 'function') {
         const fullSource = errorExpression.toString();
-        if (fullSource.match(/\n/)) {
+        if (fullSource.includes('\n')) {
             formattedLines.push('');
             formattedLines.push('     | Expression details:');
             fullSource.split('\n').forEach(line => {

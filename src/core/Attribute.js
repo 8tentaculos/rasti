@@ -83,7 +83,7 @@ class Attribute {
 
         if (sourceKeys) {
             if (typeof this.value !== 'string') removeItem(sourceKeys, key);
-            else if (sourceKeys.indexOf(key) === -1) sourceKeys.push(key);
+            else if (!sourceKeys.includes(key)) sourceKeys.push(key);
         }
     }
 }
