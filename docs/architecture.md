@@ -297,7 +297,9 @@ Escape is by origin. A **pure template literal** is HTML source and serializes a
 
 Unsupported forms (interpolated attribute **name**, unquoted value mixed with literal text) warn once per call site in development.
 
-`value` / `checked` / `selected` are patched as properties as well as attributes: the browser stops reflecting them after user interaction.
+`value` / `checked` / `selected` are patched as properties as well as attributes: the browser stops reflecting them after user interaction. `ElementSlot#hydrate` writes them through as well, since `textarea` and `select` have no `value` attribute in HTML and read it from the property alone.
+
+An interpolation inside a `textarea` or a `script` throws at parse time in development: their content is text, where markers can't be written. `title` and `style` are not checked, since inside SVG they hold markup and a template can't tell where it will render.
 
 The component's `attributes` merge only onto the **root** element: the root partial's first `ElementSlot`. Nested partials never get that merge.
 

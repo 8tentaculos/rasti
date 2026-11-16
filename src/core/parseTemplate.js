@@ -6,6 +6,8 @@ import ExpressionDescriptor from './ExpressionDescriptor.js';
 import Attribute from './Attribute.js';
 
 import isVoidElement from '../utils/isVoidElement.js';
+import createDevelopmentErrorMessage from '../utils/createDevelopmentErrorMessage.js';
+import formatTemplateSource from '../utils/formatTemplateSource.js';
 
 import __DEV__ from '../utils/dev.js';
 
@@ -191,6 +193,16 @@ const RE_TRAILING_INDENT = new RegExp(`(^|${PH_ANY})\\s*\\n\\s*$`);
  * @private
  */
 const RE_VERBATIM_ELEMENT = /^(?:pre|textarea|script|style)$/i;
+/**
+ * Elements whose content an interpolation can't render into: a `textarea` holds its
+ * default value as text, where the interpolation's markers would be written as
+ * characters, and a `script` holds code. `title` and `style` are left out: inside
+ * SVG they hold markup like any other element, and a template can't tell where it
+ * will be rendered.
+ * @type {RegExp}
+ * @private
+ */
+const RE_TEXT_ELEMENT = /^(?:textarea|script)$/;
 
 /**
  * Any structural slot token or surviving placeholder, index captured.
@@ -635,6 +647,37 @@ const stripIndentation = (template) => {
 };
 
 /**
+ * Throw when an interpolation is written inside a `textarea` or a `script` (see
+ * `RE_TEXT_ELEMENT`): it would render its markers as text and fail on the first
+ * update. Development only: a template is authored, not data-driven, so the mistake
+ * surfaces the first time the template is parsed in development.
+ * @param {string} template Template string with placeholders, none left in comments.
+ * @param {Object} source The original template source, to point at the expression.
+ * @private
+ */
+const checkTextElements = (template, source) => forEachNode(template, (match, textStart, opens, verbatim) => {
+    if (!verbatim || !RE_TEXT_ELEMENT.test(verbatim)) return;
+    const placeholder = template.slice(textStart, match.index).match(RE_PH);
+    if (!placeholder) return;
+
+    const formattedSource = formatTemplateSource(source, source.expressions[placeholder[1]], 'This interpolation');
+    const error = new Error(createDevelopmentErrorMessage(
+        `Interpolation inside a <${verbatim}>\n` +
+        (verbatim === 'textarea' ?
+            'A <textarea> holds its value as text, where an interpolation can\'t\n' +
+            'render. Pass the value as an attribute instead:\n\n' +
+            '  <textarea>${value}</textarea>           ❌\n' +
+            '  <textarea value="${value}"></textarea>  ✅' :
+            'A <script> holds code, where an interpolation can\'t render.') +
+        (formattedSource ? `\n\nTemplate source:\n\n${formattedSource}` : '')
+    ));
+    // Already located in the template source: the component running the template
+    // rethrows it as it is (see `getExpressionResult`).
+    error._rasti = true;
+    throw error;
+});
+
+/**
  * Parse a template string (already carrying placeholders, with component
  * references already normalized) into skeleton data. Shared by the top-level
  * template and by nested component inner content.
@@ -692,8 +735,10 @@ const parseMain = (main, expressions, isComponentClass, source = null) => {
 const parseTemplate = (strings, expressions, isComponentClass = () => false) => {
     // Store original template source for debugging (only in dev mode).
     const source = __DEV__ ? { strings, expressions : [...expressions] } : null;
+    const template = stripCommentPlaceholders(addPlaceholders(strings, expressions).trim());
+    if (__DEV__) checkTextElements(template, source);
     const main = normalizeComponentRefs(
-        stripIndentation(stripCommentPlaceholders(addPlaceholders(strings, expressions).trim())),
+        stripIndentation(template),
         expressions,
         isComponentClass
     );

@@ -5,6 +5,7 @@ import getAttributesHTML from '../utils/getAttributesHTML.js';
 import getAttributesDiff from '../utils/getAttributesDiff.js';
 import createDevelopmentErrorMessage from '../utils/createDevelopmentErrorMessage.js';
 import removeItem from '../utils/removeItem.js';
+import isOmittedAttribute from '../utils/isOmittedAttribute.js';
 
 import { ATTRIBUTE_ELEMENT } from './Constants.js';
 
@@ -169,12 +170,20 @@ class ElementSlot extends Slot {
     }
 
     /**
-     * Take the rendered node: the next element the render wrote (see `HydrationIndex`).
+     * Take the rendered node: the next element the render wrote (see `HydrationIndex`),
+     * and write its attributes through to their properties, as an update does (see
+     * `SYNC_PROPS`). The markup already sets most of them, but a `textarea` and a
+     * `select` have no `value` attribute in HTML and read it from the property alone.
      * @param {HydrationIndex} index The hydration's node index.
      */
     hydrate(index) {
         this.ref = index.nextElement();
         if (__DEV__) checkHydratedRef(this);
+        const attributes = this.previousAttributes;
+        for (const attr in attributes) {
+            const value = attributes[attr];
+            if (!isOmittedAttribute(value)) syncProperty(this.ref, attr, value);
+        }
     }
 
     /**

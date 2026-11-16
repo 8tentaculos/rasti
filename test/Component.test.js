@@ -894,6 +894,70 @@ describe('Component', () => {
             expect(c.el.value).to.be.equal('');
         });
 
+        it('must render the value of a textarea and a select on the first render', () => {
+            // Neither has a `value` attribute in HTML, so the markup alone leaves them at
+            // their default value.
+            const model = new Model({ text : 'a', choice : 'y' });
+            const c = Component.create`
+                <form id="test-node">
+                    <textarea value="${({ model }) => model.text}"></textarea>
+                    <select value="${({ model }) => model.choice}"><option>x</option><option>y</option></select>
+                </form>
+            `.mount({ model }, document.body);
+            const textarea = c.el.querySelector('textarea');
+            const select = c.el.querySelector('select');
+
+            expect(textarea.value).to.be.equal('a');
+            expect(select.value).to.be.equal('y');
+
+            textarea.value = 'typed';
+            model.set({ text : 'b', choice : 'x' });
+
+            expect(textarea.value).to.be.equal('b');
+            expect(select.value).to.be.equal('x');
+        });
+
+        it('must render the value of a root textarea', () => {
+            const c = new Component({
+                tag : 'textarea',
+                attributes() { return { value : 'a' }; }
+            });
+            c.render();
+
+            expect(c.el.value).to.be.equal('a');
+        });
+
+        it('must leave a textarea without a value at its content', () => {
+            const c = Component.create`<div id="test-node"><textarea name="${() => 'n'}">a</textarea></div>`
+                .mount({}, document.body);
+
+            expect(c.el.querySelector('textarea').value).to.be.equal('a');
+        });
+
+        it('must render the value of a textarea when hydrating server markup', () => {
+            const Main = Component.create`<div><textarea value="${() => 'a'}"></textarea></div>`;
+            Component.resetUid();
+            document.body.innerHTML = Main.mount({}).toString();
+            Component.resetUid();
+            const client = Main.mount({}, document.body, true);
+
+            expect(client.el.querySelector('textarea').value).to.be.equal('a');
+        });
+
+        it('must write the rendered properties over what changed before hydrating', () => {
+            const Main = Component.create`<div><input value="${() => 'a'}" /><input type="checkbox" checked="${() => true}" /></div>`;
+            Component.resetUid();
+            document.body.innerHTML = Main.mount({}).toString();
+            const [text, box] = document.body.querySelectorAll('input');
+            text.value = 'typed';
+            box.checked = false;
+            Component.resetUid();
+            Main.mount({}, document.body, true);
+
+            expect(text.value).to.be.equal('a');
+            expect(box.checked).to.be.true;
+        });
+
         it('must escape attribute values', () => {
             const value = '" onload="attack()';
 

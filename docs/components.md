@@ -139,6 +139,24 @@ An interpolation that stands in place of a whole attribute spreads an object int
 
 An interpolation can't be part of an attribute name (`data-${x}="1"`), and an unquoted value takes a single interpolation with no text around it. Development builds warn about both.
 
+`value`, `checked` and `selected` are written to the element's property as well as its attribute, so the template keeps control of them after the user types or clicks. A `textarea` and a `select` take their value through `value` too, although HTML gives them no such attribute: Rasti writes it to the property once the element is in the DOM. Markup rendered on the server shows them at their default until it is hydrated, and hydrating writes all three properties, so what the user typed or checked before then gives way to what the template renders.
+
+```javascript
+<textarea value="${this.state.text}"></textarea>
+<select value="${this.state.size}"><option>S</option><option>M</option></select>
+```
+
+## Elements whose content is text
+
+An interpolation can't be written inside a `textarea` or a `script`, whose content is text rather than markup: it would show its markers as characters and fail on the next update. Development builds throw when the template is parsed. Bind a `textarea` through `value`, as above.
+
+The same holds for `style` and `title` in HTML. Inside SVG they hold markup, so an interpolation works there (`<title>${label}</title>` on a shape is a tooltip), and since a template can't tell where it will render, development builds don't check them. For styles, pass the dynamic values as custom properties and read them from a static stylesheet. The page title belongs to the document's `head`, outside the element a component renders into: set `document.title` from the component, in `onHydrate` and wherever the value changes.
+
+```javascript
+<div class="card" style="--accent: ${this.props.color}">…</div>
+// .card { border-color: var(--accent); }
+```
+
 ## Event handlers
 
 An `on*` attribute on an element, such as `onClick`, `onInput` or `onKeyUp`, binds a handler for that event: a function, or a string naming a method of the component (`onSubmit="handleSubmit"`). The handler runs with `this` bound to the component and receives `(event, component, matched)`, where `matched` is the element that carries the attribute:

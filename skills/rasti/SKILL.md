@@ -607,7 +607,15 @@ App.mount({ model }, document.body, true);
     <input onInput=${(ev) => this.props.handleChange(ev.target.value)} />
     ```
 
-9. **Reading a context from slotted content**: an expression written between a component's tags belongs to the surrounding template, so `inject` there searches from that component and misses the host. In `<${Field}><${Input} id="${self => self.inject(FormControl).id}" /></${Field}>`, `self` is the page, not `Field`. Read the context in the consumer's own template. Likewise, `inject` in the constructor or `onCreate` runs before any parent rendered the component and gets the empty model.
+9. **Interpolating inside a `textarea`, `script`, `style` or `title`**: their content is text, not markup, so an interpolation there shows its markers as characters and the next update fails (development builds throw for `textarea` and `script`). Bind a textarea through `value`, which also works on a `select`; pass dynamic styles as custom properties (`style="--accent: ${color}"`, read with `var(--accent)` in a static stylesheet); set `document.title` from the component. Inside SVG, `title` and `style` hold markup and take interpolations as usual.
+
+    ```js
+    // ❌ <textarea>${({ state }) => state.text}</textarea>
+    // ✅
+    <textarea value="${({ state }) => state.text}"></textarea>
+    ```
+
+10. **Reading a context from slotted content**: an expression written between a component's tags belongs to the surrounding template, so `inject` there searches from that component and misses the host. In `<${Field}><${Input} id="${self => self.inject(FormControl).id}" /></${Field}>`, `self` is the page, not `Field`. Read the context in the consumer's own template. Likewise, `inject` in the constructor or `onCreate` runs before any parent rendered the component and gets the empty model.
 
 ## Additional Resources
 

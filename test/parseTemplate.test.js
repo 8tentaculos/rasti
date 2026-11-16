@@ -214,6 +214,35 @@ describe('parseTemplate', () => {
         });
     });
 
+    describe('text elements', () => {
+        const parse = ({ strings, expressions }) => () => parseTemplate(strings, expressions, isComponentClass);
+
+        it('must throw on an interpolation inside a textarea or a script', () => {
+            expect(parse(tag`<div><textarea>${'a'}</textarea></div>`)).to.throw(/Interpolation inside a <textarea>/);
+            expect(parse(tag`<div><TEXTAREA>a ${'b'}</TEXTAREA></div>`)).to.throw(/Interpolation inside a <textarea>/);
+            expect(parse(tag`<div><textarea><${makeComponent()} /></textarea></div>`)).to.throw(/<textarea>/);
+            expect(parse(tag`<div><script>var a = ${1};</script></div>`)).to.throw(/Interpolation inside a <script>/);
+        });
+
+        it('must point at the interpolation in the template source', () => {
+            const value = () => 'a';
+            expect(parse(tag`<div><textarea>${value}</textarea></div>`)).to.throw(/\^+ <-- This interpolation/);
+        });
+
+        it('must accept interpolations around a textarea or a script', () => {
+            expect(parse(tag`<div><textarea value="${'a'}" name="${'b'}"></textarea>${'c'}</div>`)).not.to.throw();
+            expect(parse(tag`<div><textarea>a</textarea><p>${'b'}</p></div>`)).not.to.throw();
+            expect(parse(tag`<div><script>var a = 1;</script>${'b'}</div>`)).not.to.throw();
+            expect(parse(tag`<div><!-- <textarea>${'a'}</textarea> --></div>`)).not.to.throw();
+        });
+
+        it('must accept interpolations inside a title or a style', () => {
+            // Inside SVG they hold markup, and a template can't tell where it renders.
+            expect(parse(tag`<circle><title>${'a'}</title></circle>`)).not.to.throw();
+            expect(parse(tag`<svg><style>.a { fill: ${'red'}; }</style></svg>`)).not.to.throw();
+        });
+    });
+
     describe('attribute descriptors', () => {
         it('must parse unquoted, quoted, value-less and static attributes', () => {
             const { strings, expressions } = tag`<a href=${'/x'} title="${'t'}" hidden=${true} data-static="z"></a>`;
@@ -573,7 +602,8 @@ describe('parseTemplate', () => {
 
         it('must keep the content of verbatim elements', () => {
             expect(markupOf(tag`<pre>\n    a\n</pre>`)).to.equal('<pre ·>\n    a\n</pre>');
-            expect(markupOf(tag`<textarea>\n    ${'a'}\n</textarea>`)).to.equal('<textarea ·>\n    ·\n</textarea>');
+            expect(markupOf(tag`<pre>\n    ${'a'}\n</pre>`)).to.equal('<pre ·>\n    ·\n</pre>');
+            expect(markupOf(tag`<textarea>\n    a\n</textarea>`)).to.equal('<textarea ·>\n    a\n</textarea>');
             expect(markupOf(tag`<div>\n    <pre>\n    <b>a</b>\n    </pre>\n</div>`))
                 .to.equal('<div ·><pre>\n    <b>a</b>\n    </pre></div>');
         });
