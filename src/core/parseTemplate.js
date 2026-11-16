@@ -505,6 +505,45 @@ const splitPlaceholders = (main, elements, interpolations) => {
 };
 
 /**
+ * Walk the nodes of a template in order: the comments and the opening and closing
+ * tags `RE_NODE` matches. `visit` receives each node's match, the index where the
+ * text before it starts, whether the node opens an element that holds content
+ * (neither self-closed nor void), and, when that text is the content of a verbatim
+ * element, the element's tag name; returning `false` stops the walk. The content of
+ * a verbatim element is not markup, so the walk skips it up to the element's closing
+ * tag.
+ * @param {string} template Template string.
+ * @param {Function} visit Called with the match, the text start, whether the node
+ *     opens an element, and the verbatim tag name the text is the content of, or `null`.
+ * @return {number} The index where the text after the last node visited starts.
+ * @private
+ */
+const forEachNode = (template, visit) => {
+    const regExp = RE_NODE;
+    regExp.lastIndex = 0;
+    let lastIndex = 0, verbatim = null, match;
+
+    while ((match = regExp.exec(template)) !== null) {
+        const [, closing, tag, , ending] = match;
+        // A comment leaves `tag` undefined.
+        const opens = !!tag && !closing && !ending.includes('/') && !isVoidElement(tag);
+        if (visit(match, lastIndex, opens, verbatim) === false) break;
+        lastIndex = regExp.lastIndex;
+        verbatim = null;
+
+        if (opens && RE_VERBATIM_ELEMENT.test(tag)) {
+            // Resume at its closing tag, which the next match picks up.
+            verbatim = tag.toLowerCase();
+            const end = template.toLowerCase().indexOf(`</${verbatim}`, lastIndex);
+            if (end === -1) break;
+            regExp.lastIndex = end;
+        }
+    }
+
+    return lastIndex;
+};
+
+/**
  * Tell whether the template renders a single root element holding everything else:
  * it opens exactly one element at the top level, closes it, and writes nothing
  * beside it — no text, no interpolation, no comment. A structural fact, not a rule:
@@ -526,33 +565,31 @@ const splitPlaceholders = (main, elements, interpolations) => {
  * @private
  */
 const hasSingleRoot = (template) => {
-    const regExp = RE_NODE;
-    regExp.lastIndex = 0;
-    let depth = 0, roots = 0, lastIndex = 0, match;
+    let depth = 0, roots = 0, single = true;
     // Everything but whitespace between nodes at the top level is a sibling of the root.
     const isEmpty = (from, to) => !template.slice(from, to).trim();
 
-    while ((match = regExp.exec(template)) !== null) {
-        const [, closing, tag, , ending] = match;
-        if (!depth && !isEmpty(lastIndex, match.index)) return false;
-        lastIndex = regExp.lastIndex;
-        // A comment: a node of its own at the top level, and inert anywhere else.
-        if (!tag) {
-            if (!depth) return false;
-            continue;
+    const end = forEachNode(template, (match, textStart, opens) => {
+        const [, closing, tag] = match;
+        // A comment leaves `tag` undefined: a node of its own at the top level, and
+        // inert anywhere else.
+        if (!depth && (!tag || !isEmpty(textStart, match.index))) {
+            single = false;
+            return false;
         }
+        if (!tag) return;
         if (closing) {
             // A closing tag with nothing open is the one the parser drops.
             if (depth) depth--;
-            continue;
+            return;
         }
         if (!depth) roots++;
-        if (!ending.includes('/') && !isVoidElement(tag)) depth++;
-    }
+        if (opens) depth++;
+    });
 
     // Left inside the root, the rest of the template cannot be read: report what was
     // seen up to there.
-    return roots === 1 && (depth > 0 || isEmpty(lastIndex, template.length));
+    return single && roots === 1 && (depth > 0 || isEmpty(end, template.length));
 };
 
 /**
@@ -580,31 +617,21 @@ const stripCommentPlaceholders = (template) =>
  * @private
  */
 const stripIndentation = (template) => {
-    const regExp = RE_NODE;
-    regExp.lastIndex = 0;
-    let result = '', lastIndex = 0, afterOpening = false, match;
+    let result = '', afterOpening = false;
 
-    while ((match = regExp.exec(template)) !== null) {
-        const [node, closing, tag, , ending] = match;
-        let gap = template.slice(lastIndex, match.index);
-        if (afterOpening) gap = gap.replace(RE_LEADING_INDENT, '');
-        if (closing) gap = gap.replace(RE_TRAILING_INDENT, '$1');
-        result += gap + node;
-        lastIndex = regExp.lastIndex;
-        // A comment leaves `tag` undefined: it is a node, not an opening tag.
-        afterOpening = !!tag && !closing && !ending.includes('/') && !isVoidElement(tag);
-
-        if (afterOpening && RE_VERBATIM_ELEMENT.test(tag)) {
-            // Copied untouched up to its closing tag, which the next match picks up.
-            const end = template.toLowerCase().indexOf(`</${tag.toLowerCase()}`, lastIndex);
-            if (end === -1) break;
-            result += template.slice(lastIndex, end);
-            lastIndex = regExp.lastIndex = end;
-            afterOpening = false;
+    const end = forEachNode(template, (match, textStart, opens, verbatim) => {
+        const [node, closing] = match;
+        let text = template.slice(textStart, match.index);
+        // The content of a verbatim element is kept as written.
+        if (!verbatim) {
+            if (afterOpening) text = text.replace(RE_LEADING_INDENT, '');
+            if (closing) text = text.replace(RE_TRAILING_INDENT, '$1');
         }
-    }
+        result += text + node;
+        afterOpening = opens;
+    });
 
-    return result + template.slice(lastIndex);
+    return result + template.slice(end);
 };
 
 /**

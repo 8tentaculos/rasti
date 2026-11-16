@@ -202,6 +202,12 @@ describe('parseTemplate', () => {
             expect(singleRootOf(tag`<div data-json='{"a":1}'></div>`)).to.be.true;
         });
 
+        it('must not read markup inside verbatim elements', () => {
+            // A tag written inside one is text, so it neither opens nor closes a level.
+            expect(singleRootOf(tag`<pre><div></pre><pre></pre>`)).to.be.false;
+            expect(singleRootOf(tag`<script>if (a</div>) {}</script>`)).to.be.true;
+        });
+
         it('must accept a dynamic tag name as the root element', () => {
             expect(singleRootOf(tag`<${'section'}>${'a'}</${'section'}>`)).to.be.true;
             expect(singleRootOf(tag`<${'img'} />`)).to.be.true;

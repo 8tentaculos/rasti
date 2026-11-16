@@ -1,3 +1,5 @@
+import isOmittedAttribute from './isOmittedAttribute.js';
+
 /**
  * Match a name that is legal for an HTML attribute. Excludes whitespace, quotes,
  * `>`, `/`, `=` and control characters, which would otherwise end the attribute
@@ -51,7 +53,7 @@ export default function getAttributesHTML(attributes, sourceKeys) {
 
         if (value === true) {
             html.push(key);
-        } else if (value !== false && value != null) {
+        } else if (!isOmittedAttribute(value)) {
             html.push(`${key}="${escapeAttributeValue(value, !!sourceKeys && sourceKeys.indexOf(key) !== -1)}"`);
         }
     }

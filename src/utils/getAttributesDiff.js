@@ -1,3 +1,5 @@
+import isOmittedAttribute from './isOmittedAttribute.js';
+
 /**
  * Get difference between current and previous attributes. Both are plain objects,
  * walked with `for-in`: inherited enumerable keys would be taken as attributes.
@@ -18,7 +20,7 @@ export default function getAttributesDiff(attributes, previous = {}) {
         if (value !== previous[key]) {
             if (value === true) {
                 add[key] = '';
-            } else if (value !== false && value != null) {
+            } else if (!isOmittedAttribute(value)) {
                 add[key] = value;
             }
         }
@@ -26,7 +28,7 @@ export default function getAttributesDiff(attributes, previous = {}) {
     // Find attributes to remove: gone, or changed to a value that leaves them out.
     for (const key in previous) {
         const value = attributes[key];
-        if (!(key in attributes) || (previous[key] !== value && (value === false || value == null))) {
+        if (!(key in attributes) || (previous[key] !== value && isOmittedAttribute(value))) {
             remove.push(key);
         }
     }
