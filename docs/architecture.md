@@ -86,7 +86,7 @@ Render-agnostic. It guarantees:
 
 It does **not** decide how markup is produced. `render()` is a no-op stub. `Component` overrides element creation and render; a subclass that is not a component writes its own `render`.
 
-Delegation is one listener per event type on `el`. The handler walks from `event.target` up to `el` and fires every matching selector, inner to outer. `stopPropagation()` (`cancelBubble`) stops the walk.
+Delegation is two listeners per event type on `el`. For an event that bubbles, the bubble-phase listener walks from `event.target` up to `el` and fires every matching selector, inner to outer. `stopPropagation()` (`cancelBubble`) stops the walk. An event that does not bubble (`focus`, `mouseenter`, `load`…) never reaches `el` from below, so the capture-phase listener catches it on its way down and matches the target alone.
 
 `View.sanitize` escapes `& < > " '` for XSS. It is public and overrideable. It is **not** the HTML fragment serializer the engine uses for attributes.
 

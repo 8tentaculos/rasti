@@ -171,7 +171,7 @@ attr=x${fn}      // unquoted values take a single interpolation
 
 ### Event Handling
 
-Component builds event delegation on top of View's delegation system. `on*` attributes in the template are compiled into delegated listeners on the component's root element. Events bubble up from descendants; `stopPropagation()` is supported.
+Component builds event delegation on top of View's delegation system. `on*` attributes in the template are compiled into delegated listeners on the component's root element. Events bubble up from descendants; `stopPropagation()` is supported. Events that do not bubble (`onFocus`, `onBlur`, `onMouseEnter`, `onLoad`, `onScroll`…) work on any element and run only the target's handler.
 
 **Handlers across renders:** handlers are not bound to the elements. Each render writes the component's handlers into a list and each element refers to its handler's position there, so a handler created anew on every render (an arrow in `template()`, a quoted thunk) binds nothing and touches no DOM: the latest one runs. No memoizing is needed. In a [list of markup](#lists), updated by position, the handler goes with the content, like the text and the attributes.
 

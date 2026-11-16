@@ -251,6 +251,11 @@ export default class View extends Emitter {
      * If more than one ancestor between `event.target` and the view's root element matches the selector, the listener will be
      * invoked **once for each matched element** (from inner to outer).
      *
+     * An event that does not bubble (`focus`, `blur`, `mouseenter`, `load`, `scroll`...) is matched against its target
+     * alone, as it would be by a listener on that element. It is caught on its way down to the target, so its listener runs
+     * before any listener on the target itself, and a `stopPropagation()` in it keeps the event from them. When views
+     * nested in each other both match the target, the outer one runs first.
+     *
      * @param {object} [events] Object in the format `{'event selector' : 'listener'}`. Used to bind delegated event listeners to the root element.
      * @return {View} Returns `this` for chaining.
      * @example
@@ -312,27 +317,36 @@ export default class View extends Emitter {
         });
 
         Object.keys(eventTypes).forEach(type => {
-            // Listener for the type of event.
-            const typeListener = (event) => {
+            // Run every individual listener whose selector matches `node`.
+            const handle = (event, node) => {
+                if (!node.matches) return;
+                eventTypes[type].forEach(([selector, listener]) => {
+                    if ((node === this.el && !selector) || (node !== this.el && node.matches(selector))) {
+                        listener.call(this, event, this, node);
+                    }
+                });
+            };
+            // A bubbling event reaches the root once it has bubbled through every node below it.
+            const bubbleListener = (event) => {
+                if (!event.bubbles) return;
                 let node = event.target;
                 // Traverse ancestors until reaching the view root (`this.el`).
                 while (node) {
-                    if (node.matches) {
-                        // Iterate and run every individual listener if the selector matches.
-                        eventTypes[type].forEach(([selector, listener]) => {
-                            if ((node === this.el && !selector) || (node !== this.el && node.matches(selector))) {
-                                listener.call(this, event, this, node);
-                            }
-                        });
-                    }
+                    handle(event, node);
                     // Continue traversing ancestors until reaching the view root (`this.el`) or stopping propagation.
                     node = node === this.el || event.cancelBubble ? null : node.parentElement;
                 }
             };
-            // Store the type and listener in the delegated event listeners array.
-            this.delegatedEventListeners.push([type, typeListener]);
-            // Add the event listener to the element.
-            this.el.addEventListener(type, typeListener);
+            // An event that does not bubble never reaches the root from below it, so it is caught
+            // on its way down to the target, in the capture phase, and only the target is matched.
+            const captureListener = (event) => {
+                if (!event.bubbles) handle(event, event.target);
+            };
+            // Store the type and listeners in the delegated event listeners array.
+            this.delegatedEventListeners.push([type, bubbleListener, false], [type, captureListener, true]);
+            // Add the event listeners to the element.
+            this.el.addEventListener(type, bubbleListener);
+            this.el.addEventListener(type, captureListener, true);
         });
         // Return `this` for chaining.
         return this;
@@ -345,8 +359,8 @@ export default class View extends Emitter {
      * @return {View} Return `this` for chaining.
      */
     undelegateEvents() {
-        this.delegatedEventListeners.forEach(([type, listener]) => {
-            this.el.removeEventListener(type, listener);
+        this.delegatedEventListeners.forEach(([type, listener, capture]) => {
+            this.el.removeEventListener(type, listener, capture);
         });
 
         this.delegatedEventListeners = [];

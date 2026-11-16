@@ -159,6 +159,8 @@ class Search extends Component {
 }
 ```
 
+Handlers run from the element where the event happened outward, as the event bubbles, and `event.stopPropagation()` stops the ones further out. An event that does not bubble, such as `focus`, `blur`, `mouseenter`, `load` or `scroll`, runs the handler of the element it happened on and no other. It is caught before it reaches that element, so a `stopPropagation()` in its handler keeps it from listeners attached to the element directly.
+
 An `on*` attribute binds a DOM event only on an element. On a component tag it is an option for the child, like any other attribute (see [Props and callbacks](#props-and-callbacks)).
 
 ## Props and callbacks

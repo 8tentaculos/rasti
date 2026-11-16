@@ -1534,6 +1534,48 @@ describe('Component', () => {
                 done();
             }, 10);
         });
+
+        it('must call handlers of events that do not bubble on inner elements', () => {
+            const calls = [];
+            const c = Component.create`
+                <div onFocus=${() => calls.push('root focus')}>
+                    <input onFocus=${() => calls.push('focus')} onBlur=${() => calls.push('blur')} />
+                    <img onError=${() => calls.push('error')} />
+                    <span onMouseEnter=${() => calls.push('mouseenter')}>x</span>
+                </div>
+            `.mount({}, document.body);
+
+            c.$('input').focus();
+            c.$('input').blur();
+            c.$('img').dispatchEvent(new Event('error'));
+            c.$('span').dispatchEvent(new MouseEvent('mouseenter'));
+
+            expect(calls).to.deep.equal(['focus', 'blur', 'error', 'mouseenter']);
+        });
+
+        it('must call the handler of an event that does not bubble once on the root element', () => {
+            let calls = 0;
+            const c = Component.create`<input onFocus=${() => calls++} />`.mount({}, document.body);
+
+            c.el.focus();
+
+            expect(calls).to.be.equal(1);
+        });
+
+        it('must call the handlers of events that do not bubble in nested components and slotted content', () => {
+            const calls = [];
+            const Box = Component.create(function() {
+                return this.html`<section onFocus=${() => calls.push('box')}><input class="own" onFocus=${() => calls.push('box input')} />${this.props.renderChildren()}</section>`;
+            });
+            const c = Component.create(function() {
+                return this.html`<main><${Box}><input class="slotted" onFocus=${() => calls.push('slotted input')} /></${Box}></main>`;
+            }).mount({}, document.body);
+
+            c.$('.own').focus();
+            c.$('.slotted').focus();
+
+            expect(calls).to.deep.equal(['box input', 'slotted input']);
+        });
     });
 
     describe('Extension and chainable methods', () => {

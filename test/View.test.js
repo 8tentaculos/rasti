@@ -433,5 +433,38 @@ describe('View', () => {
             button.dispatchEvent(new MouseEvent('mouseover', { bubbles : true }));
             button.dispatchEvent(new MouseEvent('mouseout', { bubbles : true }));
         });
+
+        it('must delegate events that do not bubble to their target alone', () => {
+            const calls = [];
+            const v = new View({
+                events : {
+                    'focus input' : () => calls.push('focus input'),
+                    'mouseenter section' : () => calls.push('mouseenter section'),
+                    'mouseenter span' : () => calls.push('mouseenter span'),
+                    'blur' : () => calls.push('blur root')
+                }
+            });
+            v.el.innerHTML = '<section><span>x</span></section><input>';
+            document.body.appendChild(v.el);
+
+            v.$('input').focus();
+            // Entering the span from outside also enters the section: each gets its own event.
+            v.$('span').dispatchEvent(new MouseEvent('mouseenter'));
+            v.el.dispatchEvent(new Event('blur'));
+
+            expect(calls).to.deep.equal(['focus input', 'mouseenter span', 'blur root']);
+        });
+
+        it('must remove the listeners of events that do not bubble on undelegate', () => {
+            let calls = 0;
+            const v = new View({ events : { 'focus input' : () => calls++ } });
+            v.el.innerHTML = '<input>';
+            document.body.appendChild(v.el);
+
+            v.undelegateEvents();
+            v.$('input').focus();
+
+            expect(calls).to.be.equal(0);
+        });
     });
 });

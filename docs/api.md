@@ -1485,6 +1485,11 @@ When `delegateEvents` is called again, possibly with a different events object, 
 If more than one ancestor between `event.target` and the view's root element matches the selector, the listener will be
 invoked **once for each matched element** (from inner to outer).
 
+An event that does not bubble (`focus`, `blur`, `mouseenter`, `load`, `scroll`...) is matched against its target
+alone, as it would be by a listener on that element. It is caught on its way down to the target, so its listener runs
+before any listener on the target itself, and a `stopPropagation()` in it keeps the event from them. When views
+nested in each other both match the target, the outer one runs first.
+
 **Kind**: instance method of [<code>View</code>](#module_view)  
 **Returns**: <code>View</code> - Returns `this` for chaining.  
 
