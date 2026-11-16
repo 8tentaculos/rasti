@@ -121,6 +121,24 @@ describe('parseTemplate', () => {
             expectAttr(elements[1].attributes[0], 'variant', 1, true);
             expect(singleRoot).to.be.true;
         });
+
+        it('must leave the markup and expressions inside a comment inert', () => {
+            const Comp = makeComponent();
+            const { strings, expressions } = tag`<!-- <p class="${'a'}" onClick=${() => {}}>${'b'}</p> <${Comp} /> --><div title="<!-- ${'c'} -->">${'d'}</div>`;
+            const { parts } = parseTemplate(strings, expressions, isComponentClass);
+
+            // Only the element after the comment is parsed, as the first one, and only
+            // the expressions outside the comment are referenced.
+            const elements = elementsOf(parts);
+            expect(elements).to.have.lengthOf(1);
+            expect(elements[0].isFirst).to.be.true;
+            const { value } = elements[0].attributes[0];
+            expectPart(value[0], '<!-- ');
+            expectPart(value[1], 4);
+            expectPart(value[2], ' -->');
+            expect(interpolationsOf(parts).map(interpolation => interpolation.index)).to.deep.equal([5]);
+            expect(dynamicParts(parts, ComponentDescriptor)).to.be.empty;
+        });
     });
 
     describe('template structure', () => {

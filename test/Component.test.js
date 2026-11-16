@@ -1012,6 +1012,27 @@ describe('Component', () => {
             expect(c.el.namespaceURI).to.be.equal('http://www.w3.org/2000/svg');
             expect(c.el.parentNode).to.be.equal(svg);
         });
+
+        it('must leave a commented-out part of the template inert', () => {
+            let evaluated = 0, created = 0;
+            const Child = Component.create`<i>child</i>`.extend({ onCreate() { created++; } });
+            const model = new Model({ label : 'a' });
+            const c = Component.create`
+                <div>
+                    <!-- ${() => evaluated++} <p class="${({ model }) => model.label}" onClick=${() => {}}></p> <${Child} /> -->
+                    <b class="${({ model }) => model.label}">${({ model }) => model.label}</b>
+                </div>
+            `.mount({ model }, document.body);
+
+            model.label = 'b';
+            const b = c.el.querySelector('b');
+            expect(b.className).to.be.equal('b');
+            expect(b.textContent).to.be.equal('b');
+            expect(c.el.textContent).to.not.contain('-->');
+            expect(c.el.querySelector('p')).to.be.null;
+            expect(evaluated).to.be.equal(0);
+            expect(created).to.be.equal(0);
+        });
     });
 
     describe('Text content escaping', () => {

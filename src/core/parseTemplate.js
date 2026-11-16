@@ -147,10 +147,12 @@ const RE_PH_TAG = new RegExp(`<(/)?${PH_CAPTURE}${ATTRIBUTES_PATTERN}(/?)>`, 'g'
  * group is lazy so the tag ending, and the whitespace before it, are left for the
  * ending group instead of being swallowed as attribute characters. The ending
  * matters in foreign content (SVG, MathML), where `/>` actually closes the element.
+ * Comments are matched so the tags written inside one are not taken for elements; a
+ * comment match leaves every group undefined.
  * @type {RegExp}
  * @private
  */
-const RE_ELEMENT = new RegExp(`<(${PH_ANY}|${TAG_NAME_PATTERN})(?:\\s*)${ATTRIBUTES_PATTERN}(\\s*/?>)`, 'gi');
+const RE_ELEMENT = new RegExp(`<!--[\\s\\S]*?-->|<(${PH_ANY}|${TAG_NAME_PATTERN})(?:\\s*)${ATTRIBUTES_PATTERN}(\\s*/?>)`, 'gi');
 
 /**
  * A node boundary, for walking the template's structure: a comment, or an opening
@@ -431,6 +433,8 @@ const parseElements = (template, elements) => {
     let first = true;
     // Match all HTML elements including placeholders and self-closed elements.
     return replaceElements(template, (match, tag, attributesStr, ending) => {
+        // A comment is copied as written.
+        if (!tag) return match;
         const isFirst = first;
         first = false;
         // Elements with dynamic attributes always get a descriptor, and so do elements
@@ -550,6 +554,20 @@ const hasSingleRoot = (template) => {
 };
 
 /**
+ * Drop the placeholders written inside comments. A comment holds text, never nodes,
+ * so nothing in it can render, and the markup it holds must not become elements,
+ * handlers, components or interpolations: commenting out part of a template leaves it
+ * inert, its expressions never evaluated. Comments are matched by the same walk as
+ * the nodes, so a quoted attribute value holding `<!--` is not taken for one.
+ * @param {string} template Template string with placeholders.
+ * @return {string} The template without placeholders inside comments.
+ * @private
+ */
+const stripCommentPlaceholders = (template) =>
+    // A comment leaves `tag` undefined.
+    template.replace(RE_NODE, (node, closing, tag) => tag ? node : node.replace(RE_PH_G, ''));
+
+/**
  * Remove the indentation that only lays out the source: a whitespace-only text node
  * holding a line break as an element's first or last child. Whitespace between
  * siblings, whitespace without a line break and the content of verbatim elements are
@@ -646,7 +664,7 @@ const parseTemplate = (strings, expressions, isComponentClass = () => false) => 
     // Store original template source for debugging (only in dev mode).
     const source = __DEV__ ? { strings, expressions : [...expressions] } : null;
     const main = normalizeComponentRefs(
-        stripIndentation(addPlaceholders(strings, expressions).trim()),
+        stripIndentation(stripCommentPlaceholders(addPlaceholders(strings, expressions).trim())),
         expressions,
         isComponentClass
     );
