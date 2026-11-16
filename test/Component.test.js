@@ -2594,18 +2594,62 @@ describe('Component', () => {
     });
 
     describe('Lifecycle methods', () => {
-        it('must pass onChange the attributes a nested set derives along with the one that changed', () => {
-            const model = new Model({ count : 1, double : 2 });
-            model.on('change:count', () => { model.double = model.count * 2; });
+        it('must render what a child writes to its parent model in onHydrate, keeping the parent attached', () => {
+            const model = new Model({ user : 'anon' });
+            const Child = Component.create`<i>child</i>`.extend({
+                onHydrate() { model.user = 'alberto'; }
+            });
+            const c = Component.create`
+                <div><b>${({ model }) => model.user}</b><${Child} /></div>
+            `.mount({ model }, document.body);
 
-            const c = Component.create`<p>${({ model }) => model.count}</p>`.extend({
-                onChange(model, changed) {
-                    if ('count' in changed) this.render();
-                }
+            expect(c.el.parentNode).to.be.equal(document.body);
+            expect(c.el.querySelector('b').textContent).to.be.equal('alberto');
+            expect(model.listeners.change).to.have.lengthOf(1);
+
+            model.user = 'later';
+            expect(c.el.querySelector('b').textContent).to.be.equal('later');
+        });
+
+        it('must render once the children an update mounts report themselves in onHydrate', () => {
+            const model = new Model({ ids : [1], registered : 0 });
+            let renders = 0;
+            const Row = Component.create`<li>${({ props }) => props.id}</li>`.extend({
+                onHydrate() { model.registered++; }
+            });
+            const c = Component.create(({ model, html }) => {
+                renders++;
+                return html`<div><b>${model.registered}</b><ul>${model.ids.map(id => html`<${Row} key="${id}" id="${id}" />`)}</ul></div>`;
             }).mount({ model }, document.body);
 
-            model.count = 5;
-            expect(c.el.textContent).to.be.equal('5');
+            renders = 0;
+            model.ids = [1, 2, 3];
+
+            expect(model.registered).to.be.equal(3);
+            expect(c.el.querySelector('b').textContent).to.be.equal('3');
+            expect(c.el.querySelectorAll('li')).to.have.lengthOf(3);
+            expect(c.el.parentNode).to.be.equal(document.body);
+            // The update, then one render for everything the rows reported.
+            expect(renders).to.be.equal(2);
+        });
+
+        it('must run a render a child asks of its parent after the parent\'s onHydrate', () => {
+            const model = new Model({ value : 0 });
+            const calls = [];
+            const Child = Component.create`<i>child</i>`.extend({
+                onHydrate() {
+                    calls.push('child:hydrate');
+                    model.value = 1;
+                }
+            });
+            const Main = Component.create`<div><b>${({ model }) => model.value}</b><${Child} /></div>`.extend({
+                onHydrate() { calls.push('parent:hydrate'); },
+                onUpdate() { calls.push('parent:update'); }
+            });
+            const c = Main.mount({ model }, document.body);
+
+            expect(calls).to.deep.equal(['child:hydrate', 'parent:hydrate', 'parent:update']);
+            expect(c.el.querySelector('b').textContent).to.be.equal('1');
         });
 
         it('must let an option override a getter declared by a subclass', () => {

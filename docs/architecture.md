@@ -151,6 +151,8 @@ destroy
 
 `template()` first runs on render, not on construction, so `state` and anything set in `onCreate` are already there.
 
+While a component renders, its hydration or an update's patch, `render()` does not re-enter: it marks the component, which renders again once that render is done, after `onHydrate` or `onUpdate`. So a write made from a child's hook (a child registering with its parent on hydrate, a list of rows that each report themselves) renders the component once, after the render in progress, and never reaches it half-hydrated or half-patched.
+
 A child written as a component tag reaches the constructor only when the parent's render mounts it. A child built in an expression (`Child.mount(options)`, `new Child(options)`) runs it on every parent render, and when the render recycles the previous child instead, the new one is destroyed without rendering (`onDestroy` included). See [Slot-based recycling](#slot-based-recycling).
 
 `subscribe(model)` is `listenTo` on `change` → `onChange`. Default `onChange` calls `render()`. Override it to skip irrelevant keys. `hydrate` subscribes to `model`, `state`, `props` and the contexts the first render read, so nothing listens on the server.

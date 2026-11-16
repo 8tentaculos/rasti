@@ -380,6 +380,9 @@ or shape. The method will:
 
 The `onBeforeUpdate` lifecycle method will be called at the beginning, followed by the `onUpdate` lifecycle method at the end.
 
+A render asked for while the component is rendering, its hydration included, does not interrupt it: it runs
+once that render is done, after `onHydrate` or `onUpdate`.
+
 **Child component handling:**
 When rendering child components, they can be either recreated or recycled:
 
@@ -456,6 +459,9 @@ Lifecycle method. Called when the component is rendered for the first time and h
 Its DOM is already in place: in the container it was mounted into, in the existing DOM it hydrated, or in
 its parent's DOM when an update added it. A component rendered with `render()` alone hydrates in a detached
 `DocumentFragment`.
+A model written here reaches the components already hydrated, its ancestors included, which render once the
+render in progress is done; the components hydrated after this one rendered the previous value, and show it
+until the next change.
 This method only executes on the client and only during the first render.
 Use this method for client-only operations like making API requests or setting up browser-specific functionality.
 

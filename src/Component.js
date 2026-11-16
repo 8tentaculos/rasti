@@ -644,26 +644,34 @@ export default class Component extends View {
      * @private
      */
     hydrate(index) {
-        if (this.model) this.subscribe(this.model);
-        if (this.state) this.subscribe(this.state);
-        this.subscribe(this.props);
-        // Subscribe to the contexts the first render read.
-        if (this.injected) {
-            for (let i = 0; i < this.injected.length; i++) this.subscribe(this.injected[i]);
-        }
+        // A render asked of it while it hydrates waits until it is done (see `render`).
+        this._rendering = true;
+        try {
+            if (this.model) this.subscribe(this.model);
+            if (this.state) this.subscribe(this.state);
+            this.subscribe(this.props);
+            // Subscribe to the contexts the first render read.
+            if (this.injected) {
+                for (let i = 0; i < this.injected.length; i++) this.subscribe(this.injected[i]);
+            }
 
-        // Hydrate the root partial: it recursively hydrates its structure, the nested
-        // partials and the child components in its slots, so the whole subtree hydrates
-        // from this one call. Then adopt its resolved root element — for a container,
-        // the wrapped child's element, already hydrated during the walk.
-        this.rootPartial.hydrate(index);
-        this.el = this.rootPartial.rootElement();
-        // Mark as hydrated so later renders take the update path.
-        this.hydrated = true;
-        // Delegate events.
-        this.delegateEvents();
+            // Hydrate the root partial: it recursively hydrates its structure, the nested
+            // partials and the child components in its slots, so the whole subtree hydrates
+            // from this one call. Then adopt its resolved root element — for a container,
+            // the wrapped child's element, already hydrated during the walk.
+            this.rootPartial.hydrate(index);
+            this.el = this.rootPartial.rootElement();
+            // Mark as hydrated so later renders take the update path.
+            this.hydrated = true;
+            // Delegate events.
+            this.delegateEvents();
+        } finally {
+            this._rendering = false;
+        }
         // Call `onHydrate` lifecycle method.
         this.onHydrate.call(this);
+        // A render asked for while it hydrated, by a child's `onHydrate` for instance.
+        this.renderIfRequested();
         // Return `this` for chaining.
         return this;
     }
@@ -869,6 +877,9 @@ export default class Component extends View {
      *
      * The `onBeforeUpdate` lifecycle method will be called at the beginning, followed by the `onUpdate` lifecycle method at the end.
      *
+     * A render asked for while the component is rendering, its hydration included, does not interrupt it: it runs
+     * once that render is done, after `onHydrate` or `onUpdate`.
+     *
      * **Child component handling:**
      * When rendering child components, they can be either recreated or recycled:
      *
@@ -905,7 +916,23 @@ export default class Component extends View {
      * @return {Component} The component instance.
      */
     render() {
-        return this.destroyed ? this : this.hydrated ? this.renderUpdate() : this.renderInitial();
+        if (this.destroyed) return this;
+        // A render asked for while one is in progress runs once it is done.
+        if (this._rendering) {
+            this._renderRequested = true;
+            return this;
+        }
+        return this.hydrated ? this.renderUpdate() : this.renderInitial();
+    }
+
+    /**
+     * Run the render asked for while the component was rendering (see `render`).
+     * @private
+     */
+    renderIfRequested() {
+        if (!this._renderRequested) return;
+        this._renderRequested = false;
+        this.render();
     }
 
     /**
@@ -945,51 +972,59 @@ export default class Component extends View {
     renderUpdate() {
         // Call `onBeforeUpdate` lifecycle method.
         this.onBeforeUpdate.call(this);
-        // Provide this render's contexts before the children that read them render.
-        this.updateContexts();
-        // Clear event listeners.
-        this.eventsManager.reset();
-        // Store previous children.
-        const previousChildren = this.children;
-        // Clear current children.
-        this.children = [];
-        // Clear the queue of recycled children props.
-        this.propsQueue = [];
-        // Re-run `template()` to get a fresh carrier holding this render's expressions, so
-        // templates that interpolate plain values (recomputed on each call) stay reactive.
-        const carrier = this.buildRootPartial();
-        // The root partial is retained across renders and reconciled by structure, so the
-        // carrier must come from the same template. A changed root can't be patched in place.
-        if (carrier.constructor !== this.rootPartial.constructor) {
-            throwComponentError(
-                __DEV__ &&
-                    `Root template changed in ${this.constructor.name}#${this.uid}\n` +
-                    'A component\'s `template()` must return the same template on every render.\n' +
-                    'Branch inside interpolations instead of switching the root template itself.',
-                `Root template changed in ${this.constructor.name}#${this.uid}`
-            );
-        }
-        // Patch the DOM in place: reconcile interpolations (children / nested partials) and
-        // diff element attributes. Expressions are re-evaluated in the component's context.
-        this.rootPartial.update(carrier.expressions);
-        // A container may now point to a different child element.
-        if (this.rootPartial.isTransparent()) this.el = this.rootPartial.rootElement();
-        // Destroy unused children: those not re-added to `children` during the reconcile.
-        if (previousChildren.length) {
-            const liveChildren = new Set(this.children);
-            for (let i = 0; i < previousChildren.length; i++) {
-                if (!liveChildren.has(previousChildren[i])) previousChildren[i].destroy();
+        // A render asked of it while it patches waits until it is done (see `render`).
+        this._rendering = true;
+        try {
+            // Provide this render's contexts before the children that read them render.
+            this.updateContexts();
+            // Clear event listeners.
+            this.eventsManager.reset();
+            // Store previous children.
+            const previousChildren = this.children;
+            // Clear current children.
+            this.children = [];
+            // Clear the queue of recycled children props.
+            this.propsQueue = [];
+            // Re-run `template()` to get a fresh carrier holding this render's expressions, so
+            // templates that interpolate plain values (recomputed on each call) stay reactive.
+            const carrier = this.buildRootPartial();
+            // The root partial is retained across renders and reconciled by structure, so the
+            // carrier must come from the same template. A changed root can't be patched in place.
+            if (carrier.constructor !== this.rootPartial.constructor) {
+                throwComponentError(
+                    __DEV__ &&
+                        `Root template changed in ${this.constructor.name}#${this.uid}\n` +
+                        'A component\'s `template()` must return the same template on every render.\n' +
+                        'Branch inside interpolations instead of switching the root template itself.',
+                    `Root template changed in ${this.constructor.name}#${this.uid}`
+                );
             }
-        }
-        // Update recycled children props.
-        const { propsQueue } = this;
-        for (let i = 0; i < propsQueue.length; i++) propsQueue[i][0].updateProps(propsQueue[i][1]);
-        // If there are pending event types, delegate events again.
-        if (this.eventsManager.hasPendingTypes()) {
-            this.delegateEvents();
+            // Patch the DOM in place: reconcile interpolations (children / nested partials) and
+            // diff element attributes. Expressions are re-evaluated in the component's context.
+            this.rootPartial.update(carrier.expressions);
+            // A container may now point to a different child element.
+            if (this.rootPartial.isTransparent()) this.el = this.rootPartial.rootElement();
+            // Destroy unused children: those not re-added to `children` during the reconcile.
+            if (previousChildren.length) {
+                const liveChildren = new Set(this.children);
+                for (let i = 0; i < previousChildren.length; i++) {
+                    if (!liveChildren.has(previousChildren[i])) previousChildren[i].destroy();
+                }
+            }
+            // Update recycled children props.
+            const { propsQueue } = this;
+            for (let i = 0; i < propsQueue.length; i++) propsQueue[i][0].updateProps(propsQueue[i][1]);
+            // If there are pending event types, delegate events again.
+            if (this.eventsManager.hasPendingTypes()) {
+                this.delegateEvents();
+            }
+        } finally {
+            this._rendering = false;
         }
         // Call onUpdate lifecycle method.
         this.onUpdate.call(this);
+        // A render asked for while it patched, by a child's hook for instance.
+        this.renderIfRequested();
         // Return this for chaining.
         return this;
     }
@@ -1028,6 +1063,9 @@ export default class Component extends View {
      * Its DOM is already in place: in the container it was mounted into, in the existing DOM it hydrated, or in
      * its parent's DOM when an update added it. A component rendered with `render()` alone hydrates in a detached
      * `DocumentFragment`.
+     * A model written here reaches the components already hydrated, its ancestors included, which render once the
+     * render in progress is done; the components hydrated after this one rendered the previous value, and show it
+     * until the next change.
      * This method only executes on the client and only during the first render.
      * Use this method for client-only operations like making API requests or setting up browser-specific functionality.
      */
