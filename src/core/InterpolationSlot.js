@@ -3,6 +3,7 @@ import SafeHTML from './SafeHTML.js';
 import HydrationIndex from './HydrationIndex.js';
 
 import valueToString from './valueToString.js';
+import isKey from './isKey.js';
 import checkListItems from './checkListItems.js';
 import checkAnchoredContent from './checkAnchoredContent.js';
 import flattenList from './flattenList.js';
@@ -224,7 +225,7 @@ class InterpolationSlot extends Slot {
     toString() {
         const { partial } = this;
         // The marker id is assigned once, on the first render that writes markers.
-        if (this.id == null && !this.isAnchored()) this.id = partial.owner.nextMarkerId();
+        if (this.id === null && !this.isAnchored()) this.id = partial.owner.nextMarkerId();
 
         const value = this.evaluate();
         this.content = value;
@@ -369,7 +370,7 @@ class InterpolationSlot extends Slot {
      * @private
      */
     claimRecyclable(candidate, type, pass) {
-        if (candidate.key == null || !pass.previous) return null;
+        if (!isKey(candidate.key) || !pass.previous) return null;
 
         const prev = pass.previous.get(candidate.key);
         if (!prev || prev.constructor !== type) return null;
@@ -389,7 +390,7 @@ class InterpolationSlot extends Slot {
      * @private
      */
     recordKeyed(pass, key, child) {
-        if (key != null && pass.keyed) pass.keyed.set(key, child);
+        if (isKey(key) && pass.keyed) pass.keyed.set(key, child);
     }
 
     /**
@@ -528,7 +529,7 @@ class InterpolationSlot extends Slot {
      */
     keyedOccupant() {
         const child = this.occupantChild(this.content);
-        return child && child.key != null ? new Map([[child.key, child]]) : null;
+        return child && isKey(child.key) ? new Map([[child.key, child]]) : null;
     }
 
     /**
@@ -543,7 +544,7 @@ class InterpolationSlot extends Slot {
      */
     canRecycle(prev, type, key) {
         if (prev.constructor !== type) return false;
-        return key != null || prev.key != null ? prev.key === key : true;
+        return isKey(key) || isKey(prev.key) ? prev.key === key : true;
     }
 
     /**
@@ -721,7 +722,7 @@ class InterpolationSlot extends Slot {
         const kept = [];
         const sequence = order.map(child => {
             const index = previousIndex.get(child);
-            if (index === undefined) return -1;
+            if (typeof index === 'undefined') return -1;
             kept[index] = true;
             return index;
         });

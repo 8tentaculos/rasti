@@ -1,4 +1,5 @@
 import warnTemplate from './warnTemplate.js';
+import isKey from './isKey.js';
 
 /**
  * Print a warning about one interpolation, resolving its expression off the slot's
@@ -24,7 +25,7 @@ const warn = (slot, message) => {
  * @private
  */
 const holdsKeyedChild = (partial, value) => {
-    if (partial.owner.isChild(value)) return value.key != null;
+    if (partial.owner.isChild(value)) return isKey(value.key);
     if (!partial.isPartial(value) || !value.slots) return false;
     return value.slots.some(slot => holdsKeyedChild(partial, slot.content));
 };
@@ -59,7 +60,7 @@ const checkListItems = (slot, items) => {
         // Checked after rendering, so a component tag already holds its component.
         const child = partial.isPartial(value) && value.isComponentTag() ? value.slots[0].content : value;
         if (!partial.owner.isChild(child)) insidePartial = insidePartial || holdsKeyedChild(partial, child);
-        else if (child.key == null) unkeyed = true;
+        else if (!isKey(child.key)) unkeyed = true;
         else if (keys.has(child.key)) duplicated = child.key;
         else keys.add(child.key);
     };
@@ -72,7 +73,7 @@ const checkListItems = (slot, items) => {
         '\n' +
         '  items.map(item => html`<${Row} key="${item.id}" />`)'
     );
-    else if (duplicated != null) warn(slot,
+    else if (duplicated !== null) warn(slot,
         `Duplicate key "${duplicated}" in a list\n` +
         'Keys identify an item among its siblings, so two items sharing one cannot\n' +
         'both be recycled. Give each item a key of its own.'

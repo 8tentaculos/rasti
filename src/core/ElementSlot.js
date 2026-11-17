@@ -157,7 +157,7 @@ class ElementSlot extends Slot {
      * @return {string} The attributes HTML.
      */
     toString() {
-        if (this.id == null) this.id = this.partial.owner.nextElementId();
+        if (this.id === null) this.id = this.partial.owner.nextElementId();
         if (__DEV__) warnUnsupportedAttribute(this.partial.constructor, this.descriptor);
         const sourceKeys = [];
         const attributes = this.buildAttributes(sourceKeys);
