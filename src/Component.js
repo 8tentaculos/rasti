@@ -18,7 +18,7 @@ import createDevelopmentWarningMessage from './utils/createDevelopmentWarningMes
 import createProductionErrorMessage from './utils/createProductionErrorMessage.js';
 import formatTemplateSource from './utils/formatTemplateSource.js';
 
-import { ATTRIBUTE_ELEMENT, ATTRIBUTE_EVENT } from './core/Constants.js';
+import { ATTRIBUTE_ELEMENT } from './core/Constants.js';
 
 import __DEV__ from './utils/dev.js';
 
@@ -285,12 +285,12 @@ class ComponentAdapter {
     }
 
     registerListener(listener, type, owner) {
-        const { component } = this;
+        const { eventsManager } = this.component;
         // The host delegates the listener, so it runs in the order of the DOM, and records
-        // the owner it runs as: the host itself, except for slotted content.
+        // the owner it runs as when it is not the host itself: slotted content.
         return {
-            index : component.eventsManager.addListener(listener, type, owner.component),
-            attribute : ATTRIBUTE_EVENT(component.eventsManager.types.get(type), component.uid)
+            attribute : eventsManager.attribute(type),
+            index : eventsManager.addListener(listener, owner === this ? undefined : owner.component)
         };
     }
 
@@ -424,7 +424,7 @@ export default class Component extends View {
         const events = {};
         // Create events object.
         this.eventsManager.types.forEach((position, type) => {
-            const dataAttribute = ATTRIBUTE_EVENT(position, this.uid);
+            const dataAttribute = this.eventsManager.attributes[position];
             // Create a listener function that gets the listener index from the data attribute and calls the listener.
             const listener = function(event, component, matched) {
                 // Get the listener index from the data attribute.
@@ -432,8 +432,8 @@ export default class Component extends View {
                 // Root element listener may not have a data attribute.
                 if (index) {
                     const i = parseInt(index, 10);
-                    // The component the listener runs as: this one, or the one that slotted the element.
-                    const owner = this.eventsManager.owners[i];
+                    // The component the listener runs as: the one that slotted the element, or this one.
+                    const owner = this.eventsManager.owners[i] || this;
                     let currentListener = this.eventsManager.listeners[i];
                     if (typeof currentListener === 'string') currentListener = owner[currentListener];
                     validateListener(currentListener);
@@ -577,7 +577,7 @@ export default class Component extends View {
         // Build the props model, before the template reads it.
         this.props = this.createProps(this.props);
         // Store data event listeners.
-        this.eventsManager = new EventsManager();
+        this.eventsManager = new EventsManager(this.uid);
         // Recycled children whose props are reconciled after the render's destroy sweep,
         // so a prop change cannot re-enter render while the tree is still being patched.
         this.propsQueue = [];
