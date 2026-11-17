@@ -35,8 +35,8 @@ Underneath sits a small MVC core: a component is a **view**, **models** hold its
   Event handlers are written as attributes: `onClick=${() => this.increment()}`. They are delegated from the component's root element, so re-renders never bind listeners and an inline handler binds nothing.
 - **Updates in place**  
   When state changes, Rasti re-evaluates the template and writes only the values that differ. The DOM is patched, not rebuilt, so focus, selection and input values persist.
-- **State from anything that emits**  
-  `model`, `state` and `props` are subscribed automatically, and a component re-renders only when a value actually changes, its children included. `subscribe()` accepts any object with `on`/`off`: a Backbone model, or a store of your own.
+- **State in models, or anything that emits**  
+  `model`, `state` and `props` are Rasti models, and a component re-renders when they change. Anything else that emits `change` works too, such as a Backbone model or a store of your own.
 - **Real DOM, no wrapper**  
   `render().el` is the element itself: no shadow DOM, no synthetic events, nothing between you and the node. Query it, style it, or hand it to another library.
 - **Server rendering and hydration**  
