@@ -19,7 +19,7 @@ Read these when the task needs them:
 
 ### Component Creation
 
-A component renders from its `template()` method, which returns a partial (or a child component — see [Container Components](#container-components)). It can be written in three forms, all producing a `Component` subclass, mixable in one app: `Component.create` with a template function or a tagged template, from which it writes `template()`, or a subclass that defines `template()`. Pick by role: the template function for short presentational components; a subclass when the component has methods, state or hooks; the tagged template when its functions should be created once with the class instead of on every render, as in the rows of a large list.
+A component renders from its `template()` method, which returns a partial (or a child component — see [Container Components](#container-components)). It can be written in three forms, all producing a `Component` subclass, mixable in one app: `Component.create` with a template function or a tagged template, from which it writes `template()`, or a subclass that defines `template()`. Pick by role: a subclass when the component has methods, state or hooks; the template function for presentational components, where it reads simpler. The tagged template is the legacy form, the only one in Rasti 4: its interpolations are captured once, with the class, which is practical in some cases, such as an inline function that must keep its identity across renders.
 
 ```js
 import { Component, Model } from 'rasti';
@@ -46,8 +46,8 @@ class Counter extends Component {
     }
 }
 
-// 3. Tagged template — captured once, so dynamic values must be functions.
-// Functions written in it are created once with the class: cheap across thousands of rows.
+// 3. Tagged template — the legacy form. Captured once, so dynamic values must be functions.
+// Functions written in it are created once with the class, so they keep their identity across renders.
 const Row = Component.create`
     <tr>
         <td>${({ model }) => model.label}</td>
@@ -547,9 +547,9 @@ App.mount({ model }, document.body, true);
 ## ⚠️ Best Practices
 
 ### Component Structure
-- Use a template function, ``Component.create(({ props, html }) => html`…`)``, for short presentational components.
 - Use a subclass (`class X extends Component { template() {…} }`) when the component has methods, state or lifecycle hooks.
-- Use the tagged ``Component.create`…` `` form when its functions should be created once with the class, as in the rows of a large list (see [Performance](#performance)).
+- Use a template function, ``Component.create(({ props, html }) => html`…`)``, for presentational components, where it reads simpler.
+- The tagged ``Component.create`…` `` form is the legacy one. Use it where capturing the interpolations once is practical, such as an inline function that must keep its identity across renders, like a callback passed to a child.
 - Keep the root template stable and single-rooted; branch inside the interpolations.
 - Use `html` for conditional blocks and lists. Return `null` from an interpolation to render nothing: `''` and `false` work too, but `null` makes the intent visible.
 - Inline partials or helper methods (`renderHeader()`): pick whichever makes the component easier to read.
@@ -571,7 +571,6 @@ App.mount({ model }, document.body, true);
 ### Performance
 - A list of markup is the cheapest to update; make its items components only when they need an identity. Conditionally call `render()` in `onChange()` to avoid unnecessary work.
 - Pass list rows props that keep their identity (class fields, models), so a parent render doesn't re-render every row.
-- Write the rows of a large list in the tagged form: its handlers are created once with the class, not once per row on every render.
 
 ## Common Pitfalls
 

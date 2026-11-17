@@ -45,7 +45,7 @@ Pick the form that keeps the component easiest to read.
 
 **A subclass suits components with behaviour.** When the component has methods, state or lifecycle hooks, the template, the handlers it binds and the methods it calls sit together in one class body, which reads better than `create` followed by `.extend()`. And in TypeScript the whole class is checked with no annotations (see the [TypeScript guide](./typescript.md)).
 
-**The tagged template creates its functions once.** A function written directly in it is created with the class and is the same on every render, so a component rendered thousands of times, like the rows of a large list, does not allocate its handlers again for each row on each update, and a callback it passes to a child keeps its identity (see [Functions across renders](#functions-across-renders)). The price is that every dynamic value has to be written as a function.
+**The tagged template is the legacy form**, the only one in Rasti 4. Its interpolations are captured once, with the class, so a function written directly in it is the same on every render. That is practical in some cases, such as a callback written inline and passed to a child, which keeps its identity (see [Functions across renders](#functions-across-renders)). The price is that every dynamic value has to be written as a function.
 
 ## Combining the forms
 
@@ -305,17 +305,6 @@ Render the items as markup when they are only content, and as keyed components w
 In the template function and subclass forms, every function written in `template()` is created anew on each render. In the tagged form, a function written directly in the template is created once, with the class, but one created inside an interpolation, such as a function returned by a quoted value or one written in a partial built in a `map`, is new on every render. A new event handler touches no DOM, and a new prop can cost the child a render.
 
 **Event handlers** are not attached to the elements. Each render writes the component's handlers into a list it keeps, and a single listener per event type on its root element looks up the one to call. A new `onClick=${() => this.save()}` on every render binds nothing and touches no DOM: the next click runs the latest one. In a [list of markup](#lists), which is updated by position, the handler goes with the content like the text and the attributes do: the element stays where it is, and its handler is the one of the item now rendered there.
-
-Each new handler is still an allocation: nothing in one component, but it adds up across the thousands of rows of a large list. Written directly in a tagged template, the handlers are created once and shared by every row and every render:
-
-```javascript
-const Row = Component.create`
-    <tr class="${({ props }) => props.selected ? 'danger' : ''}">
-        <td>${({ model }) => model.label}</td>
-        <td><a onClick=${function() { this.props.handleRemove(this.model); }}>Remove</a></td>
-    </tr>
-`;
-```
 
 **Props** are compared with the previous render's by identity, and a child re-renders when one of them changed. A function, an object or an array created during the render is a new value each time, so the child re-renders whenever its parent does. Nothing breaks, it is only extra work; where it matters, in the rows of a large list or in an expensive child, pass something that keeps its identity, such as a class field or a function written directly in a tagged template:
 
