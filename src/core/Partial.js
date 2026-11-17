@@ -35,7 +35,7 @@ const OPENING_TAG = /^<[a-zA-Z][^>]*$/;
  * engine reads fields off: its `el`, its `uid` and its `key`.
  * @typedef {object} ComponentAdapter
  * @property {Function} evaluate Evaluate an expression in the owner's context, `(expression, meta) => value`.
- * @property {Function} registerListener Register an event listener with the host, to run as the owner, `(listener, type, owner) => ({ attribute, index })`.
+ * @property {Function} registerListener Register an event listener with the host, to run as the owner, `(listener, type, owner) => ({ attribute, index })`; a falsy listener gets a `null` index.
  * @property {Function} nextElementId Mint the owner's next element id.
  * @property {Function} nextMarkerId Mint the owner's next interpolation marker id.
  * @property {Function} isChild Tell whether a value is a child component.

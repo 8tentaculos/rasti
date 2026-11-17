@@ -286,12 +286,12 @@ class ComponentAdapter {
 
     registerListener(listener, type, owner) {
         const { eventsManager } = this.component;
+        const attribute = eventsManager.attribute(type);
+        // A falsy listener binds nothing: no index leaves the attribute out.
+        if (!listener) return { attribute, index : null };
         // The host delegates the listener, so it runs in the order of the DOM, and records
         // the owner it runs as when it is not the host itself: slotted content.
-        return {
-            attribute : eventsManager.attribute(type),
-            index : eventsManager.addListener(listener, owner === this ? undefined : owner.component)
-        };
+        return { attribute, index : eventsManager.addListener(listener, owner === this ? undefined : owner.component) };
     }
 
     nextElementId() {

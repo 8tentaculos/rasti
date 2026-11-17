@@ -32,69 +32,6 @@ const syncProperty = (ref, attr, value) => {
 };
 
 /**
- * A camel-cased `on*` attribute name, its event type captured.
- * @type {RegExp}
- * @private
- */
-const RE_EVENT_ATTRIBUTE = /^on([A-Z][a-zA-Z]*)$/;
-
-/**
- * An `on:` attribute name, its event type captured as written.
- * @type {RegExp}
- * @private
- */
-const RE_LITERAL_EVENT_ATTRIBUTE = /^on:(.+)$/;
-
-/**
- * Read the event type a template attribute binds a handler for. A camel-cased `on*`
- * name binds the event in lowercase (`onClick` → `click`), as native events are
- * named; an `on:` name binds the event exactly as written after it (`on:sl-change`,
- * `on:ionChange`). Any other name, the lowercase `onclick` included, is a plain
- * attribute.
- * @param {string} name The attribute name.
- * @return {string|null} The event type, or `null` when the attribute binds none.
- * @private
- */
-const getEventType = (name) => {
-    const match = RE_EVENT_ATTRIBUTE.exec(name);
-    if (match) return match[1].toLowerCase();
-    const literal = RE_LITERAL_EVENT_ATTRIBUTE.exec(name);
-    return literal ? literal[1] : null;
-};
-
-/**
- * Expand events. Registers each listener with the host, whose root element delegates
- * the events of everything it renders, slotted content included; the listener still
- * runs as the owner (see `registerListener`).
- * @param {object} attributes Attributes object.
- * @param {ComponentAdapter} owner The partial's owner.
- * @param {ComponentAdapter} host The partial's host.
- * @return {object} Attributes object.
- * @private
- */
-const expandEvents = (attributes, owner, host) => {
-    const out = {};
-    // `attributes` is a plain object built by the descriptors: no inherited keys.
-    for (const key in attributes) {
-        // Check if key is an event listener.
-        const type = getEventType(key);
-
-        if (type) {
-            const listener = attributes[key];
-            if (listener) {
-                const { attribute, index } = host.registerListener(listener, type, owner);
-                // Add event listener index under its data-attribute.
-                out[attribute] = index;
-            }
-        } else {
-            // Add attribute.
-            out[key] = attributes[key];
-        }
-    }
-    return out;
-};
-
-/**
  * An element for a hydration error: its tag, when known, and its emission id.
  * @param {string|null} tag The tag name, or `null` when it is not known.
  * @param {string|null} id The emission id.
@@ -210,9 +147,10 @@ class ElementSlot extends Slot {
 
     /**
      * Build the attributes object the element is rendered and diffed against: its
-     * descriptors resolved against the current expressions, events expanded, and the
-     * root treatment. The emission id is not among them — it is written out beside
-     * them and never changes, so it is nothing to diff.
+     * descriptors resolved against the current expressions, each event written as the
+     * data-attribute that carries its listener's index, and the root treatment. The
+     * emission id is not among them — it is written out beside them and never
+     * changes, so it is nothing to diff.
      *
      * Root treatment: the component's root element — the root partial's first element,
      * marked on its descriptor — merges the owner's `attributes`, which the owner
@@ -223,10 +161,9 @@ class ElementSlot extends Slot {
      * Given a set, it collects the keys whose values are HTML source (pure template
      * literals) — kept beside the object, not inside it, so `getAttributesDiff` keeps
      * comparing primitive values by identity. Only serialization reads them: an update
-     * writes through `setAttribute`, which always takes plain text. Everything added
-     * after the descriptors — events and the owner's `attributes` — is plain text, and
-     * a key of the owner's `attributes` colliding with a literal-marked one drops the
-     * mark.
+     * writes through `setAttribute`, which always takes plain text. Events and the
+     * owner's `attributes` are plain text, and a key of the owner's `attributes`
+     * colliding with a literal-marked one drops the mark.
      * @param {Array<string>} [sourceKeys] Array collecting the HTML-source keys.
      * @return {object} The attributes.
      * @private
@@ -235,16 +172,15 @@ class ElementSlot extends Slot {
         const { partial } = this;
         const attributes = {};
         const descriptors = this.descriptor.attributes;
-        for (let i = 0; i < descriptors.length; i++) descriptors[i].applyTo(attributes, partial.expressions, partial.owner, sourceKeys);
-        const out = expandEvents(attributes, partial.owner, partial.host);
+        for (let i = 0; i < descriptors.length; i++) descriptors[i].applyTo(attributes, partial.expressions, partial.owner, partial.host, sourceKeys);
         if (partial.isRoot && partial.owner.rootAttributes && this.descriptor.isFirst) {
             const rootAttributes = partial.owner.rootAttributes();
             if (rootAttributes) {
-                Object.assign(out, rootAttributes);
+                Object.assign(attributes, rootAttributes);
                 if (sourceKeys) Object.keys(rootAttributes).forEach(key => removeItem(sourceKeys, key));
             }
         }
-        return out;
+        return attributes;
     }
 }
 

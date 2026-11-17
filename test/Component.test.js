@@ -1562,6 +1562,62 @@ describe('Component', () => {
             }, 10);
         });
 
+        it('must bind a handler passed through a spread or under an interpolated name', () => {
+            const calls = [];
+            const c = Component.create`
+                <div id="test-node">
+                    <button class="spread" ${{ onClick : () => calls.push('spread') }}>a</button>
+                    <button class="named" ${'onClick'}=${() => calls.push('named')}>b</button>
+                </div>
+            `.mount({}, document.body);
+
+            c.$('.spread').dispatchEvent(new MouseEvent('click', { bubbles : true }));
+            c.$('.named').dispatchEvent(new MouseEvent('click', { bubbles : true }));
+
+            expect(calls).to.deep.equal(['spread', 'named']);
+        });
+
+        it('must let the last handler written for an event win', () => {
+            const calls = [];
+            const c = Component.create`
+                <div id="test-node">
+                    <button class="replaced" onClick=${() => calls.push('literal')} ${{ onClick : () => calls.push('spread') }}>a</button>
+                    <button class="removed" onClick=${() => calls.push('removed')} ${{ onClick : null }}>b</button>
+                </div>
+            `.mount({}, document.body);
+
+            c.$('.replaced').dispatchEvent(new MouseEvent('click', { bubbles : true }));
+            c.$('.removed').dispatchEvent(new MouseEvent('click', { bubbles : true }));
+
+            expect(calls).to.deep.equal(['spread']);
+            expect([...c.$('.removed').attributes].some(attr => attr.name.startsWith('data-rst-on-'))).to.be.false;
+        });
+
+        it('must add and remove a handler that comes and goes between renders', () => {
+            const calls = [];
+            const model = new Model({ active : false });
+            const c = Component.create`
+                <div id="test-node"><button onClick="${({ model }) => model.active ? () => calls.push('click') : null}">a</button></div>
+            `.mount({ model }, document.body);
+            const click = () => c.$('button').dispatchEvent(new MouseEvent('click', { bubbles : true }));
+
+            click();
+            model.active = true;
+            click();
+            model.active = false;
+            click();
+
+            expect(calls).to.deep.equal(['click']);
+        });
+
+        it('must pass an on* attribute of a component tag to the child as it is', () => {
+            const handler = () => {};
+            const Child = Component.create`<span></span>`;
+            const c = Component.create`<div id="test-node"><${Child} onSelect=${handler} /></div>`.mount({}, document.body);
+
+            expect(c.children[0].props.onSelect).to.equal(handler);
+        });
+
         it('must support event.stopPropagation() to prevent parent execution', (done) => {
             let parentExecuted = false;
             let childExecuted = false;
