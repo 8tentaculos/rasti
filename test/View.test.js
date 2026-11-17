@@ -310,6 +310,33 @@ describe('View', () => {
             v.$('#btn').dispatchEvent(new MouseEvent('click', { bubbles : true }));
         });
 
+        it('must keep walking up when a listener takes nodes out of the view', () => {
+            class MyView extends View {
+                render() {
+                    this.el.innerHTML = '<section class="outer"><div class="inner"><button></button></div></section>';
+                    return this;
+                }
+            }
+            const calls = [];
+            MyView.prototype.events = {
+                'click button' : () => {
+                    calls.push('button');
+                    // Replace the button's parent: both leave the view.
+                    const inner = v.$('.inner');
+                    inner.parentNode.replaceChild(inner.cloneNode(true), inner);
+                },
+                'click .inner' : () => calls.push('inner'),
+                'click .outer' : () => calls.push('outer'),
+                'click' : () => calls.push('root')
+            };
+
+            const v = new MyView();
+            document.body.appendChild(v.render().el);
+            v.$('button').dispatchEvent(new MouseEvent('click', { bubbles : true }));
+
+            expect(calls).to.deep.equal(['button', 'outer', 'root']);
+        });
+
         it('must stop propagation when stopPropagation is called', (done) => {
             class MyView extends View {
                 render() {

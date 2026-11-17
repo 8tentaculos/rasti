@@ -1589,6 +1589,27 @@ describe('Component', () => {
             }, 10);
         });
 
+        it('must run the outer handlers when a handler re-renders its own element', () => {
+            const calls = [];
+            const model = new Model({ open : false });
+            const c = Component.create(({ model, html }) => {
+                // Two call sites: switching between them replaces the button.
+                const button = model.open ?
+                    html`<button class="close" onClick=${() => { calls.push('close'); model.open = false; }}>Close</button>` :
+                    html`<button class="open" onClick=${() => { calls.push('open'); model.open = true; }}>Open</button>`;
+                return html`
+                    <section onClick=${() => calls.push('root')}>
+                        <div onClick=${() => calls.push('wrapper')}>${button}</div>
+                    </section>
+                `;
+            }).mount({ model }, document.body);
+
+            c.$('button').dispatchEvent(new MouseEvent('click', { bubbles : true }));
+
+            expect(calls).to.deep.equal(['open', 'wrapper', 'root']);
+            expect(c.$('button').className).to.be.equal('close');
+        });
+
         it('must allow event bubbling when stopPropagation is not called', (done) => {
             let parentExecuted = false;
             let childExecuted = false;

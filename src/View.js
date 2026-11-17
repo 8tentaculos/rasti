@@ -251,6 +251,10 @@ export default class View extends Emitter {
      * If more than one ancestor between `event.target` and the view's root element matches the selector, the listener will be
      * invoked **once for each matched element** (from inner to outer).
      *
+     * The ancestors are read when the event reaches the root element, before any listener runs. A listener that re-renders
+     * or removes nodes between the target and the root does not stop the others: the nodes it took out of the view are
+     * skipped, and the walk goes on through the ones left, up to the root.
+     *
      * An event that does not bubble (`focus`, `blur`, `mouseenter`, `load`, `scroll`...) is matched against its target
      * alone, as it would be by a listener on that element. It is caught on its way down to the target, so its listener runs
      * before any listener on the target itself, and a `stopPropagation()` in it keeps the event from them. When views
@@ -329,12 +333,15 @@ export default class View extends Emitter {
             // A bubbling event reaches the root once it has bubbled through every node below it.
             const bubbleListener = (event) => {
                 if (!event.bubbles) return;
-                let node = event.target;
-                // Traverse ancestors until reaching the view root (`this.el`).
-                while (node) {
-                    handle(event, node);
-                    // Continue traversing ancestors until reaching the view root (`this.el`) or stopping propagation.
-                    node = node === this.el || event.cancelBubble ? null : node.parentElement;
+                // The path from the target up to the view root (`this.el`), read before any
+                // listener runs: one that re-renders may take nodes out of it, and the walk
+                // has to go on through the ancestors that are left.
+                const path = [];
+                for (let node = event.target; node; node = node === this.el ? null : node.parentElement) path.push(node);
+                // Walk it until stopping propagation, skipping the nodes a listener took out
+                // of the view.
+                for (let i = 0; i < path.length && !event.cancelBubble; i++) {
+                    if (this.el.contains(path[i])) handle(event, path[i]);
                 }
             };
             // An event that does not bubble never reaches the root from below it, so it is caught
