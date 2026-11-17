@@ -607,7 +607,7 @@ App.mount({ model }, document.body, true);
     <input onInput=${(ev) => this.props.handleChange(ev.target.value)} />
     ```
 
-9. **Interpolating inside a `textarea`, `script`, `style` or `title`**: their content is text, not markup, so an interpolation there shows its markers as characters and the next update fails (development builds throw for `textarea` and `script`). Bind a textarea through `value`, which also works on a `select`; pass dynamic styles as custom properties (`style="--accent: ${color}"`, read with `var(--accent)` in a static stylesheet); set `document.title` from the component. Inside SVG, `title` and `style` hold markup and take interpolations as usual.
+9. **Interpolating inside a `textarea` or a `script`**: their content is text, not markup, so an interpolation there shows its markers as characters and the next update fails (development builds throw). Bind a textarea through `value`, which also works on a `select`.
 
     ```js
     // ❌ <textarea>${({ state }) => state.text}</textarea>

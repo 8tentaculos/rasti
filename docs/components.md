@@ -146,16 +146,7 @@ An interpolation can't be part of an attribute name (`data-${x}="1"`), and an un
 <select value="${this.state.size}"><option>S</option><option>M</option></select>
 ```
 
-## Elements whose content is text
-
-An interpolation can't be written inside a `textarea` or a `script`, whose content is text rather than markup: it would show its markers as characters and fail on the next update. Development builds throw when the template is parsed. Bind a `textarea` through `value`, as above.
-
-The same holds for `style` and `title` in HTML. Inside SVG they hold markup, so an interpolation works there (`<title>${label}</title>` on a shape is a tooltip), and since a template can't tell where it will render, development builds don't check them. For styles, pass the dynamic values as custom properties and read them from a static stylesheet. The page title belongs to the document's `head`, outside the element a component renders into: set `document.title` from the component, in `onHydrate` and wherever the value changes.
-
-```javascript
-<div class="card" style="--accent: ${this.props.color}">…</div>
-// .card { border-color: var(--accent); }
-```
+The content of a `textarea` or a `script` is text, not markup, so it takes no interpolations: development builds throw when the template is parsed.
 
 ## Event handlers
 
