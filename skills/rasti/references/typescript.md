@@ -67,11 +67,9 @@ const Card = Component.create<CardProps>(({ props, html }) => html`
 `);
 ```
 
-With the tagged form, interpolation callbacks are `any` and need opt-in typing (an annotated arrow parameter, `({ props }: C) => …`, for content and quoted attributes; `satisfies EventHandler<C, E>` for unquoted handlers), and the class is a value only — alias it with `type X = InstanceType<typeof X>` to use the name as a type.
-
 ## Typing tagged templates
 
-In a tagged ``Component.create`…` `` template, functions are `any`. Type each one by what rasti calls it with, which depends on where it sits:
+A subclass or a template function is checked with no annotations. In a tagged ``Component.create`…` `` template the class is a value only, and functions are `any`. Type each one by what rasti calls it with, which depends on where it sits:
 
 | Interpolation | Called with | Type it with |
 |---|---|---|

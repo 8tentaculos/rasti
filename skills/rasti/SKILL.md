@@ -19,7 +19,7 @@ Read these when the task needs them:
 
 ### Component Creation
 
-A component renders from its `template()` method, which returns a partial (or a child component — see [Container Components](#container-components)). It can be written in three forms, all producing a `Component` subclass, mixable in one app: `Component.create` with a template function or a tagged template, from which it writes `template()`, or a subclass that defines `template()`. Pick by role: a subclass when the component has methods, state or hooks; the template function for presentational components, where it reads simpler. The tagged template is the legacy form, the only one in Rasti 4: its interpolations are captured once, with the class, which is practical in some cases, such as an inline function that must keep its identity across renders.
+A component renders from its `template()` method, which returns a partial (or a child component — see [Container Components](#container-components)). It can be written in three forms, all producing a `Component` subclass, mixable in one app: `Component.create` with a template function or a tagged template, from which it writes `template()`, or a subclass that defines `template()`. Pick by role: a subclass when the component has methods, state or hooks; the template function for presentational components, where it reads simpler. The tagged template, the form Rasti 4 used, captures its interpolations once, with the class: practical in some cases, such as an inline function that must keep its identity across renders.
 
 ```js
 import { Component, Model } from 'rasti';
@@ -46,7 +46,7 @@ class Counter extends Component {
     }
 }
 
-// 3. Tagged template — the legacy form. Captured once, so dynamic values must be functions.
+// 3. Tagged template — captured once, so dynamic values must be functions.
 // Functions written in it are created once with the class, so they keep their identity across renders.
 const Row = Component.create`
     <tr>
@@ -86,7 +86,7 @@ The partial returned by `template()` becomes the component's root element, so tw
 - **The same template on every render** — the root is created once and then patched in place, so returning a different template throws `Root template changed`.
 
 ```js
-// ❌ Wrong — two elements at the top level; only <h1> survives
+// ❌ Wrong — two elements at the top level: throws in development, only <h1> updates in production
 template() {
     return this.html`<h1>${this.model.title}</h1><p>${this.model.body}</p>`;
 }
@@ -108,60 +108,54 @@ template() {
 
 ### Interpolations
 
-All interpolations in templates (content or attribute values) follow the same rule: non-function values are passed directly; functions are called during each render, bound to `this`, with the component instance as argument.
+Interpolations in content and in quoted attribute values follow the same rule: non-function values are passed directly; functions are called during each render, bound to `this`, with the component instance as argument. An unquoted attribute value is passed as it is, functions included.
 
 **Function vs value interpolations:** in the `create(fn)` and subclass forms the body of `template()` re-runs on every render, so plain values are read fresh each time. In the tagged `Component.create` form the expressions are captured once, when the class is created, so anything dynamic **must be a function** — that is what gets re-evaluated on each render.
 
 ```js
-// Function / subclass form — `template()` re-runs, so plain values stay in sync
+// Template function / subclass form — `template()` re-runs, so plain values stay in sync
 Component.create(({ model, html }) => html`<span>${model.title}</span>`);
 
 // Tagged form — captured once, so dynamic values must be functions
 Component.create`<span>${({ model }) => model.title}</span>`;
 ```
 
-Reach for a function when the value must be read lazily from a nested object; use a plain value when you already have it in scope.
-
 **Quoted vs Unquoted attributes:**
-- **Quoted** `attribute="${fn}"` — function **runs** during render; its return value is used (string, boolean, handler to pass to child, etc.)
+- **Quoted** `attribute="${fn}"` — function **runs** during render; its return value is used (string, boolean, object, etc.)
 - **Unquoted** `attribute=${fn}` — function reference is passed **as-is** (no execution); use for event handlers and callbacks
 
 ```js
-// Content interpolations — function is called, return value renders
+// Content — a value renders; a function is called and its result renders
+${this.model.title}
 ${({ model }) => model.title}
-${({ model, state }) => model.count + state.offset}
-${function() { return this.model.title; }}
 
-// Quoted attribute — executes, passes result (a handler thunk) to child
-handleAddTodo="${({ model }) => (title) => model.addTodo({ title })}"
-
-// Quoted attribute — executes, passes current value
-checked="${({ model }) => !!model.todos.length && !model.remaining.length}"
+// Quoted attribute — a value is passed; a function is called and its result is passed
+checked="${!!this.model.todos.length && !this.model.remaining.length}"
 currentFilter="${({ model }) => model.filter}"
 
-// Unquoted — passes function reference directly (event handler, callback)
-onClick=${function() { this.model.removeCompleted(); }}
-handleChange=${(checked) => model.toggleAll(checked)}
+// Unquoted — the function itself is passed: an event handler, or a callback for a child
+onClick=${() => this.model.removeCompleted()}
+handleChange=${(checked) => this.model.toggleAll(checked)}
 ```
 
-**Quoted attribute values compose** — a quoted value may mix literal text and any number of interpolations; the parts are joined into a single string. Each interpolated part is evaluated like any quoted value and coerced with the content-interpolation rule: `null`, `undefined`, `true` and `false` become `''`, anything else its string form. A value that is *exactly* one interpolation passes its raw resolved value, so booleans, objects and handler thunks keep working. On an element, a raw `true` writes the attribute with no value, and `false`, `null` and `undefined` leave it out (`''` writes it empty):
+**Quoted attribute values compose** — a quoted value may mix literal text and any number of interpolations; the parts are joined into a single string. Each interpolated part is evaluated like any quoted value and coerced with the content-interpolation rule: `null`, `undefined`, `true` and `false` become `''`, anything else its string form. A value that is *exactly* one interpolation passes its raw resolved value, so booleans, objects and functions keep their type. On an element, a raw `true` writes the attribute with no value, and `false`, `null` and `undefined` leave it out (`''` writes it empty):
 
 ```js
 // ✅ Mixed — literal text and interpolations join into one string
-class="base ${({ state }) => state.active ? 'active' : ''}"
-href="/items?page=${({ state }) => state.page}"
+class="base ${this.state.active ? 'active' : ''}"
+href="/items?page=${this.state.page}"
 
 // ✅ Lone interpolation — raw value (boolean drives attribute presence)
-disabled="${({ model }) => model.locked}"
+disabled="${this.model.locked}"
 // ✅ Lone interpolation — null / undefined leave the attribute out
-aria-label="${({ props }) => props.label}"
+aria-label="${this.props.label}"
 
 // ❌ Still unsupported (warns in development)
 data-${x}="1"    // an interpolation can't be part of an attribute name
 attr=x${fn}      // unquoted values take a single interpolation
 ```
 
-**Whole-attribute interpolation (spread)** — an interpolation in place of a whole attribute, with no name and no value, spreads an object into the attributes; each value follows the lone-interpolation rules. A string is written as an attribute with no value; any other value (`null`, `undefined`, `false`) adds nothing. A function is called first, as in a quoted value. Attributes apply in source order, so a later one overrides an earlier one with the same name. On a component tag the object spreads into the child's options:
+**Whole-attribute interpolation (spread)** — an interpolation in place of a whole attribute, with no name and no value, spreads an object into the attributes; each value follows the lone-interpolation rules. A string is written as an attribute with no value; any other value (`null`, `undefined`, `false`) adds nothing. A function is called first, as in a quoted value. Attributes apply in source order, so a later one overrides an earlier one with the same name. A spread may carry event handlers too (`{ onInput : fn }`). On a component tag the object spreads into the child's options:
 
 ```js
 <input ${{ type : 'text', name : this.props.name }} />
@@ -169,13 +163,15 @@ attr=x${fn}      // unquoted values take a single interpolation
 <${Avatar} ${{ name : user.name, src : user.photo }} size="small" />
 ```
 
+**Tag name** — an element's tag name may be an interpolation holding a string, `<${tag}>…</${tag}>`. It is read when the element is first written and never updated, so it suits a value fixed per instance, such as the `tag` option.
+
 ### Event Handling
 
 Component builds event delegation on top of View's delegation system. `on*` attributes in the template are compiled into delegated listeners on the component's root element. Events bubble up from descendants; `stopPropagation()` is supported. Events that do not bubble (`onFocus`, `onBlur`, `onMouseEnter`, `onLoad`, `onScroll`…) work on any element and run only the target's handler.
 
-**Handlers across renders:** handlers are not bound to the elements. Each render writes the component's handlers into a list and each element refers to its handler's position there, so a handler created anew on every render (an arrow in `template()`, a quoted thunk) binds nothing and touches no DOM: the latest one runs. No memoizing is needed. In a [list of markup](#lists), updated by position, the handler goes with the content, like the text and the attributes.
+**Handlers across renders:** handlers are not bound to the elements. Each render writes the component's handlers into a list and each element refers to its handler's position there, so a handler created anew on every render (an arrow in `template()`) binds nothing and touches no DOM: the latest one runs. No memoizing is needed. In a [list of markup](#lists), updated by position, the handler goes with the content, like the text and the attributes.
 
-Event names: a camel-cased `on*` name binds the lowercase event (`onDblClick` → `dblclick`), for native events. `on:` binds the type exactly as written, for custom events: `on:sl-change`, `on:ionChange`, `on:htmx:afterSwap`. Both take a function or a method name. Any other attribute (`onclick="…"`) is left to the browser.
+Event names: a camel-cased `on*` name binds the lowercase event (`onDblClick` → `dblclick`), for native events. `on:` binds the type exactly as written, for custom events: `on:sl-change`, `on:ionChange`, `on:htmx:afterSwap`. Both take the same values. Any other attribute (`onclick="…"`) is left to the browser.
 
 `on*` binds DOM events on elements only. On a component tag, every attribute is an option for the child — see [Component Tags & Props](#component-tags--props).
 
@@ -186,14 +182,14 @@ Event names: a camel-cased `on*` name binds the lowercase event (`onDblClick` �
 
 ```js
 // Inline function (most common)
-<button onClick=${function(ev) { this.model.count++; }}>+</button>
+<button onClick=${() => this.model.count++}>+</button>
 
-// String method name — resolved as this.handleSubmit
+// A method — runs bound to the component
 class Form extends Component {
     template() {
         return this.html`
-            <form onSubmit="handleSubmit">
-                <input onChange="handleChange" />
+            <form onSubmit=${this.handleSubmit}>
+                <input onChange=${this.handleChange} />
             </form>
         `;
     }
@@ -207,19 +203,17 @@ class Form extends Component {
         this.model.value = ev.target.value;
     }
 }
-
-// Arrow function quoted — parent executes, passes handler thunk to child
-handleSave="${({ model, props }) => () => model.delete(props.itemId)}"
-
-// Arrow function quoted — parent executes, passes the function it returns (its own prop) to child
-handleSelect="${({ props }) => props.handleSelect}"
 ```
+
+A string names a method of the component instead (`onSubmit="handleSubmit"`), as in a View's `events`: useful in a tagged template, whose methods are added with `.extend()`.
+
+A handler that is `null`, `undefined` or `false` binds nothing, so an optional callback prop can be passed straight through: `onInput=${this.props.handleInput}`.
 
 **Related:** [`delegateEvents`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v5.0.0-alpha.6/docs/api.md#module_view__delegateevents)
 
 ### Component Tags & Props
 
-When using `<${Component} />`, attributes become component options. Some options belong to the component itself and never reach `props`: `key`, `model`, `state`, `template`, `el`, `tag`, `attributes`, `events`, and the lifecycle hooks (`onCreate`, `onHydrate`, `onChange`, `onBeforeUpdate`, `onUpdate`, `onBeforeRecycle`, `onRecycle`, `onDestroy`). Every other option is collected into `this.props` (a Model). When a child is recycled, only its props are updated.
+When using `<${Component} />`, attributes become component options. Some options belong to the component itself and never reach `props`: `key`, `model`, `state`, `template`, `el`, `tag`, `attributes`, `events`, and the lifecycle hooks (`onCreate`, `onHydrate`, `onChange`, `onBeforeUpdate`, `onUpdate`, `onBeforeRecycle`, `onRecycle`, `onDestroy`). Those are set on the instance (read `this.tag`, not `this.props.tag`). Every other option is collected into `this.props` (a Model). When a child is recycled, only its props are updated.
 
 **Callback props:** a function passed as a prop is the child's to use, usually by calling it from one of its own event handlers (`Header` below calls `handleAddTodo` on Enter). Name callback props `handle*`: it sets them apart from DOM event handlers, and keeps them clear of the lifecycle hook names, which the component takes for itself — `<${Input} onChange=${fn} />` would replace `Input`'s own `onChange` (see [Common Pitfalls](#common-pitfalls)).
 
@@ -292,6 +286,16 @@ const Main = Component.create(({ html }) => html`
 ```
 
 When using `Component.mount()`, pass `renderChildren` manually: `{ renderChildren : () => value }`.
+
+For more places to fill, take other `render*` props as thunks the parent builds with its own `html`, and call them as `renderChildren` is called. Build their content with component tags, never `mount()`, so it recycles:
+
+```js
+// Parent
+html`<${Button} renderIcon=${() => html`<${SaveIcon} />`}>Save</${Button}>`
+
+// Button
+html`<button>${props.renderIcon ? props.renderIcon() : null}${props.renderChildren()}</button>`
+```
 
 ### Context
 
@@ -390,7 +394,7 @@ ${model.todos.map(todo => html`<${TodoItem} key="${todo.id}" model="${todo}" />`
 ${model.todos.map(todo => html`<li><${Row} key="${todo.id}" /></li>`)}
 ```
 
-The key goes on the item itself: a component tag that is the whole item. A component wrapped in markup, or built in a transparent partial (``html`${Row.mount({ key })}` ``), belongs to that partial instead (development builds warn).
+The key goes on the item itself: a component tag that is the whole item. A component wrapped in markup, or built in a partial that is only an interpolation (``html`${Row.mount({ key })}` ``), belongs to that partial instead (development builds warn).
 
 ### Component Recycling
 
@@ -408,7 +412,7 @@ Rasti reuses component instances across renders to preserve state and improve pe
 
 ```js
 // Same type, different identity — use key to force recreation instead of recycling
-${({ props, html }) => html`<${TodoForm} key="${props.editingId}" model="${props.editingTodo}" />`}
+<${TodoForm} key="${this.props.editingId}" model="${this.props.editingTodo}" />
 ```
 
 ### Container Components
@@ -523,7 +527,7 @@ Subscribe to other models in `onHydrate` (see [Lifecycle Hooks](#lifecycle-hooks
 Use [`Component.markAsSafeHTML`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v5.0.0-alpha.6/docs/api.md#module_component_markassafehtml) only for pre-sanitized trusted HTML:
 
 ```js
-${({ props }) => Component.markAsSafeHTML(props.trustedHTML)}
+${Component.markAsSafeHTML(this.props.trustedHTML)}
 ```
 
 ### Server-Side Rendering
@@ -540,6 +544,7 @@ App.mount({ model }, document.body, true);
 ```
 
 - `toString()` runs the constructor, `onCreate` and `template()`, children included. It subscribes to nothing, binds no events and never calls `onHydrate`, which runs only on the client.
+- Events fired before hydration, such as an image's `load` or `error`, are not replayed: check the element's state in `onHydrate` (`img.complete`).
 - Hydration finds elements by ids derived from `View.uid`, so the server resets the counter on every request (`Component.resetUid()`) and the client must render the same markup: same Rasti version and the same data (for example, a serialized model the client parses).
 
 **Related API:** [`Component.mount`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v5.0.0-alpha.6/docs/api.md#module_component_mount) · [`component.toString`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v5.0.0-alpha.6/docs/api.md#module_component__tostring) · [`View.resetUid`](https://cdn.jsdelivr.net/gh/8tentaculos/rasti@v5.0.0-alpha.6/docs/api.md#module_view_resetuid)
@@ -549,7 +554,7 @@ App.mount({ model }, document.body, true);
 ### Component Structure
 - Use a subclass (`class X extends Component { template() {…} }`) when the component has methods, state or lifecycle hooks.
 - Use a template function, ``Component.create(({ props, html }) => html`…`)``, for presentational components, where it reads simpler.
-- The tagged ``Component.create`…` `` form is the legacy one. Use it where capturing the interpolations once is practical, such as an inline function that must keep its identity across renders, like a callback passed to a child.
+- Use the tagged ``Component.create`…` `` form where capturing the interpolations once is practical, such as an inline function that must keep its identity across renders, like a callback passed to a child.
 - Keep the root template stable and single-rooted; branch inside the interpolations.
 - Use `html` for conditional blocks and lists. Return `null` from an interpolation to render nothing: `''` and `false` work too, but `null` makes the intent visible.
 - Inline partials or helper methods (`renderHeader()`): pick whichever makes the component easier to read.
@@ -558,14 +563,13 @@ App.mount({ model }, document.body, true);
 
 ### Handlers & Props
 - Name callback props `handle*` (`handleChange`, `handleSelect`): it sets them apart from DOM event handlers and keeps them clear of lifecycle hook names such as `onChange`.
-- Unquoted for local handlers: `onClick=${function() { this.model.toggle(); }}`
-- Quoted when passing a thunk from parent, in the tagged form: `handleAdd="${({ model }) => (v) => model.add(v)}"`. The thunk returns a new function on every render, so the child re-renders with its parent; fine for a single child, not for list rows
-- Unquoted for simple pass-through callbacks: `handleChange=${(v) => model.set(v)}`
+- Unquoted for handlers and callbacks: `onClick=${() => this.model.toggle()}`, `handleChange=${(v) => this.model.set(v)}`. A callback written as an arrow is a new function on every render, so the child re-renders with its parent: fine for a single child; for list rows pass a class field (see [Component Tags & Props](#component-tags--props)).
 
 ### Lifecycle
 - Init state in `onCreate()`. Subscribe to external models in `onHydrate()`.
 - Use `destroyQueue.push` to co-locate cleanup with subscriptions.
 - Use `onUpdate()` for DOM side effects (focus, scroll) after re-render.
+- Write a DOM property that has no attribute, such as `indeterminate`, by hand in both `onHydrate()` and `onUpdate()`: `this.$('input').indeterminate = !!this.props.indeterminate`.
 - Override `onChange()` to conditionally render only on relevant attribute changes.
 
 ### Performance
@@ -574,16 +578,16 @@ App.mount({ model }, document.body, true);
 
 ## Common Pitfalls
 
-1. **Quoted vs unquoted**: most frequent source of errors. Use quoted when you need to execute and pass the result; use unquoted when passing a function reference directly. See [Interpolations](#interpolations).
+1. **Quoted vs unquoted**: when the value is a function, the most frequent source of errors. Use quoted when it must run and pass its result; use unquoted when the function itself is the value. See [Interpolations](#interpolations).
 
 2. **Unexpected recycling**: a component of the same type in the same interpolation is recycled, not recreated, so whatever runs only at creation — the constructor, `onCreate`, `onHydrate` — does not run again, and a recycled child receives only its new props, not `model` or `state`. A conditional that renders the same component with a different model keeps the first one:
 
     ```js
     // ❌ Recycled — still bound to `saved` after `editing` turns true
-    ${({ state, html }) => html`<${Form} model="${state.editing ? draft : saved}" />`}
+    <${Form} model="${this.state.editing ? draft : saved}" />
 
     // ✅ A key that changes per case forces a fresh instance
-    ${({ state, html }) => html`<${Form} key="${state.editing ? 'draft' : 'saved'}" model="${state.editing ? draft : saved}" />`}
+    <${Form} key="${this.state.editing ? 'draft' : 'saved'}" model="${this.state.editing ? draft : saved}" />
     ```
 
 3. **A component in a list without a key**: it is never recycled — every render recreates it, losing its state and DOM nodes. Key it by a stable identity, or render the item as markup if it needs no identity. See [Lists](#lists).
@@ -609,9 +613,9 @@ App.mount({ model }, document.body, true);
 9. **Interpolating inside a `textarea` or a `script`**: their content is text, not markup, so an interpolation there shows its markers as characters and the next update fails (development builds throw). Bind a textarea through `value`, which also works on a `select`.
 
     ```js
-    // ❌ <textarea>${({ state }) => state.text}</textarea>
+    // ❌ <textarea>${this.state.text}</textarea>
     // ✅
-    <textarea value="${({ state }) => state.text}"></textarea>
+    <textarea value="${this.state.text}"></textarea>
     ```
 
 10. **Reading a context from slotted content**: an expression written between a component's tags belongs to the surrounding template, so `inject` there searches from that component and misses the host. In `<${Field}><${Input} id="${self => self.inject(FormControl).id}" /></${Field}>`, `self` is the page, not `Field`. Read the context in the consumer's own template. Likewise, `inject` in the constructor or `onCreate` runs before any parent rendered the component and gets the empty model.

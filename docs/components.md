@@ -45,7 +45,7 @@ Pick the form that keeps the component easiest to read.
 
 **A subclass suits components with behaviour.** When the component has methods, state or lifecycle hooks, the template, the handlers it binds and the methods it calls sit together in one class body, which reads better than `create` followed by `.extend()`. And in TypeScript the whole class is checked with no annotations (see the [TypeScript guide](./typescript.md)).
 
-**The tagged template is the legacy form**, the only one in Rasti 4. Its interpolations are captured once, with the class, so a function written directly in it is the same on every render. That is practical in some cases, such as a callback written inline and passed to a child, which keeps its identity (see [Functions across renders](#functions-across-renders)). The price is that every dynamic value has to be written as a function.
+**The tagged template captures its interpolations once**, with the class, so a function written directly in it is the same on every render. That is practical in some cases, such as a callback written inline and passed to a child, which keeps its identity (see [Functions across renders](#functions-across-renders)). The price is that every dynamic value has to be written as a function.
 
 ## Combining the forms
 
@@ -150,13 +150,13 @@ The content of a `textarea` or a `script` is text, not markup, so it takes no in
 
 ## Event handlers
 
-An `on*` attribute on an element, such as `onClick`, `onInput` or `onKeyUp`, binds a handler for that event: a function, or a string naming a method of the component (`onSubmit="handleSubmit"`). The handler runs with `this` bound to the component and receives `(event, component, matched)`, where `matched` is the element that carries the attribute:
+An `on*` attribute on an element, such as `onClick`, `onInput` or `onKeyUp`, binds a handler for that event: a function, such as a method of the component (`onSubmit=${this.handleSubmit}`). The handler runs with `this` bound to the component and receives `(event, component, matched)`, where `matched` is the element that carries the attribute:
 
 ```javascript
 class Search extends Component {
     template() {
         return this.html`
-            <form onSubmit="handleSubmit">
+            <form onSubmit=${this.handleSubmit}>
                 <input onInput=${(event) => this.props.handleQuery(event.target.value)} />
             </form>
         `;
@@ -168,14 +168,16 @@ class Search extends Component {
 }
 ```
 
+A string names a method of the component instead (`onSubmit="handleSubmit"`), as in a View's `events`: useful in a tagged template, whose methods are added with `.extend()`.
+
 Handlers run from the element where the event happened outward, as the event bubbles, and `event.stopPropagation()` stops the ones further out. An event that does not bubble, such as `focus`, `blur`, `mouseenter`, `load` or `scroll`, runs the handler of the element it happened on and no other. It is caught before it reaches that element, so a `stopPropagation()` in its handler keeps it from listeners attached to the element directly.
 
-The name is camel-cased and binds the event in lowercase, which is how every native event is named: `onDblClick` listens for `dblclick`. For an event named otherwise, such as the events of a web component or a library, write `on:` and the type exactly as it is dispatched: `on:sl-change`, `on:ionChange`, `on:htmx:afterSwap`. It takes a function or a method name, like the camel-cased form. Any other attribute, the lowercase `onclick="…"` included, is left to the browser as written:
+The name is camel-cased and binds the event in lowercase, which is how every native event is named: `onDblClick` listens for `dblclick`. For an event named otherwise, such as the events of a web component or a library, write `on:` and the type exactly as it is dispatched: `on:sl-change`, `on:ionChange`, `on:htmx:afterSwap`. It takes the same values as the camel-cased form. Any other attribute, the lowercase `onclick="…"` included, is left to the browser as written:
 
 ```javascript
 class SizePicker extends Component {
     template() {
-        return this.html`<sl-select on:sl-change="handleChange">…</sl-select>`;
+        return this.html`<sl-select on:sl-change=${this.handleChange}>…</sl-select>`;
     }
 
     handleChange(event) {
