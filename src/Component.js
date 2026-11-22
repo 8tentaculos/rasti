@@ -603,15 +603,18 @@ export default class Component extends View {
 
     /**
      * Resolve the component's root partial for this render. `template()` may return a
-     * partial, used as the root directly, or a component instance, wrapped in a
+     * partial of its own, used as the root directly, or a component instance or a
+     * partial another component wrote (the content slotted into it), wrapped in a
      * single-interpolation partial — which makes this component a container.
      * @return {Partial} The root partial for this render.
      * @private
      */
     buildRootPartial() {
         const result = getExpressionResult(this.template, this, 'template');
-        if (result instanceof Partial) return result;
-        if (result instanceof Component) {
+        if (result instanceof Partial && result.owner === this.adapter) return result;
+        // A partial another component wrote renders as this one's content, like a child:
+        // the components in it join this one, which delegates its events.
+        if (result instanceof Partial || result instanceof Component) {
             return this.partial(CONTAINER_STRINGS, result);
         }
         throwComponentError(
@@ -765,7 +768,10 @@ export default class Component extends View {
      * to define the markup. It may also return a child component instance, in which case
      * the component is rendered as a <b>container</b> around it. A root partial that is
      * a single component tag (``this.html`<${Child} />` ``) makes a container too, and
-     * builds the child only when it cannot recycle the previous one (see `render`).
+     * builds the child only when it cannot recycle the previous one (see `render`). So
+     * does returning the content slotted into it (`this.props.renderChildren()`), when
+     * that content has a single root element: the component adds no element of its own,
+     * and the components in that content are its children.
      *
      * The base implementation builds the element the way a view does: from `this.tag`
      * (defaulting to `div`) and the component's `attributes`, rendering the content the

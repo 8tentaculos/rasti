@@ -289,7 +289,10 @@ values are recomputed. Override it (directly, via `extend`, or through `create`)
 to define the markup. It may also return a child component instance, in which case
 the component is rendered as a <b>container</b> around it. A root partial that is
 a single component tag (``this.html`<${Child} />` ``) makes a container too, and
-builds the child only when it cannot recycle the previous one (see `render`).
+builds the child only when it cannot recycle the previous one (see `render`). So
+does returning the content slotted into it (`this.props.renderChildren()`), when
+that content has a single root element: the component adds no element of its own,
+and the components in that content are its children.
 
 The base implementation builds the element the way a view does: from `this.tag`
 (defaulting to `div`) and the component's `attributes`, rendering the content the
@@ -1484,6 +1487,10 @@ When `delegateEvents` is called again, possibly with a different events object, 
 
 If more than one ancestor between `event.target` and the view's root element matches the selector, the listener will be
 invoked **once for each matched element** (from inner to outer).
+
+The ancestors are read when the event reaches the root element, before any listener runs. A listener that re-renders
+or removes nodes between the target and the root does not stop the others: the nodes it took out of the view are
+skipped, and the walk goes on through the ones left, up to the root.
 
 An event that does not bubble (`focus`, `blur`, `mouseenter`, `load`, `scroll`...) is matched against its target
 alone, as it would be by a listener on that element. It is caught on its way down to the target, so its listener runs

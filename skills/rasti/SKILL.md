@@ -439,6 +439,20 @@ class TertiaryButton extends Component {
 
 `template()` may also return a built component (`Button.mount(options)`), which is then built on every render (see [Component Recycling](#component-recycling)). A component tag and a built component both make a container, but they count as *different root templates*: alternating between them across renders throws `Root template changed`.
 
+Returning the slotted content (`props.renderChildren()`) also makes a container, standing on the root of that content, which must be a single element or component; the components in it are its children. Use it for a provider that adds no element (theme, language), or a gate:
+
+```js
+const ThemeProvider = Component.create(({ props }) => props.renderChildren()).extend({
+    provide() {
+        return { [Theme] : { mode : this.props.mode } };
+    }
+});
+
+const Gate = Component.create(({ props, html }) => html`
+    ${props.ready ? props.renderChildren() : html`<${Spinner} />`}
+`);
+```
+
 ### Lifecycle Hooks
 
 | Hook | Runs | Use for |

@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ES module bundles**: `dist/rasti.esm.js` (development) and `dist/rasti.esm.min.js` (production) are single files that run natively in the browser, for example through an import map.
 - **Agent skill**: the reference for AI agents moved from `docs/AGENTS.md` to `skills/rasti/SKILL.md`, an [Agent Skill](https://agentskills.io) shipped in the package. Install it with `npx skills add 8tentaculos/rasti` or copy it from `node_modules/rasti/skills/rasti`.
 - **Custom events with `on:`**: `on:` binds the event named exactly as written after it, so the events of web components and libraries, which a camel-cased name can't spell, can be handled in the template: `on:sl-change`, `on:ionChange`, `on:htmx:afterSwap`. It takes a function or a method name, like `onClick`, which still binds the lowercase native event. A view's `events` also accepts these types (`'sl-change .select'`).
+- **A component can render the content slotted into it as its root**: `template()` may return `props.renderChildren()`, and the component becomes a container standing on the root of that content, which must be a single element or a single component. It adds no element of its own, and the components in the content are its children, so it can provide a context to them: a theme or language provider that wraps nothing, or a gate that shows a placeholder until its content is ready.
 
 ### Changed
 

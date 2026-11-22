@@ -275,6 +275,8 @@ class SignUp extends Component {
 
 A context is read by the component that uses it, in its own template. An expression written in the content between the tags belongs to the template around it, like the content does, so it searches from that component and does not see the host: in `<${Field}><${Input} id="${self => self.inject(FormControl).id}" /></${Field}>`, `self` is `SignUp`, not `Field`. In the constructor and in `onCreate` a component has not been rendered by anyone yet, so `inject` returns the empty model there, and development builds warn.
 
+A provider of a value for the whole tree, such as a theme or a language, needs no element of its own: its template returns the content slotted into it (see [Containers](#containers-returning-a-component)), and the components written in that content, with everything they render, read the context.
+
 A context is a dependency the template does not show, so keep it for what it is good at:
 
 - **The contract lives in a module of its own.** Both sides import the key from it, never from each other, so any control can read it and any container can provide it: `Input`, `Select` and `Textarea` read `FormControl`; `Field`, `Fieldset` or a test provide it. Use `Symbol` keys, so no other library's context can shadow yours.
@@ -395,6 +397,28 @@ class ButtonCancel extends Component {
 ```
 
 `template()` may also return a component it builds, `Button.mount(options)`, which is then built on every render as described above.
+
+It may also return the content slotted into it. The component then adds no element of its own: it stands on the root of that content, which must be a single element or a single component, and the components in it are its children. That makes a provider that wraps nothing (see [Context](#context)), or a gate that shows its content once it is ready:
+
+```javascript
+const ThemeProvider = Component.create(({ props }) => props.renderChildren()).extend({
+    provide() {
+        return { [Theme] : { mode : this.props.mode } };
+    }
+});
+
+const Gate = Component.create(({ props, html }) => html`
+    ${props.ready ? props.renderChildren() : html`<${Spinner} />`}
+`);
+
+const Root = Component.create(({ model, html }) => html`
+    <${ThemeProvider} mode="${model.theme}">
+        <${Gate} ready="${model.loaded}">
+            <${App} />
+        </${Gate}>
+    </${ThemeProvider}>
+`);
+```
 
 ## The root partial
 

@@ -2218,6 +2218,64 @@ describe('Component', () => {
                 new MouseEvent('click', { bubbles : true })
             );
         });
+
+        describe('rendering the content slotted into it', () => {
+            const Item = Component.create`<span class="item">${({ props }) => props.label}</span>`;
+
+            [
+                ['returned by a template function', Component.create(({ props }) => props.renderChildren())],
+                ['interpolated in a tagged template', Component.create`${({ props }) => props.renderChildren()}`]
+            ].forEach(([form, Slotted]) => {
+                it(`must stand on the slotted root element when it is ${form}`, () => {
+                    const calls = [];
+                    const Page = Component.create`
+                        <main>
+                            <${Slotted}>
+                                <div class="slotted" onClick=${function() { calls.push(this); }}>
+                                    <${Item} label="${({ state }) => state.label}" />
+                                </div>
+                            </${Slotted}>
+                        </main>
+                    `.extend({ attributes : { class : 'page' } });
+
+                    const page = Page.mount({ state : new Model({ label : 'a' }) }, document.body);
+                    const slotted = page.children[0];
+                    const item = slotted.children[0];
+
+                    expect(slotted.el).to.be.equal(document.querySelector('.slotted'));
+                    // The slotted components join the container, not the template that wrote them.
+                    expect(page.children).to.have.lengthOf(1);
+                    expect(item).to.be.instanceOf(Item);
+                    expect(item.parent).to.be.equal(slotted);
+                    // The `attributes` of the template that wrote it stay on its own root.
+                    expect(slotted.el.className).to.be.equal('slotted');
+                    // Its listeners run as the template that wrote them.
+                    slotted.el.click();
+                    expect(calls).to.deep.equal([page]);
+
+                    page.state.label = 'b';
+                    expect(slotted.children[0]).to.be.equal(item);
+                    expect(item.destroyed).to.not.be.true;
+                    expect(document.querySelector('.item').textContent).to.be.equal('b');
+
+                    slotted.render();
+                    expect(page.children).to.have.lengthOf(1);
+                    expect(slotted.children).to.deep.equal([item]);
+                    slotted.el.click();
+                    expect(calls).to.deep.equal([page, page]);
+
+                    page.destroy();
+                    expect(item.destroyed).to.be.true;
+                });
+            });
+
+            it('must throw when the slotted content has more than one root', () => {
+                const Slotted = Component.create(({ props }) => props.renderChildren());
+                const Page = Component.create`<main><${Slotted}><p>a</p><p>b</p></${Slotted}></main>`;
+
+                expect(() => Page.mount({}, document.body)).to.throw(/Invalid container template/);
+            });
+        });
     });
 
     describe('create with a template function', () => {
@@ -2628,6 +2686,30 @@ describe('Component', () => {
 
             expect(input).to.be.instanceOf(Input);
             expect(input.el.id).to.be.equal('email');
+        });
+
+        it('must provide from a component that renders its slotted content as its root', () => {
+            const Theme = Symbol('theme');
+            const ThemeProvider = Component.create(({ props }) => props.renderChildren()).extend({
+                provide() {
+                    return { [Theme] : { mode : this.props.mode } };
+                }
+            });
+            const Label = Component.create`<b>${({ inject }) => inject(Theme).mode}</b>`;
+            const Page = Component.create`
+                <${ThemeProvider} mode="${({ state }) => state.mode}">
+                    <main><${Label} /></main>
+                </${ThemeProvider}>
+            `;
+
+            const page = Page.mount({ state : new Model({ mode : 'dark' }) }, document.body);
+
+            expect(page.el).to.be.equal(document.querySelector('main'));
+            expect(document.querySelector('b').textContent).to.be.equal('dark');
+
+            page.state.mode = 'light';
+
+            expect(document.querySelector('b').textContent).to.be.equal('light');
         });
 
         it('must not look past a provider whose value is null', () => {
