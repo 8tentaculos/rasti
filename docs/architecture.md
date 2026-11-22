@@ -116,7 +116,7 @@ Component.create`<div>${({ model }) => model.title}</div>`;
 
 The subclass and function forms re-run `template()` every render, so plain values work. `create` with a tagged template writes a `template()` that rebuilds the partial from expressions captured once, so anything dynamic must be a function. Which form suits each component is in [Writing components](./components.md).
 
-`template()` may also return a child component instance, or a partial that is a single component tag. Either makes this component a **container**: no wrapper element; `this.el` is the child's. A partial another component wrote, the content slotted into this one (`props.renderChildren()`), is wrapped like a child component, so this component hosts it: the components in it join its `children` and its root delegates their listeners. That content must have a single root element, which becomes `this.el`.
+`template()` may also return a child component instance, or a partial that is a single component tag. Either makes this component a **container**: no wrapper element; `this.el` is the child's. A partial another component wrote, the content slotted into this one (`props.renderChildren()`), is wrapped like a child component, so this component hosts it: the components in it join its `children` and its root delegates their listeners. That content must have a single root element, which becomes `this.el`. When a render leaves a container standing on another element, it moves there with its delegated listeners, and so do the containers around it, which stood on the same element.
 
 ### Root restrictions
 

@@ -2219,6 +2219,63 @@ describe('Component', () => {
             );
         });
 
+        it('must move its own listeners to the element it switches to', () => {
+            const A = Component.create`<button class="a">a</button>`;
+            const B = Component.create`<button class="b">b</button>`;
+            let clicks = 0;
+            const Toggle = Component.create`${({ model, html }) => model.a ? html`<${A} />` : html`<${B} />`}`.extend({
+                events() {
+                    return { click : () => clicks++ };
+                }
+            });
+
+            const model = new Model({ a : true });
+            const c = Toggle.mount({ model }, document.body);
+
+            model.a = false;
+            c.el.click();
+            model.a = true;
+            c.el.click();
+
+            expect(clicks).to.be.equal(2);
+        });
+
+        describe('switching the element it stands on', () => {
+            const A = Component.create`<button class="a">a</button>`;
+            const B = Component.create`<button class="b">b</button>`;
+            const Toggle = Component.create`${({ state, html }) => state.a ? html`<${A} />` : html`<${B} />`}`;
+
+            it('must move the containers around it when it renders alone', () => {
+                let clicks = 0;
+                const Outer = Component.create(({ props, html }) => html`<${Toggle} state=${props.toggle} />`).extend({
+                    events() {
+                        return { click : () => clicks++ };
+                    }
+                });
+
+                const toggle = new Model({ a : true });
+                const outer = Outer.mount({ toggle }, document.body);
+
+                toggle.a = false;
+
+                expect(outer.el).to.be.equal(document.querySelector('.b'));
+                outer.el.click();
+                expect(clicks).to.be.equal(1);
+            });
+
+            it('must move the containers around it when they rendered before it', () => {
+                const Outer = Component.create(({ model, html }) => html`<${Toggle} state=${model} />`);
+
+                const model = new Model({ a : true });
+                // The outer container subscribes first, so it renders before the toggle switches.
+                const outer = Outer.mount({ model }, document.body);
+
+                model.a = false;
+
+                expect(outer.el).to.be.equal(document.querySelector('.b'));
+            });
+        });
+
         describe('rendering the content slotted into it', () => {
             const Item = Component.create`<span class="item">${({ props }) => props.label}</span>`;
 
@@ -2267,6 +2324,23 @@ describe('Component', () => {
                     page.destroy();
                     expect(item.destroyed).to.be.true;
                 });
+            });
+
+            it('must keep the slotted listeners when it switches back to the slotted content', () => {
+                const Spinner = Component.create`<i>loading</i>`;
+                const Gate = Component.create`${({ state, props, html }) => state.ready ? props.renderChildren() : html`<${Spinner} />`}`;
+                const state = new Model({ ready : true });
+                let clicks = 0;
+                const Page = Component.create`<main><${Gate} state=${state}><p onClick=${() => clicks++}>ready</p></${Gate}></main>`;
+
+                Page.mount({}, document.body);
+
+                state.ready = false;
+                expect(document.querySelector('i')).to.exist;
+                state.ready = true;
+                document.querySelector('p').click();
+
+                expect(clicks).to.be.equal(1);
             });
 
             it('must throw when the slotted content has more than one root', () => {

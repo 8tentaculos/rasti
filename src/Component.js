@@ -1014,8 +1014,17 @@ export default class Component extends View {
             // Patch the DOM in place: reconcile interpolations (children / nested partials) and
             // diff element attributes. Expressions are re-evaluated in the component's context.
             this.rootPartial.update(carrier.expressions);
-            // A container may now point to a different child element.
-            if (this.rootPartial.isTransparent()) this.el = this.rootPartial.rootElement();
+            // A container may now stand on a different element: its listeners move with it,
+            // and so do the containers around it, which stand on the same element.
+            if (this.rootPartial.isTransparent()) {
+                const el = this.rootPartial.rootElement();
+                const previous = this.el;
+                for (let view = this; view && view.el === previous && el !== previous; view = view.parent) {
+                    view.undelegateEvents();
+                    view.el = el;
+                    view.delegateEvents();
+                }
+            }
             // Destroy unused children: those not re-added to `children` during the reconcile.
             if (previousChildren.length) {
                 const liveChildren = new Set(this.children);
